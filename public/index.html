@@ -1,0 +1,892 @@
+<!doctype html>
+<html lang="nb">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <title>Fugleobservasjoner – arts-autocomplete</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #0f172a;
+        --card-bg: #111827;
+        --border: #1f2937;
+        --accent: #3b82f6;
+        --accent-soft: rgba(59, 130, 246, 0.15);
+        --text: #e5e7eb;
+        --muted: #9ca3af;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        background: radial-gradient(circle at top, #1f2937 0, #020617 55%);
+        color: var(--text);
+        padding: 16px;
+      }
+
+      .shell {
+        width: 100%;
+        max-width: 480px;
+        margin: 0 auto;
+      }
+
+      .card {
+        background: linear-gradient(145deg, rgba(15,23,42,0.96), rgba(15,23,42,0.92));
+        border-radius: 18px;
+        border: 1px solid rgba(148, 163, 184, 0.18);
+        box-shadow:
+          0 22px 65px rgba(15, 23, 42, 0.85),
+          0 0 0 1px rgba(15, 23, 42, 0.9);
+        padding: 18px 18px 14px;
+        backdrop-filter: blur(22px);
+      }
+
+      header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 12px;
+      }
+
+      .title {
+        font-size: 1.05rem;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .pill {
+        font-size: 0.7rem;
+        padding: 3px 8px;
+        border-radius: 999px;
+        border: 1px solid rgba(148, 163, 184, 0.35);
+        color: var(--muted);
+        background: radial-gradient(circle at top left, rgba(248, 250, 252, 0.06), rgba(15, 23, 42, 0.7));
+      }
+
+      .subtitle {
+        font-size: 0.8rem;
+        color: var(--muted);
+        margin-bottom: 10px;
+      }
+
+      label {
+        display: block;
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.11em;
+        color: var(--muted);
+        margin-bottom: 6px;
+      }
+
+      .input-wrap {
+        position: relative;
+      }
+
+      input[type="text"] {
+        width: 100%;
+        padding: 9px 34px 9px 28px;
+        border-radius: 999px;
+        border: 1px solid rgba(148, 163, 184, 0.45);
+        background: radial-gradient(circle at top left, rgba(248, 250, 252, 0.06), rgba(15, 23, 42, 0.95));
+        color: var(--text);
+        font-size: 0.9rem;
+        outline: none;
+        -webkit-appearance: none;
+      }
+
+      input[type="text"]::placeholder {
+        color: rgba(148, 163, 184, 0.75);
+      }
+
+      input[type="text"]:focus {
+        border-color: rgba(59, 130, 246, 0.9);
+        box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.6), 0 0 0 8px rgba(59, 130, 246, 0.15);
+      }
+
+      .search-icon {
+        position: absolute;
+        left: 9px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 0.9rem;
+        color: rgba(148, 163, 184, 0.9);
+      }
+
+      .status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 999px;
+        background: #22c55e;
+        box-shadow: 0 0 0 6px rgba(34, 197, 94, 0.16);
+      }
+
+      .status-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: 10px;
+        font-size: 0.72rem;
+        color: var(--muted);
+      }
+
+      .status-left {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .results {
+        margin-top: 8px;
+        max-height: 260px;
+        overflow-y: auto;
+        padding: 4px 0 0;
+      }
+
+      .result-item {
+        padding: 7px 10px;
+        border-radius: 10px;
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+        cursor: pointer;
+        border: 1px solid transparent;
+        transition: background 120ms ease, border-color 120ms ease, transform 80ms ease;
+      }
+
+      .result-item:hover,
+      .result-item[aria-selected="true"] {
+        background: radial-gradient(circle at left, var(--accent-soft), rgba(15, 23, 42, 0.98));
+        border-color: rgba(59, 130, 246, 0.6);
+        transform: translateY(-1px);
+      }
+
+      .result-name-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+      }
+
+      .result-name {
+        font-size: 0.88rem;
+        font-weight: 500;
+      }
+
+      .result-taxon-id {
+        font-size: 0.7rem;
+        color: var(--muted);
+      }
+
+      .result-sci {
+        font-size: 0.75rem;
+        color: var(--muted);
+      }
+
+      .result-empty {
+        font-size: 0.78rem;
+        color: var(--muted);
+        padding: 8px 2px 4px;
+      }
+
+      .chosen {
+        margin-top: 10px;
+        font-size: 0.8rem;
+        padding: 6px 10px;
+        border-radius: 999px;
+        border: 1px solid rgba(148, 163, 184, 0.45);
+        background: radial-gradient(circle at left, rgba(34, 197, 94, 0.15), rgba(15, 23, 42, 0.95));
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .chosen span:first-child {
+        font-weight: 500;
+      }
+
+      .badge {
+        font-size: 0.7rem;
+        padding: 1px 7px;
+        border-radius: 999px;
+        border: 1px solid rgba(148, 163, 184, 0.4);
+        color: var(--muted);
+      }
+
+      .loc-row {
+        margin-top: 6px;
+        font-size: 0.72rem;
+        color: var(--muted);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .loc-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 999px;
+        background: #6b7280;
+      }
+
+      .row {
+        margin-top: 12px;
+      }
+
+      .row-inline {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+
+      input[type="number"] {
+        width: 110px;
+        padding: 7px 10px;
+        border-radius: 999px;
+        border: 1px solid rgba(148, 163, 184, 0.45);
+        background: radial-gradient(circle at top left, rgba(248, 250, 252, 0.04), rgba(15, 23, 42, 0.95));
+        color: var(--text);
+        font-size: 0.9rem;
+        outline: none;
+        -webkit-appearance: none;
+      }
+
+      input[type="number"]:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+      }
+
+      input[type="number"]:focus {
+        border-color: rgba(59, 130, 246, 0.9);
+        box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.6), 0 0 0 8px rgba(59, 130, 246, 0.15);
+      }
+
+      .obs-list {
+        margin-top: 12px;
+        border-top: 1px solid rgba(15, 23, 42, 0.8);
+        padding-top: 8px;
+        font-size: 0.8rem;
+        max-height: 220px;
+        overflow-y: auto;
+      }
+
+      .obs-group {
+        margin-bottom: 8px;
+      }
+
+      .obs-group-title {
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.09em;
+        color: var(--muted);
+        margin-bottom: 3px;
+      }
+
+      .obs-item {
+        display: flex;
+        justify-content: flex-start;
+        align-items: baseline;
+        padding: 3px 0;
+      }
+
+      .obs-main {
+        display: flex;
+        flex-direction: column;
+      }
+
+      .obs-name {
+        font-weight: 500;
+      }
+
+      .obs-meta {
+        color: var(--muted);
+      }
+
+      .export-row {
+        margin-top: 8px;
+        display: flex;
+        justify-content: flex-end;
+      }
+
+      .btn {
+        border-radius: 999px;
+        border: 1px solid rgba(148, 163, 184, 0.55);
+        background: radial-gradient(circle at top left, rgba(248, 250, 252, 0.08), rgba(15, 23, 42, 0.96));
+        color: var(--text);
+        font-size: 0.78rem;
+        padding: 5px 12px;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .btn:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+      }
+
+      .btn span {
+        font-size: 0.85em;
+      }
+
+      .icon-btn {
+        border: none;
+        background: transparent;
+        color: var(--muted);
+        cursor: pointer;
+        padding: 0 4px;
+        font-size: 0.9rem;
+      }
+
+      .icon-btn:disabled {
+        opacity: 0.4;
+        cursor: default;
+      }
+
+      .kbd-hint {
+        display: none;
+      }
+
+      @media (min-width: 600px) {
+        .kbd-hint {
+          display: inline-flex;
+          gap: 4px;
+          align-items: center;
+          font-size: 0.7rem;
+          color: var(--muted);
+        }
+
+        .kbd-key {
+          border-radius: 6px;
+          border: 1px solid rgba(148, 163, 184, 0.4);
+          padding: 1px 5px;
+          font-size: 0.7rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <div class="card">
+        <header>
+          <div class="title">
+            <span>🕊️ Fugleobservasjoner</span>
+            <span class="pill">arts-autocomplete · AO-proxy</span>
+          </div>
+          <div class="kbd-hint">
+            <span class="kbd-key">↑</span><span class="kbd-key">↓</span><span class="kbd-key">Enter</span>
+          </div>
+        </header>
+
+        <div class="subtitle">Søk etter fuglearter fra Artsobservasjoner. Dette er kun et søkefelt; senere kan vi bygge videre med observasjoner og CSV-eksport.</div>
+
+        <div class="status-row">
+          <div class="status-left">
+            <span class="status-dot" id="status-dot"></span>
+            <span id="status-text">Klar for søk</span>
+          </div>
+          <div class="badge" id="result-count">0 treff</div>
+        </div>
+
+        <div class="loc-row">
+          <div>
+            <span class="loc-dot" id="loc-dot"></span>
+            <span id="loc-text">Trykk «Oppdater posisjon» før registrering.</span>
+            <button class="icon-btn" id="loc-map-btn" title="Åpne i kart" disabled>🗺️</button>
+          </div>
+          <button class="btn" id="loc-btn">
+            <span>📍</span>
+            <span>Oppdater posisjon</span>
+          </button>
+        </div>
+
+        <label for="search">Art</label>
+        <div class="input-wrap">
+          <span class="search-icon">🔍</span>
+          <input
+            type="text"
+            id="search"
+            autocomplete="off"
+            placeholder="Begynn å skrive – f.eks. ‘kri’, ‘blå’, ‘måk’ …"
+          />
+        </div>
+
+        <div class="results" id="results" role="listbox" aria-label="Arter"></div>
+        <div class="result-empty" id="empty-msg" style="display:none;">Ingen treff ennå. Skriv minst 2 tegn.</div>
+        <div class="chosen" id="chosen" style="display:none;"></div>
+
+        <div class="row">
+          <label for="count">Antall</label>
+          <div class="row-inline">
+            <input
+              type="number"
+              id="count"
+              min="1"
+              step="1"
+              placeholder="Trykk Enter for å lagre"
+              disabled
+            />
+            <span class="badge">Enter = legg til i liste</span>
+          </div>
+        </div>
+
+        <div class="row">
+          <label for="place">Stedsnavn (valgfritt)</label>
+          <input
+            type="text"
+            id="place"
+            autocomplete="off"
+            placeholder="F.eks. Vikstranda, Østensjøvannet …"
+          />
+        </div>
+
+        <div class="row">
+          <div class="subtitle" style="margin-bottom:4px;">Liste over valgte arter</div>
+          <div class="obs-list" id="obs-list"></div>
+          <div class="export-row">
+            <button class="btn" id="export-btn" disabled>
+              <span>⬇</span>
+              <span>Last ned CSV</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const input = document.getElementById('search');
+      const resultsEl = document.getElementById('results');
+      const emptyMsgEl = document.getElementById('empty-msg');
+      const chosenEl = document.getElementById('chosen');
+      const statusDot = document.getElementById('status-dot');
+      const statusText = document.getElementById('status-text');
+      const resultCount = document.getElementById('result-count');
+      const countInput = document.getElementById('count');
+      const obsListEl = document.getElementById('obs-list');
+      const exportBtn = document.getElementById('export-btn');
+        const locDot = document.getElementById('loc-dot');
+        const locText = document.getElementById('loc-text');
+      const locBtn = document.getElementById('loc-btn');
+      const locMapBtn = document.getElementById('loc-map-btn');
+      const placeInput = document.getElementById('place');
+
+      let currentResults = [];
+      let activeIndex = -1;
+      let debounceTimer = null;
+      let selectedSpecies = null;
+      const observations = [];
+        let currentPosition = null;
+      let currentPlaceName = '';
+
+      function setStatus(mode, text) {
+        statusText.textContent = text;
+        if (mode === 'idle') {
+          statusDot.style.background = '#22c55e';
+          statusDot.style.boxShadow = '0 0 0 6px rgba(34, 197, 94, 0.16)';
+        } else if (mode === 'loading') {
+          statusDot.style.background = '#fbbf24';
+          statusDot.style.boxShadow = '0 0 0 6px rgba(251, 191, 36, 0.24)';
+        } else {
+          statusDot.style.background = '#ef4444';
+          statusDot.style.boxShadow = '0 0 0 6px rgba(239, 68, 68, 0.27)';
+        }
+      }
+
+      function renderResults() {
+        resultsEl.innerHTML = '';
+
+        if (!currentResults.length) {
+          resultCount.textContent = '0 treff';
+          return;
+        }
+
+        currentResults.forEach((item, index) => {
+          const div = document.createElement('div');
+          div.className = 'result-item';
+          div.setAttribute('role', 'option');
+          if (index === activeIndex) {
+            div.setAttribute('aria-selected', 'true');
+          }
+
+          const row = document.createElement('div');
+          row.className = 'result-name-row';
+
+          const nameSpan = document.createElement('span');
+          nameSpan.className = 'result-name';
+          nameSpan.textContent = item.taxonName || '(ukjent navn)';
+
+          const idSpan = document.createElement('span');
+          idSpan.className = 'result-taxon-id';
+          idSpan.textContent = `ID ${item.taxonId}`;
+
+          row.appendChild(nameSpan);
+          row.appendChild(idSpan);
+
+          const sci = document.createElement('div');
+          sci.className = 'result-sci';
+          // scientificNameHtml kan inneholde <i> osv., så vi setter innerHTML her.
+          sci.innerHTML = item.scientificNameHtml || '';
+
+          div.appendChild(row);
+          div.appendChild(sci);
+
+          div.addEventListener('click', () => {
+            chooseItem(index);
+          });
+
+          resultsEl.appendChild(div);
+        });
+
+        resultCount.textContent = `${currentResults.length} treff`;
+      }
+
+      function chooseItem(index) {
+        const item = currentResults[index];
+        if (!item) return;
+        selectedSpecies = item;
+        chosenEl.style.display = 'inline-flex';
+        chosenEl.innerHTML = '';
+
+        const nameSpan = document.createElement('span');
+        nameSpan.textContent = item.taxonName;
+
+        const sciSpan = document.createElement('span');
+        sciSpan.innerHTML = item.scientificNameHtml || '';
+
+        const idSpan = document.createElement('span');
+        idSpan.className = 'badge';
+        idSpan.textContent = `AO ID ${item.taxonId}`;
+
+        chosenEl.appendChild(nameSpan);
+        chosenEl.appendChild(sciSpan);
+        chosenEl.appendChild(idSpan);
+
+        // Aktiver antallsfelt og flytt fokus dit
+        countInput.disabled = false;
+        countInput.value = '';
+        countInput.focus();
+      }
+
+      function renderObservations() {
+        obsListEl.innerHTML = '';
+
+        if (!observations.length) {
+          const span = document.createElement('span');
+          span.className = 'obs-meta';
+          span.textContent = 'Ingen arter lagt til ennå.';
+          obsListEl.appendChild(span);
+
+          if (exportBtn) {
+            exportBtn.disabled = true;
+          }
+          return;
+        }
+
+        // Grupper observasjoner per stedsnavn (i den rekkefølgen de ble lagt inn)
+        const groups = [];
+        const indexByKey = new Map();
+
+        observations.forEach((obs) => {
+          const key = (obs.placeName && obs.placeName.trim()) || 'Uten stedsnavn';
+          let idx = indexByKey.get(key);
+          if (idx === undefined) {
+            idx = groups.length;
+            indexByKey.set(key, idx);
+            groups.push({ key, items: [] });
+          }
+          groups[idx].items.push(obs);
+        });
+
+        groups.forEach((group) => {
+          const g = document.createElement('div');
+          g.className = 'obs-group';
+
+          const title = document.createElement('div');
+          title.className = 'obs-group-title';
+          title.textContent = group.key;
+          g.appendChild(title);
+
+          group.items.forEach((obs) => {
+            const row = document.createElement('div');
+            row.className = 'obs-item';
+
+            const main = document.createElement('div');
+            main.className = 'obs-main';
+
+            const name = document.createElement('div');
+            name.className = 'obs-name';
+            name.textContent = `${obs.count} × ${obs.species.taxonName}`;
+
+            main.appendChild(name);
+            row.appendChild(main);
+            g.appendChild(row);
+          });
+
+          obsListEl.appendChild(g);
+        });
+
+        if (exportBtn) {
+          exportBtn.disabled = false;
+        }
+      }
+
+      async function fetchResults(term) {
+        const q = term.trim();
+        if (q.length < 2) {
+          currentResults = [];
+          activeIndex = -1;
+          renderResults();
+          emptyMsgEl.style.display = q.length ? 'block' : 'none';
+          if (!q.length) emptyMsgEl.textContent = 'Ingen treff ennå. Skriv minst 2 tegn.';
+          else emptyMsgEl.textContent = 'Skriv litt mer for å få treff.';
+          return;
+        }
+
+        setStatus('loading', 'Søker i Artsobservasjoner …');
+        emptyMsgEl.style.display = 'none';
+
+        try {
+          const resp = await fetch(`/api/species?search=${encodeURIComponent(q)}`);
+          if (!resp.ok) {
+            throw new Error(`HTTP ${resp.status}`);
+          }
+          const data = await resp.json();
+          currentResults = Array.isArray(data) ? data : [];
+          activeIndex = currentResults.length ? 0 : -1;
+          renderResults();
+
+          if (!currentResults.length) {
+            emptyMsgEl.style.display = 'block';
+            emptyMsgEl.textContent = 'Ingen treff fra Artsobservasjoner.';
+          }
+
+          setStatus('idle', 'Klar for søk');
+        } catch (err) {
+          console.error('Feil ved henting av artsliste', err);
+          currentResults = [];
+          activeIndex = -1;
+          renderResults();
+          emptyMsgEl.style.display = 'block';
+          emptyMsgEl.textContent = 'Feil ved kontakt med proxy/Artsobservasjoner.';
+          setStatus('error', 'Feil ved søk');
+        }
+      }
+
+      input.addEventListener('input', () => {
+        const value = input.value;
+        if (debounceTimer) {
+          clearTimeout(debounceTimer);
+        }
+        debounceTimer = setTimeout(() => {
+          fetchResults(value);
+        }, 300);
+      });
+
+      input.addEventListener('keydown', (e) => {
+        if (!currentResults.length) return;
+
+        if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          activeIndex = (activeIndex + 1) % currentResults.length;
+          renderResults();
+        } else if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          activeIndex = (activeIndex - 1 + currentResults.length) % currentResults.length;
+          renderResults();
+        } else if (e.key === 'Enter') {
+          if (activeIndex >= 0) {
+            e.preventDefault();
+            chooseItem(activeIndex);
+          }
+        }
+      });
+
+      countInput.addEventListener('keydown', (e) => {
+        if (e.key !== 'Enter') return;
+        if (!selectedSpecies) return;
+
+        // Sørg for at vi alltid har en posisjon før registrering
+        if (!currentPosition) {
+          setLocationStatus('error', 'Ingen posisjon. Trykk «Oppdater posisjon» først.');
+          return;
+        }
+
+        const raw = countInput.value.trim();
+        const num = parseInt(raw, 10);
+        if (!raw || isNaN(num) || num <= 0) {
+          return;
+        }
+
+        observations.push({
+          species: selectedSpecies,
+           count: num,
+           position: currentPosition,
+          placeName: currentPlaceName,
+        });
+
+        renderObservations();
+        
+        // Nullstill valgt art og deaktiver antallsfeltet inntil ny art er valgt
+        selectedSpecies = null;
+        chosenEl.style.display = 'none';
+        countInput.value = '';
+        countInput.disabled = true;
+
+        // Flytt fokus tilbake til artsøk for rask neste registrering
+        input.focus();
+        input.select();
+      });
+
+        function setLocationStatus(mode, text) {
+          if (locText) {
+            locText.textContent = text;
+            if (mode !== 'ok') {
+              locText.removeAttribute('title');
+            }
+          }
+          if (!locDot) return;
+          if (mode === 'ok') {
+            locDot.style.background = '#22c55e';
+          } else if (mode === 'error') {
+            locDot.style.background = '#ef4444';
+          } else {
+            locDot.style.background = '#6b7280';
+          }
+        }
+
+        function initLocation() {
+          if (!navigator.geolocation) {
+            setLocationStatus('error', 'Ingen geolokasjon-støtte i denne nettleseren.');
+            return;
+          }
+
+          setLocationStatus('idle', 'Trykk «Oppdater posisjon» før registrering.');
+
+          if (locBtn) {
+            locBtn.addEventListener('click', () => {
+              setLocationStatus('pending', 'Oppdaterer posisjon …');
+              locBtn.disabled = true;
+
+              navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                  currentPosition = {
+                    lat: pos.coords.latitude,
+                    lon: pos.coords.longitude,
+                    accuracy: pos.coords.accuracy,
+                  };
+                  const { lat, lon, accuracy } = currentPosition;
+                  const latStr = lat.toFixed(5);
+                  const lonStr = lon.toFixed(5);
+                  const accStr = Math.round(accuracy);
+                  setLocationStatus('ok', 'Posisjon oppdatert');
+                  if (locText) {
+                    locText.title = `${latStr}, ${lonStr} (±${accStr} m)`;
+                  }
+                  // Hent og eventuelt forhåndsutfyll stedsnavn
+                  fetch(`/api/reverse?lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}`)
+                    .then((r) => (r.ok ? r.json() : null))
+                    .then((data) => {
+                      if (!data || !data.name) return;
+                      currentPlaceName = data.name;
+                      if (placeInput) {
+                        // Ikke overskriv manuell tekst
+                        if (!placeInput.value.trim() || placeInput.dataset.autofilled === 'true') {
+                          placeInput.value = currentPlaceName;
+                          placeInput.dataset.autofilled = 'true';
+                        }
+                      }
+                    })
+                    .catch((err) => {
+                      console.warn('Feil ved henting av stedsnavn', err);
+                    });
+                  if (locMapBtn) {
+                    locMapBtn.disabled = false;
+                  }
+                  locBtn.disabled = false;
+                },
+                (err) => {
+                  console.warn('Feil ved geolokasjon', err);
+                  setLocationStatus('error', 'Fikk ikke tak i posisjon. Sjekk tillatelser og prøv igjen.');
+                  locBtn.disabled = false;
+                },
+                {
+                  enableHighAccuracy: true,
+                  maximumAge: 0,
+                  timeout: 10000,
+                }
+              );
+            });
+          }
+        }
+
+      if (locMapBtn) {
+        locMapBtn.addEventListener('click', () => {
+          if (!currentPosition) return;
+          const { lat, lon } = currentPosition;
+          const url = `https://www.openstreetmap.org/?mlat=${encodeURIComponent(
+            lat
+          )}&mlon=${encodeURIComponent(lon)}#map=16/${encodeURIComponent(lat)}/${encodeURIComponent(lon)}`;
+          window.open(url, '_blank', 'noopener');
+        });
+      }
+
+      function toCsv() {
+        if (!observations.length) return '';
+        // Enkel CSV: taxonid;navn;antall;sted;lat;lon
+        const lines = ['taxonid;navn;antall;sted;lat;lon'];
+        for (const obs of observations) {
+          const id = obs.species.taxonId ?? '';
+          const name = (obs.species.taxonName ?? '').replace(/;/g, ',');
+          const count = obs.count ?? '';
+          const place = (obs.placeName ?? '').replace(/;/g, ',');
+          const pos = obs.position || {};
+          const lat = typeof pos.lat === 'number' ? pos.lat.toString() : '';
+          const lon = typeof pos.lon === 'number' ? pos.lon.toString() : '';
+          lines.push(`${id};${name};${count};${place};${lat};${lon}`);
+        }
+        return lines.join('\n');
+      }
+
+      if (exportBtn) {
+        exportBtn.addEventListener('click', () => {
+          const csv = toCsv();
+          if (!csv) return;
+
+          const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'fugleobservasjoner.csv';
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        });
+      }
+
+      if (placeInput) {
+        placeInput.addEventListener('input', () => {
+          currentPlaceName = placeInput.value;
+          placeInput.dataset.autofilled = 'false';
+        });
+      }
+
+        initLocation();
+
+      // Initial tom liste
+      renderObservations();
+    </script>
+  </body>
+</html>
