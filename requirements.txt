@@ -1,0 +1,1 @@
+# Ingen eksterne Python-avhengigheter foreløpig

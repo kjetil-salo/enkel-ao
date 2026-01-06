@@ -23,6 +23,7 @@ Mål: Lage en webapp der du kan logge inn, registrere observasjoner av arter (fu
     - Kreves det at posisjon er oppdatert (ellers får du beskjed om å oppdatere først).
     - Legges art + antall + gjeldende posisjon + stedsnavn til en intern liste.
     - Listen nederst på kortet er gruppert per stedsnavn, med en liten overskrift (f.eks. «Hylkje», «Knarvik» eller «Uten stedsnavn») og linjer under på formen «antall × art».
+    - Data lagres samtidig i nettleserens localStorage slik at observasjonene overlever refresh / utilsiktet navigering bort fra siden.
     - Fokus flyttes tilbake til søkefeltet for rask neste registrering.
   - Har en knapp «Last ned CSV» som genererer en CSV-fil (fugleobservasjoner.csv) med kolonnene:
     - taxonid;navn;antall;sted;lat;lon

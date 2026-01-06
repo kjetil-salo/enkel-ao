@@ -642,6 +642,47 @@
         }
       }
 
+      const STORAGE_KEY = 'fugleobservasjoner_v1';
+
+      function saveState() {
+        if (!window.localStorage) return;
+        try {
+          const payload = {
+            version: 1,
+            observations,
+          };
+          window.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+        } catch (e) {
+          console.warn('Kunne ikke lagre til localStorage', e);
+        }
+      }
+
+      function loadState() {
+        if (!window.localStorage) return;
+        try {
+          const raw = window.localStorage.getItem(STORAGE_KEY);
+          if (!raw) return;
+          const payload = JSON.parse(raw);
+          if (!payload || !Array.isArray(payload.observations)) return;
+
+          // Tøm og fyll inn i eksisterende array slik at referansen bevares
+          observations.splice(0, observations.length);
+          payload.observations.forEach((o) => observations.push(o));
+
+          // Sett stedsnavn-felt til siste brukte sted, hvis noe finnes
+          const last = observations[observations.length - 1];
+          if (last && last.placeName) {
+            currentPlaceName = last.placeName;
+            if (placeInput) {
+              placeInput.value = currentPlaceName;
+              placeInput.dataset.autofilled = 'false';
+            }
+          }
+        } catch (e) {
+          console.warn('Kunne ikke lese fra localStorage', e);
+        }
+      }
+
       async function fetchResults(term) {
         const q = term.trim();
         if (q.length < 2) {
@@ -737,6 +778,7 @@
         });
 
         renderObservations();
+        saveState();
         
         // Nullstill valgt art og deaktiver antallsfeltet inntil ny art er valgt
         selectedSpecies = null;
@@ -882,10 +924,11 @@
           placeInput.dataset.autofilled = 'false';
         });
       }
+      
+      loadState();
+      initLocation();
 
-        initLocation();
-
-      // Initial tom liste
+      // Initial visning basert på eventuell lagret state
       renderObservations();
     </script>
   </body>

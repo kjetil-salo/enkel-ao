@@ -189,9 +189,15 @@ def run(port=3000):
     os.chdir(BASE_DIR)
     server_address = ('', port)
     httpd = HTTPServer(server_address, Handler)
-    print(f'Server kjører på http://localhost:{port}')
+    print(f'Server kjører på port {port}')
     httpd.serve_forever()
 
 
 if __name__ == '__main__':
-    run()
+    # Bruk PORT fra miljøvariabel dersom den er satt (for hosting-plattformer)
+    env_port = os.environ.get('PORT')
+    try:
+        port = int(env_port) if env_port else 3000
+    except ValueError:
+        port = 3000
+    run(port)

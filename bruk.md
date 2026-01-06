@@ -42,5 +42,13 @@ For hver art du vil registrere:
 - Når det finnes minst én observasjon blir knappen **«Last ned CSV»** aktiv.
 - Ved klikk lastes en fil `fugleobservasjoner.csv` ned med kolonnene:
   - `taxonid;navn;antall;sted;lat;lon`
-
+\
 CSV-en er ment som et mellomformat som senere kan tilpasses direkte til Artsobservasjoner sitt importformat.
+
+## 5. Lagring (localStorage)
+
+- Hver gang du legger til en observasjon lagres hele observasjonslisten i nettleserens **localStorage**.
+- Det betyr at:
+   - Refresh av siden eller utilsiktet navigering bort (tilbake/forover) ikke sletter observasjonene.
+   - Når du åpner siden på nytt i samme nettleser/enhet, lastes tidligere observasjoner inn igjen automatisk.
+- Merk: localStorage er per nettleser/enhet, så observasjoner synkroniseres ikke mellom telefoner/PC-er.
