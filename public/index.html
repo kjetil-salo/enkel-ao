@@ -689,6 +689,10 @@
               <span>📋</span>
               <span>Kopier CSV</span>
             </button>
+            <button class="btn" id="copy-open-btn" disabled>
+              <span>🚀</span>
+              <span>Kopier og åpne AO</span>
+            </button>
             <button class="btn" id="export-btn" disabled>
               <span>⬇</span>
               <span>Last ned CSV</span>
@@ -712,6 +716,7 @@
       const obsListEl = document.getElementById('obs-list');
       const exportBtn = document.getElementById('export-btn');
       const copyBtn = document.getElementById('copy-btn');
+      const copyOpenBtn = document.getElementById('copy-open-btn');
       const clearBtn = document.getElementById('clear-btn');
         const locDot = document.getElementById('loc-dot');
         const locText = document.getElementById('loc-text');
@@ -934,6 +939,9 @@
           if (copyBtn) {
             copyBtn.disabled = true;
           }
+          if (copyOpenBtn) {
+            copyOpenBtn.disabled = true;
+          }
           if (clearBtn) {
             clearBtn.disabled = true;
           }
@@ -1006,6 +1014,9 @@
         }
         if (copyBtn) {
           copyBtn.disabled = false;
+        }
+        if (copyOpenBtn) {
+          copyOpenBtn.disabled = false;
         }
         if (clearBtn) {
           clearBtn.disabled = false;
@@ -1518,6 +1529,39 @@
             return;
           }
           flashButton(copyBtn, 'Kopiert!');
+        });
+      }
+
+      if (copyOpenBtn) {
+        copyOpenBtn.addEventListener('click', async () => {
+          const csv = toCsv();
+          if (!csv) return;
+
+          try {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+              await navigator.clipboard.writeText(csv);
+            } else {
+              const ta = document.createElement('textarea');
+              ta.value = csv;
+              ta.style.position = 'fixed';
+              ta.style.top = '-1000px';
+              document.body.appendChild(ta);
+              ta.focus();
+              ta.select();
+              try {
+                document.execCommand('copy');
+              } finally {
+                document.body.removeChild(ta);
+              }
+            }
+            
+            // Open AO import page in new tab
+            window.open('https://www.artsobservasjoner.no/ImportSighting', '_blank');
+            
+            flashButton(copyOpenBtn, 'Åpnet!');
+          } catch (e) {
+            console.warn('Kunne ikke kopiere CSV til utklippstavlen', e);
+          }
         });
       }
 
