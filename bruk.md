@@ -16,7 +16,9 @@ Kort oppsummert flyt slik den fungerer nå.
 4. I feltet **«Søkeområde (meter)**» kan du styre hvor stort kvadrat vi spør Artsobservasjoner om lokasjoner innenfor. GPS-posisjonen er midtpunktet, og tallet er kantlengden i meter (f.eks. 600 = 600 × 600 m kvadrat).
 5. Stedsnavn-feltet under vil ofte bli forhåndsutfylt fra omvendt geokoding (Nominatim) eller nærmeste lokasjon fra Artsobservasjoner (kan alltid overstyres manuelt).
 
-Du må ha en gyldig posisjon før du kan lagre observasjoner.
+Det er anbefalt å oppdatere posisjon, men du kan også registrere observasjoner uten at posisjon er tilgjengelig (da brukes bare stedsnavnet i eksporten).
+
+> **Personvern og lagring:** Serveren lagrer ingen observasjoner eller brukerdata. Alt du legger inn lagres kun midlertidig i nettleseren din (localStorage) til du eksporterer eller tømmer lista.
 
 ## 3. Registrere arter raskt
 
@@ -29,12 +31,15 @@ For hver art du vil registrere:
    - Når art er valgt flyttes fokus til **Antall**.
    - Skriv inn antall og trykk **Enter**.
    - Fokus flyttes videre til **Aktivitet**.
-3. **Velg aktivitet**
+3. **Velg aktivitet og lagre**
    - Standardverdi er **Stasjonær**.
    - Du kan velge en annen aktivitet i nedtrekksmenyen.
-   - Trykk **Enter** mens du står i aktivitet-feltet for å lagre observasjonen (art + antall + aktivitet + posisjon + stedsnavn).
-   - Fokus flyttes tilbake til **Art**-feltet, klar for neste art.
-3. **Stedsnavn (valgfritt, men anbefalt)**
+   - For å lagre observasjonen kan du enten:
+     - trykke **Enter** mens du står i aktivitet-feltet (desktop),
+     - eller trykke på den **grønne ✓‑knappen** til høyre for aktivitetsfeltet (spesielt praktisk på mobil),
+     - eller bare endre verdien i aktivitetsfeltet på mobil, som også utløser lagring.
+   - Etter lagring nullstilles art/antall/aktivitet, søkefeltet tømmes, og fokus flyttes tilbake til **Art**-feltet, klar for neste art.
+4. **Stedsnavn (valgfritt, men anbefalt)**
    - Ligger under lokasjonsseksjonen.
    - Kan komme fra automatisk oppslag, men du kan skrive inn ditt eget (f.eks. "Vikstranda, Østensjøvannet").
    - Verdien som står her når du trykker Enter i antall-feltet, brukes for den observasjonen.
@@ -42,8 +47,8 @@ For hver art du vil registrere:
 ## 4. Observasjonsliste og eksport
 
 - Nederst vises **Liste over valgte arter**, gruppert per sted:
-    - Hver blokk har en liten overskrift med stedsnavnet (f.eks. `Hylkje`, `Knarvik` eller `Uten stedsnavn`).
-    - Under overskriften listes observasjoner som linjer på formen `antall × art`.
+   - Hver blokk har en liten overskrift med stedsnavnet (f.eks. `Hylkje`, `Knarvik` eller `Uten stedsnavn`).
+   - Under overskriften vises en tabell med kolonnene **Art**, **Antall** og **Aktivitet**.
 - Når det finnes minst én observasjon blir knappene **«Tøm liste»**, **«Kopier CSV»** og **«Last ned CSV»** aktive.
 - Begge bruker samme format: en TSV/«CSV» som er tilpasset **Artsobservasjoner.no sitt importformat for fugl (versjon 2.20)**, med overskriftsrad (kolonner separert med TAB, slik Excel gjør):
    - `Artsnavn;Lokalitetsnavn;Superlokalitet;Nord;Øst;Nøyaktighet;Fra dato;Til dato;Fra klokkeslett;Til klokkeslett;Antall;Alder;Kjønn;Aktivitet;Kommentar (synlig for alle);Privat kommentar (kun synlig for deg selv);Skjul funn til dato;Medobservatør;Medobservatør;Medobservatør;Medobservatør;Medobservatør;Medobservatør;Medobservatør;Medobservatør;Medobservatør;Medobservatør;Bestemmelsesmetode;Natursystem;Beskriv natursystem;Livsmedium;Beskriv livsmedium;Art som livsmedium;Beskriv art som livsmedium;Dybde min;Dybde maks;Høyde min;Høyde maks;Andrehånds;Usikker artsbestemming;Ikke spontan;Interessant observasjon;Ikke gjenfunnet;Ikke funnet;Offentlig samling;Privat samling;Referansenummer i samling;Beskrivelse artsbestemming;Bestemt av;Bestemt av (fritekst);Bestemmelsesår;Bekreftet av;Bekreftet av (fritekst);Bekreftelsesår`
@@ -51,8 +56,10 @@ For hver art du vil registrere:
    - **Artsnavn** (fra Artsobservasjoner-autocomplete)
    - **Lokalitetsnavn** (stedsnavnet du har satt)
    - **Fra dato** og **Til dato** (dagen observasjonen ble registrert)
+   - **Fra klokkeslett** og **Til klokkeslett** (format `HH:MM`, f.eks. `08:30`)
    - **Antall**
-   - Alle andre kolonner (inkludert koordinater) står tomme, slik at du kan fylle på koordinater, aktivitet, kommentarer m.m. i Excel/Sheets før du importerer i Artsobservasjoner.
+   - **Aktivitet** (tekstetiketten fra aktivitetsfeltet, f.eks. «Stasjonær», «Rastende» osv.)
+- Alle andre kolonner (inkludert koordinater) står tomme, slik at du kan fylle på koordinater, kommentarer m.m. i Excel/Sheets før du importerer i Artsobservasjoner.
 
 Etter at du har eksportert og kontrollert at importen i Artsobservasjoner er ok, kan du bruke **«Tøm liste»** for å slette alle observasjonene fra denne økten (både i listen og i localStorage).
 
@@ -116,7 +123,7 @@ Dette er en kort, praktisk veiledning ment for deg som bare skal bruke siden til
 
 Tips: Bruk et stedsnavn du også kjenner igjen når du seinere ser lista i Artsobservasjoner (for eksempel «Byparken, Bergen sentrum»).
 
-## Steg 3: Registrer arter og antall
+## Steg 3: Registrer arter, antall og aktivitet
 
 For hver art du vil registrere:
 
@@ -126,15 +133,20 @@ For hver art du vil registrere:
 2. **Angi antall**
    - Når art er valgt, hopper fokus til feltet **Antall**.
    - Skriv hvor mange du ser, og trykk **Enter**.
-   - Observasjonen legges nederst i lista, under riktig stedsnavn.
-   - Fokus går automatisk tilbake til **Art**, klar for neste art.
+   - Fokus flyttes videre til **Aktivitet**, men ingenting er lagret ennå.
+3. **Velg aktivitet og lagre**
+   - Standard er **Stasjonær**, men du kan velge hvilken som helst aktivitet i nedtrekksmenyen.
+   - For å lagre observasjonen kan du:
+     - trykke **Enter** mens du står i aktivitetsfeltet (på PC),
+     - eller trykke på den **grønne ✓‑knappen** til høyre for aktivitetsfeltet (anbefalt på mobil).
+   - Når observasjonen er lagret, dukker den opp i tabellen nederst under riktig stedsnavn, og art/antall/aktivitet nullstilles. Fokus går tilbake til **Art**.
 
 Du kan gjenta dette så mange ganger du vil på samme sted. Når du flytter deg til en ny lokalitet, trykk **«Oppdater posisjon»** igjen og eventuelt endre stedsnavn.
 
 ## Steg 4: Se over lista og eksportere
 
 - Nederst ser du en liste gruppert per **stedsnavn**.
-- Hver linje har formen `antall × artsnavn`.
+- Under hvert stedsnavn vises en tabell med kolonnene **Art**, **Antall** og **Aktivitet**.
 - Når du har registrert alt på turen/økten kan du:
   - Bruke **«Kopier CSV»** for å kopiere alt til utklippstavla.
   - Eller **«Last ned CSV»** for å få en fil.

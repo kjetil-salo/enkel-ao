@@ -6,32 +6,27 @@ Mål: Lage en webapp der du kan logge inn, registrere observasjoner av arter (fu
 
 - Backend er en enkel Python-basert HTTP-server (server.py) som:
   - Server statiske filer fra public/index.html.
-  - Har et API-endepunkt /api/species som proxier til Artsobservasjoner sitt Taxon/PickerSearch-endepunkt.
-  - Har et API-endepunkt /api/reverse som bruker Nominatim (OpenStreetMap) til å slå opp stedsnavn fra GPS-koordinater.
-  - Parser HTML-svaret fra Artsobservasjoner og returnerer JSON med taxonid, norsk navn og vitenskapelig navn.
+  - Har API-endepunktene /api/species, /api/reverse og /api/ao-sites som kun opptrer som proxier mot Artsobservasjoner og Nominatim.
+  - Lagrer ingen observasjoner eller brukerdata på server – all «state» er i nettleseren.
 - Frontend er én ren HTML/JS-side (public/index.html) som:
   - Har et søkefelt for art med autocomplete mot /api/species.
   - Lar deg velge art med Enter eller klikk, og flytter deretter fokus til et antall-felt.
-  - Har en «Oppdater posisjon»-knapp som bruker nettleserens geolokasjon til å hente én GPS-posisjon.
+  - Har en «Oppdater posisjon»-knapp som bruker nettleserens geolokasjon til å hente én GPS-posisjon (valgfritt, men anbefalt).
     - Etter vellykket henting lagres lat/lon i minnet og brukes for alle påfølgende observasjoner til du oppdaterer igjen.
     - Det gjøres et kall til /api/reverse for å hente et stedsnavn som kan forhåndsutfylle et eget stedsnavn-felt.
+    - Det gjøres et kall til /api/ao-sites for å hente nærmeste lokaliteter fra Artsobservasjoner, vist som klikkbare forslag.
     - Et lite kart-ikon kan åpne posisjonen i OpenStreetMap i ny fane.
-  - Har et felt «Stedsnavn (valgfritt)» som:
-    - Kan auto-fylles fra reverse geocoding, men kan alltid overstyres manuelt.
-    - Verdien lagres sammen med hver observasjon.
-  - Når du skriver inn antall og trykker Enter:
-    - Kreves det at posisjon er oppdatert (ellers får du beskjed om å oppdatere først).
-    - Legges art + antall + gjeldende posisjon + stedsnavn til en intern liste.
-    - Listen nederst på kortet er gruppert per stedsnavn, med en liten overskrift (f.eks. «Hylkje», «Knarvik» eller «Uten stedsnavn») og linjer under på formen «antall × art».
-    - Data lagres samtidig i nettleserens localStorage slik at observasjonene overlever refresh / utilsiktet navigering bort fra siden.
-    - Fokus flyttes tilbake til søkefeltet for rask neste registrering.
-  - Har en knapp «Last ned CSV» som genererer en CSV-fil (fugleobservasjoner.csv) med kolonnene:
-    - taxonid;navn;antall;sted;lat;lon
-    - CSV-en er fortsatt en skisse; senere skal formatet justeres til Artsobservasjoner sitt eksakte importformat.
+  - Har et felt «Stedsnavn» som:
+    - Kan auto-fylles fra reverse geocoding eller AO-lokaliteter, men kan alltid overstyres manuelt.
+    - Verdien lagres sammen med hver observasjon og brukes som «Lokalitetsnavn» ved eksport.
+  - Har feltene «Antall» og «Aktivitet» og en grønn ✓‑knapp for å lagre observasjoner raskt (særlig på mobil).
+  - Viser observasjonene i en tabell per sted (kolonnene Art, Antall, Aktivitet), gruppert på stedsnavn.
+  - Lagrer observasjonene i nettleserens localStorage slik at de overlever refresh / utilsiktet navigering bort fra siden.
+  - Har eksport til TSV/CSV tilpasset Artsobservasjoner sitt importformat for fugl (v2.20), der Artsnavn, Lokalitetsnavn, Fra/til‑dato, Antall og Aktivitet fylles ut automatisk.
 
-Videre faser under er fortsatt gyldige, men enkelte punkter (som observasjonsliste, posisjon, stedsnavn og enkel CSV) er allerede påbegynt i denne prototypen.
+Videre faser under er mest historikk/plan; per nå fungerer prototypen godt nok til feltbruk og eksport til Artsobservasjoner uten innlogging eller databaseserver.
 
-## Fase 1: Grunnoppsett + arts-autocomplete (responsiv)
+## (Historikk) Fase 1: Grunnoppsett + arts-autocomplete (responsiv)
 
 **Mål:** En enkel, mobilvennlig side hvor du kan søke etter fuglearter via Artsobservasjoner sitt autocomplete-endepunkt og få opp forslag.
 
@@ -105,7 +100,7 @@ Videre faser under er fortsatt gyldige, men enkelte punkter (som observasjonslis
 
 ---
 
-## Fase 2: Enkelt observasjonsskjema (lokal lagring først)
+## (Historikk) Fase 2: Enkelt observasjonsskjema (lokal lagring først)
 
 **Mål:** Når en art er valgt, skal du kunne registrere en observasjon og lagre den lokalt (for eksempel i `localStorage`).
 
@@ -119,7 +114,7 @@ Resultat: En fungerende, enkel prototyp uten innlogging.
 
 ---
 
-## Fase 3: Innlogging + backend-API + database
+## (Plan, ikke implementert) Fase 3: Innlogging + backend-API + database
 
 **Mål:** Brukere skal kunne logge inn og få observasjoner lagret på server.
 
@@ -136,7 +131,7 @@ Resultat: En fungerende, enkel prototyp uten innlogging.
 
 ---
 
-## Fase 4: Modellering etter Artsobservasjoner CSV-format
+## (Plan, delvis erstattet) Fase 4: Modellering etter Artsobservasjoner CSV-format
 
 **Mål:** Sikre at observasjonene har alle feltene som kreves for import hos Artsobservasjoner.
 
@@ -150,7 +145,7 @@ Resultat: En fungerende, enkel prototyp uten innlogging.
 
 ---
 
-## Fase 5: CSV-eksport og verifikasjon mot import-funksjonen
+## (Plan, delvis realisert) Fase 5: CSV-eksport og verifikasjon mot import-funksjonen
 
 **Mål:** Fra webappen skal du kunne generere en CSV som godtas av Artsobservasjoner sin import.
 
@@ -168,7 +163,7 @@ Resultat: En fungerende, enkel prototyp uten innlogging.
 
 ---
 
-## Fase 6: Produksjonssetting og videreutvikling
+## (Plan) Fase 6: Produksjonssetting og videreutvikling
 
 **Mål:** Stabil webapp i produksjon.
 

@@ -1426,6 +1426,7 @@
 
           // Dato (Fra/til = samme dag) – format DD.MM.YYYY
           let dateStr = '';
+          let timeStr = '';
           if (obs.timestamp) {
             const d = new Date(obs.timestamp);
             if (!isNaN(d.getTime())) {
@@ -1433,6 +1434,11 @@
               const mm = String(d.getMonth() + 1).padStart(2, '0');
               const yyyy = d.getFullYear();
               dateStr = `${dd}.${mm}.${yyyy}`;
+
+              // Tidspunkt – format HH:MM
+              const hh = String(d.getHours()).padStart(2, '0');
+              const mi = String(d.getMinutes()).padStart(2, '0');
+              timeStr = `${hh}:${mi}`;
             }
           }
           if (!dateStr) {
@@ -1442,6 +1448,7 @@
             const yyyy = d.getFullYear();
             dateStr = `${dd}.${mm}.${yyyy}`;
           }
+          // Hvis vi ikke klarte å lage tid, lar vi klokkeslett være tomt
 
           const cols = new Array(54).fill('');
           // 1: Artsnavn
@@ -1452,6 +1459,10 @@
           cols[6] = dateStr;
           // 8: Til dato (samme som Fra dato)
           cols[7] = dateStr;
+          // 9: Fra klokkeslett (HH.mm) hvis tilgjengelig
+          cols[8] = timeStr;
+          // 10: Til klokkeslett (samme som Fra klokkeslett)
+          cols[9] = timeStr;
           // 11: Antall
           cols[10] = count;
           // 14: Aktivitet
