@@ -235,6 +235,13 @@
         cursor: pointer;
       }
 
+      .site-pill-private {
+        opacity: 0.35;
+        cursor: not-allowed;
+        pointer-events: none;
+        filter: grayscale(100%);
+      }
+
       .loc-row {
         margin-top: 6px;
         font-size: 0.72rem;
@@ -541,6 +548,24 @@
       let currentPlaceName = '';
       let currentAoSites = [];
 
+      function isPrivateSite(site) {
+        if (!site || typeof site !== 'object') return false;
+        const raw = site.raw && typeof site.raw === 'object' ? site.raw : site;
+        if (!raw || typeof raw !== 'object') return false;
+
+        // Følg AO sitt felt isPrivate: kun eksplisitt true / "true" er privat.
+        if (Object.prototype.hasOwnProperty.call(raw, 'isPrivate')) {
+          const v = raw.isPrivate;
+          if (v === true || v === 'true') return true;
+        }
+        if (Object.prototype.hasOwnProperty.call(raw, 'IsPrivate')) {
+          const v = raw.IsPrivate;
+          if (v === true || v === 'true') return true;
+        }
+
+        return false;
+      }
+
       function flashButton(button, successLabel) {
         if (!button) return;
         const labelSpan = button.querySelector('span:last-child');
@@ -576,16 +601,21 @@
           .slice(0, 5)
           .forEach((site) => {
             const pill = document.createElement('span');
-            pill.className = 'site-pill';
+            const isPrivate = isPrivateSite(site);
+            pill.className = isPrivate ? 'site-pill site-pill-private' : 'site-pill';
             pill.textContent = site.name;
-            pill.addEventListener('click', () => {
-              const name = site.name;
-              currentPlaceName = name;
-              if (placeInput) {
-                placeInput.value = name;
-                placeInput.dataset.autofilled = 'true';
-              }
-            });
+            if (isPrivate) {
+              pill.title = 'Privat lokalitet (kan ikke brukes)';
+            } else {
+              pill.addEventListener('click', () => {
+                const name = site.name;
+                currentPlaceName = name;
+                if (placeInput) {
+                  placeInput.value = name;
+                  placeInput.dataset.autofilled = 'true';
+                }
+              });
+            }
             aoSitesEl.appendChild(pill);
           });
       }
@@ -983,12 +1013,15 @@
                         (s) => s && typeof s.name === 'string' && s.name.trim()
                       );
                       setAoSiteSuggestions(sites);
-                      // Hvis stedsnavnfeltet er tomt, bruk første forslag
-                      if (sites.length && placeInput && !placeInput.value.trim()) {
-                        const name = sites[0].name;
-                        currentPlaceName = name;
-                        placeInput.value = name;
-                        placeInput.dataset.autofilled = 'true';
+                      // Hvis stedsnavnfeltet er tomt, bruk første offentlige forslag
+                      if (placeInput && !placeInput.value.trim()) {
+                        const firstPublic = sites.find((s) => !isPrivateSite(s));
+                        if (firstPublic) {
+                          const name = firstPublic.name;
+                          currentPlaceName = name;
+                          placeInput.value = name;
+                          placeInput.dataset.autofilled = 'true';
+                        }
                       }
                     })
                     .catch((err) => {

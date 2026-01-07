@@ -161,13 +161,14 @@ class Handler(SimpleHTTPRequestHandler):
             params = parse_qs(parsed.query)
             lat_raw = params.get('lat', [''])[0].strip()
             lon_raw = params.get('lon', [''])[0].strip()
-            size_raw = params.get('size', ['300'])[0].strip()  # meters (kantlengde)
+            # meters (kantlengde på søkeboksen). Default = 600 m
+            size_raw = params.get('size', ['600'])[0].strip()
 
             try:
                 lat = float(lat_raw)
                 lon = float(lon_raw)
-                # Standardboks: 1000 m x 1000 m rundt punktet
-                size_m = float(size_raw) if size_raw else 1000.0
+                # Standardboks: 600 m x 600 m rundt punktet (kan overrides via ?size=)
+                size_m = float(size_raw) if size_raw else 600.0
             except ValueError:
                 self._send_json({'error': 'Ugyldig lat/lon/size.'}, status=400)
                 return
@@ -236,6 +237,7 @@ class Handler(SimpleHTTPRequestHandler):
                 for item in raw_sites or []:
                     if not isinstance(item, dict):
                         continue
+
                     name = (
                         item.get('name')
                         or item.get('Name')
