@@ -222,6 +222,19 @@
         color: var(--muted);
       }
 
+      .site-pill {
+        display: inline-block;
+        margin-left: 4px;
+        margin-top: 2px;
+        padding: 1px 7px;
+        border-radius: 999px;
+        border: 1px solid rgba(148, 163, 184, 0.45);
+        background: radial-gradient(circle at top left, rgba(248, 250, 252, 0.06), rgba(15, 23, 42, 0.9));
+        color: var(--text);
+        font-size: 0.72rem;
+        cursor: pointer;
+      }
+
       .loc-row {
         margin-top: 6px;
         font-size: 0.72rem;
@@ -341,6 +354,11 @@
         font-size: 0.85em;
       }
 
+      .btn-success {
+        border-color: rgba(34, 197, 94, 0.9);
+        box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.7), 0 0 0 8px rgba(34, 197, 94, 0.2);
+      }
+
       .icon-btn {
         border: none;
         background: transparent;
@@ -383,7 +401,6 @@
         <header>
           <div class="title">
             <span>🕊️ Fugleobservasjoner</span>
-            <span class="pill">arts-autocomplete · AO-proxy</span>
           </div>
           <div class="kbd-hint">
             <span class="kbd-key">↑</span><span class="kbd-key">↓</span><span class="kbd-key">Enter</span>
@@ -450,12 +467,21 @@
             autocomplete="off"
             placeholder="F.eks. Vikstranda, Østensjøvannet …"
           />
+          <div class="result-empty" id="ao-sites" style="display:none; margin-top:4px;"></div>
         </div>
 
         <div class="row">
           <div class="subtitle" style="margin-bottom:4px;">Liste over valgte arter</div>
           <div class="obs-list" id="obs-list"></div>
           <div class="export-row">
+            <button class="btn" id="clear-btn" disabled>
+              <span>🗑️</span>
+              <span>Tøm liste</span>
+            </button>
+            <button class="btn" id="copy-btn" disabled>
+              <span>📋</span>
+              <span>Kopier CSV</span>
+            </button>
             <button class="btn" id="export-btn" disabled>
               <span>⬇</span>
               <span>Last ned CSV</span>
@@ -476,11 +502,14 @@
       const countInput = document.getElementById('count');
       const obsListEl = document.getElementById('obs-list');
       const exportBtn = document.getElementById('export-btn');
+      const copyBtn = document.getElementById('copy-btn');
+      const clearBtn = document.getElementById('clear-btn');
         const locDot = document.getElementById('loc-dot');
         const locText = document.getElementById('loc-text');
       const locBtn = document.getElementById('loc-btn');
       const locMapBtn = document.getElementById('loc-map-btn');
       const placeInput = document.getElementById('place');
+      const aoSitesEl = document.getElementById('ao-sites');
 
       let currentResults = [];
       let activeIndex = -1;
@@ -489,6 +518,56 @@
       const observations = [];
         let currentPosition = null;
       let currentPlaceName = '';
+      let currentAoSites = [];
+
+      function flashButton(button, successLabel) {
+        if (!button) return;
+        const labelSpan = button.querySelector('span:last-child');
+        if (!labelSpan) return;
+        const originalText = labelSpan.textContent;
+        button.classList.add('btn-success');
+        labelSpan.textContent = successLabel;
+        setTimeout(() => {
+          labelSpan.textContent = originalText;
+          button.classList.remove('btn-success');
+        }, 1200);
+      }
+
+      function setAoSiteSuggestions(sites) {
+        currentAoSites = Array.isArray(sites) ? sites : [];
+        if (!aoSitesEl) return;
+        aoSitesEl.innerHTML = '';
+        aoSitesEl.style.display = 'block';
+
+        if (!currentAoSites.length) {
+          const msg = document.createElement('span');
+          msg.textContent = 'Ingen lokasjoner fra Artsobservasjoner i nærheten.';
+          aoSitesEl.appendChild(msg);
+          return;
+        }
+
+        const label = document.createElement('span');
+        label.textContent = 'Forslag fra Artsobservasjoner:';
+        aoSitesEl.appendChild(label);
+
+        currentAoSites
+          .filter((s) => s && typeof s.name === 'string' && s.name.trim())
+          .slice(0, 5)
+          .forEach((site) => {
+            const pill = document.createElement('span');
+            pill.className = 'site-pill';
+            pill.textContent = site.name;
+            pill.addEventListener('click', () => {
+              const name = site.name;
+              currentPlaceName = name;
+              if (placeInput) {
+                placeInput.value = name;
+                placeInput.dataset.autofilled = 'true';
+              }
+            });
+            aoSitesEl.appendChild(pill);
+          });
+      }
 
       function setStatus(mode, text) {
         statusText.textContent = text;
@@ -591,6 +670,12 @@
           if (exportBtn) {
             exportBtn.disabled = true;
           }
+          if (copyBtn) {
+            copyBtn.disabled = true;
+          }
+          if (clearBtn) {
+            clearBtn.disabled = true;
+          }
           return;
         }
 
@@ -639,6 +724,12 @@
 
         if (exportBtn) {
           exportBtn.disabled = false;
+        }
+        if (copyBtn) {
+          copyBtn.disabled = false;
+        }
+        if (clearBtn) {
+          clearBtn.disabled = false;
         }
       }
 
@@ -775,6 +866,7 @@
            count: num,
            position: currentPosition,
           placeName: currentPlaceName,
+          timestamp: new Date().toISOString(),
         });
 
         renderObservations();
@@ -828,6 +920,7 @@
                     lon: pos.coords.longitude,
                     accuracy: pos.coords.accuracy,
                   };
+                  console.log('Geolokasjon fra nettleser', currentPosition);
                   const { lat, lon, accuracy } = currentPosition;
                   const latStr = lat.toFixed(5);
                   const lonStr = lon.toFixed(5);
@@ -853,6 +946,34 @@
                     .catch((err) => {
                       console.warn('Feil ved henting av stedsnavn', err);
                     });
+                  // Hent forslag til lokaliteter fra Artsobservasjoner (mobil-API)
+                  const aoUrl = `/api/ao-sites?lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(
+                    lon
+                  )}`;
+                  console.log('Kaller AO-sites via backend', aoUrl);
+                  fetch(aoUrl)
+                    .then((r) => (r.ok ? r.json() : null))
+                    .then((data) => {
+                      if (!data || !Array.isArray(data.sites)) {
+                        setAoSiteSuggestions([]);
+                        return;
+                      }
+                      const sites = data.sites.filter(
+                        (s) => s && typeof s.name === 'string' && s.name.trim()
+                      );
+                      setAoSiteSuggestions(sites);
+                      // Hvis stedsnavnfeltet er tomt, bruk første forslag
+                      if (sites.length && placeInput && !placeInput.value.trim()) {
+                        const name = sites[0].name;
+                        currentPlaceName = name;
+                        placeInput.value = name;
+                        placeInput.dataset.autofilled = 'true';
+                      }
+                    })
+                    .catch((err) => {
+                      console.warn('Feil ved henting av AO-lokaliteter', err);
+                      setAoSiteSuggestions([]);
+                    });
                   if (locMapBtn) {
                     locMapBtn.disabled = false;
                   }
@@ -861,6 +982,7 @@
                 (err) => {
                   console.warn('Feil ved geolokasjon', err);
                   setLocationStatus('error', 'Fikk ikke tak i posisjon. Sjekk tillatelser og prøv igjen.');
+                  setAoSiteSuggestions([]);
                   locBtn.disabled = false;
                 },
                 {
@@ -886,17 +1008,109 @@
 
       function toCsv() {
         if (!observations.length) return '';
-        // Enkel CSV: taxonid;navn;antall;sted;lat;lon
-        const lines = ['taxonid;navn;antall;sted;lat;lon'];
+        // Artsobservasjoner sitt importformat (fugl, v2.20) –
+        // vi fyller inn Artsnavn, Lokalitetsnavn, dato og Antall.
+        // Koordinater droppes inntil videre (Nord/Øst/Nøyaktighet tomme),
+        // for å unngå konflikt med koordinatsystemet i AO-profilen.
+        // Viktig: bruker TAB som skilletegn (som Excel gjør ved kopiering),
+        // slik at innliming i Artsobservasjoner deler kolonnene riktig.
+        const SEP = '\t';
+        const header = [
+          'Artsnavn',
+          'Lokalitetsnavn',
+          'Superlokalitet',
+          'Nord',
+          'Øst',
+          'Nøyaktighet',
+          'Fra dato',
+          'Til dato',
+          'Fra klokkeslett',
+          'Til klokkeslett',
+          'Antall',
+          'Alder',
+          'Kjønn',
+          'Aktivitet',
+          'Kommentar (synlig for alle)',
+          'Privat kommentar (kun synlig for deg selv)',
+          'Skjul funn til dato',
+          'Medobservatør',
+          'Medobservatør',
+          'Medobservatør',
+          'Medobservatør',
+          'Medobservatør',
+          'Medobservatør',
+          'Medobservatør',
+          'Medobservatør',
+          'Medobservatør',
+          'Medobservatør',
+          'Bestemmelsesmetode',
+          'Natursystem',
+          'Beskriv natursystem',
+          'Livsmedium',
+          'Beskriv livsmedium',
+          'Art som livsmedium',
+          'Beskriv art som livsmedium',
+          'Dybde min',
+          'Dybde maks',
+          'Høyde min',
+          'Høyde maks',
+          'Andrehånds',
+          'Usikker artsbestemming',
+          'Ikke spontan',
+          'Interessant observasjon',
+          'Ikke gjenfunnet',
+          'Ikke funnet',
+          'Offentlig samling',
+          'Privat samling',
+          'Referansenummer i samling',
+          'Beskrivelse artsbestemming',
+          'Bestemt av',
+          'Bestemt av (fritekst)',
+          'Bestemmelsesår',
+          'Bekreftet av',
+          'Bekreftet av (fritekst)',
+          'Bekreftelsesår',
+        ];
+
+        const lines = [header.join(SEP)];
+
         for (const obs of observations) {
-          const id = obs.species.taxonId ?? '';
-          const name = (obs.species.taxonName ?? '').replace(/;/g, ',');
-          const count = obs.count ?? '';
-          const place = (obs.placeName ?? '').replace(/;/g, ',');
-          const pos = obs.position || {};
-          const lat = typeof pos.lat === 'number' ? pos.lat.toString() : '';
-          const lon = typeof pos.lon === 'number' ? pos.lon.toString() : '';
-          lines.push(`${id};${name};${count};${place};${lat};${lon}`);
+          const name = (obs.species.taxonName ?? '').replace(/[;\t]/g, ',');
+          const place = (obs.placeName ?? '').replace(/[;\t]/g, ',');
+          const count = obs.count != null ? String(obs.count) : '';
+
+          // Dato (Fra/til = samme dag) – format DD.MM.YYYY
+          let dateStr = '';
+          if (obs.timestamp) {
+            const d = new Date(obs.timestamp);
+            if (!isNaN(d.getTime())) {
+              const dd = String(d.getDate()).padStart(2, '0');
+              const mm = String(d.getMonth() + 1).padStart(2, '0');
+              const yyyy = d.getFullYear();
+              dateStr = `${dd}.${mm}.${yyyy}`;
+            }
+          }
+          if (!dateStr) {
+            const d = new Date();
+            const dd = String(d.getDate()).padStart(2, '0');
+            const mm = String(d.getMonth() + 1).padStart(2, '0');
+            const yyyy = d.getFullYear();
+            dateStr = `${dd}.${mm}.${yyyy}`;
+          }
+
+          const cols = new Array(54).fill('');
+          // 1: Artsnavn
+          cols[0] = name;
+          // 2: Lokalitetsnavn
+          cols[1] = place;
+          // 7: Fra dato
+          cols[6] = dateStr;
+          // 8: Til dato (samme som Fra dato)
+          cols[7] = dateStr;
+          // 11: Antall
+          cols[10] = count;
+
+          lines.push(cols.join(SEP));
         }
         return lines.join('\n');
       }
@@ -915,6 +1129,48 @@
           a.click();
           document.body.removeChild(a);
           URL.revokeObjectURL(url);
+          flashButton(exportBtn, 'Lastet ned!');
+        });
+      }
+
+      if (copyBtn) {
+        copyBtn.addEventListener('click', async () => {
+          const csv = toCsv();
+          if (!csv) return;
+
+          try {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+              await navigator.clipboard.writeText(csv);
+            } else {
+              const ta = document.createElement('textarea');
+              ta.value = csv;
+              ta.style.position = 'fixed';
+              ta.style.top = '-1000px';
+              document.body.appendChild(ta);
+              ta.focus();
+              ta.select();
+              try {
+                document.execCommand('copy');
+              } finally {
+                document.body.removeChild(ta);
+              }
+            }
+          } catch (e) {
+            console.warn('Kunne ikke kopiere CSV til utklippstavlen', e);
+            return;
+          }
+          flashButton(copyBtn, 'Kopiert!');
+        });
+      }
+
+      if (clearBtn) {
+        clearBtn.addEventListener('click', () => {
+          if (!observations.length) return;
+          const ok = window.confirm('Slette alle observasjoner i listen?');
+          if (!ok) return;
+          observations.splice(0, observations.length);
+          renderObservations();
+          saveState();
         });
       }
 

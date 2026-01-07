@@ -37,13 +37,19 @@ For hver art du vil registrere:
 ## 4. Observasjonsliste og eksport
 
 - Nederst vises **Liste over valgte arter**, gruppert per sted:
-   - Hver blokk har en liten overskrift med stedsnavnet (f.eks. `Hylkje`, `Knarvik` eller `Uten stedsnavn`).
-   - Under overskriften listes observasjoner som linjer på formen `antall × art`.
-- Når det finnes minst én observasjon blir knappen **«Last ned CSV»** aktiv.
-- Ved klikk lastes en fil `fugleobservasjoner.csv` ned med kolonnene:
-  - `taxonid;navn;antall;sted;lat;lon`
-\
-CSV-en er ment som et mellomformat som senere kan tilpasses direkte til Artsobservasjoner sitt importformat.
+    - Hver blokk har en liten overskrift med stedsnavnet (f.eks. `Hylkje`, `Knarvik` eller `Uten stedsnavn`).
+    - Under overskriften listes observasjoner som linjer på formen `antall × art`.
+- Når det finnes minst én observasjon blir knappene **«Tøm liste»**, **«Kopier CSV»** og **«Last ned CSV»** aktive.
+- Begge bruker samme format: en TSV/«CSV» som er tilpasset **Artsobservasjoner.no sitt importformat for fugl (versjon 2.20)**, med overskriftsrad (kolonner separert med TAB, slik Excel gjør):
+   - `Artsnavn;Lokalitetsnavn;Superlokalitet;Nord;Øst;Nøyaktighet;Fra dato;Til dato;Fra klokkeslett;Til klokkeslett;Antall;Alder;Kjønn;Aktivitet;Kommentar (synlig for alle);Privat kommentar (kun synlig for deg selv);Skjul funn til dato;Medobservatør;Medobservatør;Medobservatør;Medobservatør;Medobservatør;Medobservatør;Medobservatør;Medobservatør;Medobservatør;Medobservatør;Bestemmelsesmetode;Natursystem;Beskriv natursystem;Livsmedium;Beskriv livsmedium;Art som livsmedium;Beskriv art som livsmedium;Dybde min;Dybde maks;Høyde min;Høyde maks;Andrehånds;Usikker artsbestemming;Ikke spontan;Interessant observasjon;Ikke gjenfunnet;Ikke funnet;Offentlig samling;Privat samling;Referansenummer i samling;Beskrivelse artsbestemming;Bestemt av;Bestemt av (fritekst);Bestemmelsesår;Bekreftet av;Bekreftet av (fritekst);Bekreftelsesår`
+- I radene fylles automatisk inn:
+   - **Artsnavn** (fra Artsobservasjoner-autocomplete)
+   - **Lokalitetsnavn** (stedsnavnet du har satt)
+   - **Fra dato** og **Til dato** (dagen observasjonen ble registrert)
+   - **Antall**
+   - Alle andre kolonner (inkludert koordinater) står tomme, slik at du kan fylle på koordinater, aktivitet, kommentarer m.m. i Excel/Sheets før du importerer i Artsobservasjoner.
+
+Etter at du har eksportert og kontrollert at importen i Artsobservasjoner er ok, kan du bruke **«Tøm liste»** for å slette alle observasjonene fra denne økten (både i listen og i localStorage).
 
 ## 5. Lagring (localStorage)
 

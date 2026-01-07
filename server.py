@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import json
+import math
 import os
 import re
 from html import unescape
@@ -117,7 +118,20 @@ class Handler(SimpleHTTPRequestHandler):
             try:
                 with urlopen(req, timeout=10) as resp:
                     body = resp.read().decode('utf-8', errors='ignore')
-                data = json.loads(body)
+
+                text = (body or '').strip()
+                if not text:
+                    # Ingen data tilbake -> ingen lokasjoner
+                    self._send_json({'sites': []}, status=200)
+                    return
+
+                try:
+                    data = json.loads(text)
+                except Exception:
+                    # Uventet svarformat (HTML, feilside e.l.)
+                    print('Uventet respons fra AO-sites (ikke JSON). Første 200 tegn:\n', text[:200])
+                    self._send_json({'sites': []}, status=200)
+                    return
 
                 address = data.get('address', {}) or {}
                 # Forsøk å plukke ut et kort stedsnavn
@@ -140,6 +154,121 @@ class Handler(SimpleHTTPRequestHandler):
                 self._send_json(
                     {'error': 'Feil ved henting av stedsnavn.'}, status=500
                 )
+                return
+
+        # Hent lokasjoner ("sites") fra mobil.artsobservasjoner.no rundt en posisjon
+        if parsed.path == '/api/ao-sites':
+            params = parse_qs(parsed.query)
+            lat_raw = params.get('lat', [''])[0].strip()
+            lon_raw = params.get('lon', [''])[0].strip()
+            size_raw = params.get('size', ['300'])[0].strip()  # meters (kantlengde)
+
+            try:
+                lat = float(lat_raw)
+                lon = float(lon_raw)
+                # Standardboks: 1000 m x 1000 m rundt punktet
+                size_m = float(size_raw) if size_raw else 1000.0
+            except ValueError:
+                self._send_json({'error': 'Ugyldig lat/lon/size.'}, status=400)
+                return
+
+            # Beregn en enkel boks i desimalgrader rundt punktet.
+            # 1 grad bredde ~ 111_320 m. Lengdegrad skaleres med cos(lat).
+            half_m = max(size_m, 1.0) / 2.0
+            meters_per_deg_lat = 111_320.0
+            meters_per_deg_lon = meters_per_deg_lat * math.cos(math.radians(lat)) or 1.0
+
+            d_lat = half_m / meters_per_deg_lat
+            d_lon = half_m / meters_per_deg_lon
+
+            min_y = lat - d_lat
+            max_y = lat + d_lat
+            min_x = lon - d_lon
+            max_x = lon + d_lon
+
+            print(
+                'AO-sites forespørsel:',
+                f'lat={lat:.6f}, lon={lon:.6f}, size_m={size_m:.1f}, '
+                f'minX={min_x:.6f}, minY={min_y:.6f}, maxX={max_x:.6f}, maxY={max_y:.6f}',
+            )
+
+            query_params = {
+                'maxSites': '200',
+                'minX': f'{min_x:.6f}',
+                'minY': f'{min_y:.6f}',
+                'maxX': f'{max_x:.6f}',
+                'maxY': f'{max_y:.6f}',
+                'includePublicSites': 'true',
+            }
+
+            # Bruk det samme ByBoundingBox-endepunktet som mobilklienten,
+            # men be om ukomprimert (identity) svar for enkel JSON-parsing.
+            ao_sites_url = (
+                'https://mobil.artsobservasjoner.no/core/Sites/ByBoundingBox?'
+                + urlencode(query_params)
+            )
+
+            req = Request(
+                ao_sites_url,
+                headers={
+                    'User-Agent': 'Mozilla/5.0 (compatible; Fugleobservasjoner-Python/0.1)',
+                    'Accept': 'application/json, text/plain, */*',
+                    'Accept-Encoding': 'identity',
+                    'X-CSRF': '1',
+                    'Referer': 'https://mobil.artsobservasjoner.no/contribute/submit-sightings',
+                },
+            )
+
+            try:
+                with urlopen(req, timeout=10) as resp:
+                    body = resp.read().decode('utf-8', errors='ignore')
+                data = json.loads(body)
+
+                # Prøv å hente ut en liste med steder uavhengig av struktur
+                if isinstance(data, list):
+                    raw_sites = data
+                elif isinstance(data, dict):
+                    raw_sites = data.get('sites') or data.get('Sites') or []
+                else:
+                    raw_sites = []
+
+                sites = []
+                for item in raw_sites or []:
+                    if not isinstance(item, dict):
+                        continue
+                    name = (
+                        item.get('name')
+                        or item.get('Name')
+                        or item.get('siteName')
+                        or item.get('SiteName')
+                    )
+                    site_id = item.get('id') or item.get('Id') or item.get('siteId')
+                    lat_val = item.get('lat') or item.get('latitude') or item.get('Lat')
+                    lon_val = item.get('lon') or item.get('longitude') or item.get('Lon')
+
+                    site = {
+                        'raw': item,
+                    }
+                    if name:
+                        site['name'] = name
+                    if site_id is not None:
+                        site['id'] = site_id
+                    if lat_val is not None:
+                        site['lat'] = lat_val
+                    if lon_val is not None:
+                        site['lon'] = lon_val
+                    sites.append(site)
+
+                print('AO-sites svar: antall steder =', len(sites))
+                if sites[:3]:
+                    print('AO-sites eksempelsteder:', [s.get('name') for s in sites[:3]])
+
+                self._send_json({'sites': sites}, status=200)
+                return
+            except Exception as e:
+                print('Feil ved henting av AO-lokaliteter:', repr(e))
+                # Ikke la dette knekke klienten – returner bare tom liste.
+                self._send_json({'sites': []}, status=200)
                 return
 
         # Alt annet: server statiske filer fra ./public
