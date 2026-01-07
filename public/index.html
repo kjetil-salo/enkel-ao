@@ -1093,12 +1093,6 @@
         if (e.key !== 'Enter') return;
         if (!selectedSpecies) return;
 
-        // Sørg for at vi alltid har en posisjon før registrering
-        if (!currentPosition) {
-          setLocationStatus('error', 'Ingen posisjon. Trykk «Oppdater posisjon» først.');
-          return;
-        }
-
         const raw = countInput.value.trim();
         const num = parseInt(raw, 10);
         if (!raw || isNaN(num) || num <= 0) {
@@ -1113,10 +1107,6 @@
 
       function commitObservationFromActivity() {
         if (!selectedSpecies) return;
-        if (!currentPosition) {
-          setLocationStatus('error', 'Ingen posisjon. Trykk «Oppdater posisjon» først.');
-          return;
-        }
 
         const raw = countInput.value.trim();
         const num = parseInt(raw, 10);
@@ -1165,7 +1155,9 @@
           commitObservationFromActivity();
         });
         activitySelect.addEventListener('change', () => {
-          // Bare oppdatere lokal state; selve lagringen skjer ved Enter
+          // På mobil finnes det ofte ingen Enter-tast for select-felt,
+          // så vi lagrer observasjonen når aktiviteten faktisk velges.
+          commitObservationFromActivity();
         });
       }
 
