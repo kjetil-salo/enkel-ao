@@ -421,6 +421,26 @@
         cursor: default;
       }
 
+      .activity-input-row {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .activity-submit-btn {
+        border-radius: 999px;
+        border: 1px solid rgba(22, 163, 74, 1);
+        background: #22c55e;
+        color: #ffffff;
+        font-size: 0.8rem;
+        padding: 3px 8px;
+      }
+
+      .activity-submit-btn:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+      }
+
       .kbd-hint {
         display: none;
       }
@@ -538,7 +558,8 @@
 
           <div class="row">
             <label for="activity">Aktivitet</label>
-            <select id="activity" disabled>
+            <div class="activity-input-row">
+              <select id="activity" disabled>
               <option value="1">Reir med egg eller unger</option>
               <option value="2">Reir, unger hørt</option>
               <option value="3">Mislykket hekking</option>
@@ -642,7 +663,17 @@
               <option value="123">Skadet av fiskeredskap</option>
               <option value="124">Funnet død</option>
               <option value="125">Paring (eller seremonier)</option>
-            </select>
+              </select>
+              <button
+                type="button"
+                id="activity-submit"
+                class="activity-submit-btn"
+                title="Lagre observasjon"
+                disabled
+              >
+                ✓
+              </button>
+            </div>
           </div>
         </div>
 
@@ -677,6 +708,7 @@
       const resultCount = document.getElementById('result-count');
       const countInput = document.getElementById('count');
       const activitySelect = document.getElementById('activity');
+      const activitySubmitBtn = document.getElementById('activity-submit');
       const obsListEl = document.getElementById('obs-list');
       const exportBtn = document.getElementById('export-btn');
       const copyBtn = document.getElementById('copy-btn');
@@ -881,6 +913,9 @@
         if (activitySelect) {
           activitySelect.disabled = false;
           activitySelect.value = '23'; // Stasjonær
+        }
+        if (activitySubmitBtn) {
+          activitySubmitBtn.disabled = false;
         }
       }
 
@@ -1143,8 +1178,15 @@
           activitySelect.value = '23'; // Stasjonær
           activitySelect.disabled = true;
         }
+        if (activitySubmitBtn) {
+          activitySubmitBtn.disabled = true;
+        }
 
-        // Flytt fokus tilbake til artsøk for rask neste registrering
+        // Tøm søkefeltet og resultater, og flytt fokus tilbake til artsøk
+        input.value = '';
+        currentResults = [];
+        activeIndex = -1;
+        renderResults();
         input.focus();
         input.select();
       }
@@ -1157,6 +1199,12 @@
         activitySelect.addEventListener('change', () => {
           // På mobil finnes det ofte ingen Enter-tast for select-felt,
           // så vi lagrer observasjonen når aktiviteten faktisk velges.
+          commitObservationFromActivity();
+        });
+      }
+
+      if (activitySubmitBtn) {
+        activitySubmitBtn.addEventListener('click', () => {
           commitObservationFromActivity();
         });
       }
