@@ -445,6 +445,20 @@
               <span>Oppdater posisjon</span>
             </button>
           </div>
+          <div class="row" style="margin-top:8px;">
+            <label for="ao-size">Søkeområde (meter)</label>
+            <div class="row-inline">
+              <input
+                type="number"
+                id="ao-size"
+                min="100"
+                max="3000"
+                step="50"
+                value="600"
+              />
+              <span class="badge">Kvadratisk område, GPS i midten</span>
+            </div>
+          </div>
           <div class="row" style="margin-top:10px;">
             <label for="place">Stedsnavn (valgfritt)</label>
             <input
@@ -538,6 +552,7 @@
       const locMapBtn = document.getElementById('loc-map-btn');
       const placeInput = document.getElementById('place');
       const aoSitesEl = document.getElementById('ao-sites');
+      const aoSizeInput = document.getElementById('ao-size');
 
       let currentResults = [];
       let activeIndex = -1;
@@ -547,23 +562,39 @@
         let currentPosition = null;
       let currentPlaceName = '';
       let currentAoSites = [];
+      let currentAoSizeMeters = 600;
 
       function isPrivateSite(site) {
         if (!site || typeof site !== 'object') return false;
         const raw = site.raw && typeof site.raw === 'object' ? site.raw : site;
         if (!raw || typeof raw !== 'object') return false;
 
-        // Følg AO sitt felt isPrivate: kun eksplisitt true / "true" er privat.
+        // Bruk isPrivate-flagget fra AO. Kun eksplisitt true / "true" er privat.
         if (Object.prototype.hasOwnProperty.call(raw, 'isPrivate')) {
           const v = raw.isPrivate;
           if (v === true || v === 'true') return true;
+          if (v === false || v === 'false') return false;
         }
         if (Object.prototype.hasOwnProperty.call(raw, 'IsPrivate')) {
           const v = raw.IsPrivate;
           if (v === true || v === 'true') return true;
+          if (v === false || v === 'false') return false;
         }
 
         return false;
+      }
+
+      function getSiteLabel(site) {
+        if (!site || typeof site !== 'object') return '';
+        // Bruk konsekvent "name" fra AO som lokalitetsnavn
+        if (typeof site.name === 'string' && site.name.trim()) {
+          return site.name.trim();
+        }
+        const raw = site.raw && typeof site.raw === 'object' ? site.raw : site;
+        if (raw && typeof raw.name === 'string' && raw.name.trim()) {
+          return raw.name.trim();
+        }
+        return '';
       }
 
       function flashButton(button, successLabel) {
@@ -596,19 +627,24 @@
         label.textContent = 'Forslag fra Artsobservasjoner:';
         aoSitesEl.appendChild(label);
 
-        currentAoSites
+        const visibleSites = currentAoSites
           .filter((s) => s && typeof s.name === 'string' && s.name.trim())
+          // Offentlige først, private til slutt
+          .sort((a, b) => Number(isPrivateSite(a)) - Number(isPrivateSite(b)));
+
+        visibleSites
           .slice(0, 5)
           .forEach((site) => {
             const pill = document.createElement('span');
             const isPrivate = isPrivateSite(site);
             pill.className = isPrivate ? 'site-pill site-pill-private' : 'site-pill';
-            pill.textContent = site.name;
+            const text = getSiteLabel(site) || site.name;
+            pill.textContent = text;
             if (isPrivate) {
               pill.title = 'Privat lokalitet (kan ikke brukes)';
             } else {
               pill.addEventListener('click', () => {
-                const name = site.name;
+                const name = getSiteLabel(site) || site.name;
                 currentPlaceName = name;
                 if (placeInput) {
                   placeInput.value = name;
@@ -998,9 +1034,12 @@
                       console.warn('Feil ved henting av stedsnavn', err);
                     });
                   // Hent forslag til lokaliteter fra Artsobservasjoner (mobil-API)
-                  const aoUrl = `/api/ao-sites?lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(
-                    lon
-                  )}`;
+                  const sizeParam = Number.isFinite(currentAoSizeMeters)
+                    ? currentAoSizeMeters
+                    : 600;
+                  const aoUrl = `/api/ao-sites?lat=${encodeURIComponent(
+                    lat
+                  )}&lon=${encodeURIComponent(lon)}&size=${encodeURIComponent(sizeParam)}`;
                   console.log('Kaller AO-sites via backend', aoUrl);
                   fetch(aoUrl)
                     .then((r) => (r.ok ? r.json() : null))
@@ -1017,7 +1056,7 @@
                       if (placeInput && !placeInput.value.trim()) {
                         const firstPublic = sites.find((s) => !isPrivateSite(s));
                         if (firstPublic) {
-                          const name = firstPublic.name;
+                          const name = getSiteLabel(firstPublic) || firstPublic.name;
                           currentPlaceName = name;
                           placeInput.value = name;
                           placeInput.dataset.autofilled = 'true';
@@ -1057,6 +1096,18 @@
             lat
           )}&mlon=${encodeURIComponent(lon)}#map=16/${encodeURIComponent(lat)}/${encodeURIComponent(lon)}`;
           window.open(url, '_blank', 'noopener');
+        });
+      }
+
+      if (aoSizeInput) {
+        const initial = parseFloat(aoSizeInput.value);
+        if (!isNaN(initial) && initial > 0) {
+          currentAoSizeMeters = initial;
+        }
+        aoSizeInput.addEventListener('input', () => {
+          const v = parseFloat(aoSizeInput.value);
+          if (isNaN(v) || v <= 0) return;
+          currentAoSizeMeters = v;
         });
       }
 
