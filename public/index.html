@@ -286,6 +286,28 @@
         flex-wrap: wrap;
       }
 
+      select {
+        width: 100%;
+        padding: 7px 10px;
+        border-radius: 999px;
+        border: 1px solid rgba(148, 163, 184, 0.45);
+        background: radial-gradient(circle at top left, rgba(248, 250, 252, 0.04), rgba(15, 23, 42, 0.95));
+        color: var(--text);
+        font-size: 0.9rem;
+        outline: none;
+        -webkit-appearance: none;
+      }
+
+      select:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+      }
+
+      select:focus {
+        border-color: rgba(59, 130, 246, 0.9);
+        box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.6), 0 0 0 8px rgba(59, 130, 246, 0.15);
+      }
+
       input[type="number"] {
         width: 110px;
         padding: 7px 10px;
@@ -329,19 +351,22 @@
         margin-bottom: 3px;
       }
 
-      .obs-item {
-        display: flex;
-        justify-content: flex-start;
-        align-items: baseline;
-        padding: 3px 0;
+      .obs-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 4px;
       }
 
-      .obs-main {
-        display: flex;
-        flex-direction: column;
+      .obs-table th,
+      .obs-table td {
+        padding: 3px 4px;
+        text-align: left;
+        font-size: 0.78rem;
+        border-bottom: 1px solid rgba(15, 23, 42, 0.6);
       }
 
-      .obs-name {
+      .obs-table th {
+        color: var(--muted);
         font-weight: 500;
       }
 
@@ -510,6 +535,115 @@
               <span class="badge">Enter = legg til i liste</span>
             </div>
           </div>
+
+          <div class="row">
+            <label for="activity">Aktivitet</label>
+            <select id="activity" disabled>
+              <option value="1">Reir med egg eller unger</option>
+              <option value="2">Reir, unger hørt</option>
+              <option value="3">Mislykket hekking</option>
+              <option value="4">Rugende</option>
+              <option value="5">Eggeskall</option>
+              <option value="6">Mat til unger</option>
+              <option value="7">Bar ekskrementpose</option>
+              <option value="8">Besøker bebodd reir</option>
+              <option value="9">Unger utenfor reir, ikke utvokste</option>
+              <option value="10">Brukt reir</option>
+              <option value="11">Avledningsmanøver</option>
+              <option value="12">Reirbygging</option>
+              <option value="13">Rugeflekker</option>
+              <option value="14">Engstelig adferd, indikasjon på hekking</option>
+              <option value="15">Reirbesøk?</option>
+              <option value="16">Paring/kurtise på mulig hekkeplass</option>
+              <option value="17">Permanent revir</option>
+              <option value="18">Par i passende hekkebiotop</option>
+              <option value="19">Sang/spill i hekketid og passende hekkebiotop</option>
+              <option value="20">Observasjon i hekketid, passende biotop</option>
+              <option value="22">Rastende</option>
+              <option value="23" selected>Stasjonær</option>
+              <option value="24">Overflygende</option>
+              <option value="25">Næringssøkende</option>
+              <option value="26">Sang/spill, ikke hekking</option>
+              <option value="27">Lokkelyd, øvrige lyder</option>
+              <option value="28">Revir, ikke hekking</option>
+              <option value="29">Ringmerket</option>
+              <option value="30">Individmerket (kontroll)</option>
+              <option value="31">Trekkforsøk</option>
+              <option value="32">Trekkende</option>
+              <option value="33">Trekkende mot N</option>
+              <option value="34">Trekkende mot NØ</option>
+              <option value="35">Trekkende mot Ø</option>
+              <option value="36">Trekkende mot SØ</option>
+              <option value="37">Trekkende mot S</option>
+              <option value="38">Trekkende mot SV</option>
+              <option value="39">Trekkende mot V</option>
+              <option value="40">Trekkende mot NV</option>
+              <option value="41">Død - ukjent dødsårsak</option>
+              <option value="42">Ferske spor</option>
+              <option value="43">Eldre spor</option>
+              <option value="44">Fersk møkk</option>
+              <option value="45">Eldre møkk</option>
+              <option value="46">Ferske gnagespor/hull</option>
+              <option value="47">Eldre gnagespor/hull</option>
+              <option value="48">Galle</option>
+              <option value="49">Mine</option>
+              <option value="50">Kokong/larve-/puppehud</option>
+              <option value="51">Fragment</option>
+              <option value="52">Sang/spill</option>
+              <option value="53">Revirhevdende</option>
+              <option value="54">Egglegging</option>
+              <option value="55">Frittspringende/krypende</option>
+              <option value="56">Frittflygende</option>
+              <option value="57">Svømmende</option>
+              <option value="58">Gravende</option>
+              <option value="60">Dvale</option>
+              <option value="62">Bytte-/matrester</option>
+              <option value="63">Hår/skjelettrester</option>
+              <option value="64">Rester etter hudskifte</option>
+              <option value="65">Syk</option>
+              <option value="67">Vandrende</option>
+              <option value="68">Død - kollisjon med kraftledning</option>
+              <option value="69">Død - kollisjon med vindturbin</option>
+              <option value="70">Død - kollisjon med vindu</option>
+              <option value="71">Død - kollisjon med fyr</option>
+              <option value="72">Trafikkdrept</option>
+              <option value="73">Død - kollisjon med fly</option>
+              <option value="74">Død - kollisjon med gjerde</option>
+              <option value="75">Drept av elektrokusjon (strømslag)</option>
+              <option value="76">Garndød</option>
+              <option value="77">Drept av predator</option>
+              <option value="78">Død av sykdom/sult</option>
+              <option value="79">Ammende/lakterende hunn</option>
+              <option value="80">Drektig hunn</option>
+              <option value="81">Gnagespor</option>
+              <option value="82">Gyting</option>
+              <option value="83">Hann med velutviklet bitestikkel</option>
+              <option value="84">Hopp</option>
+              <option value="85">Hunn med unge(r)</option>
+              <option value="86">Hvilende</option>
+              <option value="88">I lekdrakt</option>
+              <option value="89">I vann</option>
+              <option value="90">Kamper mellom hanner</option>
+              <option value="91">Konstant kurs, regelmessig dykking</option>
+              <option value="92">Langsom forflytning, lang tid ved overflaten</option>
+              <option value="93">Nærmer seg båten</option>
+              <option value="94">Overvintringsplass</option>
+              <option value="95">Reirbyggende/brukt bo/hus</option>
+              <option value="96">Skutt/avlivet</option>
+              <option value="97">Soling</option>
+              <option value="98">Spor etter voksent dyr med unge(r)</option>
+              <option value="100">Variabel kurs/uregelmessig dykking</option>
+              <option value="101">Yngleplass/unger</option>
+              <option value="102">Drept av olje</option>
+              <option value="103">Spor fra klatring</option>
+              <option value="120">Klekkende</option>
+              <option value="121">Reir i bruk</option>
+              <option value="122">Ved fôring</option>
+              <option value="123">Skadet av fiskeredskap</option>
+              <option value="124">Funnet død</option>
+              <option value="125">Paring (eller seremonier)</option>
+            </select>
+          </div>
         </div>
 
         <div class="row">
@@ -542,6 +676,7 @@
       const statusText = document.getElementById('status-text');
       const resultCount = document.getElementById('result-count');
       const countInput = document.getElementById('count');
+      const activitySelect = document.getElementById('activity');
       const obsListEl = document.getElementById('obs-list');
       const exportBtn = document.getElementById('export-btn');
       const copyBtn = document.getElementById('copy-btn');
@@ -743,6 +878,10 @@
         countInput.disabled = false;
         countInput.value = '';
         countInput.focus();
+        if (activitySelect) {
+          activitySelect.disabled = false;
+          activitySelect.value = '23'; // Stasjonær
+        }
       }
 
       function renderObservations() {
@@ -781,33 +920,51 @@
           groups[idx].items.push(obs);
         });
 
-        groups.forEach((group) => {
-          const g = document.createElement('div');
-          g.className = 'obs-group';
+        const table = document.createElement('table');
+        table.className = 'obs-table';
 
-          const title = document.createElement('div');
-          title.className = 'obs-group-title';
-          title.textContent = group.key;
-          g.appendChild(title);
+        const thead = document.createElement('thead');
+        const headerRow = document.createElement('tr');
+        ['Art', 'Antall', 'Aktivitet'].forEach((label) => {
+          const th = document.createElement('th');
+          th.textContent = label;
+          headerRow.appendChild(th);
+        });
+        thead.appendChild(headerRow);
+        table.appendChild(thead);
+
+        const tbody = document.createElement('tbody');
+
+        groups.forEach((group) => {
+          const groupRow = document.createElement('tr');
+          const groupCell = document.createElement('td');
+          groupCell.colSpan = 3;
+          groupCell.className = 'obs-group-title';
+          groupCell.textContent = group.key;
+          groupRow.appendChild(groupCell);
+          tbody.appendChild(groupRow);
 
           group.items.forEach((obs) => {
-            const row = document.createElement('div');
-            row.className = 'obs-item';
+            const tr = document.createElement('tr');
 
-            const main = document.createElement('div');
-            main.className = 'obs-main';
+            const artTd = document.createElement('td');
+            artTd.textContent = obs.species && obs.species.taxonName ? obs.species.taxonName : '';
+            tr.appendChild(artTd);
 
-            const name = document.createElement('div');
-            name.className = 'obs-name';
-            name.textContent = `${obs.count} × ${obs.species.taxonName}`;
+            const countTd = document.createElement('td');
+            countTd.textContent = obs.count != null ? String(obs.count) : '';
+            tr.appendChild(countTd);
 
-            main.appendChild(name);
-            row.appendChild(main);
-            g.appendChild(row);
+            const activityTd = document.createElement('td');
+            activityTd.textContent = obs.activity || '';
+            tr.appendChild(activityTd);
+
+            tbody.appendChild(tr);
           });
-
-          obsListEl.appendChild(g);
         });
+
+        table.appendChild(tbody);
+        obsListEl.appendChild(table);
 
         if (exportBtn) {
           exportBtn.disabled = false;
@@ -948,10 +1105,38 @@
           return;
         }
 
+        // Gyldig antall: gå videre til aktivitet i stedet for å lagre ennå
+        if (activitySelect && !activitySelect.disabled) {
+          activitySelect.focus();
+        }
+      });
+
+      function commitObservationFromActivity() {
+        if (!selectedSpecies) return;
+        if (!currentPosition) {
+          setLocationStatus('error', 'Ingen posisjon. Trykk «Oppdater posisjon» først.');
+          return;
+        }
+
+        const raw = countInput.value.trim();
+        const num = parseInt(raw, 10);
+        if (!raw || isNaN(num) || num <= 0) {
+          return;
+        }
+
+        let activity = 'Stasjonær';
+        if (activitySelect && !activitySelect.disabled) {
+          const opt = activitySelect.options[activitySelect.selectedIndex];
+          if (opt && opt.text && opt.text.trim()) {
+            activity = opt.text.trim();
+          }
+        }
+
         observations.push({
           species: selectedSpecies,
            count: num,
            position: currentPosition,
+          activity,
           placeName: currentPlaceName,
           timestamp: new Date().toISOString(),
         });
@@ -964,11 +1149,25 @@
         chosenEl.style.display = 'none';
         countInput.value = '';
         countInput.disabled = true;
+        if (activitySelect) {
+          activitySelect.value = '23'; // Stasjonær
+          activitySelect.disabled = true;
+        }
 
         // Flytt fokus tilbake til artsøk for rask neste registrering
         input.focus();
         input.select();
-      });
+      }
+
+      if (activitySelect) {
+        activitySelect.addEventListener('keydown', (e) => {
+          if (e.key !== 'Enter') return;
+          commitObservationFromActivity();
+        });
+        activitySelect.addEventListener('change', () => {
+          // Bare oppdatere lokal state; selve lagringen skjer ved Enter
+        });
+      }
 
         function setLocationStatus(mode, text) {
           if (locText) {
@@ -1180,9 +1379,10 @@
         const lines = [header.join(SEP)];
 
         for (const obs of observations) {
-          const name = (obs.species.taxonName ?? '').replace(/[;\t]/g, ',');
-          const place = (obs.placeName ?? '').replace(/[;\t]/g, ',');
+          const name = ((obs.species && obs.species.taxonName) || '').replace(/[;\t]/g, ',');
+          const place = (obs.placeName || '').replace(/[;\t]/g, ',');
           const count = obs.count != null ? String(obs.count) : '';
+          const activity = (obs.activity || '').replace(/[;\t]/g, ',');
 
           // Dato (Fra/til = samme dag) – format DD.MM.YYYY
           let dateStr = '';
@@ -1214,6 +1414,8 @@
           cols[7] = dateStr;
           // 11: Antall
           cols[10] = count;
+          // 14: Aktivitet
+          cols[13] = activity;
 
           lines.push(cols.join(SEP));
         }
