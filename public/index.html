@@ -252,6 +252,22 @@
         background: #6b7280;
       }
 
+      .section {
+        margin-top: 14px;
+        padding: 10px 12px;
+        border-radius: 14px;
+        border: 1px solid rgba(15, 23, 42, 0.9);
+        background: radial-gradient(circle at top left, rgba(15, 23, 42, 0.96), rgba(15, 23, 42, 0.9));
+      }
+
+      .section-title {
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        color: var(--muted);
+        margin-bottom: 4px;
+      }
+
       .row {
         margin-top: 12px;
       }
@@ -407,71 +423,76 @@
           </div>
         </header>
 
-        <div class="subtitle">Søk etter fuglearter fra Artsobservasjoner. Dette er kun et søkefelt; senere kan vi bygge videre med observasjoner og CSV-eksport.</div>
+        <div class="subtitle">1) Oppdater posisjon og stedsnavn. 2) Registrer arter og antall. 3) Eksporter til Artsobservasjoner.</div>
 
-        <div class="status-row">
-          <div class="status-left">
-            <span class="status-dot" id="status-dot"></span>
-            <span id="status-text">Klar for søk</span>
+        <div class="section">
+          <div class="section-title">Lokasjon</div>
+          <div class="loc-row">
+            <div>
+              <span class="loc-dot" id="loc-dot"></span>
+              <span id="loc-text">Trykk «Oppdater posisjon» før registrering.</span>
+              <button class="icon-btn" id="loc-map-btn" title="Åpne i kart" disabled>🗺️</button>
+            </div>
+            <button class="btn" id="loc-btn">
+              <span>📍</span>
+              <span>Oppdater posisjon</span>
+            </button>
           </div>
-          <div class="badge" id="result-count">0 treff</div>
-        </div>
-
-        <div class="loc-row">
-          <div>
-            <span class="loc-dot" id="loc-dot"></span>
-            <span id="loc-text">Trykk «Oppdater posisjon» før registrering.</span>
-            <button class="icon-btn" id="loc-map-btn" title="Åpne i kart" disabled>🗺️</button>
-          </div>
-          <button class="btn" id="loc-btn">
-            <span>📍</span>
-            <span>Oppdater posisjon</span>
-          </button>
-        </div>
-
-        <label for="search">Art</label>
-        <div class="input-wrap">
-          <span class="search-icon">🔍</span>
-          <input
-            type="text"
-            id="search"
-            autocomplete="off"
-            placeholder="Begynn å skrive – f.eks. ‘kri’, ‘blå’, ‘måk’ …"
-          />
-        </div>
-
-        <div class="results" id="results" role="listbox" aria-label="Arter"></div>
-        <div class="result-empty" id="empty-msg" style="display:none;">Ingen treff ennå. Skriv minst 2 tegn.</div>
-        <div class="chosen" id="chosen" style="display:none;"></div>
-
-        <div class="row">
-          <label for="count">Antall</label>
-          <div class="row-inline">
+          <div class="row" style="margin-top:10px;">
+            <label for="place">Stedsnavn (valgfritt)</label>
             <input
-              type="number"
-              id="count"
-              min="1"
-              step="1"
-              placeholder="Trykk Enter for å lagre"
-              disabled
+              type="text"
+              id="place"
+              autocomplete="off"
+              placeholder="F.eks. Vikstranda, Østensjøvannet …"
             />
-            <span class="badge">Enter = legg til i liste</span>
+            <div class="result-empty" id="ao-sites" style="display:none; margin-top:4px;"></div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">Art og antall</div>
+          <div class="status-row">
+            <div class="status-left">
+              <span class="status-dot" id="status-dot"></span>
+              <span id="status-text">Klar for søk</span>
+            </div>
+            <div class="badge" id="result-count">0 treff</div>
+          </div>
+
+          <label for="search" style="margin-top:10px; display:block;">Art</label>
+          <div class="input-wrap">
+            <span class="search-icon">🔍</span>
+            <input
+              type="text"
+              id="search"
+              autocomplete="off"
+              placeholder="Begynn å skrive – f.eks. ‘kri’, ‘blå’, ‘måk’ …"
+            />
+          </div>
+
+          <div class="results" id="results" role="listbox" aria-label="Arter"></div>
+          <div class="result-empty" id="empty-msg" style="display:none;">Ingen treff ennå. Skriv minst 2 tegn.</div>
+          <div class="chosen" id="chosen" style="display:none;"></div>
+
+          <div class="row">
+            <label for="count">Antall</label>
+            <div class="row-inline">
+              <input
+                type="number"
+                id="count"
+                min="1"
+                step="1"
+                placeholder="Trykk Enter for å lagre"
+                disabled
+              />
+              <span class="badge">Enter = legg til i liste</span>
+            </div>
           </div>
         </div>
 
         <div class="row">
-          <label for="place">Stedsnavn (valgfritt)</label>
-          <input
-            type="text"
-            id="place"
-            autocomplete="off"
-            placeholder="F.eks. Vikstranda, Østensjøvannet …"
-          />
-          <div class="result-empty" id="ao-sites" style="display:none; margin-top:4px;"></div>
-        </div>
-
-        <div class="row">
-          <div class="subtitle" style="margin-bottom:4px;">Liste over valgte arter</div>
+          <div class="section-title">Observasjoner</div>
           <div class="obs-list" id="obs-list"></div>
           <div class="export-row">
             <button class="btn" id="clear-btn" disabled>
