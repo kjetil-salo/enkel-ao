@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="nb">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <title>Hjelp – Fugleobservasjoner</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #0f172a;
+        --card-bg: #111827;
+        --border: #1f2937;
+        --accent: #3b82f6;
+        --accent-soft: rgba(59, 130, 246, 0.15);
+        --text: #e5e7eb;
+        --muted: #9ca3af;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        background: radial-gradient(circle at top, #1f2937 0, #020617 55%);
+        color: var(--text);
+        padding: 16px;
+        line-height: 1.6;
+      }
+
+      .shell {
+        width: 100%;
+        max-width: 600px;
+        margin: 0 auto;
+      }
+
+      .card {
+        background: linear-gradient(145deg, rgba(15,23,42,0.96), rgba(15,23,42,0.92));
+        border-radius: 18px;
+        border: 1px solid rgba(148, 163, 184, 0.18);
+        box-shadow:
+          0 22px 65px rgba(15, 23, 42, 0.85),
+          0 0 0 1px rgba(15, 23, 42, 0.9);
+        padding: 20px;
+        backdrop-filter: blur(22px);
+        margin-bottom: 16px;
+      }
+
+      header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 16px;
+        gap: 12px;
+      }
+
+      .title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .back-link {
+        color: var(--accent);
+        text-decoration: none;
+        font-size: 0.9rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 6px 12px;
+        border-radius: 999px;
+        border: 1px solid rgba(59, 130, 246, 0.35);
+        background: rgba(59, 130, 246, 0.08);
+        transition: all 0.2s;
+      }
+
+      .back-link:hover {
+        background: rgba(59, 130, 246, 0.15);
+        border-color: rgba(59, 130, 246, 0.55);
+      }
+
+      h2 {
+        font-size: 1.1rem;
+        margin: 24px 0 12px;
+        color: var(--text);
+        font-weight: 600;
+      }
+
+      h2:first-of-type {
+        margin-top: 0;
+      }
+
+      h3 {
+        font-size: 0.95rem;
+        margin: 16px 0 8px;
+        color: var(--muted);
+        font-weight: 500;
+      }
+
+      p {
+        margin: 8px 0;
+        font-size: 0.9rem;
+      }
+
+      ol, ul {
+        margin: 8px 0;
+        padding-left: 24px;
+        font-size: 0.9rem;
+      }
+
+      li {
+        margin: 6px 0;
+      }
+
+      code {
+        background: rgba(59, 130, 246, 0.12);
+        color: #93c5fd;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 0.85em;
+        font-family: 'SF Mono', Monaco, Consolas, monospace;
+      }
+
+      strong {
+        color: var(--text);
+        font-weight: 600;
+      }
+
+      .note {
+        background: rgba(251, 191, 36, 0.08);
+        border-left: 3px solid rgba(251, 191, 36, 0.5);
+        padding: 12px;
+        margin: 12px 0;
+        border-radius: 6px;
+        font-size: 0.88rem;
+      }
+
+      .tip {
+        background: rgba(34, 197, 94, 0.08);
+        border-left: 3px solid rgba(34, 197, 94, 0.5);
+        padding: 12px;
+        margin: 12px 0;
+        border-radius: 6px;
+        font-size: 0.88rem;
+      }
+
+      @media (max-width: 480px) {
+        body {
+          padding: 12px;
+        }
+        
+        .card {
+          padding: 16px;
+        }
+
+        .title {
+          font-size: 1.1rem;
+        }
+
+        h2 {
+          font-size: 1rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <div class="card">
+        <header>
+          <div class="title">
+            <span>📖</span>
+            <span>Hjelp</span>
+          </div>
+          <a href="/" class="back-link">
+            <span>←</span>
+            <span>Tilbake</span>
+          </a>
+        </header>
+
+        <h2>Hva er dette?</h2>
+        <p>Kjenner du frustrasjonen? Du er ute i felt, det er kaldt, fingrene er stive, og du skal registrere fugleobservasjoner på mobilen. Du bruker mer tid på å navigere gjennom menyer og fylle ut felt enn du bruker på å faktisk <strong>se på fuglene</strong>.</p>
+        
+        <p><strong>Da er denne appen for deg.</strong></p>
+        
+        <p>Her registrerer du <strong>art, antall og aktivitet på sekunder</strong>. Autocomplete finner arten mens du skriver, Enter-tasten tar deg videre, og observasjonen er lagret. Du kan lime inn i Artsobservasjoner direkte fra mobilen hvis du vil, men de fleste foretrekker å gjøre det hjemme på stor skjerm – der er det enklere å se gjennom og validere alt før publisering.</p>
+        
+        <p>Det som mange setter aller mest pris på er <strong>lokasjonsfinneren</strong>. Den er gull verdt, spesielt når du er på nye og ukjente steder. Tidligere måtte du gjerne gjette stedsnavnet når du kom hjem og kikket på kartet. Nå får du riktig lokalitet med ett knappetrykk.</p>
+
+        <div class="note">
+          <strong>⚠️ Personvern:</strong> Serveren lagrer ingenting. Alt du legger inn lagres kun i nettleseren din (localStorage) til du eksporterer eller tømmer lista.
+        </div>
+
+        <h2>Slik bruker du appen</h2>
+
+        <h3>1. Oppdater posisjon</h3>
+        <p>Når du kommer til en ny lokalitet:</p>
+        <ol>
+          <li>Trykk på <strong>«Oppdater posisjon»</strong>-knappen</li>
+          <li>Godta at nettleseren får bruke GPS-posisjonen din</li>
+          <li>Prikken blir grønn når posisjonen er oppdatert</li>
+          <li>Stedsnavn fylles ofte automatisk, men du kan alltid endre det manuelt</li>
+        </ol>
+
+        <div class="tip">
+          <strong>💡 Tips:</strong> Du trenger ikke posisjon for å registrere observasjoner, men det gjør det enklere å få riktig stedsnavn.
+        </div>
+
+        <h3>2. Registrer observasjoner</h3>
+        <p>For hver art du observerer:</p>
+        <ol>
+          <li><strong>Søk etter art:</strong> Skriv inn navnet (f.eks. «blåmeis»). Bruk piltaster (↑/↓) og <code>Enter</code> for å velge, eller trykk/klikk på den du vil ha.</li>
+          <li><strong>Angi antall:</strong> Når art er valgt, skriv inn antall individer og trykk <code>Enter</code>.</li>
+          <li><strong>Velg aktivitet:</strong> Standard er «Stasjonær», men du kan velge noe annet fra menyen.</li>
+          <li><strong>Lagre:</strong> Trykk <code>Enter</code> eller på den <strong>grønne ✓-knappen</strong> (anbefalt på mobil).</li>
+        </ol>
+
+        <p>Observasjonen legges nå til i tabellen nederst, og du kan fortsette med neste art.</p>
+
+        <h3>3. Se over og redigere lista</h3>
+        <p>Nederst ser du alle observasjonene dine, <strong>gruppert etter stedsnavn</strong>. Hver rad viser art, antall og aktivitet.</p>
+        <ul>
+          <li><strong>Slette én observasjon:</strong> Trykk på 🗑️-ikonet til høyre for raden.</li>
+          <li><strong>Tømme hele lista:</strong> Bruk <strong>«Tøm liste»</strong>-knappen.</li>
+        </ul>
+
+        <h3>4. Eksportere til Artsobservasjoner</h3>
+        <p>Når du er ferdig med feltarbeidet:</p>
+        <ol>
+          <li>Trykk på <strong>«Kopier CSV»</strong> for å kopiere dataene til utklippstavlen, eller <strong>«Last ned CSV»</strong> for å få en fil.</li>
+          <li>Du kan også bruke <strong>«Kopier og åpne AO»</strong> som både kopierer dataene OG åpner Artsobservasjoner-importeren i ny fane.</li>
+          <li>Gå til <a href="https://www.artsobservasjoner.no/ImportSighting" target="_blank" style="color: var(--accent);">Artsobservasjoner sitt importskjema</a>.</li>
+          <li>Lim inn (Cmd+V / Ctrl+V) i det store tekstfeltet.</li>
+          <li>Trykk «Importer».</li>
+        </ol>
+
+        <h2>Viktige tips</h2>
+
+        <h3>📍 Lokaliteter og stedsnavn</h3>
+        <p>Mange lokaliteter i Artsobservasjoner har <strong>samme navn</strong> (f.eks. «Byparken»). Når du importerer, kan Artsobservasjoner velge feil lokalitet hvis navnet finnes flere ganger.</p>
+
+        <div class="tip">
+          <strong>💡 Løsning:</strong> Logg inn på Artsobservasjoner.no, finn lokalitetene du bruker ofte, og marker dem som <strong>favoritter</strong>. Da vil AO oftere velge «din» variant når du importerer.
+        </div>
+
+        <h3>🕒 Dato og klokkeslett</h3>
+        <p>Appen setter automatisk dagens dato og nåværende klokkeslett når du registrerer en observasjon. Dette eksporteres i formatet <code>HH:MM</code> (f.eks. 08:30) som Artsobservasjoner forventer.</p>
+
+        <h3>💾 Lagring og synkronisering</h3>
+        <ul>
+          <li>Observasjonene lagres kun i <strong>nettleseren din</strong> (localStorage).</li>
+          <li>De forsvinner ikke hvis du refresher siden eller lukker fanen.</li>
+          <li>Men de synkroniseres <strong>ikke</strong> mellom enheter (mobil/PC) eller nettlesere.</li>
+          <li>Hvis du sletter nettleserens data eller bruker privat modus, mister du observasjonene.</li>
+        </ul>
+
+        <h3>🔑 Tastatursnarveier (desktop)</h3>
+        <ul>
+          <li><code>↑</code> / <code>↓</code> – Naviger i artslisten</li>
+          <li><code>Enter</code> – Velg art / Gå videre til neste felt / Lagre observasjon</li>
+          <li><code>Esc</code> – Lukk artslisten</li>
+        </ul>
+
+        <h2>Vanlige problemer</h2>
+
+        <h3>❓ «Posisjon ikke tilgjengelig»</h3>
+        <p>Sørg for at du har gitt nettleseren tillatelse til å bruke posisjonen din. Du finner dette i nettleserens innstillinger eller i adressefeltet (ofte et lås-ikon).</p>
+
+        <h3>❓ Artslisten viser ingenting</h3>
+        <p>Du må skrive minst 2-3 tegn før søket starter. Hvis du fortsatt ikke ser noe, kan det være et midlertidig problem med Artsobservasjoner-API-et.</p>
+
+        <h3>❓ Stedsnavn blir ikke foreslått</h3>
+        <p>Forslagene kommer fra Artsobservasjoner sitt mobil-API. Hvis du ikke ser noe, kan det bety at det ikke finnes registrerte lokaliteter i nærheten, eller at API-et er utilgjengelig. Du kan alltid skrive inn stedsnavnet manuelt.</p>
+
+        <h3>❓ Importfeil i Artsobservasjoner</h3>
+        <p>Kontroller at du har limt inn hele teksten, inkludert overskriftsraden. Hvis du får feilmelding om ugyldig format, kan du prøve å åpne CSV-en i Excel/Google Sheets, sjekke at kolonnene ser riktige ut, og eksportere på nytt som «Tab-separerte verdier».</p>
+
+        <h2>Om appen</h2>
+        <p>Fugleobservasjoner er utviklet av <strong>Kjetil Salomonsen</strong> som et personlig verktøy for effektiv registrering av fugleobservasjoner i felt.</p>
+        <p style="font-size: 0.88rem; margin-top: 12px;">Kontakt: <a href="mailto:k@vikebo.com" style="color: var(--accent); text-decoration: none;">k@vikebo.com</a></p>
+        <p style="font-size: 0.85rem; color: var(--muted); margin-top: 16px;">© 2026 Kjetil Salomonsen</p>
+      </div>
+    </div>
+  </body>
+</html>
