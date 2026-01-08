@@ -956,7 +956,7 @@
         countInput.focus();
         if (activitySelect) {
           activitySelect.disabled = false;
-          activitySelect.value = '23'; // Stasjonær
+          // Behold forrige aktivitetsvalg (ikke reset til Stasjonær)
         }
         if (activitySubmitBtn) {
           activitySubmitBtn.disabled = false;
@@ -1242,7 +1242,7 @@
         countInput.value = '';
         countInput.disabled = true;
         if (activitySelect) {
-          activitySelect.value = '23'; // Stasjonær
+          // Behold forrige aktivitetsvalg (ikke nullstill)
           activitySelect.disabled = true;
         }
         if (activitySubmitBtn) {
@@ -1263,11 +1263,15 @@
           if (e.key !== 'Enter') return;
           commitObservationFromActivity();
         });
-        activitySelect.addEventListener('change', () => {
-          // På mobil finnes det ofte ingen Enter-tast for select-felt,
-          // så vi lagrer observasjonen når aktiviteten faktisk velges.
-          commitObservationFromActivity();
-        });
+        
+        // På mobil/touch-enheter: lagre automatisk ved valg
+        // På desktop: kun Enter-tast for å unngå utilsiktet lagring ved navigering med tastatur
+        const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+        if (isTouchDevice) {
+          activitySelect.addEventListener('change', () => {
+            commitObservationFromActivity();
+          });
+        }
       }
 
       if (activitySubmitBtn) {
