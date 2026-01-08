@@ -16,7 +16,9 @@ Kort oppsummert flyt slik den fungerer nå.
 2. Godta posisjonstilgang i nettleseren.
 3. Statuslinjen viser «Posisjon oppdatert», og kart-ikonet kan brukes til å åpne posisjonen i OpenStreetMap.
 4. I feltet **«Søkeområde (meter)**» kan du styre hvor stort kvadrat vi spør Artsobservasjoner om lokasjoner innenfor. GPS-posisjonen er midtpunktet, og tallet er kantlengden i meter (f.eks. 600 = 600 × 600 m kvadrat).
-5. Stedsnavn-feltet under vil ofte bli forhåndsutfylt fra omvendt geokoding (Nominatim) eller nærmeste lokasjon fra Artsobservasjoner (kan alltid overstyres manuelt).
+5. **Stedsnavn-feltet** fylles automatisk med nærmeste lokalitet fra Artsobservasjoner hvis den finnes. Du kan alltid overstyre manuelt.
+
+> 🔥 **Lokasjonsfinneren er gull verdt!** Spesielt på nye og ukjente steder. Tidligere måtte du gjerne gjette stedsnavn når du kom hjem og kikket på kartet. Nå får du riktig lokalitet automatisk.
 
 Det er anbefalt å oppdatere posisjon, men du kan også registrere observasjoner uten at posisjon er tilgjengelig (da brukes bare stedsnavnet i eksporten).
 
