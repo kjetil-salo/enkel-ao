@@ -1,0 +1,21 @@
+# .dockerignore - hold Docker-bygget rent
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.git/
+.gitignore
+README.md
+bruk.md
+plan.md
+LICENSE
+CONTRIBUTING.md
+.DS_Store
+*.md
+!public/
