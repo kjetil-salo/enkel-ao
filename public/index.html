@@ -370,6 +370,26 @@
         font-weight: 500;
       }
 
+      .obs-table th:last-child,
+      .obs-table td:last-child {
+        width: 40px;
+        text-align: center;
+      }
+
+      .delete-obs-btn {
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        font-size: 1rem;
+        padding: 2px 4px;
+        opacity: 0.6;
+        transition: opacity 0.2s;
+      }
+
+      .delete-obs-btn:hover {
+        opacity: 1;
+      }
+
       .obs-meta {
         color: var(--muted);
       }
@@ -470,8 +490,11 @@
           <div class="title">
             <span>🕊️ Fugleobservasjoner</span>
           </div>
-          <div class="kbd-hint">
-            <span class="kbd-key">↑</span><span class="kbd-key">↓</span><span class="kbd-key">Enter</span>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <a href="/help.html" style="color: var(--muted); text-decoration: none; font-size: 1.2rem; padding: 4px 8px; border-radius: 8px; transition: all 0.2s; display: flex; align-items: center;" title="Hjelp" onmouseover="this.style.color='var(--accent)'; this.style.background='var(--accent-soft)'" onmouseout="this.style.color='var(--muted)'; this.style.background='transparent'">📖</a>
+            <div class="kbd-hint">
+              <span class="kbd-key">↑</span><span class="kbd-key">↓</span><span class="kbd-key">Enter</span>
+            </div>
           </div>
         </header>
 
@@ -968,7 +991,7 @@
 
         const thead = document.createElement('thead');
         const headerRow = document.createElement('tr');
-        ['Art', 'Antall', 'Aktivitet'].forEach((label) => {
+        ['Art', 'Antall', 'Aktivitet', ''].forEach((label) => {
           const th = document.createElement('th');
           th.textContent = label;
           headerRow.appendChild(th);
@@ -981,13 +1004,13 @@
         groups.forEach((group) => {
           const groupRow = document.createElement('tr');
           const groupCell = document.createElement('td');
-          groupCell.colSpan = 3;
+          groupCell.colSpan = 4;
           groupCell.className = 'obs-group-title';
           groupCell.textContent = group.key;
           groupRow.appendChild(groupCell);
           tbody.appendChild(groupRow);
 
-          group.items.forEach((obs) => {
+          group.items.forEach((obs, obsIndex) => {
             const tr = document.createElement('tr');
 
             const artTd = document.createElement('td');
@@ -1001,6 +1024,23 @@
             const activityTd = document.createElement('td');
             activityTd.textContent = obs.activity || '';
             tr.appendChild(activityTd);
+
+            const deleteTd = document.createElement('td');
+            deleteTd.style.textAlign = 'center';
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'delete-obs-btn';
+            deleteBtn.textContent = '🗑️';
+            deleteBtn.title = 'Slett observasjon';
+            deleteBtn.addEventListener('click', () => {
+              const globalIndex = observations.indexOf(obs);
+              if (globalIndex !== -1) {
+                observations.splice(globalIndex, 1);
+                renderObservations();
+                saveToLocalStorage();
+              }
+            });
+            deleteTd.appendChild(deleteBtn);
+            tr.appendChild(deleteTd);
 
             tbody.appendChild(tr);
           });

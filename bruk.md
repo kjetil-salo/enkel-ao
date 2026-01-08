@@ -2,6 +2,8 @@
 
 Kort oppsummert flyt slik den fungerer nå.
 
+> **💡 Trenger du rask hjelp?** Det finnes også en enkel hjelpeside tilgjengelig fra hovedsiden (📖-ikonet øverst til høyre) med oversiktlig brukerveiledning.
+
 ## 1. Start server og åpne siden
 
 1. I prosjektmappen:
@@ -48,9 +50,11 @@ For hver art du vil registrere:
 
 - Nederst vises **Liste over valgte arter**, gruppert per sted:
    - Hver blokk har en liten overskrift med stedsnavnet (f.eks. `Hylkje`, `Knarvik` eller `Uten stedsnavn`).
-   - Under overskriften vises en tabell med kolonnene **Art**, **Antall** og **Aktivitet**.
-- Når det finnes minst én observasjon blir knappene **«Tøm liste»**, **«Kopier CSV»** og **«Last ned CSV»** aktive.
-- Begge bruker samme format: en TSV/«CSV» som er tilpasset **Artsobservasjoner.no sitt importformat for fugl (versjon 2.20)**, med overskriftsrad (kolonner separert med TAB, slik Excel gjør):
+   - Under overskriften vises en tabell med kolonnene **Art**, **Antall**, **Aktivitet** og en 🗑️-knapp.
+   - Du kan slette én observasjon ved å trykke på 🗑️-ikonet til høyre for raden.
+- Når det finnes minst én observasjon blir knappene **«Tøm liste»**, **«Kopier CSV»**, **«Kopier og åpne AO»** og **«Last ned CSV»** aktive.
+- Alle eksportknappene bruker samme format: en TSV/«CSV» som er tilpasset **Artsobservasjoner.no sitt importformat for fugl (versjon 2.20)**, med overskriftsrad (kolonner separert med TAB, slik Excel gjør):
+- **«Kopier og åpne AO»** kopierer CSV-dataene til utklippstavlen og åpner Artsobservasjoner-importskjemaet i en ny fane, så du kan lime inn direkte.
    - `Artsnavn;Lokalitetsnavn;Superlokalitet;Nord;Øst;Nøyaktighet;Fra dato;Til dato;Fra klokkeslett;Til klokkeslett;Antall;Alder;Kjønn;Aktivitet;Kommentar (synlig for alle);Privat kommentar (kun synlig for deg selv);Skjul funn til dato;Medobservatør;Medobservatør;Medobservatør;Medobservatør;Medobservatør;Medobservatør;Medobservatør;Medobservatør;Medobservatør;Medobservatør;Bestemmelsesmetode;Natursystem;Beskriv natursystem;Livsmedium;Beskriv livsmedium;Art som livsmedium;Beskriv art som livsmedium;Dybde min;Dybde maks;Høyde min;Høyde maks;Andrehånds;Usikker artsbestemming;Ikke spontan;Interessant observasjon;Ikke gjenfunnet;Ikke funnet;Offentlig samling;Privat samling;Referansenummer i samling;Beskrivelse artsbestemming;Bestemt av;Bestemt av (fritekst);Bestemmelsesår;Bekreftet av;Bekreftet av (fritekst);Bekreftelsesår`
 - I radene fylles automatisk inn:
    - **Artsnavn** (fra Artsobservasjoner-autocomplete)
