@@ -2,6 +2,8 @@
 
 En lynrask app for å registrere fugleobservasjoner i felt – designet for å la deg bruke mer tid på å se på fuglene og mindre tid på å trykke på små skjermknapper.
 
+> **📢 Om prosjektet:** Dette er et personlig prosjekt utviklet for eget bruk og delt åpent for transparens. Koden er tilgjengelig under MIT-lisens. Issues og pull requests mottas gjerne, men uten garanti for rask respons. Se [CONTRIBUTING.md](CONTRIBUTING.md) for mer info.
+
 ## Hvorfor denne appen?
 
 🔥 **Lokasjonsfinneren er gull verdt:** På nye og ukjente steder får du automatisk riktig lokalitetsnavn fra Artsobservasjoner med étt knappetrykk. Slutt på å gjette stedsnavn når du kommer hjem.
@@ -53,6 +55,10 @@ Planlagte funksjoner for fremtidige versjoner:
 - Batch-operasjoner (endre lokalitet på flere observasjoner samtidig)
 
 Forslag? Send en e-post til [k@vikebo.com](mailto:k@vikebo.com)!
+
+## Lisens
+
+Dette prosjektet er lisensiert under MIT-lisensen. Se [LICENSE](LICENSE) for detaljer.
 
 ---
 
