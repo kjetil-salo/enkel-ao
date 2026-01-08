@@ -40,6 +40,20 @@ En lynrask app for å registrere fugleobservasjoner i felt – designet for å l
 
 For mer detaljert brukerbeskrivelse (inkludert tips om AO-lokaliteter og import), se [bruk.md](bruk.md).
 
+## Versjon
+
+**v1.0** (januar 2026) – Første stabile versjon med alle kjernefunksjoner.
+
+## Videre utvikling
+
+Planlagte funksjoner for fremtidige versjoner:
+
+- **Valgfrie felt** (kjønn, alder, kommentar) som kan vises/skjules etter brukerens ønske (default: skjult)
+- Mulighet for å redigere eksisterende observasjoner
+- Batch-operasjoner (endre lokalitet på flere observasjoner samtidig)
+
+Forslag? Send en e-post til [k@vikebo.com](mailto:k@vikebo.com)!
+
 ---
 
 **Utviklet av Kjetil Salomonsen** | [k@vikebo.com](mailto:k@vikebo.com) | © 2026
