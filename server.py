@@ -43,26 +43,31 @@ class Handler(SimpleHTTPRequestHandler):
             self.end_headers()
 
         def do_GET(self):
-            # Skjult statistikk-side
-            if self.path == '/stats-5b2e1e':
-                with _stats_lock:
-                    total = _stats['total']
-                    per_ip = dict(_stats['per_ip'])
-                    per_ua = dict(_stats['per_ua'])
-                html = f"""
-                <html><head><title>Statistikk</title></head><body>
-                <h1>Sidevisningsstatistikk</h1>
-                <p><b>Total:</b> {total}</p>
-                <h2>Per IP</h2><pre>{json.dumps(per_ip, indent=2)}</pre>
-                <h2>Per User-Agent</h2><pre>{json.dumps(per_ua, indent=2)}</pre>
-                </body></html>
-                """
-                self.send_response(200)
-                self.send_header('Content-Type', 'text/html; charset=utf-8')
-                self.send_header('Content-Length', str(len(html.encode('utf-8'))))
-                self.end_headers()
-                self.wfile.write(html.encode('utf-8'))
-                return
+                # Enkel statistikk-side
+                if self.path == '/bruker-stats':
+                        with _stats_lock:
+                                total = _stats['total']
+                                per_ip = dict(_stats['per_ip'])
+                                per_ua = dict(_stats['per_ua'])
+                        html = f"""
+<html><head><title>Brukerstatistikk</title></head><body>
+<h2>Sidevisninger totalt: {total}</h2>
+<h3>Unike IP-er: {len(per_ip)}</h3>
+<ul>
+    {''.join(f'<li>{ip}: {count}</li>' for ip, count in per_ip.items())}
+</ul>
+<h3>User-Agents:</h3>
+<ul>
+    {''.join(f'<li>{ua}: {count}</li>' for ua, count in per_ua.items())}
+</ul>
+</body></html>
+                        """
+                        self.send_response(200)
+                        self.send_header('Content-Type', 'text/html; charset=utf-8')
+                        self.send_header('Content-Length', str(len(html.encode('utf-8'))))
+                        self.end_headers()
+                        self.wfile.write(html.encode('utf-8'))
+                        return
             # ...eksisterende kode fortsetter...
     def do_GET(self):
         import sys
