@@ -14,8 +14,9 @@ PUBLIC_DIR = os.path.join(BASE_DIR, 'public')
 
 class Handler(SimpleHTTPRequestHandler):
     def do_GET(self):
+        import sys
         user_agent = self.headers.get('User-Agent', '-')
-        print(f"[LOG] IP: {self.client_address[0]} | UA: {user_agent} | PATH: {self.path}")
+        print(f"[LOG] IP: {self.client_address[0]} | UA: {user_agent} | PATH: {self.path}", file=sys.stderr)
         parsed = urlparse(self.path)
 
         # API-endepunkt for arts-autocomplete
