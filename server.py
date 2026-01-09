@@ -23,33 +23,33 @@ PUBLIC_DIR = os.path.join(BASE_DIR, 'public')
 
 
 class Handler(SimpleHTTPRequestHandler):
-        def do_POST(self):
-            import sys
-            from urllib.parse import urlparse
-            parsed = urlparse(self.path)
-            if parsed.path == '/api/logview':
-                real_ip = self.headers.get('X-Forwarded-For', self.client_address[0])
-                user_agent = self.headers.get('User-Agent', '-')
-                print(f"[LOGVIEW] IP: {real_ip} | UA: {user_agent}", file=sys.stderr)
-                # Oppdater statistikk
-                with _stats_lock:
-                    _stats['total'] += 1
-                    _stats['per_ip'][real_ip] = _stats['per_ip'].get(real_ip, 0) + 1
-                    _stats['per_ua'][user_agent] = _stats['per_ua'].get(user_agent, 0) + 1
-                self._send_json({'ok': True}, status=200)
-                return
-            # For alt annet, returner 404
-            self.send_response(404)
-            self.end_headers()
+    def do_POST(self):
+        import sys
+        from urllib.parse import urlparse
+        parsed = urlparse(self.path)
+        if parsed.path == '/api/logview':
+            real_ip = self.headers.get('X-Forwarded-For', self.client_address[0])
+            user_agent = self.headers.get('User-Agent', '-')
+            print(f"[LOGVIEW] IP: {real_ip} | UA: {user_agent}", file=sys.stderr)
+            # Oppdater statistikk
+            with _stats_lock:
+                _stats['total'] += 1
+                _stats['per_ip'][real_ip] = _stats['per_ip'].get(real_ip, 0) + 1
+                _stats['per_ua'][user_agent] = _stats['per_ua'].get(user_agent, 0) + 1
+            self._send_json({'ok': True}, status=200)
+            return
+        # For alt annet, returner 404
+        self.send_response(404)
+        self.end_headers()
 
-        def do_GET(self):
-                # Enkel statistikk-side
-                if self.path == '/bruker-stats':
-                        with _stats_lock:
-                                total = _stats['total']
-                                per_ip = dict(_stats['per_ip'])
-                                per_ua = dict(_stats['per_ua'])
-                        html = f"""
+    def do_GET(self):
+        # Enkel statistikk-side
+        if self.path == '/bruker-stats':
+            with _stats_lock:
+                total = _stats['total']
+                per_ip = dict(_stats['per_ip'])
+                per_ua = dict(_stats['per_ua'])
+            html = f"""
 <html><head><title>Brukerstatistikk</title></head><body>
 <h2>Sidevisninger totalt: {total}</h2>
 <h3>Unike IP-er: {len(per_ip)}</h3>
@@ -61,14 +61,14 @@ class Handler(SimpleHTTPRequestHandler):
     {''.join(f'<li>{ua}: {count}</li>' for ua, count in per_ua.items())}
 </ul>
 </body></html>
-                        """
-                        self.send_response(200)
-                        self.send_header('Content-Type', 'text/html; charset=utf-8')
-                        self.send_header('Content-Length', str(len(html.encode('utf-8'))))
-                        self.end_headers()
-                        self.wfile.write(html.encode('utf-8'))
-                        return
-            # ...eksisterende kode fortsetter...
+            """
+            self.send_response(200)
+            self.send_header('Content-Type', 'text/html; charset=utf-8')
+            self.send_header('Content-Length', str(len(html.encode('utf-8'))))
+            self.end_headers()
+            self.wfile.write(html.encode('utf-8'))
+            return
+        # ...eksisterende kode fortsetter...
     def do_GET(self):
         import sys
         user_agent = self.headers.get('User-Agent', '-')
