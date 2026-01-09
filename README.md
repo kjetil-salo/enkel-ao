@@ -33,6 +33,8 @@ En lynrask app for å registrere fugleobservasjoner i felt – designet for å l
 - Alle observasjoner lagres bare i nettleseren din (localStorage) til du selv eksporterer eller tømmer lista.
 - Ingen tracking, ingen analytics, ingen skylagring.
 
+**Logging:** Ved hver sidevisning logges kun IP-adresse og nettleser (User-Agent) til serverens logg for enkel besøksstatistikk. Ingen søkestrenger, observasjonsdata eller annen sensitiv informasjon logges.
+
 ## Kom i gang (for den som kjører lokalt)
 
 1. Sørg for at du har Python 3 installert.

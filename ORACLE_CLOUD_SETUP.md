@@ -25,7 +25,7 @@ Oracle Cloud Always Free tier gir deg:
 - **Name:** `fugleobservasjoner` (eller ønsket navn)
 - **Compartment:** Behold default (root)
 - **Placement:** Velg region nærmest deg (f.eks. Frankfurt, Stockholm)
-- **Image:** `Oracle Linux 8` (eller Ubuntu 22.04 hvis du foretrekker det)
+- **Image:** `Oracle Linux 9` (eller Ubuntu 22.04 hvis du foretrekker det)
 - **Shape:** 
   - Klikk "Change Shape"
   - Velg **VM.Standard.E2.1.Micro** (Always Free eligible)
@@ -41,6 +41,56 @@ Oracle Cloud Always Free tier gir deg:
 4. Klikk **"Create"**
 5. Vent 1-2 minutter til status er "Running"
 6. **Kopier Public IP-adressen** (f.eks. `123.45.67.89`)
+
+## Tildel offentlig IP (anbefalt metode)
+
+Hvis instansen ikke har fått tildelt en offentlig IP (Public IP address = `-`), gjør dette for å få en stabil ekstern IP:
+
+1. Gå til **Networking → IP Management → Public IPs**
+2. Klikk **Create Public IP**
+  - Velg **Reserved**
+  - Gi navn, f.eks. `fugleobservasjoner-public-ip`
+  - Velg compartment og region
+  - Klikk **Create**
+3. Gå til **Compute → Instances → (din instance) → Attached VNICs → Primary VNIC**
+4. Klikk på **IP administration**-fanen
+5. På raden med private IP (f.eks. `10.0.0.196`), klikk **⋯** → **Edit**
+6. Under **Public IP type**, velg **Reserved public IP**
+7. Velg den reserverte IP-en du nettopp opprettet
+8. Klikk **Save/Update**
+
+Nå får du en offentlig, stabil IP-adresse (f.eks. `79.76.45.250`) som alltid peker til denne instansen.
+
+**Fordeler:**
+- Reserved IP endres ikke selv om du stopper/start VM
+- Mer robust enn ephemeral IP
+
+**SSH-tilkobling:**
+```bash
+chmod 600 ssh-key-2026-01-08.key
+ssh -i ssh-key-2026-01-08.key opc@79.76.45.250
+```
+
+**Tips:**
+- "channel XX: open failed"-meldinger i SSH er ufarlige og kan ignoreres
+- Oracle UI kan være inkonsekvent – denne metoden virker alltid
+
+Nå kan du fortsette med portåpning, Docker, deploy osv. som beskrevet under.
+
+### Hvis "Public IP address" er `-`
+
+Det betyr at instansen ikke har fått tildelt en offentlig IPv4-adresse (enda). Du kan normalt tildele dette i etterkant, men subnett/VCN må tillate det.
+
+1. Gå til **Compute → Instances → (din instance)**
+2. Åpne **Resources → Attached VNICs** → klikk på **Primary VNIC**
+3. Åpne **Resources → IP addresses**
+4. På raden med den private IP-en (f.eks. `10.0.0.x`), åpne menyen (⋯) og velg **Assign public IP** / **Edit** og velg **Ephemeral public IP**
+
+Hvis du ikke får opp valg for public IP, sjekk dette:
+- Subnettet må være et **Public subnet** (route table med `0.0.0.0/0` til **Internet Gateway**)
+- **Prohibit public IP on VNIC** må være **av** for subnettet
+
+Alternativ: Lag en **Reserved public IP** under **Networking → IP Management → Public IPs**, og assosier den til instansens private IP.
 
 ## Del 3: Åpne nødvendige porter
 
