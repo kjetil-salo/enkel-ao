@@ -28,7 +28,11 @@ class Handler(SimpleHTTPRequestHandler):
         from urllib.parse import urlparse
         parsed = urlparse(self.path)
         if parsed.path == '/api/logview':
-            real_ip = self.headers.get('X-Forwarded-For', self.client_address[0])
+            xff = self.headers.get('X-Forwarded-For')
+            if xff:
+                real_ip = xff.split(',')[0].strip()
+            else:
+                real_ip = self.client_address[0]
             user_agent = self.headers.get('User-Agent', '-')
             print(f"[LOGVIEW] IP: {real_ip} | UA: {user_agent}", file=sys.stderr)
             # Oppdater statistikk
