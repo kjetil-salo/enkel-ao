@@ -1,3 +1,13 @@
+import threading
+
+# Enkel in-memory statistikk (beskyttet av lock)
+_stats_lock = threading.Lock()
+_stats = {
+    'total': 0,
+    'per_ip': {},
+    'per_ua': {},
+}
+
 #!/usr/bin/env python3
 import json
 import math
@@ -21,11 +31,39 @@ class Handler(SimpleHTTPRequestHandler):
                 real_ip = self.headers.get('X-Forwarded-For', self.client_address[0])
                 user_agent = self.headers.get('User-Agent', '-')
                 print(f"[LOGVIEW] IP: {real_ip} | UA: {user_agent}", file=sys.stderr)
+                # Oppdater statistikk
+                with _stats_lock:
+                    _stats['total'] += 1
+                    _stats['per_ip'][real_ip] = _stats['per_ip'].get(real_ip, 0) + 1
+                    _stats['per_ua'][user_agent] = _stats['per_ua'].get(user_agent, 0) + 1
                 self._send_json({'ok': True}, status=200)
                 return
             # For alt annet, returner 404
             self.send_response(404)
             self.end_headers()
+
+        def do_GET(self):
+            # Skjult statistikk-side
+            if self.path == '/stats-5b2e1e':
+                with _stats_lock:
+                    total = _stats['total']
+                    per_ip = dict(_stats['per_ip'])
+                    per_ua = dict(_stats['per_ua'])
+                html = f"""
+                <html><head><title>Statistikk</title></head><body>
+                <h1>Sidevisningsstatistikk</h1>
+                <p><b>Total:</b> {total}</p>
+                <h2>Per IP</h2><pre>{json.dumps(per_ip, indent=2)}</pre>
+                <h2>Per User-Agent</h2><pre>{json.dumps(per_ua, indent=2)}</pre>
+                </body></html>
+                """
+                self.send_response(200)
+                self.send_header('Content-Type', 'text/html; charset=utf-8')
+                self.send_header('Content-Length', str(len(html.encode('utf-8'))))
+                self.end_headers()
+                self.wfile.write(html.encode('utf-8'))
+                return
+            # ...eksisterende kode fortsetter...
     def do_GET(self):
         import sys
         user_agent = self.headers.get('User-Agent', '-')
