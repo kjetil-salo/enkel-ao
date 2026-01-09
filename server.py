@@ -43,7 +43,12 @@ class Handler(SimpleHTTPRequestHandler):
         self.end_headers()
 
     def do_GET(self):
-        # Enkel statistikk-side
+        import sys
+        user_agent = self.headers.get('User-Agent', '-')
+        print(f"[LOG] IP: {self.client_address[0]} | UA: {user_agent} | PATH: {self.path}", file=sys.stderr)
+        parsed = urlparse(self.path)
+
+        # Statistikk-side må sjekkes før statisk filservering
         if self.path == '/bruker-stats':
             with _stats_lock:
                 total = _stats['total']
@@ -68,13 +73,8 @@ class Handler(SimpleHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(html.encode('utf-8'))
             return
-        # ...eksisterende kode fortsetter...
-    def do_GET(self):
-        import sys
-        user_agent = self.headers.get('User-Agent', '-')
-        print(f"[LOG] IP: {self.client_address[0]} | UA: {user_agent} | PATH: {self.path}", file=sys.stderr)
-        parsed = urlparse(self.path)
 
+        # ...eksisterende kode fortsetter...
         # API-endepunkt for arts-autocomplete
         if parsed.path == '/api/species':
             params = parse_qs(parsed.query)
