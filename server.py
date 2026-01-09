@@ -13,6 +13,19 @@ PUBLIC_DIR = os.path.join(BASE_DIR, 'public')
 
 
 class Handler(SimpleHTTPRequestHandler):
+        def do_POST(self):
+            import sys
+            from urllib.parse import urlparse
+            parsed = urlparse(self.path)
+            if parsed.path == '/api/logview':
+                real_ip = self.headers.get('X-Forwarded-For', self.client_address[0])
+                user_agent = self.headers.get('User-Agent', '-')
+                print(f"[LOGVIEW] IP: {real_ip} | UA: {user_agent}", file=sys.stderr)
+                self._send_json({'ok': True}, status=200)
+                return
+            # For alt annet, returner 404
+            self.send_response(404)
+            self.end_headers()
     def do_GET(self):
         import sys
         user_agent = self.headers.get('User-Agent', '-')

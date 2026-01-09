@@ -1631,6 +1631,9 @@
 
       // Initial visning basert på eventuell lagret state
       renderObservations();
+
+      // Logg sidevisning til server (kun path og user-agent)
+      fetch('/api/logview', {method: 'POST'}).catch(() => {});
     </script>
   </body>
 </html>
