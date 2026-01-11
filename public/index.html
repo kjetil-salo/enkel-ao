@@ -1,3 +1,8 @@
+</body>
+  <footer style="width:100%;text-align:center;color:#888;font-size:0.95em;padding:18px 0 8px 0;opacity:0.7;letter-spacing:0.04em;">
+    <span>Versjon v1.0.0</span>
+  </footer>
+</html>
 <!doctype html>
 <html lang="nb">
   <head>
@@ -5,6 +10,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <title>Fugleobservasjoner – arts-autocomplete</title>
+    <link rel="stylesheet" href="style.css" />
     <style>
       :root {
         color-scheme: light dark;
@@ -514,34 +520,25 @@
           </div>
         </header>
 
-        <div class="subtitle">1) Oppdater posisjon og stedsnavn. 2) Registrer arter og antall. 3) Eksporter til Artsobservasjoner.</div>
+
 
         <div class="section">
-          <div class="section-title">Lokasjon</div>
-          <div class="loc-row">
-            <div>
-              <span class="loc-dot" id="loc-dot"></span>
-              <span id="loc-text">Trykk «Oppdater posisjon» før registrering.</span>
-              <button class="icon-btn" id="loc-map-btn" title="Åpne i kart" disabled>🗺️</button>
-            </div>
-            <button class="btn" id="loc-btn">
-              <span>📍</span>
-              <span>Oppdater posisjon</span>
+          <div class="row" style="display:flex;align-items:center;gap:6px;flex-wrap:nowrap;min-height:0;">
+            <span class="loc-dot" id="loc-dot" style="width:10px;height:10px;margin-right:2px;"></span>
+            <button class="icon-btn" id="loc-btn" title="Oppdater posisjon" style="font-size:1.1em;padding:3px 8px;min-width:0;min-height:0;line-height:1.1;">
+              📍 <span style="font-size:0.72em;font-weight:500;margin-left:2px;">Oppdater posisjon</span>
             </button>
-          </div>
-          <div class="row" style="margin-top:8px;">
-            <label for="ao-size">Søkeområde (meter)</label>
-            <div class="row-inline">
-              <input
-                type="number"
-                id="ao-size"
-                min="100"
-                max="3000"
-                step="50"
-                value="600"
-              />
-              <span class="badge">Kvadratisk område, GPS i midten</span>
-            </div>
+            <input
+              type="number"
+              id="ao-size"
+              min="100"
+              max="3000"
+              step="50"
+              value="600"
+              style="width:96px;font-size:0.98em;padding:2px 6px;"
+              title="Søkeområde i meter"
+            />
+            <button class="icon-btn" id="loc-map-btn" title="Vis i kart" style="font-size:1.1em;padding:3px 8px;min-width:0;min-height:0;line-height:1.1;">🗺️</button>
           </div>
           <div class="row" style="margin-top:10px;">
             <label for="place">Stedsnavn (valgfritt)</label>
@@ -739,7 +736,7 @@
           </div>
         </div>
       </div>
-      <div class="footer-credit">© 2026 Kjetil Salomonsen</div>
+      <div class="footer-credit">Versjon v1.1.0 &nbsp;|&nbsp; © 2026 Kjetil Salomonsen</div>
     </div>
 
     <script>
@@ -765,6 +762,14 @@
       const placeInput = document.getElementById('place');
       const aoSitesEl = document.getElementById('ao-sites');
       const aoSizeInput = document.getElementById('ao-size');
+
+      // Reverted: No longer disable species input when location is empty
+      if (placeInput) {
+        placeInput.addEventListener('input', () => {
+          currentPlaceName = placeInput.value;
+          placeInput.dataset.autofilled = 'false';
+        });
+      }
 
       let currentResults = [];
       let activeIndex = -1;
@@ -900,24 +905,24 @@
           const row = document.createElement('div');
           row.className = 'result-name-row';
 
+
+          // Vis kun norsk artsnavn (taxonName) i søkeresultat
           const nameSpan = document.createElement('span');
           nameSpan.className = 'result-name';
           nameSpan.textContent = item.taxonName || '(ukjent navn)';
-
-          const idSpan = document.createElement('span');
-          idSpan.className = 'result-taxon-id';
-          idSpan.textContent = `ID ${item.taxonId}`;
-
           row.appendChild(nameSpan);
-          row.appendChild(idSpan);
 
-          const sci = document.createElement('div');
-          sci.className = 'result-sci';
-          // scientificNameHtml kan inneholde <i> osv., så vi setter innerHTML her.
-          sci.innerHTML = item.scientificNameHtml || '';
+          // Hvis du senere vil vise AO ID eller latinsk navn, fjern kommentarene under:
+          // const idSpan = document.createElement('span');
+          // idSpan.className = 'result-taxon-id';
+          // idSpan.textContent = `ID ${item.taxonId}`;
+          // row.appendChild(idSpan);
+          // const sci = document.createElement('div');
+          // sci.className = 'result-sci';
+          // sci.innerHTML = item.scientificNameHtml || '';
+          // div.appendChild(sci);
 
           div.appendChild(row);
-          div.appendChild(sci);
 
           div.addEventListener('click', () => {
             chooseItem(index);
@@ -932,25 +937,36 @@
       function chooseItem(index) {
         const item = currentResults[index];
         if (!item) return;
+
         selectedSpecies = item;
         chosenEl.style.display = 'inline-flex';
         chosenEl.innerHTML = '';
 
+        // Skjul/minimer artsvelgeren når en art er valgt
+        resultsEl.innerHTML = '';
+        resultsEl.style.display = 'none';
+
+
+        // Vis kun norsk artsnavn (taxonName)
         const nameSpan = document.createElement('span');
         nameSpan.textContent = item.taxonName;
-
-        const sciSpan = document.createElement('span');
-        sciSpan.innerHTML = item.scientificNameHtml || '';
-
-        const idSpan = document.createElement('span');
-        idSpan.className = 'badge';
-        idSpan.textContent = `AO ID ${item.taxonId}`;
-
         chosenEl.appendChild(nameSpan);
-        chosenEl.appendChild(sciSpan);
-        chosenEl.appendChild(idSpan);
+
+        // Hvis du senere vil vise latinsk navn eller AO ID, fjern kommentarene under:
+        // const sciSpan = document.createElement('span');
+        // sciSpan.innerHTML = item.scientificNameHtml || '';
+        // chosenEl.appendChild(sciSpan);
+        // const idSpan = document.createElement('span');
+        // idSpan.className = 'badge';
+        // idSpan.textContent = `AO ID ${item.taxonId}`;
+        // chosenEl.appendChild(idSpan);
 
         // Aktiver antallsfelt og flytt fokus dit
+
+        // Sørg for at artsvelgeren kan vises igjen ved nytt søk
+        setTimeout(() => {
+          resultsEl.style.display = '';
+        }, 200);
         countInput.disabled = false;
         countInput.value = '';
         countInput.focus();
@@ -1034,7 +1050,53 @@
             tr.appendChild(artTd);
 
             const countTd = document.createElement('td');
-            countTd.textContent = obs.count != null ? String(obs.count) : '';
+            // Vis antall som tekst, men gjør det redigerbart ved klikk
+            function renderCountCell() {
+              countTd.innerHTML = '';
+              const span = document.createElement('span');
+              span.textContent = obs.count != null ? String(obs.count) : '';
+              span.style.cursor = 'pointer';
+              span.title = 'Klikk for å endre antall';
+              span.addEventListener('click', () => {
+                showInput();
+              });
+              countTd.appendChild(span);
+            }
+            function showInput() {
+              countTd.innerHTML = '';
+              const input = document.createElement('input');
+              input.type = 'number';
+              input.min = '1';
+              input.value = obs.count != null ? String(obs.count) : '';
+              input.style.width = '48px';
+              input.style.fontSize = '0.98em';
+              input.style.padding = '2px 4px';
+              input.style.margin = '0';
+              input.style.textAlign = 'center';
+              input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                  save();
+                } else if (e.key === 'Escape') {
+                  renderCountCell();
+                }
+              });
+              input.addEventListener('blur', save);
+              countTd.appendChild(input);
+              input.focus();
+              input.select();
+              function save() {
+                const val = input.value.trim();
+                const num = parseInt(val, 10);
+                if (!val || isNaN(num) || num <= 0) {
+                  renderCountCell();
+                  return;
+                }
+                obs.count = num;
+                saveState();
+                renderObservations();
+              }
+            }
+            renderCountCell();
             tr.appendChild(countTd);
 
             const activityTd = document.createElement('td');
@@ -1226,8 +1288,8 @@
 
         observations.push({
           species: selectedSpecies,
-           count: num,
-           position: currentPosition,
+          count: num,
+          position: currentPosition,
           activity,
           placeName: currentPlaceName,
           timestamp: new Date().toISOString(),
@@ -1235,8 +1297,9 @@
 
         renderObservations();
         saveState();
-        
+
         // Nullstill valgt art og deaktiver antallsfeltet inntil ny art er valgt
+        const artNavnToast = selectedSpecies.taxonName;
         selectedSpecies = null;
         chosenEl.style.display = 'none';
         countInput.value = '';
@@ -1246,6 +1309,34 @@
           activitySelect.disabled = true;
         }
         if (activitySubmitBtn) {
+              // Toast/bekreftelse når art er registrert
+              function showRegisteredToast(artNavn) {
+                let toast = document.getElementById('registered-toast');
+                if (!toast) {
+                  toast = document.createElement('div');
+                  toast.id = 'registered-toast';
+                  toast.style.position = 'fixed';
+                  toast.style.top = '50%';
+                  toast.style.left = '50%';
+                  toast.style.transform = 'translate(-50%, -50%)';
+                  toast.style.background = 'rgba(34,34,34,0.97)';
+                  toast.style.color = '#fff';
+                  toast.style.fontSize = '1.2em';
+                  toast.style.padding = '12px 28px';
+                  toast.style.borderRadius = '12px';
+                  toast.style.boxShadow = '0 4px 24px rgba(0,0,0,0.18)';
+                  toast.style.border = '2px solid #3b82f6';
+                  toast.style.zIndex = '9999';
+                  toast.style.opacity = '0';
+                  toast.style.transition = 'opacity 0.15s';
+                  document.body.appendChild(toast);
+                }
+                toast.textContent = `${artNavn} registrert`;
+                toast.style.opacity = '1';
+                setTimeout(() => {
+                  toast.style.opacity = '0';
+                }, 500);
+              }
           activitySubmitBtn.disabled = true;
         }
 
@@ -1254,6 +1345,9 @@
         currentResults = [];
         activeIndex = -1;
         renderResults();
+        // Vis kort bekreftelse på at art er registrert
+        showRegisteredToast(artNavnToast);
+        // Flytt fokus til artsøkefeltet
         input.focus();
         input.select();
       }
