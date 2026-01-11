@@ -4,8 +4,14 @@ FROM python:3.12-slim
 # Sett working directory
 WORKDIR /app
 
-# Kopier server og public folder
+
+# Kopier requirements og installer avhengigheter
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Kopier server, supabase_log og public folder
 COPY server.py .
+COPY supabase_log.py .
 COPY public/ ./public/
 
 # Eksponer port 3000

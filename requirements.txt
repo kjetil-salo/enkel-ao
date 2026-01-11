@@ -1,1 +1,6 @@
-# Ingen eksterne Python-avhengigheter foreløpig
+
+# Supabase for logging
+supabase
+
+# For .env-støtte
+python-dotenv

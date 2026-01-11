@@ -1,3 +1,8 @@
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
 import threading
 
 # Enkel in-memory statistikk (beskyttet av lock)
@@ -22,6 +27,8 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 PUBLIC_DIR = os.path.join(BASE_DIR, 'public')
 
 
+from supabase_log import log_view_to_supabase
+
 class Handler(SimpleHTTPRequestHandler):
     def do_POST(self):
         import sys
@@ -40,6 +47,11 @@ class Handler(SimpleHTTPRequestHandler):
                 _stats['total'] += 1
                 _stats['per_ip'][real_ip] = _stats['per_ip'].get(real_ip, 0) + 1
                 _stats['per_ua'][user_agent] = _stats['per_ua'].get(user_agent, 0) + 1
+            # Logg til Supabase (ikke blokkerende for klienten)
+            try:
+                log_view_to_supabase(real_ip, user_agent)
+            except Exception as e:
+                print(f"[Supabase] Feil ved logging: {e}")
             self._send_json({'ok': True}, status=200)
             return
         # For alt annet, returner 404
@@ -52,31 +64,74 @@ class Handler(SimpleHTTPRequestHandler):
         print(f"[LOG] IP: {self.client_address[0]} | UA: {user_agent} | PATH: {self.path}", file=sys.stderr)
         parsed = urlparse(self.path)
 
-        # Statistikk-side må sjekkes før statisk filservering
-        if self.path == '/bruker-stats':
-            with _stats_lock:
-                total = _stats['total']
-                per_ip = dict(_stats['per_ip'])
-                per_ua = dict(_stats['per_ua'])
-            html = f"""
-<html><head><title>Brukerstatistikk</title></head><body>
-<h2>Sidevisninger totalt: {total}</h2>
-<h3>Unike IP-er: {len(per_ip)}</h3>
-<ul>
-    {''.join(f'<li>{ip}: {count}</li>' for ip, count in per_ip.items())}
-</ul>
-<h3>User-Agents:</h3>
-<ul>
-    {''.join(f'<li>{ua}: {count}</li>' for ua, count in per_ua.items())}
-</ul>
-</body></html>
-            """
-            self.send_response(200)
-            self.send_header('Content-Type', 'text/html; charset=utf-8')
-            self.send_header('Content-Length', str(len(html.encode('utf-8'))))
-            self.end_headers()
-            self.wfile.write(html.encode('utf-8'))
-            return
+        # Statistikk fra Supabase
+        if self.path == '/stats':
+            try:
+                from supabase_log import supabase
+                if not supabase:
+                    raise Exception("Supabase ikke konfigurert.")
+                # Hent alle rader (kan evt. pagineres for store datamengder)
+                res = supabase.table("stats").select("ip,user_agent").execute()
+                rows = res.data if hasattr(res, 'data') else res
+                total = len(rows)
+                per_ip = {}
+                per_ua = {}
+                for row in rows:
+                    ip = row.get('ip', '-')
+                    ua = row.get('user_agent', '-')
+                    per_ip[ip] = per_ip.get(ip, 0) + 1
+                    per_ua[ua] = per_ua.get(ua, 0) + 1
+                html = f"""
+<html>
+<head>
+    <title>Brukerstatistikk (Supabase)</title>
+    <meta name='viewport' content='width=device-width, initial-scale=1'>
+    <style>
+        body {{ font-family: system-ui, sans-serif; background: #f8f9fa; color: #222; margin: 0; padding: 0; }}
+        .container {{ max-width: 600px; margin: 2em auto; background: #fff; border-radius: 10px; box-shadow: 0 2px 8px #0001; padding: 2em; }}
+        h1, h2, h3 {{ margin-top: 0; }}
+        table {{ border-collapse: collapse; width: 100%; margin-bottom: 2em; }}
+        th, td {{ border: 1px solid #ddd; padding: 8px; text-align: left; }}
+        th {{ background: #f0f0f0; }}
+        .stat {{ font-size: 2em; font-weight: bold; margin-bottom: 0.5em; }}
+        .section-title {{ margin-top: 2em; margin-bottom: 0.5em; font-size: 1.2em; color: #444; }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Brukerstatistikk</h1>
+        <div class="stat">{total} sidevisninger</div>
+        <div>{len(per_ip)} unike IP-adresser</div>
+
+        <div class="section-title">Sidevisninger per IP</div>
+        <table>
+            <tr><th>IP-adresse</th><th>Antall</th></tr>
+            {''.join(f'<tr><td>{ip}</td><td>{count}</td></tr>' for ip, count in sorted(per_ip.items(), key=lambda x: -x[1]))}
+        </table>
+
+        <div class="section-title">User-Agents</div>
+        <table>
+            <tr><th>User-Agent</th><th>Antall</th></tr>
+            {''.join(f'<tr><td>{ua}</td><td>{count}</td></tr>' for ua, count in sorted(per_ua.items(), key=lambda x: -x[1]))}
+        </table>
+    </div>
+</body>
+</html>
+                                """
+                self.send_response(200)
+                self.send_header('Content-Type', 'text/html; charset=utf-8')
+                self.send_header('Content-Length', str(len(html.encode('utf-8'))))
+                self.end_headers()
+                self.wfile.write(html.encode('utf-8'))
+                return
+            except Exception as e:
+                err = f"<html><body><h2>Feil ved henting av statistikk fra Supabase:</h2><pre>{e}</pre></body></html>"
+                self.send_response(500)
+                self.send_header('Content-Type', 'text/html; charset=utf-8')
+                self.send_header('Content-Length', str(len(err.encode('utf-8'))))
+                self.end_headers()
+                self.wfile.write(err.encode('utf-8'))
+                return
 
         # ...eksisterende kode fortsetter...
         # API-endepunkt for arts-autocomplete

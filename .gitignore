@@ -1,0 +1,2 @@
+# Ignorer miljøvariabler og lokale hemmeligheter
+.env

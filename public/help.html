@@ -183,61 +183,35 @@
           </a>
         </header>
 
-        <h2>Hva er dette?</h2>
-        <p>Kjenner du frustrasjonen? Du er ute i felt, det er kaldt, fingrene er stive, og du skal registrere fugleobservasjoner på mobilen. Du bruker mer tid på å navigere gjennom menyer og fylle ut felt enn du bruker på å faktisk <strong>se på fuglene</strong>.</p>
-        
-        <p><strong>Da er denne appen for deg.</strong></p>
-        
-        <p>Her registrerer du <strong>art, antall og aktivitet på sekunder</strong>. Autocomplete finner arten mens du skriver, Enter-tasten tar deg videre, og observasjonen er lagret. Du kan lime inn i Artsobservasjoner direkte fra mobilen hvis du vil, men de fleste foretrekker å gjøre det hjemme på stor skjerm – der er det enklere å se gjennom og validere alt før publisering.</p>
-        
-        <p>Det som mange setter aller mest pris på er <strong>lokasjonsfinneren</strong>. Den er gull verdt, spesielt når du er på nye og ukjente steder. Tidligere måtte du gjerne gjette stedsnavnet når du kom hjem og kikket på kartet. Nå får du riktig lokalitet med ett knappetrykk.</p>
-
-        <div class="note">
-          <strong>⚠️ Personvern:</strong> Serveren lagrer ingenting. Alt du legger inn lagres kun i nettleseren din (localStorage) til du eksporterer eller tømmer lista.
+        <div style="font-size:1.08em; margin-bottom:18px; color:var(--accent); font-weight:500;">
+          <span>🕊️</span> En digital notatbok for fugleobservasjoner i felt – ingen innlogging, ingen venting, bare <strong>art, antall og aktivitet</strong> på sekunder.<br>
+          Når du er ferdig i felt, kan notatblokken enkelt importeres til Artsobservasjoner (AO).
         </div>
 
-        <h2>Slik bruker du appen</h2>
-
-        <h3>1. Oppdater posisjon</h3>
-        <p>Når du kommer til en ny lokalitet:</p>
-        <ol>
-          <li>Trykk på <strong>«Oppdater posisjon»</strong>-knappen</li>
-          <li>Godta at nettleseren får bruke GPS-posisjonen din</li>
-          <li>Prikken blir grønn når posisjonen er oppdatert</li>
-          <li>Stedsnavn fylles ofte automatisk, men du kan alltid endre det manuelt</li>
-        </ol>
-
-        <div class="tip">
-          <strong>💡 Tips:</strong> Du trenger ikke posisjon for å registrere observasjoner, men det gjør det enklere å få riktig stedsnavn.
-        </div>
-
-        <h3>2. Registrer observasjoner</h3>
-        <p>For hver art du observerer:</p>
-        <ol>
-          <li><strong>Søk etter art:</strong> Skriv inn navnet (f.eks. «blåmeis»). Bruk piltaster (↑/↓) og <code>Enter</code> for å velge, eller trykk/klikk på den du vil ha.</li>
-          <li><strong>Angi antall:</strong> Når art er valgt, skriv inn antall individer og trykk <code>Enter</code>.</li>
-          <li><strong>Velg aktivitet:</strong> Standard er «Stasjonær», men du kan velge noe annet fra menyen.</li>
-          <li><strong>Lagre:</strong> Trykk <code>Enter</code> eller på den <strong>grønne ✓-knappen</strong> (anbefalt på mobil).</li>
-        </ol>
-
-        <p>Observasjonen legges nå til i tabellen nederst, og du kan fortsette med neste art.</p>
-
-        <h3>3. Se over og redigere lista</h3>
-        <p>Nederst ser du alle observasjonene dine, <strong>gruppert etter stedsnavn</strong>. Hver rad viser art, antall og aktivitet.</p>
+        <h2>Bruk</h2>
         <ul>
-          <li><strong>Slette én observasjon:</strong> Trykk på 🗑️-ikonet til høyre for raden.</li>
-          <li><strong>Tømme hele lista:</strong> Bruk <strong>«Tøm liste»</strong>-knappen.</li>
+          <li><strong>Oppdater lokasjon først:</strong> Trykk på «Oppdater posisjon» for å få riktig stedsnavn før du registrerer arter.</li>
+          <li>Registrer art, antall og aktivitet – alt lagres kun i nettleseren din.</li>
+          <li>Trykk «Kopier og åpne AO» for å lime inn i Artsobservasjoner.</li>
         </ul>
 
-        <h3>4. Eksportere til Artsobservasjoner</h3>
-        <p>Når du er ferdig med feltarbeidet:</p>
-        <ol>
-          <li>Trykk på <strong>«Kopier CSV»</strong> for å kopiere dataene til utklippstavlen, eller <strong>«Last ned CSV»</strong> for å få en fil.</li>
-          <li>Du kan også bruke <strong>«Kopier og åpne AO»</strong> som både kopierer dataene OG åpner Artsobservasjoner-importeren i ny fane.</li>
-          <li>Gå til <a href="https://www.artsobservasjoner.no/ImportSighting" target="_blank" style="color: var(--accent);">Artsobservasjoner sitt importskjema</a>.</li>
-          <li>Lim inn (Cmd+V / Ctrl+V) i det store tekstfeltet.</li>
-          <li>Trykk «Importer».</li>
-        </ol>
+        <div class="note">
+          <strong>⚠️ Personvern:</strong> Ingenting lagres på serveren. Alt lagres kun i nettleseren din (localStorage).
+        </div>
+
+        <h2>Viktig ved import til Artsobservasjoner</h2>
+        <div class="tip" style="font-size:1.05em;">
+          <strong>Velg alltid en lokalitet i importskjemaet på AO!</strong><br>
+          Selv om stedsnavn følger med, bør du alltid velge en lokalitet fra listen i AO for å unngå feil sted.
+        </div>
+
+        <h2>Ofte stilte spørsmål</h2>
+        <ul>
+          <li>Observasjonene forsvinner kun hvis du tømmer listen eller sletter nettleserdata.</li>
+        </ul>
+
+        <p style="font-size: 0.88rem; margin-top: 12px;">Kontakt: <a href="mailto:k@vikebo.com" style="color: var(--accent); text-decoration: none;">k@vikebo.com</a></p>
+        <p style="font-size: 0.85rem; color: var(--muted); margin-top: 16px;">© 2026 Kjetil Salomonsen</p>
 
         <h2>Viktige tips</h2>
 

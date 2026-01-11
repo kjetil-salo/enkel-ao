@@ -1,3 +1,21 @@
+# Oracle Free Tier: Kjør med Docker fra registry
+
+1. Bygg og push image på Mac:
+   ```sh
+   docker build -t brukernavn/appnavn:latest .
+   docker push brukernavn/appnavn:latest
+   ```
+2. På Oracle:
+   ```sh
+   curl -fsSL https://get.docker.com | sh
+   sudo usermod -aG docker $USER
+   # Logg ut og inn igjen
+   docker login
+   docker pull brukernavn/appnavn:latest
+   docker run -d -p 80:3000 brukernavn/appnavn:latest
+   ```
+
+Se README.md for swap og flere detaljer.
 # Oracle Cloud - Hurtigguide (5 minutter)
 
 Dette er en forenklet guide som kun dekker det essensielle. For detaljer, se [ORACLE_CLOUD_SETUP.md](ORACLE_CLOUD_SETUP.md).
