@@ -1,52 +1,14 @@
-# Erfaringer med Oracle Free Tier (2026)
+# Hosting
 
-**Oppsummering:**
-- Oracle Free Tier VM er svært treg og ustabil for moderne utvikling og drift.
-- Swap (2 GB) hjelper litt, men installasjon av Docker og pakker feiler ofte eller tar ekstremt lang tid.
-- Selv med optimalisering (swap, én kommando om gangen, lette images) er det ofte ikke mulig å få en stabil drift.
-- Anbefaling: Bruk Render, Fly.io, Railway eller lignende for hobbyprosjekter.
+Denne appen er best drevet på moderne PaaS som Fly.io. Fly.io håndterer bygg, distribusjon og skalering på en enkel måte og er brukt i produksjon for dette prosjektet.
 
-**Forsøkte steg på Oracle:**
-1. Satt opp swap:
-   ```sh
-   sudo fallocate -l 2G /swapfile
-   sudo chmod 600 /swapfile
-   sudo mkswap /swapfile
-   sudo swapon /swapfile
-   echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
-   ```
-2. Prøvde å installere Docker:
-   ```sh
-   sudo dnf install -y oracle-epel-release-el8
-   sudo dnf config-manager --enable ol8_addons
-   sudo dnf install -y docker-engine
-   # (ofte feiler eller henger)
-   ```
-3. Konklusjon: For mye tid går bort i venting og feilsøking.
+Rask deploy (lokalt):
 
-# Fly.io: Rask og enkel hosting
+1. Installer `flyctl` fra https://fly.io/docs/hands-on/install/
+2. Logg inn: `fly auth login`
+3. Deploy: `flyctl deploy`
 
-## Slik deployer du appen på Fly.io
-
-1. Installer flyctl (https://fly.io/docs/hands-on/install/)
-2. Logg inn:
-   ```sh
-   fly auth login
-   ```
-3. Opprett app:
-   ```sh
-   fly launch
-   # Svar på spørsmål, velg Dockerfile hvis du har en
-   ```
-4. Deploy:
-   ```sh
-   fly deploy
-   ```
-5. Se appen live – Fly.io gir deg URL og logg.
-
-**Tips:**
-- Du kan bruke samme Docker-image og Dockerfile som for Oracle/Render.
-- Fly.io har gratisnivå for små apper.
+Fly.io gir deg en URL etter deploy og enkel overvåkning.
 
 # Se https://fly.io/docs/ for mer info.
 
@@ -177,12 +139,7 @@ For mer detaljert brukerbeskrivelse (inkludert tips om AO-lokaliteter og import)
 
 ## Versjon
 
-Appversjon: **1.1.1**
-
-- Statistikk-side med Supabase og penere layout
-- Robusthet: stats-siden skal virke selv om Supabase er nede (TODO)
-- Fly.io-deploy med secrets for Supabase
-- .env for lokal utvikling
+Appversjon: **1.1.2**
 
 Se også CHANGELOG.md for detaljer.
 
@@ -206,34 +163,16 @@ Dette prosjektet er lisensiert under MIT-lisensen. Se [LICENSE](LICENSE) for det
 
 ## Supabase logging
 
-For å aktivere logging av IP og nettleser til Supabase må du sette to miljøvariabler før du starter serveren:
+For enkel lagring av statistikk og anonymisert sidevisningsdata kan du bruke Supabase. Sett `SUPABASE_URL` og `SUPABASE_KEY` som Fly secrets eller miljøvariabler lokalt.
 
+Eksempel (lokalt):
 ```
-export SUPABASE_URL='https://znqbpzyfmiogxayaayrv.supabase.co'
+export SUPABASE_URL='https://...'
 export SUPABASE_KEY='din_anon_nøkkel'
 python3 server.py
 ```
 
-Slik finner du verdiene:
-- **SUPABASE_URL**: Gå til https://app.supabase.com, velg prosjektet ditt, gå til "Project Settings" → "API". Kopier "Project URL".
-- **SUPABASE_KEY**: På samme side, under "Project API keys", kopier "anon public"-nøkkelen (ikke bruk service role-nøkkelen!).
-
-**NB:** Del aldri din private service role-nøkkel offentlig. Bruk kun "anon public"-nøkkelen i klient eller miljøvariabler.
-
-Når serveren kjører, vil alle pageviews bli logget til Supabase-tabellen `logview`.
-
-### Miljøvariabler med .env
-
-Du kan legge Supabase-verdiene i en fil som heter `.env` i prosjektmappen:
-
-```
-SUPABASE_URL=https://znqbpzyfmiogxayaayrv.supabase.co
-SUPABASE_KEY=din_anon_nøkkel
-```
-
-Denne filen blir ignorert av git (se .gitignore).
-
-Når du starter serveren med `python3 server.py` vil variablene lastes automatisk.
+I produksjon: bruk `flyctl secrets set SUPABASE_URL=... SUPABASE_KEY=...`.
 
 ## Deploy til Fly.io med Supabase
 
@@ -261,5 +200,7 @@ Når du starter serveren med `python3 server.py` vil variablene lastes automatis
 - Service role-nøkkel skal aldri brukes i klient eller offentlig miljø.
 
 ## Oppsummering av endringer
-- Supabase-logging og statistikk er nå robust både lokalt og på Fly.io.
+- Supabase-logging og statistikk er tilgjengelig og konfigurert for Fly.io.
 - Dockerfile og deploy-prosess er oppdatert for sikker og stabil drift.
+
+For historiske Oracle-notater, se ORACLE_NOTES.md.
