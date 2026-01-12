@@ -1,3 +1,6 @@
+// Archived Node.js prototype server.
+// The supported backend entrypoint for this project is server.py.
+
 import express from 'express';
 import fetch from 'node-fetch';
 import cheerio from 'cheerio';

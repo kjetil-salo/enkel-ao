@@ -31,8 +31,8 @@ Videre faser under er mest historikk/plan; per nå fungerer prototypen godt nok 
 **Mål:** En enkel, mobilvennlig side hvor du kan søke etter fuglearter via Artsobservasjoner sitt autocomplete-endepunkt og få opp forslag.
 
 **Forslag til teknologivalg (kan justeres senere):**
-- Frontend: Vite + React + TypeScript (eller ren HTML/JS om du vil holde det helt enkelt).
-- Backend: Minimal Node/Express- eller Fastify-server som mellomledd (proxy) mot Artsobservasjoner.
+- Frontend: Ren HTML/JS (som i `public/`) – eller Vite/React hvis du senere vil bygge om.
+- Backend: Den eksisterende Python-serveren (`server.py`) som mellomledd (proxy) mot Artsobservasjoner.
 
 **Hvorfor liten backend/proxy:**
 - Unngå CORS-problemer (Artsobservasjoner svarer kanskje ikke direkte til din egen origin).
@@ -42,11 +42,10 @@ Videre faser under er mest historikk/plan; per nå fungerer prototypen godt nok 
 ### Steg i Fase 1
 
 1. **Prosjektoppsett**
-   - Initialiser prosjektet i `fugleobservasjoner`-mappen (for eksempel med npm + Vite).
-   - Foreslått struktur:
-     - `frontend/` (eller `src/`) for UI.
-     - `server/` for Node/Express-proxy.
-   - Sett opp `npm`-scripts for å starte frontend og backend (evt. én dev-server med proxy).
+   - Hold det enkelt: statiske filer i `public/` og én backend i rot (`server.py`).
+   - Foreslått struktur (som nå):
+     - `public/` for UI.
+     - `server.py` for API-proxy.
 
 2. **Responsivt grunnlayout**
    - Lag en enkel side med:
@@ -71,8 +70,8 @@ Videre faser under er mest historikk/plan; per nå fungerer prototypen godt nok 
    - Svaret er HTML med elementer som:
      - `<span class="itemjson">{"taxonid": "3454", "taxonname":"krikkand", ...}</span>`.
    - På backend:
-     - Bruk f.eks. `cheerio` for å plukke ut alle `.itemjson`.
-     - Kjør `JSON.parse` på innholdet i hver `span.itemjson`.
+     - Plukk ut alle `span.itemjson`.
+     - Parse JSON-innholdet i hver `span.itemjson`.
      - Returner en array med objekter, f.eks.:
        - `{ taxonId, taxonName, scientificName, speciesGroupId, protectionLevelId, ... }`.
 

@@ -351,22 +351,6 @@ class Handler(SimpleHTTPRequestHandler):
                 else:
                     raw_sites = []
 
-                # Debug: logg full JSON for alle steder som heter/inkluderer "Byparken"
-                try:
-                    for item in raw_sites or []:
-                        if not isinstance(item, dict):
-                            continue
-                        name_field = (
-                            item.get('name')
-                            or item.get('Name')
-                            or item.get('siteName')
-                            or item.get('SiteName')
-                        )
-                        if isinstance(name_field, str) and 'byparken' in name_field.lower():
-                            print('AO-sites BYPARKEN-debug:\n', json.dumps(item, ensure_ascii=False, indent=2))
-                except Exception as debug_err:
-                    print('Klarte ikke å debug-logge BYPARKEN-objekt:', repr(debug_err))
-
                 sites = []
                 for item in raw_sites or []:
                     if not isinstance(item, dict):

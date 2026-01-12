@@ -132,7 +132,7 @@ En lynrask app for å registrere fugleobservasjoner i felt – designet for å l
    - `python3 server.py`
 3. Åpne `http://localhost:3000` i nettleseren.
 
-For mer detaljert brukerbeskrivelse (inkludert tips om AO-lokaliteter og import), se [bruk.md](bruk.md).
+For mer detaljert brukerbeskrivelse (inkludert tips om AO-lokaliteter og import), se [bruk.md](docs/bruk.md).
 
 
 ## Versjon
@@ -210,4 +210,4 @@ Krav (GitHub Secrets):
 - Supabase-logging og statistikk er tilgjengelig og konfigurert for Fly.io.
 - Dockerfile og deploy-prosess er oppdatert for sikker og stabil drift.
 
-For historiske Oracle-notater, se ORACLE_CLOUD_SETUP.md.
+For historiske Oracle-notater, se [ORACLE_CLOUD_SETUP.md](docs/ORACLE_CLOUD_SETUP.md).
