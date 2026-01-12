@@ -1095,7 +1095,8 @@
 
           // Tøm og fyll inn i eksisterende array slik at referansen bevares
           observations.splice(0, observations.length);
-          payload.observations.forEach((o) => observations.push(o));
+          // Behold rekkefølge slik at siste observasjon i lagring blir øverst
+          payload.observations.forEach((o) => observations.unshift(o));
 
           // Sett stedsnavn-felt til siste brukte sted, hvis noe finnes
           const last = observations[observations.length - 1];
@@ -1215,7 +1216,7 @@
           }
         }
 
-        observations.push({
+        observations.unshift({
           species: selectedSpecies,
           count: num,
           position: currentPosition,
