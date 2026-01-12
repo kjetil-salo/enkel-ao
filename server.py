@@ -64,8 +64,47 @@ class Handler(SimpleHTTPRequestHandler):
         print(f"[LOG] IP: {self.client_address[0]} | UA: {user_agent} | PATH: {self.path}", file=sys.stderr)
         parsed = urlparse(self.path)
 
-        # Statistikk fra Supabase
-        if self.path == '/stats':
+                # Statistikk fra Supabase (krever nøkkel)
+                if parsed.path == '/stats':
+                        # Hent forventet key fra miljø (default 'salo')
+                        expected_key = os.environ.get('STATS_KEY', 'salo')
+                        qs = parse_qs(parsed.query)
+                        provided = qs.get('key', [''])[0]
+                        # Hvis ikke riktig key, returner en liten login-side som lagrer key i localStorage
+                        if provided != expected_key:
+                                login_html = f"""
+<html>
+<head><meta name='viewport' content='width=device-width,initial-scale=1'><title>Logg inn for statistikk</title></head>
+<body style="font-family:system-ui, sans-serif;padding:18px;">
+    <h2>Logg inn</h2>
+    <p>Oppgi nøkkel for å se statistikk.</p>
+    <input id="stats-key" type="text" placeholder="Skriv inn nøkkel" style="padding:8px;font-size:16px;" />
+    <button id="stats-go" style="padding:8px 10px;margin-left:8px;">Vis</button>
+    <p style="color:#666;margin-top:12px;font-size:0.9rem">Nøkkelen lagres i din nettleser slik at du ikke må skrive den igjen.</p>
+    <script>
+        (function(){
+            const inp = document.getElementById('stats-key');
+            const btn = document.getElementById('stats-go');
+            const saved = localStorage.getItem('stats_key');
+            if (saved) inp.value = saved;
+            btn.addEventListener('click', () => {
+                const v = inp.value.trim();
+                if (!v) return alert('Skriv inn nøkkel');
+                localStorage.setItem('stats_key', v);
+                // redirect med key
+                location.search = '?key=' + encodeURIComponent(v);
+            });
+        })();
+    </script>
+</body>
+</html>
+"""
+                                self.send_response(200)
+                                self.send_header('Content-Type', 'text/html; charset=utf-8')
+                                self.send_header('Content-Length', str(len(login_html.encode('utf-8'))))
+                                self.end_headers()
+                                self.wfile.write(login_html.encode('utf-8'))
+                                return
             try:
                 from supabase_log import supabase
                 if not supabase:
