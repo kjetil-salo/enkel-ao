@@ -1,0 +1,26 @@
+name: Deploy to Fly (on tag)
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Flyctl
+        uses: superfly/flyctl-actions@v1
+        with:
+          version: '0.1.41'
+      - name: Login to Fly
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          flyctl auth token $FLY_API_TOKEN
+      - name: Deploy to Fly
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          flyctl deploy --config fly.toml --remote-only

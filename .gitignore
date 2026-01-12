@@ -1,2 +1,7 @@
 # Ignorer miljøvariabler og lokale hemmeligheter
 .env
+
+# IDE / venv / caches
+.venv
+*.pyc
+__pycache__/
