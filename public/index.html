@@ -111,6 +111,31 @@
         -webkit-appearance: none;
       }
 
+      input[type="text"], input[type="number"], select, button {
+  font-size: 16px !important;
+}
+
+.activity-input-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.activity-submit-btn {
+  border-radius: 999px;
+  border: 1px solid rgba(22, 163, 74, 1);
+  background: #22c55e;
+  color: #ffffff;
+  font-size: 16px;
+  padding: 4px 10px;
+  min-width: 32px;
+  max-width: 100%;
+  box-sizing: border-box;
+  margin-left: 4px;
+}
+
       input[type="text"]::placeholder {
         color: rgba(148, 163, 184, 0.75);
       }
@@ -421,6 +446,10 @@
         margin-top: 8px;
         display: flex;
         justify-content: flex-end;
+        flex-wrap: wrap;
+        gap: 8px;
+        min-width: 0;
+        overflow-x: auto;
       }
 
       .btn {
@@ -468,6 +497,8 @@
         display: flex;
         align-items: center;
         gap: 6px;
+        flex-wrap: nowrap;
+        min-width: 0;
       }
 
       .activity-submit-btn {
@@ -475,13 +506,12 @@
         border: 1px solid rgba(22, 163, 74, 1);
         background: #22c55e;
         color: #ffffff;
-        font-size: 0.8rem;
-        padding: 3px 8px;
-      }
-
-      .activity-submit-btn:disabled {
-        opacity: 0.4;
-        cursor: not-allowed;
+        font-size: 16px;
+        padding: 4px 10px;
+        min-width: 32px;
+        max-width: 100%;
+        box-sizing: border-box;
+        margin-left: 4px;
       }
 
       .kbd-hint {
