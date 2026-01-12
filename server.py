@@ -63,16 +63,15 @@ class Handler(SimpleHTTPRequestHandler):
         user_agent = self.headers.get('User-Agent', '-')
         print(f"[LOG] IP: {self.client_address[0]} | UA: {user_agent} | PATH: {self.path}", file=sys.stderr)
         parsed = urlparse(self.path)
-
-                # Statistikk fra Supabase (krever nøkkel)
-                if parsed.path == '/stats':
-                        # Hent forventet key fra miljø (default 'salo')
-                        expected_key = os.environ.get('STATS_KEY', 'salo')
-                        qs = parse_qs(parsed.query)
-                        provided = qs.get('key', [''])[0]
-                        # Hvis ikke riktig key, returner en liten login-side som lagrer key i localStorage
-                        if provided != expected_key:
-                                login_html = f"""
+        # Statistikk fra Supabase (krever nøkkel)
+        if parsed.path == '/stats':
+            # Hent forventet key fra miljø (default 'salo')
+            expected_key = os.environ.get('STATS_KEY', 'salo')
+            qs = parse_qs(parsed.query)
+            provided = qs.get('key', [''])[0]
+            # Hvis ikke riktig key, returner en liten login-side som lagrer key i localStorage
+            if provided != expected_key:
+                login_html = """
 <html>
 <head><meta name='viewport' content='width=device-width,initial-scale=1'><title>Logg inn for statistikk</title></head>
 <body style="font-family:system-ui, sans-serif;padding:18px;">
@@ -99,12 +98,12 @@ class Handler(SimpleHTTPRequestHandler):
 </body>
 </html>
 """
-                                self.send_response(200)
-                                self.send_header('Content-Type', 'text/html; charset=utf-8')
-                                self.send_header('Content-Length', str(len(login_html.encode('utf-8'))))
-                                self.end_headers()
-                                self.wfile.write(login_html.encode('utf-8'))
-                                return
+                self.send_response(200)
+                self.send_header('Content-Type', 'text/html; charset=utf-8')
+                self.send_header('Content-Length', str(len(login_html.encode('utf-8'))))
+                self.end_headers()
+                self.wfile.write(login_html.encode('utf-8'))
+                return
             try:
                 from supabase_log import supabase
                 if not supabase:
