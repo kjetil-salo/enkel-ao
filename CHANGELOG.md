@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.3 – 2026-01-12
+- Lagt til `pytest`-tester for sentrale API-endepunkter.
+- GitHub Actions kjører tester på push/PR til `main`.
+- Deploy til Fly.io skjer kun på tag (`v*`) for tryggere produksjonssetting.
+
 ## 1.1.2 – 2026-01-12
 - Løst problem med at input-felt for antall zoomet inn på mobil (font-size 16px på alle input/knapper).
 - Forbedret visning av den grønne haken (submit-knapp) slik at den ikke klippes eller havner utenfor på små skjermer.

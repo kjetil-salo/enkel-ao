@@ -108,8 +108,6 @@ En lynrask app for å registrere fugleobservasjoner i felt – designet for å l
 
 ## Hovedfunksjoner
 
-## Hovedfunksjoner
-
 - 📍 **Automatisk lokalitetsfinner** – henter nærmeste lokaliteter fra Artsobservasjoner (inkludert private hvis de er dine egne)
 - 🔍 **Artssøk med autocomplete** – slår opp mot Artsobservasjoner for korrekte artsnavn (lokasjon er valgfritt)
 - ⚡ **Lynrask registrering** – art, antall, aktivitet, stedsnavn på sekunder
@@ -139,7 +137,7 @@ For mer detaljert brukerbeskrivelse (inkludert tips om AO-lokaliteter og import)
 
 ## Versjon
 
-Appversjon: **1.1.2**
+Appversjon: **1.1.3**
 
 Se også CHANGELOG.md for detaljer.
 
@@ -194,6 +192,15 @@ I produksjon: bruk `flyctl secrets set SUPABASE_URL=... SUPABASE_KEY=...`.
 
 6. Statistikk-siden finnes på `/stats` og viser data direkte fra Supabase.
 
+## Deploy fra GitHub Actions (tag)
+
+Repoet er satt opp slik at push til `main` kjører tester, men **ikke** deployer. Deploy til Fly skjer kun når du pusher en tag som starter med `v` (f.eks. `v1.1.3`).
+
+Krav (GitHub Secrets):
+- `FLY_API_TOKEN`
+- `SUPABASE_URL` (valgfritt, kun hvis du skrur på “Set Fly secrets”-steget i workflowen)
+- `SUPABASE_KEY` (valgfritt, kun hvis du skrur på “Set Fly secrets”-steget i workflowen)
+
 ## Viktig sikkerhet
 - Ikke legg .env eller nøkler i git.
 - Bruk kun "anon public"-nøkkel som SUPABASE_KEY.
@@ -203,4 +210,4 @@ I produksjon: bruk `flyctl secrets set SUPABASE_URL=... SUPABASE_KEY=...`.
 - Supabase-logging og statistikk er tilgjengelig og konfigurert for Fly.io.
 - Dockerfile og deploy-prosess er oppdatert for sikker og stabil drift.
 
-For historiske Oracle-notater, se ORACLE_NOTES.md.
+For historiske Oracle-notater, se ORACLE_CLOUD_SETUP.md.
