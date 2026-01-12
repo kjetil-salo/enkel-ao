@@ -1,0 +1,6 @@
+# Assistant configuration for this repository
+verbosity: low       # options: low, normal, high
+tone: honest         # options: concise, friendly, honest
+politeness: off      # on/off
+auto_push: false     # allow assistant to push commits automatically
+confirm_actions: true # require confirmation for destructive actions
