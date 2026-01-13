@@ -1,3 +1,121 @@
+# Fugleobservasjoner v1.4.0
+
+En norsk fugleobservasjons-app med intuitivt design, avanserte feltregistreringsmuligheter og valgfri Supabase-logging.
+
+## 🆕 Nytt i v1.4.0
+- **Forbedret UI/UX**: Tydelige seksjoner skiller obligatoriske og valgfrie felt med visuelt hierarki
+- **Valgfri Supabase**: Fungerer perfekt uten Supabase - faller automatisk tilbake til in-memory statistikk
+- **Forbedret portabilitet**: Kan kjøres i GitHub Codespaces og andre miljøer uten eksterne avhengigheter
+- **Responsiv seksjonering**: Grønne bokser for viktige felt, grå for tilleggsinfo
+
+## Tidligere versjon (v1.3.0)
+- **Avanserte felter**: Valgfrie alder- og kjønnsfelt kompatible med Artsobservasjoner.no import
+- **Utvidet CSV-eksport**: Inkluderer alder/kjønn for sømløs AO-import
+- **Responsiv design**: Optimalisert for mobile enheter
+
+Dette repoet inneholder en liten Python HTTP-server som serverer en enkel web-app og noen API-endepunkter. Nedenfor finner du raske instruksjoner for å bygge og kjøre lokalt, starte en mock for eksterne tjenester med `docker-compose`, og kjøre forsiktige last-tester.
+
+**Bygg image lokalt:**
+
+```bash
+cd /Users/kjetil/git/fugleobservasjoner
+docker build -t fugleobservasjoner:local .
+```
+
+**Kjør enkelt container (treffer ekte eksterne tjenester):**
+
+```bash
+# Starter containeren og binder port 3000
+docker run --name fugle-real -d -p 3000:3000 fugleobservasjoner:local
+
+# Se logs
+docker logs fugle-real --tail 200
+
+# Memory snapshot
+docker stats --no-stream --format "table {{.Container}}\t{{.Name}}\t{{.MemUsage}}\t{{.CPUPerc}}" fugle-real
+```
+
+Vær oppmerksom på at dette vil la serveren treffe eksterne tjenester som Nominatim og Artsobservasjoner. Kjør kun forsiktige tester mot dem.
+
+**Kjør med lokal mock for eksterne kall (trygt for load-testing):**
+
+```bash
+# Starter både appen og en liten lokal mock for Nominatim (docker-compose bygger bilder)
+docker-compose up --build -d
+
+# Se hvilke containere som kjører
+docker ps
+
+# Se logs for app
+docker logs $(docker ps --filter "ancestor=fugleobservasjoner:local" --format "{{.Names}}") --tail 200
+
+# Stoppe
+docker-compose down
+```
+
+Mocken ligger i `mock/nominatim_app.py`.
+
+**Load-testing (lokalt)**
+
+Et enkelt testskript ligger i `tools/load_test.py`. Det har tre modi:
+- `static` — kun `/` (statisk innhold)
+- `mixed` — standard: `['/', '/api/species', '/api/reverse']`
+- `gentle` — som `mixed`, men med liten jitter/delay for å unngå å treffe eksterne tjenester hardt
+
+Nyere modi for testing:
+- `ramp`  - gradvis økning i trafikk (enkel implementasjon; bruk for å finne når problemer starter)
+- `soak`  - lav-rate kontinuerlig test over N sekunder (angi `--requests` som antall sekunder)
+- `spike` - flere korte bursts for å teste burst-adferd
+- `smoke` - noen få raske sanity-forespørsler (trygt å kjøre ofte)
+
+Eksempler:
+
+```bash
+# Gentle mixed mot MOCK (safest for load testing)
+python3 tools/load_test.py --mode gentle --requests 1000 --concurrency 50 --delay 0.05
+
+# Ramp test (enkel):
+python3 tools/load_test.py --mode ramp --requests 1000 --concurrency 50
+
+# Soak test (kjører i 60 sekunder, lav rate):
+python3 tools/load_test.py --mode soak --requests 60 --concurrency 10
+
+# Spike test (korte bursts):
+python3 tools/load_test.py --mode spike --requests 500 --concurrency 100
+
+# Smoke test (rask sanity):
+python3 tools/load_test.py --mode smoke --requests 10 --concurrency 2
+```
+
+Eksempler:
+
+```bash
+# Statisk test (1000 req, concurrency 50)
+python3 tools/load_test.py --mode static
+
+# Gentle mixed mot MOCK (safest for load testing)
+python3 tools/load_test.py --mode gentle --requests 1000 --concurrency 50 --delay 0.05
+
+# Forsiktig test mot ekte tjenester (hold count lav!)
+python3 tools/load_test.py --mode gentle --requests 10 --concurrency 2 --delay 0.1
+```
+
+**Etiske retningslinjer for eksterne APIer**
+- Ikke kjør store, aggressive load-tester mot offentlige APIer (f.eks. Nominatim, Artsobservasjoner).
+- Bruk caching for svar fra eksterne tjenester.
+- Angi en klar `User-Agent` for applikasjonen (serveren setter en user-agent for utgående kall).
+
+**Vanlige nyttige kommandoer**
+- Se app-logs: `docker logs <container-name> --tail 200`
+- Ta snapshot av ressursbruk: `docker stats --no-stream --format "table {{.Name}}\t{{.MemUsage}}\t{{.CPUPerc}}"`
+
+**Hva jeg har gjort for deg i repoet**
+- La til `docs/deploy_strategy.md` (deploy-strategi)
+- Byttet til `ThreadingHTTPServer` for bedre enkel samtidighet
+- Laget `tools/load_test.py` med `static`, `mixed` og `gentle` modi
+- Laget `mock/nominatim_app.py` + `mock/Dockerfile` og `docker-compose.yml`
+
+Hvis du vil kan jeg også legge til en liten `Makefile` for disse kommandoene, eller en kort `Procfile`/`gunicorn`-kommando for en fremtidig WSGI-migrasjon.
 # Hosting
 
 Denne appen er best drevet på moderne PaaS som Fly.io. Fly.io håndterer bygg, distribusjon og skalering på en enkel måte og er brukt i produksjon for dette prosjektet.
@@ -12,43 +130,32 @@ Fly.io gir deg en URL etter deploy og enkel overvåkning.
 
 # Se https://fly.io/docs/ for mer info.
 
-## Enkel lagring av statistikk med Supabase
+## Enkel logging av statistikk (valgfritt med Supabase)
 
-For enkel og gratis lagring av IP-adresse og geolokasjon kan du bruke Supabase:
+Appen fungerer fullstendig uten eksterne avhengigheter og bruker in-memory statistikk som standard. For persistent lagring av sidevisninger kan du valgfritt bruke Supabase:
+
+### Supabase-oppsett (valgfritt)
 
 1. Opprett gratis konto og prosjekt på [https://supabase.com/](https://supabase.com/)
 2. Lag en tabell `stats` med feltene:
    - `id` (auto-increment)
    - `ip` (text)
-   - `lat` (float)
-   - `lon` (float)
+   - `user_agent` (text)
    - `timestamp` (timestamp, default: now())
 3. Installer Supabase Python-klient:
    ```
    pip install supabase
    ```
-4. Legg inn Supabase-URL og API-nøkkel som miljøvariabler på Fly.io:
+4. Legg inn Supabase-URL og API-nøkkel som miljøvariabler:
    - `SUPABASE_URL`
    - `SUPABASE_KEY`
-5. Eksempel på enkel lagring i Python:
-   ```python
-   from supabase import create_client, Client
-   import os
 
-   SUPABASE_URL = os.environ.get("SUPABASE_URL")
-   SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
-   supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+### Automatisk deteksjon
+- **Med Supabase**: Hvis miljøvariabler er satt, brukes full persistent statistikk
+- **Uten Supabase**: Automatisk fallback til in-memory statistikk (kun denne økt)
+- **GitHub Codespaces**: Fungerer ut av boksen uten konfigurasjon
 
-   def log_stat(ip, lat, lon):
-      data = {
-         "ip": ip,
-         "lat": lat,
-         "lon": lon
-      }
-      supabase.table("stats").insert(data).execute()
-   ```
-
-Se README for mer info og oppdatering av statistikkfunksjon.
+Statistikk-siden (`/stats?key=salo`) viser hvilken datakilde som brukes.
 # Oracle Free Tier: Kjør appen med Docker fra eksternt registry
 
 ## Forberedelser på din egen maskin (Mac/PC)

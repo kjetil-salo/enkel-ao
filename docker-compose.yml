@@ -1,0 +1,14 @@
+version: '3.8'
+services:
+  fugle:
+    image: fugleobservasjoner:local
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - NOMINATIM_URL=http://nominatim:8080/reverse
+  nominatim:
+    build: ./mock
+    ports:
+      - "8080:8080"

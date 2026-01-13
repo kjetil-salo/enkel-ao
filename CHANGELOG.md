@@ -1,5 +1,49 @@
 # Changelog
 
+## 1.4.0 – 2026-01-13
+### 🎨 UI/UX Forbedringer
+- **Visuell seksjonering**: Tydelige bokser skiller obligatoriske og valgfrie felt
+- **Korrekt visuelt hierarki**: Grønne bokser for obligatoriske felt, grå for valgfrie
+- **Forbedret gruppering**: Lokasjon, observasjon (obligatorisk), og tilleggsinfo (valgfritt) i separate seksjoner
+- **Tydeligere borders og skygger**: Gjør seksjonene mer synlige og profesjonelle
+- **Responsiv seksjonering**: Mindre padding på mobile enheter
+
+### 🔧 Tekniske forbedringer  
+- **Valgfri Supabase**: App fungerer uten Supabase-credentials (in-memory modus for GitHub Codespaces)
+- **Miljøvariabel-deteksjon**: Automatisk fallback til in-memory hvis `SUPABASE_URL`/`SUPABASE_KEY` mangler
+- **Forbedret portabilitet**: Kan kjøres i alle miljøer uten eksterne avhengigheter
+
+### 🐛 Feilrettinger
+- Fjernet forvirrende registreringsflyt med stor knapp
+- Alder/kjønn-felt alltid synlige (ikke skjult bak toggle)
+- Inline ✓-knapp for registrering (tilbake til original design)
+
+## 1.3.0 – 2026-01-13
+### ✨ Nye funksjoner
+- **Avanserte felter**: Lagt til alder og kjønn som valgfrie felter med checkbox-toggle
+  - Alder: Komplett dropdown med AO-kompatible verdier (Egg, Pulli, 1K, 1K+, 2K, 2K+, osv.)
+  - Kjønn: Dropdown med AO-verdier (Hann, Hunn, Hunnfarget, I par)
+  - Feltene huskes i localStorage og aktiveres automatisk når art velges
+- **Forbedret brukerflyt**: Ny stor registreringsknapp under alle felter for intuitiv navigasjon
+- **Utvidet CSV-eksport**: Alder og kjønn inkluderes i riktige kolonner for AO-import
+- **Forbedret observasjonsvisning**: Ny "Detaljer"-kolonne viser alder/kjønn når satt
+
+### 🎨 Design og UX
+- Ny profesjonell registreringsknapp med gradient, hover-effekter og skygge
+- Flyttet registrering fra inline til dedikert knapp for bedre flyt (art → antall → aktivitet → avanserte felter → registrer)
+- Responsiv styling for avanserte felter på mobile enheter
+- Oppdatert placeholder-tekst og navigasjon med Enter-key
+
+### 🐛 Feilrettinger
+- Fikset JavaScript-feil som hindret "Hent lokalitet"-funksjonen
+- Fjernet duplikat variabel-deklarasjoner som forårsaket script-stopp
+- Alder/kjønn-felter nullstilles automatisk etter hver registrering
+
+### 🔧 Tekniske forbedringer
+- Modularisert toggle-logikk for avanserte felter
+- Forbedret CSV-generering med riktig kolonneindeksering
+- Optimalisert event listeners og form state management
+
 ## 1.1.3 – 2026-01-12
 - Lagt til `pytest`-tester for sentrale API-endepunkter.
 - GitHub Actions kjører tester på push/PR til `main`.

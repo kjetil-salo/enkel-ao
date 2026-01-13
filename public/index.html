@@ -316,6 +316,32 @@
         margin-bottom: 4px;
       }
 
+      .section-main {
+        background: rgba(34, 197, 94, 0.08);
+        border: 2px solid rgba(34, 197, 94, 0.3);
+        border-radius: 12px;
+        padding: 18px;
+        margin-bottom: 16px;
+        box-shadow: 0 2px 8px rgba(34, 197, 94, 0.15);
+      }
+
+      .section-optional {
+        background: rgba(15, 23, 42, 0.15);
+        border: 1px solid rgba(148, 163, 184, 0.2);
+        border-radius: 8px;
+        padding: 12px;
+        opacity: 0.85;
+      }
+
+      .optional-subtitle {
+        font-size: 0.75rem;
+        color: var(--muted);
+        opacity: 0.6;
+        margin-bottom: 10px;
+        font-style: italic;
+        font-weight: 400;
+      }
+
       .row {
         margin-top: 12px;
       }
@@ -417,6 +443,20 @@
         text-align: center;
       }
 
+      .obs-table th:nth-last-child(2),
+      .obs-table td:nth-last-child(2) {
+        width: 80px;
+        font-size: 0.75em;
+      }
+
+      @media (max-width: 480px) {
+        .obs-table th:nth-last-child(2),
+        .obs-table td:nth-last-child(2) {
+          width: 60px;
+          font-size: 0.7em;
+        }
+      }
+
       .delete-obs-btn {
         background: transparent;
         border: none;
@@ -515,6 +555,53 @@
         margin-left: 4px;
       }
 
+      .advanced-row {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+
+      .advanced-field {
+        flex: 1;
+        min-width: 140px;
+      }
+
+      .advanced-field label {
+        font-size: 0.8rem;
+        color: var(--muted);
+        opacity: 0.8;
+      }
+
+      .advanced-field select {
+        font-size: 0.85rem;
+        padding: 5px 6px;
+        opacity: 0.9;
+        border-color: rgba(148, 163, 184, 0.25);
+      }
+
+      .optional-subtitle {
+        font-size: 0.75rem;
+        color: var(--muted);
+        opacity: 0.7;
+        margin-bottom: 8px;
+        font-style: italic;
+      }
+
+      @media (max-width: 480px) {
+        .advanced-row {
+          flex-direction: column;
+          gap: 6px;
+        }
+        
+        .section-main {
+          padding: 12px;
+        }
+        
+        .section-optional {
+          padding: 10px;
+        }
+      }
+
       .kbd-hint {
         display: none;
       }
@@ -554,7 +641,8 @@
 
 
 
-        <div class="section">
+        <div class="section-main">
+          <div class="section-title">📍 Lokasjon</div>
           <div class="row" style="display:flex;align-items:center;gap:6px;flex-wrap:nowrap;min-height:0;">
             <span class="loc-dot" id="loc-dot" style="width:10px;height:10px;margin-right:2px;"></span>
             <button class="icon-btn" id="loc-btn" title="Oppdater posisjon" style="font-size:0.92em;padding:1.5px 6px;min-width:0;min-height:0;line-height:1;">
@@ -573,7 +661,7 @@
             <button class="icon-btn" id="loc-map-btn" title="Vis i kart" style="font-size:1.1em;padding:3px 8px;min-width:0;min-height:0;line-height:1.1;">🗺️</button>
           </div>
           <div class="row" style="margin-top:10px;">
-            <label for="place">Stedsnavn (valgfritt)</label>
+            <label for="place">Stedsnavn</label>
             <input
               type="text"
               id="place"
@@ -584,8 +672,8 @@
           </div>
         </div>
 
-        <div class="section">
-          <div class="section-title">Art og antall</div>
+        <div class="section-main">
+          <div class="section-title">🔍 Observasjon (obligatorisk)</div>
           <div class="status-row">
             <div class="status-left">
               <span class="status-dot" id="status-dot"></span>
@@ -617,7 +705,7 @@
                 id="count"
                 min="1"
                 step="1"
-                placeholder="Trykk Enter for å lagre"
+                placeholder="Antall individer"
                 disabled
               />
               <span class="badge">Enter = gå til aktivitet</span>
@@ -627,13 +715,12 @@
           <div class="row">
             <label for="activity">Aktivitet</label>
             <div class="activity-input-row">
-              <!-- Options loaded from /data/activities.json -->
               <select id="activity" disabled></select>
               <button
                 type="button"
                 id="activity-submit"
                 class="activity-submit-btn"
-                title="Lagre observasjon"
+                title="Registrer observasjon"
                 disabled
               >
                 ✓
@@ -642,7 +729,53 @@
           </div>
         </div>
 
-        <div class="row">
+        <div class="section-optional">
+          <div class="optional-subtitle">Tilleggsinfo (valgfritt for AO-import)</div>
+          <div class="row advanced-row">
+            <div class="advanced-field">
+              <label for="age">Alder</label>
+              <select id="age" disabled>
+                <option value="">Ikke oppgitt</option>
+                <option value="Egg">Egg</option>
+                <option value="Pulli">Pulli</option>
+                <option value="1K">1K</option>
+                <option value="1K+">1K+</option>
+                <option value="2K">2K</option>
+                <option value="2K+">2K+</option>
+                <option value="2K-">2K-</option>
+                <option value="3K">3K</option>
+                <option value="3K+">3K+</option>
+                <option value="3K-">3K-</option>
+                <option value="4K">4K</option>
+                <option value="4K+">4K+</option>
+                <option value="4K-">4K-</option>
+                <option value="5K">5K</option>
+                <option value="5K+">5K+</option>
+                <option value="5K-">5K-</option>
+                <option value="6K">6K</option>
+                <option value="6K+">6K+</option>
+                <option value="6K-">6K-</option>
+                <option value="7K">7K</option>
+                <option value="7K+">7K+</option>
+                <option value="7K-">7K-</option>
+                <option value="Adult">Adult</option>
+              </select>
+            </div>
+
+            <div class="advanced-field">
+              <label for="gender">Kjønn</label>
+              <select id="gender" disabled>
+                <option value="">Ikke oppgitt</option>
+                <option value="Hann">Hann</option>
+                <option value="Hunn">Hunn</option>
+                <option value="Hunnfarget">Hunnfarget</option>
+                <option value="I par">I par</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
           <div class="section-title">Observasjoner</div>
           <div class="obs-list" id="obs-list"></div>
           <div class="export-row">
@@ -665,7 +798,7 @@
           </div>
         </div>
       </div>
-      <div class="footer-credit">Versjon v1.1.3 &nbsp;|&nbsp; © 2026 Kjetil Salomonsen</div>
+      <div class="footer-credit">Versjon v1.4.0 &nbsp;|&nbsp; © 2026 Kjetil Salomonsen</div>
     </div>
 
     <script>
@@ -684,13 +817,17 @@
       const copyBtn = document.getElementById('copy-btn');
       const copyOpenBtn = document.getElementById('copy-open-btn');
       const clearBtn = document.getElementById('clear-btn');
-        const locDot = document.getElementById('loc-dot');
-        const locText = document.getElementById('loc-text');
+      const locDot = document.getElementById('loc-dot');
+      const locText = document.getElementById('loc-text');
       const locBtn = document.getElementById('loc-btn');
       const locMapBtn = document.getElementById('loc-map-btn');
       const placeInput = document.getElementById('place');
       const aoSitesEl = document.getElementById('ao-sites');
       const aoSizeInput = document.getElementById('ao-size');
+
+      // Avanserte felter
+      const ageSelect = document.getElementById('age');
+      const genderSelect = document.getElementById('gender');
 
       // Reverted: No longer disable species input when location is empty
       if (placeInput) {
@@ -906,6 +1043,10 @@
         if (activitySubmitBtn) {
           activitySubmitBtn.disabled = false;
         }
+
+        // Aktiver avanserte felter
+        ageSelect.disabled = false;
+        genderSelect.disabled = false;
       }
 
       function renderObservations() {
@@ -952,7 +1093,7 @@
 
         const thead = document.createElement('thead');
         const headerRow = document.createElement('tr');
-        ['Art', 'Antall', 'Aktivitet', ''].forEach((label) => {
+        ['Art', 'Antall', 'Aktivitet', 'Detaljer', ''].forEach((label) => {
           const th = document.createElement('th');
           th.textContent = label;
           headerRow.appendChild(th);
@@ -965,7 +1106,7 @@
         groups.forEach((group) => {
           const groupRow = document.createElement('tr');
           const groupCell = document.createElement('td');
-          groupCell.colSpan = 4;
+          groupCell.colSpan = 5; // Oppdatert til 5 kolonner (Art, Antall, Aktivitet, Detaljer, Slett)
           groupCell.className = 'obs-group-title';
           groupCell.textContent = group.key;
           groupRow.appendChild(groupCell);
@@ -1031,6 +1172,15 @@
             const activityTd = document.createElement('td');
             activityTd.textContent = obs.activity || '';
             tr.appendChild(activityTd);
+
+            const detailsTd = document.createElement('td');
+            const details = [];
+            if (obs.age) details.push(obs.age);
+            if (obs.gender) details.push(obs.gender);
+            detailsTd.textContent = details.join(', ');
+            detailsTd.style.fontSize = '0.85em';
+            detailsTd.style.color = 'var(--muted)';
+            tr.appendChild(detailsTd);
 
             const deleteTd = document.createElement('td');
             deleteTd.style.textAlign = 'center';
@@ -1216,6 +1366,10 @@
           }
         }
 
+        // Hent alder og kjønn
+        let age = ageSelect.value || '';
+        let gender = genderSelect.value || '';
+
         observations.unshift({
           species: selectedSpecies,
           count: num,
@@ -1223,6 +1377,8 @@
           activity,
           placeName: currentPlaceName,
           timestamp: new Date().toISOString(),
+          age,
+          gender,
         });
 
         renderObservations();
@@ -1238,35 +1394,14 @@
           // Behold forrige aktivitetsvalg (ikke nullstill)
           activitySelect.disabled = true;
         }
+        
+        // Deaktiver avanserte felter og nullstill verdier
+        ageSelect.disabled = true;
+        genderSelect.disabled = true;
+        ageSelect.value = '';
+        genderSelect.value = '';
+        
         if (activitySubmitBtn) {
-              // Toast/bekreftelse når art er registrert
-              function showRegisteredToast(artNavn) {
-                let toast = document.getElementById('registered-toast');
-                if (!toast) {
-                  toast = document.createElement('div');
-                  toast.id = 'registered-toast';
-                  toast.style.position = 'fixed';
-                  toast.style.top = '50%';
-                  toast.style.left = '50%';
-                  toast.style.transform = 'translate(-50%, -50%)';
-                  toast.style.background = 'rgba(34,34,34,0.97)';
-                  toast.style.color = '#fff';
-                  toast.style.fontSize = '1.2em';
-                  toast.style.padding = '12px 28px';
-                  toast.style.borderRadius = '12px';
-                  toast.style.boxShadow = '0 4px 24px rgba(0,0,0,0.18)';
-                  toast.style.border = '2px solid #3b82f6';
-                  toast.style.zIndex = '9999';
-                  toast.style.opacity = '0';
-                  toast.style.transition = 'opacity 0.15s';
-                  document.body.appendChild(toast);
-                }
-                toast.textContent = `${artNavn} registrert`;
-                toast.style.opacity = '1';
-                setTimeout(() => {
-                  toast.style.opacity = '0';
-                }, 800);
-              }
           activitySubmitBtn.disabled = true;
         }
 
@@ -1280,6 +1415,42 @@
         // Flytt fokus til artsøkefeltet
         input.focus();
         input.select();
+      }
+
+      // Toast/bekreftelse når art er registrert
+      function showRegisteredToast(artNavn) {
+        let toast = document.getElementById('registered-toast');
+        if (!toast) {
+          toast = document.createElement('div');
+          toast.id = 'registered-toast';
+          toast.style.position = 'fixed';
+          toast.style.top = '50%';
+          toast.style.left = '50%';
+          toast.style.transform = 'translate(-50%, -50%)';
+          toast.style.background = 'rgba(34,34,34,0.97)';
+          toast.style.color = '#fff';
+          toast.style.fontSize = '1.2em';
+          toast.style.padding = '12px 28px';
+          toast.style.borderRadius = '12px';
+          toast.style.boxShadow = '0 4px 24px rgba(0,0,0,0.18)';
+          toast.style.border = '2px solid #3b82f6';
+          toast.style.zIndex = '9999';
+          toast.style.opacity = '0';
+          toast.style.transition = 'opacity 0.15s';
+          document.body.appendChild(toast);
+        }
+        toast.textContent = `${artNavn} registrert`;
+        toast.style.opacity = '1';
+        setTimeout(() => {
+          toast.style.opacity = '0';
+        }, 800);
+      }
+
+      // Event listener for aktivitetsknapp
+      if (activitySubmitBtn) {
+        activitySubmitBtn.addEventListener('click', () => {
+          commitObservationFromActivity();
+        });
       }
 
       if (activitySelect) {
@@ -1296,12 +1467,6 @@
             commitObservationFromActivity();
           });
         }
-      }
-
-      if (activitySubmitBtn) {
-        activitySubmitBtn.addEventListener('click', () => {
-          commitObservationFromActivity();
-        });
       }
 
         function setLocationStatus(mode, text) {
@@ -1499,6 +1664,8 @@
           const place = (obs.placeName || '').replace(/[;\t]/g, ',');
           const count = obs.count != null ? String(obs.count) : '';
           const activity = (obs.activity || '').replace(/[;\t]/g, ',');
+          const age = (obs.age || '').replace(/[;\t]/g, ',');
+          const gender = (obs.gender || '').replace(/[;\t]/g, ',');
 
           // Dato (Fra/til = samme dag) – format DD.MM.YYYY
           let dateStr = '';
@@ -1541,6 +1708,10 @@
           cols[9] = timeStr;
           // 11: Antall
           cols[10] = count;
+          // 12: Alder
+          cols[11] = age;
+          // 13: Kjønn  
+          cols[12] = gender;
           // 14: Aktivitet
           cols[13] = activity;
 
