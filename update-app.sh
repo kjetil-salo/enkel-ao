@@ -1,9 +1,23 @@
 #!/bin/bash
-# Oppdater Fugleobservasjoner app
+# Oppdater Fugleobservasjoner app til staging eller production
 
 set -e
 
-echo "🔄 Oppdaterer Fugleobservasjoner..."
+ENVIRONMENT=${1:-local}
+
+if [[ "$ENVIRONMENT" == "staging" ]]; then
+    echo "🔄 Deployer til STAGING..."
+    flyctl deploy --config fly.staging.toml
+    echo "✅ Staging deployment ferdig! URL: https://enkel-ao-staging.fly.dev"
+    exit 0
+elif [[ "$ENVIRONMENT" == "production" ]]; then
+    echo "🔄 Deployer til PRODUCTION..."
+    flyctl deploy --config fly.toml
+    echo "✅ Production deployment ferdig! URL: https://enkel-ao.fly.dev"
+    exit 0
+fi
+
+echo "🔄 Oppdaterer Fugleobservasjoner lokalt..."
 
 cd ~/bird-observations-made-simple
 

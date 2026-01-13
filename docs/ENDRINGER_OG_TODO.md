@@ -77,6 +77,9 @@
 #### UX-forbedringer:
 - **Performance optimaliseringer**: Raskere artsøk og lokalitetshenting
 - **Optimaliser dropdown-design**: Grupper alder-valg logisk (Egg | Ungfugl: 1K-serie | Voksen: Adult)
+- **Lyst/mørkt tema**: Implementere theme-switching for alle sider (index, hjelp, stats)
+  - Toggle-knapp for å bytte mellom lyst og mørkt tema
+  - Lagre brukerens preferanse i localStorage
 
 #### Tekniske oppgaver:
 - **OpenSSL warnings**: Fikse urllib3/OpenSSL-advarsel i Python-miljø (lav prioritet)
