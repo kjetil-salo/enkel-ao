@@ -648,16 +648,20 @@
             <button class="icon-btn" id="loc-btn" title="Oppdater posisjon" style="font-size:0.92em;padding:1.5px 6px;min-width:0;min-height:0;line-height:1;">
               📍 <span style="font-size:0.62em;font-weight:500;margin-left:2px;">Oppdater posisjon</span>
             </button>
-            <input
-              type="number"
-              id="ao-size"
-              min="100"
-              max="3000"
-              step="50"
-              value="600"
-              style="width:96px;font-size:0.98em;padding:2px 6px;"
-              title="Søkeområde i meter"
-            />
+            <div style="display:flex;flex-direction:column;align-items:flex-start;">
+              <label for="ao-size" style="font-size:0.6rem;color:var(--muted);margin-bottom:2px;text-transform:none;">Søkeradius</label>
+              <input
+                type="number"
+                id="ao-size"
+                min="100"
+                max="3000"
+                step="50"
+                value="600"
+                style="width:96px;font-size:0.98em;padding:2px 6px;"
+                title="Søkeradius i meter (100-3000m). Bestemmer hvor stort område du leter etter observasjonslokaliteter i."
+              />
+              <span style="font-size:0.58rem;color:var(--muted);margin-top:1px;">meter</span>
+            </div>
             <button class="icon-btn" id="loc-map-btn" title="Vis i kart" style="font-size:1.1em;padding:3px 8px;min-width:0;min-height:0;line-height:1.1;">🗺️</button>
           </div>
           <div class="row" style="margin-top:10px;">
