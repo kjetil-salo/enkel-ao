@@ -2,10 +2,15 @@
 
 En norsk fugleobservasjons-app med intuitivt design, avanserte feltregistreringsmuligheter og valgfri Supabase-logging.
 
+## 🚀 Live-apper
+- **Production**: https://enkel-ao.fly.dev
+- **Staging**: https://enkel-ao-staging.fly.dev
+
 ## 🆕 Nytt i v1.4.0
 - **Forbedret UI/UX**: Tydelige seksjoner skiller obligatoriske og valgfrie felt med visuelt hierarki
 - **Valgfri Supabase**: Fungerer perfekt uten Supabase - faller automatisk tilbake til in-memory statistikk
 - **Forbedret portabilitet**: Kan kjøres i GitHub Codespaces og andre miljøer uten eksterne avhengigheter
+- **Staging/Production setup**: Separate miljøer for testing og produksjon
 - **Responsiv seksjonering**: Grønne bokser for viktige felt, grå for tilleggsinfo
 
 ## Tidligere versjon (v1.3.0)
@@ -82,6 +87,27 @@ python3 tools/load_test.py --mode soak --requests 60 --concurrency 10
 
 # Spike test (korte bursts):
 python3 tools/load_test.py --mode spike --requests 500 --concurrency 100
+```
+
+## 🚀 Deploy til Fly.io
+
+**Deploy til staging (for testing):**
+```bash
+./update-app.sh staging
+# Deployer til https://enkel-ao-staging.fly.dev
+```
+
+**Deploy til production:**
+```bash
+./update-app.sh production
+# Deployer til https://enkel-ao.fly.dev
+```
+
+**Anbefalt workflow:**
+1. Test lokalt: `python3 server.py`
+2. Deploy til staging: `./update-app.sh staging`
+3. Test på staging-URL
+4. Deploy til prod: `./update-app.sh production`
 
 # Smoke test (rask sanity):
 python3 tools/load_test.py --mode smoke --requests 10 --concurrency 2

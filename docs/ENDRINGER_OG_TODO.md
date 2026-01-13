@@ -12,6 +12,10 @@
 - **Valgfri Supabase**: App fungerer uten Supabase-credentials (in-memory modus)
 - **Miljøvariabel-deteksjon**: Automatisk fallback til in-memory hvis `SUPABASE_URL`/`SUPABASE_KEY` mangler
 - **Forbedret portabilitet**: Kan kjøres i GitHub Codespaces og andre miljøer uten eksterne avhengigheter
+- **Staging/Production setup**: Separate miljøer med `enkel-ao-staging` og `enkel-ao`
+  - `./update-app.sh staging` → https://enkel-ao-staging.fly.dev
+  - `./update-app.sh production` → https://enkel-ao.fly.dev
+  - Staging branch for testing før produksjon
 
 ### 📈 Statistikkmuligheter
 - **Supabase-statistikk**: Fullstendig historikk når miljøvariabler er konfigurert
@@ -65,7 +69,6 @@
 ### 🔴 Høy prioritet
 
 #### Tekniske forbedringer:
-- **Separert staging/production**: Implementere CI/CD for ulike miljøer
 - **Forbedret feilhåndtering**: Bedre fallback for API-feil
 
 #### Mobile forbedringer:

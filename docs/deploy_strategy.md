@@ -9,9 +9,11 @@ Dette dokumentet beskriver en enkel, sikker og gjentakbar strategi for å deploy
 
 **Navnekonvensjoner**
 - Branch -> miljø:
-  - `staging` branch deployer til `staging` miljø
-  - `main` (eller `master`) branch deployer til `production`
-- Fly-app navn (eksempel): `fugle-staging`, `fugle-prod` (tilpass etter eksisterende oppsett)
+  - `staging` branch deployer til `enkel-ao-staging` miljø
+  - `main` branch deployer til `enkel-ao` (production)
+- Fly-app navn:
+  - Production: `enkel-ao` (https://enkel-ao.fly.dev)
+  - Staging: `enkel-ao-staging` (https://enkel-ao-staging.fly.dev)
 
 CI/CD (høy-nivå)
 - Når commits pushes til `staging` branch: kjør testene, bygg image, deploy til `fugle-staging`.
@@ -40,14 +42,27 @@ Rollback
 Lokale deploy-kommandoer
 - En enkel wrapper `update-app.sh` kan ta en argument `staging|production` og kalle `flyctl deploy --app <app-name>` med riktig app navn.
 
-Eksempel-kommandoer
-- Deploy staging lokalt:
+✅ Implementerte kommandoer
+- Deploy staging:
 
-```
+```bash
 ./update-app.sh staging
+# Deployer til https://enkel-ao-staging.fly.dev
 ```
 
-- Deploy production (lokalt):
+- Deploy production:
+
+```bash
+./update-app.sh production
+# Deployer til https://enkel-ao.fly.dev
+```
+
+- Lokal utvikling:
+
+```bash
+./update-app.sh
+# Kjører Docker lokalt på port 3000
+```
 
 ```
 ./update-app.sh production
