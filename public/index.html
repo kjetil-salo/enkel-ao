@@ -929,7 +929,13 @@
         const visibleSites = currentAoSites
           .filter((s) => s && typeof s.name === 'string' && s.name.trim())
           // Offentlige først, private til slutt
-          .sort((a, b) => Number(isPrivateSite(a)) - Number(isPrivateSite(b)));
+          .sort((a, b) => {
+            // Superlokaliteter først
+            const aSuper = a && a.isSuper ? 1 : 0;
+            const bSuper = b && b.isSuper ? 1 : 0;
+            if (aSuper !== bSuper) return bSuper - aSuper;
+            return Number(isPrivateSite(a)) - Number(isPrivateSite(b));
+          });
 
         visibleSites
           .slice(0, 5)
@@ -938,7 +944,20 @@
             const isPrivate = isPrivateSite(site);
             pill.className = isPrivate ? 'site-pill site-pill-private' : 'site-pill';
             const text = getSiteLabel(site) || site.name;
-            pill.textContent = isPrivate ? `🔒 ${text}` : text;
+            // Hvis site er superlokasjon, legg til ikon før navnet
+            if (site.isSuper) {
+              const icon = document.createElement('span');
+              icon.className = 'super-badge';
+              icon.textContent = '🏷️';
+              // Tooltip og tilgjengelighetslabel
+              icon.title = 'Superlokalitet';
+              icon.setAttribute('aria-label', 'Superlokalitet');
+              pill.appendChild(icon);
+              const t = document.createTextNode(isPrivate ? ` 🔒 ${text}` : ` ${text}`);
+              pill.appendChild(t);
+            } else {
+              pill.textContent = isPrivate ? `🔒 ${text}` : text;
+            }
             if (isPrivate) {
               pill.title = 'Privat lokalitet – bruk kun hvis du vet dette er din egen';
             }

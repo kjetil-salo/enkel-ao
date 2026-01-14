@@ -212,7 +212,62 @@ def handle_ao_sites_search(lat, lon, size_m=600.0):
                 site['lat'] = lat_val
             if lon_val is not None:
                 site['lon'] = lon_val
+            # Oppdag om dette er en "superlokasjon" eller har en parent-id.
+            # Artsobservasjoner kan bruke flere ulike feltnavn/typer, så vi
+            # sjekker flere varianter og normaliserer til booleansk
+            # `isSuper` og eventuelt `parentId`.
+            try:
+                # Sjekk eksplisitte flagg (bool eller strings)
+                for k in ('isSuper', 'isSuperSite', 'IsSuper', 'IsSuperSite', 'is_super'):
+                    if k in item:
+                        v = item.get(k)
+                        if v is True or v == 'true' or v == 'True' or v == '1':
+                            site['isSuper'] = True
+                        elif v is False or v == 'false' or v == 'False' or v == '0':
+                            site['isSuper'] = False
+                        break
+
+                # Sjekk om typen inneholder ordet 'super' eller 'superlokalitet'
+                if 'isSuper' not in site:
+                    t = item.get('siteType') or item.get('type') or item.get('SiteType')
+                    if isinstance(t, str) and ('super' in t.lower() or 'superlok' in t.lower()):
+                        site['isSuper'] = True
+
+                # Parent-id kan indikere at dette er en underlokalitet (ikke super)
+                for pk in ('parentId', 'parentSiteId', 'ParentId', 'parent'):
+                    if pk in item and item.get(pk) is not None:
+                        site['parentId'] = item.get(pk)
+                        # Hvis parent finnes og isSuper ikke eksplisitt satt,
+                        # merk isSuper som False (dette er en barn-lokalitet)
+                        if 'isSuper' not in site:
+                            site['isSuper'] = False
+                        break
+            except Exception:
+                # Ikke la parsing av ekstra felt knekke hele kall
+                pass
             sites.append(site)
+
+        # Etter at vi har samlet alle sites, utled om noen er "superlokasjoner"
+        # ved å se etter parent-referanser. Hvis et item A har parentSiteId = B,
+        # så er B en superlokasjon (forelder) og A er en underlokalitet.
+        try:
+            id_map = {s.get('id'): s for s in sites if s.get('id') is not None}
+            for s in sites:
+                raw = s.get('raw') or {}
+                # Sjekk flere varianter av parent-felt
+                parent_keys = ('parentSiteId', 'parentId', 'parent', 'ParentId', 'parentSite')
+                for pk in parent_keys:
+                    if pk in raw and raw.get(pk) is not None:
+                        pid = raw.get(pk)
+                        s['parentId'] = pid
+                        # Barn-lokalitet
+                        s['isSuper'] = False
+                        # Marker parent som super hvis vi har den i resultatsettet
+                        if pid in id_map:
+                            id_map[pid]['isSuper'] = True
+                        break
+        except Exception:
+            pass
 
         print(f'AO-sites svar: antall steder = {len(sites)}')
         if sites[:3]:

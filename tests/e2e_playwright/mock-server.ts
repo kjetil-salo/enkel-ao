@@ -144,6 +144,28 @@ const mockAoSites = {
       longitude: 10.7300,
       distance: 800,
     },
+    // Legg til et parent (superlokasjon) og en child for E2E-testing
+    {
+      id: 2000,
+      name: 'Mock Sentrum',
+      latitude: 59.9139,
+      longitude: 10.7522,
+      distance: 100,
+      parentSiteId: null,
+      // Markér som superlokasjon i mock
+      isSuper: true,
+    },
+    {
+      id: 2001,
+      name: 'Mock Sentrum - Kirken',
+      latitude: 59.9140,
+      longitude: 10.7525,
+      distance: 120,
+      parentSiteId: 2000,
+      // Barn-lokalitet viser parentId i normalized output
+      parentId: 2000,
+      isSuper: false,
+    },
   ],
 };
 
