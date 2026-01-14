@@ -110,7 +110,7 @@ class Handler(SimpleHTTPRequestHandler):
         
         # Forsøk å hente data fra Supabase først
         try:
-            from supabase_log import supabase
+            from src.supabase_log import supabase
             if supabase:
                 res = supabase.table("stats").select("ip,user_agent").execute()
                 rows = res.data if hasattr(res, 'data') else res
