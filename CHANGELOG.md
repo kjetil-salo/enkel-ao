@@ -1,5 +1,26 @@
 # Changelog
 
+## 1.5.0 – 2026-01-14
+### ✨ Nye funksjoner
+- **Utvidet E2E-testing**: Lagt til mock-server for artssøk-API i Playwright-tester
+  - Mock-server ([mock-server.ts](tests/e2e_playwright/mock-server.ts)) simulerer `/api/species`, `/api/reverse` og `/api/ao-sites`
+  - Forhåndsdefinerte mock-arter: gråspurv, blåmeis, meis, trost, ørn
+  - Automatisk oppstart via Playwright `webServer`-konfigurasjon
+
+### 🧪 Testforbedringer
+- **10 nye E2E-tester** for artssøk og brukergrensesnitt:
+  - Søk med autocomplete og resultatvisning
+  - Velge art fra liste (klikk og Enter)
+  - Piltast-navigering i resultater
+  - Melding ved for kort søkestreng
+  - Status-tekst visning
+  - Antall-felt aktivering etter valg av art
+- Nye npm-scripts: `test:mock`, `mock`, `test:with-mock`
+- TypeScript-konfigurasjon for mock-server
+
+### 📚 Dokumentasjon
+- Utvidet [README for E2E-tester](tests/e2e_playwright/README.md) med mock-server-instruksjoner
+
 ## 1.4.0 – 2026-01-13
 ### 🎨 UI/UX Forbedringer
 - **Visuell seksjonering**: Tydelige bokser skiller obligatoriske og valgfrie felt
