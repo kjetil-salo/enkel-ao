@@ -9,7 +9,8 @@ import requests
 import pytest
 
 # Ensure repo root is importable
-sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+REPO_ROOT = os.path.dirname(os.path.dirname(__file__))
+sys.path.insert(0, REPO_ROOT)
 
 from server import Handler, _stats
 
@@ -43,7 +44,7 @@ def test_species_parsing(monkeypatch):
     def fake_urlopen(req, timeout=10):
         return DummyResp(fake_html)
 
-    monkeypatch.setattr('api_handlers.urlopen', fake_urlopen)
+    monkeypatch.setattr('src.api_handlers.urlopen', fake_urlopen)
 
     port = 38003
     srv = start_server(port)
@@ -70,7 +71,7 @@ def test_logview_monkeypatch(monkeypatch):
         called['supabase'] = True
 
     # Patch the supabase logger in both modules so Handler uses the fake
-    import supabase_log
+    from src import supabase_log
     import server as server_mod
     monkeypatch.setattr(supabase_log, 'log_view_to_supabase', fake_log_view_to_supabase)
     monkeypatch.setattr(server_mod, 'log_view_to_supabase', fake_log_view_to_supabase)

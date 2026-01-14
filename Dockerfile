@@ -9,11 +9,9 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Kopier server, supabase_log, API handlers, HTML templates og public folder
+# Kopier server, src-moduler og public folder
 COPY server.py .
-COPY supabase_log.py .
-COPY api_handlers.py .
-COPY html_templates.py .
+COPY src/ ./src/
 COPY public/ ./public/
 
 # Eksponer port 3000

@@ -9,7 +9,8 @@ import requests
 import pytest
 
 # Ensure repo root is importable
-sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+REPO_ROOT = os.path.dirname(os.path.dirname(__file__))
+sys.path.insert(0, REPO_ROOT)
 
 from server import Handler, run, _stats
 
@@ -40,7 +41,7 @@ def test_reverse_valid(monkeypatch):
         body = json.dumps({'display_name': 'Test Place', 'address': {'city': 'TestCity'}})
         return DummyResp(body)
 
-    monkeypatch.setattr('api_handlers.urlopen', fake_urlopen)
+    monkeypatch.setattr('src.api_handlers.urlopen', fake_urlopen)
 
     port = 38001
     srv = start_server(port)

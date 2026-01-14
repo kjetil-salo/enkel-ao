@@ -1,4 +1,0 @@
-FROM python:3.11-slim
-RUN pip install requests
-COPY ping_render.py /ping_render.py
-CMD ["python", "/ping_render.py"]

@@ -93,12 +93,16 @@ except Exception as e:
 - `STATS_KEY` (stats page auth, default: `'salo'`)
 
 ## File Organization
-- [server.py](server.py) — monolithic server (HTTP handler + API logic)
-- [supabase_log.py](supabase_log.py) — Supabase client wrapper
-- [public/](public/) — static assets (HTML, CSS, SVGs)
-- [mock/](mock/) — test stubs for external services
-- [tools/load_test.py](tools/load_test.py) — concurrent load tester
-- [docs/](docs/) — deployment strategy, TODOs, setup guides
+- [server.py](server.py) — HTTP-handler og routing
+- [src/](src/) — Python-moduler:
+  - `api_handlers.py` — eksterne API-kall (Artsobservasjoner, Nominatim)
+  - `html_templates.py` — HTML-generering for statistikk
+  - `supabase_log.py` — Supabase logging
+- [public/](public/) — statiske filer (HTML, CSS, SVG)
+- [mock/](mock/) — mock-servere for testing
+- [tools/](tools/) — lasttest, smoke-test, render-ping
+- [tests/](tests/) — Python-tester og E2E Playwright-tester
+- [docs/](docs/) — dokumentasjon og deploy-strategier
 
 ## Next Steps (TODOs)
 From [docs/ENDRINGER_OG_TODO.md](docs/ENDRINGER_OG_TODO.md):
