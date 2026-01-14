@@ -534,6 +534,18 @@
         cursor: default;
       }
 
+      #loc-btn:hover {
+        background: var(--accent) !important;
+        color: white !important;
+        border-color: var(--accent) !important;
+      }
+
+      #loc-map-btn:hover {
+        background: var(--accent) !important;
+        color: white !important;
+        border-color: var(--accent) !important;
+      }
+
       .activity-input-row {
         display: flex;
         align-items: center;
@@ -643,13 +655,13 @@
 
         <div class="section-main">
           <div class="section-title">📍 Lokasjon</div>
-          <div class="row" style="display:flex;align-items:center;gap:6px;flex-wrap:nowrap;min-height:0;">
-            <span class="loc-dot" id="loc-dot" style="width:10px;height:10px;margin-right:2px;"></span>
-            <button class="icon-btn" id="loc-btn" title="Oppdater posisjon" style="font-size:0.92em;padding:1.5px 6px;min-width:0;min-height:0;line-height:1;">
-              📍 <span style="font-size:0.62em;font-weight:500;margin-left:2px;">Oppdater posisjon</span>
+          <div class="row" style="display:flex;align-items:center;gap:8px;flex-wrap:nowrap;min-height:0;">
+            <span class="loc-dot" id="loc-dot" style="width:10px;height:10px;margin-right:4px;"></span>
+            <button class="icon-btn" id="loc-btn" title="Oppdater posisjon" style="font-size:0.9em;padding:6px 10px;border:1px solid var(--border);border-radius:6px;background:var(--accent-soft);color:var(--text);transition:all 0.2s;display:flex;align-items:center;gap:4px;height:32px;">
+              📍 <span style="font-size:0.85em;font-weight:500;">Oppdater posisjon</span>
             </button>
-            <div style="display:flex;flex-direction:column;align-items:flex-start;">
-              <label for="ao-size" style="font-size:0.6rem;color:var(--muted);margin-bottom:2px;text-transform:none;">Søkeradius</label>
+            <div style="display:flex;align-items:center;gap:4px;">
+              <label for="ao-size" style="font-size:0.7rem;color:var(--muted);white-space:nowrap;">Søkeradius:</label>
               <input
                 type="number"
                 id="ao-size"
@@ -657,12 +669,12 @@
                 max="3000"
                 step="50"
                 value="600"
-                style="width:96px;font-size:0.98em;padding:2px 6px;"
+                style="width:70px;font-size:0.9em;padding:6px 8px;height:32px;border:1px solid var(--border);border-radius:6px;background:var(--card-bg);color:var(--text);"
                 title="Søkeradius i meter (100-3000m). Bestemmer hvor stort område du leter etter observasjonslokaliteter i."
               />
-              <span style="font-size:0.58rem;color:var(--muted);margin-top:1px;">meter</span>
+              <span style="font-size:0.7rem;color:var(--muted);white-space:nowrap;">m</span>
             </div>
-            <button class="icon-btn" id="loc-map-btn" title="Vis i kart" style="font-size:1.1em;padding:3px 8px;min-width:0;min-height:0;line-height:1.1;">🗺️</button>
+            <button class="icon-btn" id="loc-map-btn" title="Vis i kart" style="font-size:1.2em;padding:6px 8px;border:1px solid var(--border);border-radius:6px;background:var(--accent-soft);color:var(--text);height:32px;min-width:42px;transition:all 0.2s;">🗺️</button>
           </div>
           <div class="row" style="margin-top:10px;">
             <label for="place">Stedsnavn</label>
