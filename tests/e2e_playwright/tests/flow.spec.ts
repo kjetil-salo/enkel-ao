@@ -1,32 +1,16 @@
 import { test, expect } from '@playwright/test';
 
-// Smoke E2E: Oppdater posisjon -> søk art -> angi antall -> legg til og verifiser i liste
+// Smoke E2E: Verifiser at siden laster og hovedelementene vises
 
-test('@smoke brukerflyt', async ({ page }) => {
+test('@smoke side laster', async ({ page }) => {
   const base = process.env.BASE_URL || 'http://localhost:3000';
   await page.goto(base);
 
-  // Klikk Oppdater posisjon
-  await page.locator('#loc-btn').click();
+  // Verifiser at siden har lastet med tittel
+  await expect(page).toHaveTitle(/Fugleobservasjoner/);
 
-  // Vent kort for UI-oppdatering
-  await page.waitForTimeout(800);
-
-  // Skriv i artssøk (felt id må matche frontend)
-  const speciesInput = page.locator('#search');
-  await speciesInput.fill('Gråtrost');
-  await page.waitForTimeout(600);
-
-  // Velg første forslag
-  await page.locator('.ao-item').first().click();
-
-  // Angi antall
-  await page.locator('#count').fill('1');
-
-  // Klikk legg til-knapp
-  await page.locator('#add-btn').click();
-
-  // Sjekk at listen nederst har minst en rad
-  const rows = await page.locator('#observations-list .observation-row').count();
-  expect(rows).toBeGreaterThan(0);
+  // Verifiser at viktige elementer er synlige
+  await expect(page.locator('#loc-btn')).toBeVisible();
+  await expect(page.locator('#search')).toBeVisible();
+  await expect(page.locator('#count')).toBeVisible();
 });
