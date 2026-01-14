@@ -13,7 +13,7 @@ test('@smoke brukerflyt', async ({ page }) => {
   await page.waitForTimeout(800);
 
   // Skriv i artssøk (felt id må matche frontend)
-  const speciesInput = page.locator('#species-search');
+  const speciesInput = page.locator('#search');
   await speciesInput.fill('Gråtrost');
   await page.waitForTimeout(600);
 
