@@ -40,7 +40,7 @@ def test_reverse_valid(monkeypatch):
         body = json.dumps({'display_name': 'Test Place', 'address': {'city': 'TestCity'}})
         return DummyResp(body)
 
-    monkeypatch.setattr('server.urlopen', fake_urlopen)
+    monkeypatch.setattr('api_handlers.urlopen', fake_urlopen)
 
     port = 38001
     srv = start_server(port)

@@ -43,7 +43,7 @@ def test_species_parsing(monkeypatch):
     def fake_urlopen(req, timeout=10):
         return DummyResp(fake_html)
 
-    monkeypatch.setattr('server.urlopen', fake_urlopen)
+    monkeypatch.setattr('api_handlers.urlopen', fake_urlopen)
 
     port = 38003
     srv = start_server(port)
