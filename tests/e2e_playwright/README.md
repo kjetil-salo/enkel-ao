@@ -48,6 +48,18 @@ BASE_URL=http://localhost:3333 npm test
 
 ### Artssøk
 - Søk med autocomplete
+
+Running the super-site test
+---------------------------
+
+Start the mock server and run Playwright tests (from this folder):
+
+```bash
+npm install
+npm run test:with-mock
+```
+
+The new test `super-site.spec.ts` verifies that mock parent-site appears first and has the `Superlokalitet` badge.
 - Velge art fra liste (klikk eller Enter)
 - Piltast-navigering
 - Melding ved for kort søkestreng

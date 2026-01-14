@@ -8,3 +8,27 @@ body {
     font-size: 1.4em;
   }
 }
+
+/* Lokalitetspiller */
+.site-pill {
+  display: inline-block;
+  padding: 6px 10px;
+  margin: 6px 6px 6px 0;
+  background: var(--muted);
+  color: var(--text);
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.site-pill-private {
+  opacity: 0.8;
+}
+
+.super-badge {
+  display: inline-block;
+  margin-right: 6px;
+  background: var(--accent-soft);
+  padding: 2px 6px;
+  border-radius: 6px;
+  font-size: 0.9em;
+}
