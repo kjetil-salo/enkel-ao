@@ -30,7 +30,7 @@ jobs:
       - name: Install Node deps
         working-directory: tests/e2e_playwright
         run: |
-          npm ci
+          npm install
           npx playwright install --with-deps
 
       - name: Start local server
