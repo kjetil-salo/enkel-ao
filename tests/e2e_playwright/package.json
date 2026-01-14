@@ -9,36 +9,3 @@
     "@playwright/test": "^1.39.0"
   }
 }
-{
-  "name": "fugle-e2e",
-  "version": "0.1.0",
-  "private": true,
-  "scripts": {
-    "test": "playwright test"
-  },
-  "devDependencies": {
-    "@playwright/test": "^1.39.0"
-  }
-}
-{
-  "name": "fugle-e2e",
-  "version": "0.1.0",
-  "private": true,
-  "scripts": {
-    "test": "playwright test"
-  },
-  "devDependencies": {
-    "@playwright/test": "^1.39.0"
-  }
-}
-{
-  "name": "fugle-e2e",
-  "version": "0.1.0",
-  "private": true,
-  "scripts": {
-    "test": "playwright test"
-  },
-  "devDependencies": {
-    "@playwright/test": "^1.39.0"
-  }
-}
