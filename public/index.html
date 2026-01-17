@@ -701,7 +701,7 @@
                 min="100"
                 max="3000"
                 step="50"
-                value="600"
+                value="1000"
                 style="width:70px;font-size:0.9em;padding:6px 8px;height:32px;border:1px solid var(--border);border-radius:6px;background:var(--card-bg);color:var(--text);"
                 title="Søkeradius i meter (100-3000m). Bestemmer hvor stort område du leter etter observasjonslokaliteter i."
               />
@@ -710,14 +710,14 @@
             <button class="icon-btn" id="loc-map-btn" title="Vis i kart" style="font-size:1.2em;padding:6px 8px;border:1px solid var(--border);border-radius:6px;background:var(--accent-soft);color:var(--text);height:32px;min-width:42px;transition:all 0.2s;">🗺️</button>
           </div>
           <div class="row" style="margin-top:10px;">
-            <!-- Custom dropdown for AO-lokasjoner -->
-            <select id="ao-sites-dropdown" class="ao-sites-dropdown" style="display:none; margin-bottom:12px;"></select>
+            <!-- AO-lokasjoner custom dropdown (kun div) -->
+            <div id="ao-sites-dropdown" class="ao-sites-dropdown-list" style="display:none;"></div>
             <label for="place">Stedsnavn</label>
             <input
               type="text"
               id="place"
               autocomplete="off"
-              placeholder="F.eks. Vikstranda, Østensjøvannet …"
+              placeholder="F.eks. Osen, Herdla …"
             />
             <div class="result-empty" id="ao-sites" style="display:none; margin-top:4px;"></div>
           </div>
@@ -875,7 +875,7 @@
       const clearBtn = document.getElementById('clear-btn');
       const locDot = document.getElementById('loc-dot');
       const locText = document.getElementById('loc-text');
-      const locBtn = document.getElementById('loc-btn');
+      // ...existing code...
       const locMapBtn = document.getElementById('loc-map-btn');
       const placeInput = document.getElementById('place');
       const aoSitesEl = document.getElementById('ao-sites');
@@ -901,7 +901,7 @@
         let currentPosition = null;
       let currentPlaceName = '';
       let currentAoSites = [];
-      let currentAoSizeMeters = 600;
+      let currentAoSizeMeters = 1000;
 
       function isPrivateSite(site) {
         if (!site || typeof site !== 'object') return false;
@@ -1014,14 +1014,17 @@
           return;
         }
 
-        // Legg til en tom option først
-        const emptyOpt = document.createElement('option');
-        emptyOpt.value = '';
-        emptyOpt.textContent = 'Velg lokasjon...';
-        dropdown.appendChild(emptyOpt);
+        // Legg til en tom "Velg lokasjon"-rad
+        const emptyDiv = document.createElement('div');
+        emptyDiv.className = 'ao-site-suggestion ao-site-empty';
+        emptyDiv.textContent = 'Velg lokasjon...';
+        emptyDiv.style.color = 'var(--muted)';
+        emptyDiv.style.cursor = 'default';
+        dropdown.appendChild(emptyDiv);
 
         visibleSites.forEach((site, idx) => {
-          const opt = document.createElement('option');
+          const item = document.createElement('div');
+          item.className = 'ao-site-suggestion';
           let label = getSiteLabel(site) || site.name;
           if (site.isSuper) label = '🏷️ ' + label;
           if (isPrivateSite(site)) label = '🔒 ' + label;
@@ -1030,16 +1033,9 @@
             distStr = site._distance < 1000 ? ` (${Math.round(site._distance)} m)` : ` (${(site._distance/1000).toFixed(1)} km)`;
           }
           label = label + distStr;
-          opt.value = site.name;
-          opt.textContent = label;
-          dropdown.appendChild(opt);
-        });
-
-        // Event: velg fra dropdown
-        dropdown.onchange = function() {
-          const idx = dropdown.selectedIndex;
-          if (idx > 0) {
-            const site = visibleSites[idx - 1];
+          item.textContent = label;
+          item.tabIndex = 0;
+          item.addEventListener('click', () => {
             const name = getSiteLabel(site) || site.name;
             currentPlaceName = name;
             if (placeInput) {
@@ -1047,8 +1043,20 @@
               placeInput.dataset.autofilled = 'true';
             }
             dropdown.style.display = 'none';
-          }
-        };
+          });
+          item.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              const name = getSiteLabel(site) || site.name;
+              currentPlaceName = name;
+              if (placeInput) {
+                placeInput.value = name;
+                placeInput.dataset.autofilled = 'true';
+              }
+              dropdown.style.display = 'none';
+            }
+          });
+          dropdown.appendChild(item);
+        });
       }
 
       function setStatus(mode, text) {
@@ -1166,30 +1174,16 @@
         obsListEl.innerHTML = '';
 
         if (!observations.length) {
-          const span = document.createElement('span');
-          span.className = 'obs-meta';
-          span.textContent = 'Ingen arter lagt til ennå.';
-          obsListEl.appendChild(span);
-
-          if (exportBtn) {
-            exportBtn.disabled = true;
-          }
-          if (copyBtn) {
-            copyBtn.disabled = true;
-          }
-          if (copyOpenBtn) {
-            copyOpenBtn.disabled = true;
-          }
-          if (clearBtn) {
-            clearBtn.disabled = true;
-          }
+          const item = document.createElement('div');
+          item.className = 'obs-empty-msg';
+          item.textContent = 'Ingen observasjoner registrert ennå.';
+          obsListEl.appendChild(item);
           return;
         }
 
-        // Grupper observasjoner per stedsnavn (i den rekkefølgen de ble lagt inn)
+        // Grupper observasjoner etter stedsnavn
         const groups = [];
         const indexByKey = new Map();
-
         observations.forEach((obs) => {
           const key = (obs.placeName && obs.placeName.trim()) || 'Uten stedsnavn';
           let idx = indexByKey.get(key);
@@ -1199,6 +1193,14 @@
             groups.push({ key, items: [] });
           }
           groups[idx].items.push(obs);
+        });
+        // Sorter obs alfabetisk på art innenfor hver gruppe
+        groups.forEach(group => {
+          group.items.sort((a, b) => {
+            const an = (a.species && a.species.taxonName) ? a.species.taxonName.toLowerCase() : '';
+            const bn = (b.species && b.species.taxonName) ? b.species.taxonName.toLowerCase() : '';
+            return an.localeCompare(bn, 'nb');
+          });
         });
 
         const table = document.createElement('table');
@@ -1233,17 +1235,78 @@
             tr.appendChild(artTd);
 
             const countTd = document.createElement('td');
-            // Vis antall som tekst, men gjør det redigerbart ved klikk
+            // Vis antall med pluss/minus-knapper, og gjør det redigerbart ved klikk på tallet
             function renderCountCell() {
               countTd.innerHTML = '';
+              countTd.style.display = 'flex';
+              countTd.style.alignItems = 'center';
+              countTd.style.gap = '4px';
+
+              // Minus-knapp
+              const minusBtn = document.createElement('button');
+              minusBtn.type = 'button';
+              minusBtn.textContent = '−';
+              minusBtn.title = 'Reduser antall';
+              minusBtn.style.width = '22px';
+              minusBtn.style.height = '22px';
+              minusBtn.style.fontSize = '1em';
+              minusBtn.style.borderRadius = '50%';
+              minusBtn.style.border = '1px solid #888';
+              minusBtn.style.background = 'rgba(34,34,34,0.7)';
+              minusBtn.style.color = '#bbb';
+              minusBtn.style.display = 'flex';
+              minusBtn.style.alignItems = 'center';
+              minusBtn.style.justifyContent = 'center';
+              minusBtn.style.cursor = 'pointer';
+              minusBtn.style.userSelect = 'none';
+              minusBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (obs.count > 1) {
+                  obs.count--;
+                  saveState();
+                  renderObservations();
+                }
+              });
+
+              // Tallet
               const span = document.createElement('span');
               span.textContent = obs.count != null ? String(obs.count) : '';
               span.style.cursor = 'pointer';
               span.title = 'Klikk for å endre antall';
+              span.style.minWidth = '28px';
+              span.style.textAlign = 'center';
+              span.style.fontSize = '1.1em';
               span.addEventListener('click', () => {
                 showInput();
               });
+
+              // Pluss-knapp
+              const plusBtn = document.createElement('button');
+              plusBtn.type = 'button';
+              plusBtn.textContent = '+';
+              plusBtn.title = 'Øk antall';
+              plusBtn.style.width = '22px';
+              plusBtn.style.height = '22px';
+              plusBtn.style.fontSize = '1em';
+              plusBtn.style.borderRadius = '50%';
+              plusBtn.style.border = '1px solid #888';
+              plusBtn.style.background = 'rgba(34,34,34,0.7)';
+              plusBtn.style.color = '#bbb';
+              plusBtn.style.display = 'flex';
+              plusBtn.style.alignItems = 'center';
+              plusBtn.style.justifyContent = 'center';
+              plusBtn.style.cursor = 'pointer';
+              plusBtn.style.userSelect = 'none';
+              plusBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                obs.count++;
+                saveState();
+                renderObservations();
+              });
+
+              countTd.appendChild(minusBtn);
               countTd.appendChild(span);
+              countTd.appendChild(plusBtn);
             }
             function showInput() {
               countTd.innerHTML = '';
@@ -1604,6 +1667,13 @@
         }
 
         function initLocation() {
+          console.log('[initLocation] Kalles');
+          const locBtn = document.getElementById('loc-btn');
+          if (!locBtn) {
+            console.warn('[initLocation] Fant ikke #loc-btn');
+          } else {
+            console.log('[initLocation] Fant #loc-btn, setter event-listener');
+          }
           if (!navigator.geolocation) {
             setLocationStatus('error', 'Ingen geolokasjon-støtte i denne nettleseren.');
             return;
@@ -1613,6 +1683,7 @@
 
           if (locBtn) {
             locBtn.addEventListener('click', () => {
+              console.log('[loc-btn] Klikk registrert, starter geolokasjon');
               setLocationStatus('pending', 'Oppdaterer posisjon …');
               locBtn.disabled = true;
 
@@ -1649,16 +1720,6 @@
                         (s) => s && typeof s.name === 'string' && s.name.trim()
                       );
                       setAoSiteSuggestions(sites);
-                      // Hvis stedsnavnfeltet er tomt, bruk første offentlige forslag
-                      if (placeInput && !placeInput.value.trim()) {
-                        const firstPublic = sites.find((s) => !isPrivateSite(s));
-                        if (firstPublic) {
-                          const name = getSiteLabel(firstPublic) || firstPublic.name;
-                          currentPlaceName = name;
-                          placeInput.value = name;
-                          placeInput.dataset.autofilled = 'true';
-                        }
-                      }
                     })
                     .catch((err) => {
                       console.warn('Feil ved henting av AO-lokaliteter', err);
@@ -1929,18 +1990,29 @@
         });
       }
 
-      if (placeInput) {
-        placeInput.addEventListener('input', () => {
-          currentPlaceName = placeInput.value;
-          placeInput.dataset.autofilled = 'false';
-        });
-      }
-      
-      loadState();
-      initLocation();
 
-      // Initial visning basert på eventuell lagret state
-      renderObservations();
+
+      window.addEventListener('DOMContentLoaded', () => {
+        // Nullstill stedsnavn-input
+        if (placeInput) {
+          placeInput.value = '';
+          currentPlaceName = '';
+          placeInput.addEventListener('input', () => {
+            currentPlaceName = placeInput.value;
+            placeInput.dataset.autofilled = 'false';
+          });
+        }
+
+        // Init posisjon og event listeners
+        initLocation();
+
+        // Last lagret state
+        loadState();
+        // Vis observasjoner etter lasting
+        renderObservations();
+      });
+
+      // (Fjernet ekstra renderObservations her)
 
       // Load activity options from JSON
       (async function loadActivities() {
