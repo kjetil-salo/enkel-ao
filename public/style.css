@@ -32,3 +32,15 @@ body {
   border-radius: 6px;
   font-size: 0.9em;
 }
+
+/* Merk: Windows/Chromium kan vise native dropdown med hvit bakgrunn
+   samtidig som siden bruker mørk farger, som gir lav kontrast hvis
+   option-teksten er lys. Se tilsvarende CSS i public/index.html for
+   å tvinge mørk tekst på hvit bakgrunn for <option>. */
+
+/* Sentraliserte variabler for <option> farger. Kan overstyres i :root
+  i index.html for å følge tema (dark/light). */
+:root {
+  --option-bg: #ffffff;
+  --option-color: #111111;
+}

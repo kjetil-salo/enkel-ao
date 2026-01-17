@@ -365,6 +365,39 @@
         -webkit-appearance: none;
       }
 
+      /* Dropdown styling:
+         - Bruk CSS-variabler så dropdown kan følge appens theme.
+         - Sett konservativ fallback (lys bakgrunn + mørk tekst) for plattformer
+           som ellers kan gi lav kontrast (Windows/Chromium quirks).
+         - Når siden bruker mørkt tema (variablene over), brukes mørk bakgrunn
+           og lys tekst automatisk.
+      */
+      :root {
+        --option-bg: #ffffff; /* fallback for light systems */
+        --option-color: #111111; /* fallback tekstfarge */
+      }
+
+      select option,
+      select optgroup {
+        color: var(--option-color, #111111);
+        background-color: var(--option-bg, #ffffff);
+      }
+
+      /* Når fargevariablene er satt (dark theme i :root), sett option-variabler
+         til å følge temaet. Disse variablene kan overstyres sentralt i :root. */
+      /* I denne appen er --card-bg og --text definert over og representerer
+         mørk bakgrunn og lys tekst, så vi setter option-variablene her. */
+      :root {
+        --option-bg: var(--card-bg);
+        --option-color: var(--text);
+      }
+
+      /* Appearance hint for more consistent rendering across engines */
+      select {
+        -webkit-appearance: menulist-button;
+        appearance: menulist-button;
+      }
+
       select:disabled {
         opacity: 0.45;
         cursor: not-allowed;
