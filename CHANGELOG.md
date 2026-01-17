@@ -1,3 +1,19 @@
+# 1.6.0 – 2026-01-17
+### ✨ Nye funksjoner
+- **AO-lokasjonsdropdown**: Egen custom dropdown for Artsobservasjoner-lokaliteter med avstand, sortering og mobilvennlig visning
+- **Pluss/minus-knapper**: Rask endring av antall direkte i listen, optimalisert for mobil (touch-vennlig)
+
+### 🐛 Feilrettinger
+- Fikset at observasjoner ikke vises før ny art er registrert
+- Fikset feil ved tom liste og grupperingslogikk
+- Fikset event listeners og initialisering for pålitelig lasting
+
+### 🎨 UI/UX
+- Mindre og mer diskrete pluss/minus-knapper
+- Bedre layout og touch-vennlighet på mobil
+
+### 📚 Dokumentasjon
+- Oppdatert README og changelog
 # Changelog
 
 ## 1.5.0 – 2026-01-14
