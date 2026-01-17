@@ -44,3 +44,16 @@ body {
   --option-bg: #ffffff;
   --option-color: #111111;
 }
+
+.ao-sites-dropdown {
+  width: 100%;
+  font-size: 16px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color, #bbb);
+  background: var(--input-bg, #fff);
+  color: var(--input-fg, #222);
+  margin-bottom: 14px;
+  margin-top: 2px;
+  padding: 8px 10px;
+  box-sizing: border-box;
+}

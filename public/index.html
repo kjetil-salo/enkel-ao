@@ -710,6 +710,8 @@
             <button class="icon-btn" id="loc-map-btn" title="Vis i kart" style="font-size:1.2em;padding:6px 8px;border:1px solid var(--border);border-radius:6px;background:var(--accent-soft);color:var(--text);height:32px;min-width:42px;transition:all 0.2s;">🗺️</button>
           </div>
           <div class="row" style="margin-top:10px;">
+            <!-- Custom dropdown for AO-lokasjoner -->
+            <select id="ao-sites-dropdown" class="ao-sites-dropdown" style="display:none; margin-bottom:12px;"></select>
             <label for="place">Stedsnavn</label>
             <input
               type="text"
@@ -732,14 +734,19 @@
           </div>
 
           <label for="search" style="margin-top:10px; display:block;">Art</label>
-          <div class="input-wrap">
+          <div class="input-wrap" style="display:flex;align-items:center;gap:8px;">
             <span class="search-icon">🔍</span>
             <input
               type="text"
               id="search"
               autocomplete="off"
-              placeholder="Begynn å skrive – f.eks. ‘kri’, ‘blå’, ‘måk’ …"
+              placeholder="F.eks. blåmeis, gråspurv …"
+              style="flex:1;"
             />
+            <label style="font-size:0.75em;color:#b0b0b0;display:flex;align-items:center;gap:2px;user-select:none;">
+              <input type="checkbox" id="include-subtaxa" style="margin:0 4px 0 0;vertical-align:middle;" />
+              Vis underarter
+            </label>
           </div>
 
           <div class="results" id="results" role="listbox" aria-label="Arter"></div>
@@ -942,68 +949,106 @@
         }, 1200);
       }
 
+      // Haversine distance in meters
+      function haversine(lat1, lon1, lat2, lon2) {
+        function toRad(x) { return x * Math.PI / 180; }
+        const R = 6371000;
+        const dLat = toRad(lat2 - lat1);
+        const dLon = toRad(lon2 - lon1);
+        const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                  Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+                  Math.sin(dLon/2) * Math.sin(dLon/2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        return R * c;
+      }
+
       function setAoSiteSuggestions(sites) {
+          console.log('currentPosition:', currentPosition);
         currentAoSites = Array.isArray(sites) ? sites : [];
-        if (!aoSitesEl) return;
-        aoSitesEl.innerHTML = '';
-        aoSitesEl.style.display = 'block';
+        const dropdown = document.getElementById('ao-sites-dropdown');
+        if (!dropdown) return;
+        dropdown.innerHTML = '';
+        dropdown.style.display = 'block';
+        aoSitesEl.style.display = 'none';
 
         if (!currentAoSites.length) {
-          const msg = document.createElement('span');
-          msg.textContent = 'Ingen lokasjoner fra Artsobservasjoner i nærheten.';
-          aoSitesEl.appendChild(msg);
+          dropdown.style.display = 'none';
+          aoSitesEl.innerHTML = 'Ingen lokasjoner fra Artsobservasjoner i nærheten.';
+          aoSitesEl.style.display = 'block';
           return;
         }
 
-        const label = document.createElement('span');
-        label.textContent = 'Forslag fra Artsobservasjoner:';
-        aoSitesEl.appendChild(label);
+        // Sorter: superlokasjon > offentlig > privat, deretter på avstand
+        const userLat = currentPosition && typeof currentPosition.lat === 'number' ? currentPosition.lat : null;
+        const userLon = currentPosition && typeof currentPosition.lon === 'number' ? currentPosition.lon : null;
+        if (userLat == null || userLon == null) {
+          aoSitesEl.innerHTML = 'Kan ikke vise avstand til lokasjoner fordi posisjonen til enheten ikke er tilgjengelig. Godta posisjonsdeling i nettleseren.';
+          aoSitesEl.style.display = 'block';
+        }
+        const withDist = currentAoSites.map(site => {
+          let dist = null;
+          const lat = parseFloat(site.lat);
+          const lon = parseFloat(site.lon);
+          if (userLat != null && userLon != null && !isNaN(lat) && !isNaN(lon)) {
+            dist = haversine(userLat, userLon, lat, lon);
+          }
+          return { ...site, _distance: dist };
+        });
+        withDist.sort((a, b) => {
+          // Superlokasjon først
+          if ((a.isSuper ? 1 : 0) !== (b.isSuper ? 1 : 0)) return (b.isSuper ? 1 : 0) - (a.isSuper ? 1 : 0);
+          // Offentlig før privat
+          if (isPrivateSite(a) !== isPrivateSite(b)) return isPrivateSite(a) - isPrivateSite(b);
+          // Nærmest først
+          if (a._distance != null && b._distance != null) return a._distance - b._distance;
+          return 0;
+        });
 
-        const visibleSites = currentAoSites
-          .filter((s) => s && typeof s.name === 'string' && s.name.trim())
-          // Offentlige først, private til slutt
-          .sort((a, b) => {
-            // Superlokaliteter først
-            const aSuper = a && a.isSuper ? 1 : 0;
-            const bSuper = b && b.isSuper ? 1 : 0;
-            if (aSuper !== bSuper) return bSuper - aSuper;
-            return Number(isPrivateSite(a)) - Number(isPrivateSite(b));
-          });
+        // Maks 20 elementer
+        const visibleSites = withDist.filter(s => s && typeof s.name === 'string' && s.name.trim()).slice(0, 20);
+        console.log('AO visibleSites:', visibleSites);
+        if (!visibleSites.length) {
+          dropdown.style.display = 'none';
+          aoSitesEl.innerHTML = 'Ingen lokasjoner fra Artsobservasjoner i nærheten.';
+          aoSitesEl.style.display = 'block';
+          return;
+        }
 
-        visibleSites
-          .slice(0, 5)
-          .forEach((site) => {
-            const pill = document.createElement('span');
-            const isPrivate = isPrivateSite(site);
-            pill.className = isPrivate ? 'site-pill site-pill-private' : 'site-pill';
-            const text = getSiteLabel(site) || site.name;
-            // Hvis site er superlokasjon, legg til ikon før navnet
-            if (site.isSuper) {
-              const icon = document.createElement('span');
-              icon.className = 'super-badge';
-              icon.textContent = '🏷️';
-              // Tooltip og tilgjengelighetslabel
-              icon.title = 'Superlokalitet';
-              icon.setAttribute('aria-label', 'Superlokalitet');
-              pill.appendChild(icon);
-              const t = document.createTextNode(isPrivate ? ` 🔒 ${text}` : ` ${text}`);
-              pill.appendChild(t);
-            } else {
-              pill.textContent = isPrivate ? `🔒 ${text}` : text;
+        // Legg til en tom option først
+        const emptyOpt = document.createElement('option');
+        emptyOpt.value = '';
+        emptyOpt.textContent = 'Velg lokasjon...';
+        dropdown.appendChild(emptyOpt);
+
+        visibleSites.forEach((site, idx) => {
+          const opt = document.createElement('option');
+          let label = getSiteLabel(site) || site.name;
+          if (site.isSuper) label = '🏷️ ' + label;
+          if (isPrivateSite(site)) label = '🔒 ' + label;
+          let distStr = '';
+          if (site._distance != null) {
+            distStr = site._distance < 1000 ? ` (${Math.round(site._distance)} m)` : ` (${(site._distance/1000).toFixed(1)} km)`;
+          }
+          label = label + distStr;
+          opt.value = site.name;
+          opt.textContent = label;
+          dropdown.appendChild(opt);
+        });
+
+        // Event: velg fra dropdown
+        dropdown.onchange = function() {
+          const idx = dropdown.selectedIndex;
+          if (idx > 0) {
+            const site = visibleSites[idx - 1];
+            const name = getSiteLabel(site) || site.name;
+            currentPlaceName = name;
+            if (placeInput) {
+              placeInput.value = name;
+              placeInput.dataset.autofilled = 'true';
             }
-            if (isPrivate) {
-              pill.title = 'Privat lokalitet – bruk kun hvis du vet dette er din egen';
-            }
-            pill.addEventListener('click', () => {
-              const name = getSiteLabel(site) || site.name;
-              currentPlaceName = name;
-              if (placeInput) {
-                placeInput.value = name;
-                placeInput.dataset.autofilled = 'true';
-              }
-            });
-            aoSitesEl.appendChild(pill);
-          });
+            dropdown.style.display = 'none';
+          }
+        };
       }
 
       function setStatus(mode, text) {
@@ -1346,7 +1391,11 @@
         emptyMsgEl.style.display = 'none';
 
         try {
-          const resp = await fetch(`/api/species?search=${encodeURIComponent(q)}`);
+          const includeSubtaxa = document.getElementById('include-subtaxa')?.checked;
+          let url = `/api/species?search=${encodeURIComponent(q)}`;
+          url += `&dontIncludeSubSpecies=${includeSubtaxa ? 'false' : 'true'}`;
+          console.log('Arts-søk URL:', url); // Logging for feilsøking
+          const resp = await fetch(url);
           if (!resp.ok) {
             throw new Error(`HTTP ${resp.status}`);
           }
@@ -1917,4 +1966,3 @@
   </body>
 </html>
 
- 
