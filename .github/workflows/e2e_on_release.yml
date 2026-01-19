@@ -1,0 +1,50 @@
+name: E2E on Release
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  e2e-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Python deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt || true
+
+      - name: Install Node deps
+        working-directory: tests/e2e_playwright
+        run: |
+          npm ci
+          npx playwright install --with-deps
+
+      - name: Start local server
+        run: |
+          PORT=3000 python3 server.py &
+          echo "Waiting for server to be ready..."
+          npx wait-on http://localhost:3000
+
+      - name: Run Playwright E2E (full)
+        working-directory: tests/e2e_playwright
+        run: |
+          npx playwright test --project=chromium --reporter=dot
+
+      - name: Upload Playwright artifacts
+        if: failure() || always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-results-${{ github.run_id }}
+          path: tests/e2e_playwright/test-results
