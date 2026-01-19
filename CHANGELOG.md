@@ -1,3 +1,11 @@
+## 1.7.0 – 2026-01-19
+### Forbedringer og visuelle endringer
+- Bredere desktop-visning (max-width 800px)
+- Oppdater posisjon-knapp med tydelig ramme og hover-effekt
+- Søkeradius-felt med bedre plass og justert label
+- Mer diskret label uten caps lock
+- Observasjonslisten uten scroll – eksportknapp alltid synlig
+- Diverse små visuelle justeringer og bedre design
 # 1.6.0 – 2026-01-17
 ### ✨ Nye funksjoner
 - **AO-lokasjonsdropdown**: Egen custom dropdown for Artsobservasjoner-lokaliteter med avstand, sortering og mobilvennlig visning

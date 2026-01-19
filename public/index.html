@@ -39,21 +39,15 @@
         width: 100%;
         max-width: 480px;
         margin: 0 auto;
-        margin-top: 2px;
+        padding: 0 8px;
       }
-        .shell {
-          width: 100%;
-          max-width: 480px;
-          margin: 0 auto;
-          padding: 0 8px;
-        }
 
-        @media (min-width: 600px) {
-          .shell {
-            max-width: 700px;
-            padding: 0 24px;
-          }
+      @media (min-width: 600px) {
+        .shell {
+          max-width: 800px;
+          padding: 0 24px;
         }
+      }
 
       .card {
         background: linear-gradient(145deg, rgba(15,23,42,0.96), rgba(15,23,42,0.92));
@@ -121,6 +115,7 @@
         font-size: 0.9rem;
         outline: none;
         -webkit-appearance: none;
+        appearance: none;
       }
 
       input[type="text"], input[type="number"], select, button {
@@ -376,6 +371,7 @@
         font-size: 0.9rem;
         outline: none;
         -webkit-appearance: none;
+        appearance: none;
       }
 
       /* Dropdown styling:
@@ -431,6 +427,7 @@
         font-size: 0.9rem;
         outline: none;
         -webkit-appearance: none;
+        appearance: none;
       }
 
       input[type="number"]:disabled {
@@ -448,8 +445,6 @@
         border-top: 1px solid rgba(15, 23, 42, 0.8);
         padding-top: 8px;
         font-size: 0.8rem;
-        max-height: 220px;
-        overflow-y: auto;
       }
 
       .obs-group {
@@ -584,6 +579,8 @@
         background: var(--accent) !important;
         color: white !important;
         border-color: var(--accent) !important;
+          box-shadow: 0 4px 16px rgba(59,130,246,0.18);
+          transform: translateY(-1px) scale(1.04);
       }
 
       #loc-map-btn:hover {
@@ -706,19 +703,35 @@
             <button class="icon-btn" id="loc-btn" title="Oppdater posisjon" style="font-size:0.9em;padding:6px 10px;border:1px solid var(--border);border-radius:6px;background:var(--accent-soft);color:var(--text);transition:all 0.2s;display:flex;align-items:center;gap:4px;height:32px;">
               📍 <span style="font-size:0.85em;font-weight:500;">Oppdater posisjon</span>
             </button>
+            <style>
+              #loc-btn {
+                border: 2px solid var(--accent) !important;
+                border-radius: 8px !important;
+                background: var(--accent-soft) !important;
+                color: var(--text) !important;
+                padding: 7px 18px !important;
+                box-shadow: 0 2px 8px rgba(59,130,246,0.10);
+                font-size: 1em !important;
+                height: 38px !important;
+                cursor: pointer;
+              }
+            </style>
+            </button>
             <div style="display:flex;align-items:center;gap:4px;">
-              <label for="ao-size" style="font-size:0.7rem;color:var(--muted);white-space:nowrap;">Søkeradius:</label>
-              <input
-                type="number"
-                id="ao-size"
-                min="100"
-                max="3000"
-                step="50"
-                value="1000"
-                style="width:70px;font-size:0.9em;padding:6px 8px;height:32px;border:1px solid var(--border);border-radius:6px;background:var(--card-bg);color:var(--text);"
-                title="Søkeradius i meter (100-3000m). Bestemmer hvor stort område du leter etter observasjonslokaliteter i."
-              />
-              <span style="font-size:0.7rem;color:var(--muted);white-space:nowrap;">m</span>
+              <div style="display:flex;align-items:center;gap:6px;">
+                <label for="ao-size" style="font-size:0.85em;color:var(--muted);white-space:nowrap;align-self:center;padding-top:4px;text-transform:none;">Søkeradius:</label>
+                <input
+                  type="number"
+                  id="ao-size"
+                  min="100"
+                  max="3000"
+                  step="50"
+                  value="1000"
+                  style="width:84px;font-size:1em;padding:8px 12px;height:38px;border:2px solid var(--accent);border-radius:8px;background:var(--card-bg);color:var(--text);vertical-align:middle;"
+                  title="Søkeradius i meter (100-3000m). Bestemmer hvor stort område du leter etter observasjonslokaliteter i."
+                />
+                <span style="font-size:0.95em;color:var(--muted);white-space:nowrap;">m</span>
+              </div>
             </div>
             <button class="icon-btn" id="loc-map-btn" title="Vis i kart" style="font-size:1.2em;padding:6px 8px;border:1px solid var(--border);border-radius:6px;background:var(--accent-soft);color:var(--text);height:32px;min-width:42px;transition:all 0.2s;">🗺️</button>
           </div>
@@ -852,22 +865,17 @@
               <span>🗑️</span>
               <span>Tøm liste</span>
             </button>
-            <button class="btn" id="copy-btn" disabled>
-              <span>📋</span>
-              <span>Kopier CSV</span>
-            </button>
+            <!-- Kopier CSV-knapp fjernet -->
             <button class="btn" id="copy-open-btn" disabled>
               <span>🚀</span>
               <span>Kopier og åpne AO</span>
             </button>
-            <button class="btn" id="export-btn" disabled>
-              <span>⬇</span>
-              <span>Last ned CSV</span>
-            </button>
+            <!-- Last ned CSV-knapp fjernet -->
           </div>
         </div>
       </div>
-      <div class="footer-credit">Versjon v1.4.0 &nbsp;|&nbsp; © 2026 Kjetil Salomonsen</div>
+      <div class="footer-credit">Versjon v1.7.0 &nbsp;|&nbsp; © 2026 Kjetil Salomonsen</div>
+      <footer style="width:100%;text-align:center;color:#888;font-size:0.95em;padding:18px 0 8px 0;opacity:0.7;letter-spacing:0.04em;"></footer>
     </div>
 
     <script>
@@ -1240,123 +1248,127 @@
           groupRow.appendChild(groupCell);
           tbody.appendChild(groupRow);
 
-          group.items.forEach((obs, obsIndex) => {
-            const tr = document.createElement('tr');
+            group.items.forEach((obs, obsIndex) => {
+              const tr = document.createElement('tr');
+              // Alternerende bakgrunn
+              if (obsIndex % 2 === 1) {
+                tr.style.background = 'rgba(59,130,246,0.07)'; // Svak blå accent
+              }
 
-            const artTd = document.createElement('td');
-            artTd.textContent = obs.species && obs.species.taxonName ? obs.species.taxonName : '';
-            tr.appendChild(artTd);
+              const artTd = document.createElement('td');
+              artTd.textContent = obs.species && obs.species.taxonName ? obs.species.taxonName : '';
+              tr.appendChild(artTd);
 
-            const countTd = document.createElement('td');
-            // Vis antall med pluss/minus-knapper, og gjør det redigerbart ved klikk på tallet
-            function renderCountCell() {
-              countTd.innerHTML = '';
-              countTd.style.display = 'flex';
-              countTd.style.alignItems = 'center';
-              countTd.style.gap = '4px';
+              const countTd = document.createElement('td');
+              // Vis antall med pluss/minus-knapper, og gjør det redigerbart ved klikk på tallet
+              function renderCountCell() {
+                countTd.innerHTML = '';
+                countTd.style.display = 'flex';
+                countTd.style.alignItems = 'center';
+                countTd.style.gap = '4px';
 
-              // Minus-knapp
-              const minusBtn = document.createElement('button');
-              minusBtn.type = 'button';
-              minusBtn.textContent = '−';
-              minusBtn.title = 'Reduser antall';
-              minusBtn.style.width = '22px';
-              minusBtn.style.height = '22px';
-              minusBtn.style.fontSize = '1em';
-              minusBtn.style.borderRadius = '50%';
-              minusBtn.style.border = '1px solid #888';
-              minusBtn.style.background = 'rgba(34,34,34,0.7)';
-              minusBtn.style.color = '#bbb';
-              minusBtn.style.display = 'flex';
-              minusBtn.style.alignItems = 'center';
-              minusBtn.style.justifyContent = 'center';
-              minusBtn.style.cursor = 'pointer';
-              minusBtn.style.userSelect = 'none';
-              minusBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                if (obs.count > 1) {
-                  obs.count--;
+                // Minus-knapp
+                const minusBtn = document.createElement('button');
+                minusBtn.type = 'button';
+                minusBtn.textContent = '−';
+                minusBtn.title = 'Reduser antall';
+                minusBtn.style.width = '22px';
+                minusBtn.style.height = '22px';
+                minusBtn.style.fontSize = '1em';
+                minusBtn.style.borderRadius = '50%';
+                minusBtn.style.border = '1px solid #888';
+                minusBtn.style.background = 'rgba(34,34,34,0.7)';
+                minusBtn.style.color = '#bbb';
+                minusBtn.style.display = 'flex';
+                minusBtn.style.alignItems = 'center';
+                minusBtn.style.justifyContent = 'center';
+                minusBtn.style.cursor = 'pointer';
+                minusBtn.style.userSelect = 'none';
+                minusBtn.addEventListener('click', (e) => {
+                  e.stopPropagation();
+                  if (obs.count > 1) {
+                    obs.count--;
+                    saveState();
+                    renderObservations();
+                  }
+                });
+
+                // Tallet
+                const span = document.createElement('span');
+                span.textContent = obs.count != null ? String(obs.count) : '';
+                span.style.cursor = 'pointer';
+                span.title = 'Klikk for å endre antall';
+                span.style.minWidth = '28px';
+                span.style.textAlign = 'center';
+                span.style.fontSize = '1.1em';
+                span.addEventListener('click', () => {
+                  showInput();
+                });
+
+                // Pluss-knapp
+                const plusBtn = document.createElement('button');
+                plusBtn.type = 'button';
+                plusBtn.textContent = '+';
+                plusBtn.title = 'Øk antall';
+                plusBtn.style.width = '22px';
+                plusBtn.style.height = '22px';
+                plusBtn.style.fontSize = '1em';
+                plusBtn.style.borderRadius = '50%';
+                plusBtn.style.border = '1px solid #888';
+                plusBtn.style.background = 'rgba(34,34,34,0.7)';
+                plusBtn.style.color = '#bbb';
+                plusBtn.style.display = 'flex';
+                plusBtn.style.alignItems = 'center';
+                plusBtn.style.justifyContent = 'center';
+                plusBtn.style.cursor = 'pointer';
+                plusBtn.style.userSelect = 'none';
+                plusBtn.addEventListener('click', (e) => {
+                  e.stopPropagation();
+                  obs.count++;
+                  saveState();
+                  renderObservations();
+                });
+
+                countTd.appendChild(minusBtn);
+                countTd.appendChild(span);
+                countTd.appendChild(plusBtn);
+              }
+              function showInput() {
+                countTd.innerHTML = '';
+                const input = document.createElement('input');
+                input.type = 'number';
+                input.min = '1';
+                input.value = obs.count != null ? String(obs.count) : '';
+                input.style.width = '48px';
+                input.style.fontSize = '0.98em';
+                input.style.padding = '2px 4px';
+                input.style.margin = '0';
+                input.style.textAlign = 'center';
+                input.addEventListener('keydown', (e) => {
+                  if (e.key === 'Enter') {
+                    save();
+                  } else if (e.key === 'Escape') {
+                    renderCountCell();
+                  }
+                });
+                input.addEventListener('blur', save);
+                countTd.appendChild(input);
+                input.focus();
+                input.select();
+                function save() {
+                  const val = input.value.trim();
+                  const num = parseInt(val, 10);
+                  if (!val || isNaN(num) || num <= 0) {
+                    renderCountCell();
+                    return;
+                  }
+                  obs.count = num;
                   saveState();
                   renderObservations();
                 }
-              });
-
-              // Tallet
-              const span = document.createElement('span');
-              span.textContent = obs.count != null ? String(obs.count) : '';
-              span.style.cursor = 'pointer';
-              span.title = 'Klikk for å endre antall';
-              span.style.minWidth = '28px';
-              span.style.textAlign = 'center';
-              span.style.fontSize = '1.1em';
-              span.addEventListener('click', () => {
-                showInput();
-              });
-
-              // Pluss-knapp
-              const plusBtn = document.createElement('button');
-              plusBtn.type = 'button';
-              plusBtn.textContent = '+';
-              plusBtn.title = 'Øk antall';
-              plusBtn.style.width = '22px';
-              plusBtn.style.height = '22px';
-              plusBtn.style.fontSize = '1em';
-              plusBtn.style.borderRadius = '50%';
-              plusBtn.style.border = '1px solid #888';
-              plusBtn.style.background = 'rgba(34,34,34,0.7)';
-              plusBtn.style.color = '#bbb';
-              plusBtn.style.display = 'flex';
-              plusBtn.style.alignItems = 'center';
-              plusBtn.style.justifyContent = 'center';
-              plusBtn.style.cursor = 'pointer';
-              plusBtn.style.userSelect = 'none';
-              plusBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                obs.count++;
-                saveState();
-                renderObservations();
-              });
-
-              countTd.appendChild(minusBtn);
-              countTd.appendChild(span);
-              countTd.appendChild(plusBtn);
-            }
-            function showInput() {
-              countTd.innerHTML = '';
-              const input = document.createElement('input');
-              input.type = 'number';
-              input.min = '1';
-              input.value = obs.count != null ? String(obs.count) : '';
-              input.style.width = '48px';
-              input.style.fontSize = '0.98em';
-              input.style.padding = '2px 4px';
-              input.style.margin = '0';
-              input.style.textAlign = 'center';
-              input.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter') {
-                  save();
-                } else if (e.key === 'Escape') {
-                  renderCountCell();
-                }
-              });
-              input.addEventListener('blur', save);
-              countTd.appendChild(input);
-              input.focus();
-              input.select();
-              function save() {
-                const val = input.value.trim();
-                const num = parseInt(val, 10);
-                if (!val || isNaN(num) || num <= 0) {
-                  renderCountCell();
-                  return;
-                }
-                obs.count = num;
-                saveState();
-                renderObservations();
               }
-            }
-            renderCountCell();
-            tr.appendChild(countTd);
+              renderCountCell();
+              tr.appendChild(countTd);
 
             const activityTd = document.createElement('td');
             activityTd.textContent = obs.activity || '';

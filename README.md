@@ -271,7 +271,7 @@ For mer detaljert brukerbeskrivelse (inkludert tips om AO-lokaliteter og import)
 
 ## Versjon
 
-Appversjon: **1.1.3**
+Appversjon: **1.7.0**
 
 Se også CHANGELOG.md for detaljer.
 
