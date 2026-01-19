@@ -37,35 +37,44 @@
 
       .shell {
         width: 100%;
-        max-width: 480px;
-        margin: 0 auto;
-        padding: 0 8px;
+        max-width: 100%;
+        margin: 0;
+        padding: 0 6px;
       }
 
       @media (min-width: 600px) {
         .shell {
           max-width: 800px;
           padding: 0 24px;
+          margin: 0 auto;
         }
       }
 
       .card {
+        /* Let the dark card visually reach the sides by using negative gutters */
         background: linear-gradient(145deg, rgba(15,23,42,0.96), rgba(15,23,42,0.92));
-        border-radius: 18px;
-        border: 1px solid rgba(148, 163, 184, 0.18);
+        border-radius: 10px;
+        border: 1px solid rgba(148, 163, 184, 0.12);
         box-shadow:
-          0 22px 65px rgba(15, 23, 42, 0.85),
+          0 12px 28px rgba(15, 23, 42, 0.72),
           0 0 0 1px rgba(15, 23, 42, 0.9);
-        padding: 10px 10px 10px 10px;
-        backdrop-filter: blur(22px);
+        padding: 6px 6px 6px 6px;
+        margin: 0 -6px; /* bleed to the viewport edges */
+        overflow: visible;
+        backdrop-filter: blur(14px);
+      }
+
+      /* On larger screens, don't bleed the card to the edges; keep it centered */
+      @media (min-width: 600px) {
+        .card { margin: 0; }
       }
 
       header {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: 12px;
-        margin-bottom: 12px;
+        gap: 8px;
+        margin-bottom: 8px;
       }
 
       .title {
@@ -310,7 +319,7 @@
 
       .section {
         margin-top: 14px;
-        padding: 10px 12px;
+        padding: 10px 8px;
         border-radius: 14px;
         border: 1px solid rgba(15, 23, 42, 0.9);
         background: radial-gradient(circle at top left, rgba(15, 23, 42, 0.96), rgba(15, 23, 42, 0.9));
@@ -460,14 +469,18 @@
       }
 
       .obs-table {
-        width: 100%;
+        /* Let the table extend a bit beyond the section padding so content uses full width */
+        width: calc(100% + 24px);
+        margin-left: -12px;
         border-collapse: collapse;
         margin-bottom: 4px;
       }
 
+      
+
       .obs-table th,
       .obs-table td {
-        padding: 3px 4px;
+        padding: 6px 8px;
         text-align: left;
         font-size: 0.78rem;
         border-bottom: 1px solid rgba(15, 23, 42, 0.6);
@@ -480,13 +493,22 @@
 
       .obs-table th:last-child,
       .obs-table td:last-child {
-        width: 40px;
+        width: 56px;
         text-align: center;
+        padding-left: 6px;
+        padding-right: 6px;
       }
 
+      /* Make the first column (Art) expand, shrink the middle columns */
+      .obs-table th:first-child,
+      .obs-table td:first-child { width: 58%; }
+      .obs-table th:nth-child(2),
+      .obs-table td:nth-child(2) { width: 10%; }
+      .obs-table th:nth-child(3),
+      .obs-table td:nth-child(3) { width: 18%; }
       .obs-table th:nth-last-child(2),
       .obs-table td:nth-last-child(2) {
-        width: 80px;
+        width: 8%;
         font-size: 0.75em;
       }
 
@@ -496,6 +518,7 @@
           width: 60px;
           font-size: 0.7em;
         }
+        .obs-table th, .obs-table td { padding: 4px 6px; }
       }
 
       .delete-obs-btn {
@@ -510,6 +533,29 @@
 
       .delete-obs-btn:hover {
         opacity: 1;
+      }
+
+      .edit-obs-btn {
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        font-size: 1rem;
+        padding: 2px 4px;
+        opacity: 0.8;
+        transition: opacity 0.2s;
+        vertical-align: middle;
+      }
+
+      .edit-obs-btn:hover {
+        opacity: 1;
+      }
+
+      .obs-table td.action-td {
+        white-space: nowrap;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
       }
 
       .footer-credit {
@@ -698,7 +744,7 @@
 
         <div class="section-main">
           <div class="section-title">📍 Lokasjon</div>
-          <div class="row" style="display:flex;align-items:center;gap:8px;flex-wrap:nowrap;min-height:0;">
+          <div class="row" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-height:0;">
             <span class="loc-dot" id="loc-dot" style="width:10px;height:10px;margin-right:4px;"></span>
             <button class="icon-btn" id="loc-btn" title="Oppdater posisjon" style="font-size:0.9em;padding:6px 10px;border:1px solid var(--border);border-radius:6px;background:var(--accent-soft);color:var(--text);transition:all 0.2s;display:flex;align-items:center;gap:4px;height:32px;">
               📍 <span style="font-size:0.85em;font-weight:500;">Oppdater posisjon</span>
@@ -715,8 +761,21 @@
                 height: 38px !important;
                 cursor: pointer;
               }
+
+              /* Mobile: hide the text inside the button and reduce padding to save horizontal space */
+              @media (max-width: 420px) {
+                /* Force single-line layout */
+                .row[style] { flex-wrap: nowrap !important; }
+                #loc-btn { padding: 4px 6px !important; font-size: 0.82em !important; }
+                #loc-btn span { display: inline-block !important; font-size: 0.72em !important; }
+                /* Reduce label/input sizes */
+                label[for="ao-size"] { font-size: 0.72em !important; }
+                #ao-size { width: 64px !important; font-size: 0.85em !important; padding: 6px 8px !important; height: 30px !important; }
+                .loc-dot { width:8px !important; height:8px !important; margin-right:6px !important; }
+                /* Tweak other nearby elements */
+                .row .icon-btn { height:30px !important; }
+              }
             </style>
-            </button>
             <div style="display:flex;align-items:center;gap:4px;">
               <div style="display:flex;align-items:center;gap:6px;">
                 <label for="ao-size" style="font-size:0.85em;color:var(--muted);white-space:nowrap;align-self:center;padding-top:4px;text-transform:none;">Søkeradius:</label>
@@ -1383,22 +1442,36 @@
             detailsTd.style.color = 'var(--muted)';
             tr.appendChild(detailsTd);
 
-            const deleteTd = document.createElement('td');
-            deleteTd.style.textAlign = 'center';
+            const actionTd = document.createElement('td');
+            actionTd.className = 'action-td';
+            actionTd.style.textAlign = 'center';
+
+            // Edit-knapp: åpner separat edit-side med index i querystring
+            const globalIndex = observations.indexOf(obs);
+            const editBtn = document.createElement('button');
+            editBtn.className = 'edit-obs-btn';
+            editBtn.textContent = '✏️';
+            editBtn.title = 'Rediger observasjon';
+            editBtn.addEventListener('click', () => {
+              if (globalIndex === -1) return;
+              // Åpne i samme fane for enklere state-håndtering
+              window.location.href = `/public/edit.html?id=${encodeURIComponent(globalIndex)}`;
+            });
+            actionTd.appendChild(editBtn);
+
             const deleteBtn = document.createElement('button');
             deleteBtn.className = 'delete-obs-btn';
             deleteBtn.textContent = '🗑️';
             deleteBtn.title = 'Slett observasjon';
+            deleteBtn.style.marginLeft = '6px';
             deleteBtn.addEventListener('click', () => {
-              const globalIndex = observations.indexOf(obs);
-              if (globalIndex !== -1) {
-                observations.splice(globalIndex, 1);
-                renderObservations();
-                saveState();
-              }
+              if (globalIndex === -1) return;
+              observations.splice(globalIndex, 1);
+              renderObservations();
+              saveState();
             });
-            deleteTd.appendChild(deleteBtn);
-            tr.appendChild(deleteTd);
+            actionTd.appendChild(deleteBtn);
+            tr.appendChild(actionTd);
 
             tbody.appendChild(tr);
           });
@@ -1869,6 +1942,7 @@
           const activity = (obs.activity || '').replace(/[;\t]/g, ',');
           const age = (obs.age || '').replace(/[;\t]/g, ',');
           const gender = (obs.gender || '').replace(/[;\t]/g, ',');
+          const comment = (obs.comment || '').replace(/[;\t]/g, ',');
 
           // Dato (Fra/til = samme dag) – format DD.MM.YYYY
           let dateStr = '';
@@ -1917,6 +1991,8 @@
           cols[12] = gender;
           // 14: Aktivitet
           cols[13] = activity;
+          // 15: Kommentar (synlig for alle)
+          cols[14] = comment;
 
           lines.push(cols.join(SEP));
         }

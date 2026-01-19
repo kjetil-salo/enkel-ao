@@ -19,6 +19,9 @@ En norsk fugleobservasjons-app med intuitivt design, avanserte feltregistrerings
 - **Utvidet CSV-eksport**: Inkluderer alder/kjønn for sømløs AO-import
 - **Responsiv design**: Optimalisert for mobile enheter
 
+## Nytt (ikke tagget)
+- Redigeringsside: `public/edit.html` gir mulighet for å endre registrerte observasjoner og legge til en kommentar. Kommentarer inkluderes i CSV-eksporten under kolonne 15 ("Kommentar (synlig for alle)").
+
 Dette repoet inneholder en liten Python HTTP-server som serverer en enkel web-app og noen API-endepunkter. Nedenfor finner du raske instruksjoner for å bygge og kjøre lokalt, starte en mock for eksterne tjenester med `docker-compose`, og kjøre forsiktige last-tester.
 
 **Bygg image lokalt:**

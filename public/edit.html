@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="nb">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Rediger observasjon</title>
+    <link rel="stylesheet" href="style.css" />
+    <style>
+      body { font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg, #0f172a); color: var(--text, #e5e7eb); padding:20px; }
+      .card { background: rgba(17,24,39,0.9); padding:16px; border-radius:10px; max-width:600px; margin:18px auto; }
+      label { display:block; margin:6px 0; color:var(--muted,#9ca3af); }
+      input, select { width:100%; padding:8px 10px; border-radius:8px; border:1px solid rgba(148,163,184,0.15); background:rgba(255,255,255,0.02); color:var(--text); }
+      .row { display:flex; gap:8px; }
+      .btn { padding:8px 12px; border-radius:8px; border:1px solid rgba(148,163,184,0.15); background: #3b82f6; color:white; cursor:pointer; }
+      .btn-ghost { background:transparent; border:1px solid rgba(148,163,184,0.12); color:var(--text); }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <h2>Rediger observasjon</h2>
+      <form id="edit-form">
+        <label>Art
+          <input id="f-species" name="species" type="text" required />
+        </label>
+        <label>Antall
+          <input id="f-count" name="count" type="number" min="1" required />
+        </label>
+        <label>Aktivitet
+          <select id="f-activity" name="activity"></select>
+        </label>
+        <label>Alder
+          <select id="f-age" name="age">
+            <option value="">Ikke oppgitt</option>
+            <option value="Adult">Adult</option>
+            <option value="Egg">Egg</option>
+            <option value="Pulli">Pulli</option>
+            <option value="1K">1K</option>
+            <option value="1K+">1K+</option>
+            <option value="2K">2K</option>
+            <option value="2K+">2K+</option>
+            <option value="2K-">2K-</option>
+            <option value="3K">3K</option>
+            <option value="3K+">3K+</option>
+            <option value="3K-">3K-</option>
+            <option value="4K">4K</option>
+            <option value="4K+">4K+</option>
+            <option value="4K-">4K-</option>
+            <option value="5K">5K</option>
+            <option value="5K+">5K+</option>
+            <option value="5K-">5K-</option>
+            <option value="6K">6K</option>
+            <option value="6K+">6K+</option>
+            <option value="6K-">6K-</option>
+            <option value="7K">7K</option>
+            <option value="7K+">7K+</option>
+            <option value="7K-">7K-</option>
+          </select>
+        </label>
+        <label>Kjønn
+          <select id="f-gender" name="gender">
+            <option value="">Ikke oppgitt</option>
+            <option value="Hann">Hann</option>
+            <option value="Hunn">Hunn</option>
+            <option value="Hunnfarget">Hunnfarget</option>
+            <option value="I par">I par</option>
+          </select>
+        </label>
+        <label>Sted
+          <input id="f-place" name="placeName" type="text" />
+        </label>
+        <label>Kommentar (synlig for alle)
+          <textarea id="f-comment" name="comment" rows="3" style="width:100%;padding:8px;border-radius:8px;border:1px solid rgba(148,163,184,0.12);background:rgba(255,255,255,0.02);color:var(--text);"></textarea>
+        </label>
+        <div style="margin-top:12px;text-align:right;display:flex;gap:8px;justify-content:flex-end;">
+          <button type="button" id="cancel-btn" class="btn-ghost">Avbryt</button>
+          <button type="submit" class="btn">Lagre</button>
+        </div>
+      </form>
+    </div>
+
+    <script>
+      const STORAGE_KEY = 'fugleobservasjoner_v1';
+      function getObservations() {
+        try {
+          const raw = window.localStorage.getItem(STORAGE_KEY);
+          if (!raw) return [];
+          const payload = JSON.parse(raw);
+          if (!payload || !Array.isArray(payload.observations)) return [];
+          return payload.observations;
+        } catch (e) { console.warn('Feil ved lesing av localStorage', e); return []; }
+      }
+      function saveObservations(arr) {
+        try {
+          window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: 1, observations: arr }));
+        } catch (e) { console.warn('Kunne ikke lagre', e); }
+      }
+
+      function qs(name) {
+        const params = new URLSearchParams(window.location.search);
+        return params.get(name);
+      }
+
+      const idx = parseInt(qs('id'), 10);
+      const observations = getObservations();
+      const obs = Number.isFinite(idx) && idx >= 0 && idx < observations.length ? observations[idx] : null;
+
+      const form = document.getElementById('edit-form');
+      const fSpecies = document.getElementById('f-species');
+      const fCount = document.getElementById('f-count');
+      const fActivity = document.getElementById('f-activity');
+      const fAge = document.getElementById('f-age');
+      const fGender = document.getElementById('f-gender');
+      const fPlace = document.getElementById('f-place');
+
+      if (!obs) {
+        // Hvis ingen gyldig observasjon, vis tomt skjema og gi beskjed
+        document.querySelector('.card').insertAdjacentHTML('beforeend', '<div style="color:var(--muted);margin-top:12px;">Fant ikke observasjon med denne id-en.</div>');
+      } else {
+        // Fyll inn med nåværende verdier
+        fSpecies.value = obs.species && obs.species.taxonName ? obs.species.taxonName : '';
+        fCount.value = obs.count != null ? obs.count : '';
+        fActivity.value = obs.activity || '';
+        fAge.value = obs.age || '';
+        fGender.value = obs.gender || '';
+        fPlace.value = obs.placeName || '';
+        // Kommentar
+        document.getElementById('f-comment').value = obs.comment || '';
+      }
+
+      document.getElementById('cancel-btn').addEventListener('click', () => {
+        window.location.href = '/public/index.html';
+      });
+
+      // Last aktiviteter fra data/activities.json (samme som index.html)
+      (async function loadActivities() {
+        try {
+          const resp = await fetch('/data/activities.json');
+          const activities = await resp.json();
+          const sel = document.getElementById('f-activity');
+          // Tøm først
+          sel.innerHTML = '';
+          activities.forEach(a => {
+            const opt = document.createElement('option');
+            opt.value = a.value;
+            opt.textContent = a.label;
+            if (a.selected) opt.selected = true;
+            sel.appendChild(opt);
+          });
+          // Sett valgt aktivitet fra observasjonen (hvis noen)
+          if (obs && obs.activity) {
+            // Finn option med samme tekst (index bruker option.text)
+            for (let i = 0; i < sel.options.length; i++) {
+              if (sel.options[i].text.trim() === obs.activity.trim()) {
+                sel.selectedIndex = i;
+                break;
+              }
+            }
+          }
+        } catch (e) {
+          console.error('Kunne ikke laste aktiviteter:', e);
+        }
+      })();
+
+      form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        if (!obs) return;
+        obs.species = obs.species || {};
+        obs.species.taxonName = fSpecies.value.trim();
+        obs.count = parseInt(fCount.value, 10) || 1;
+        // activity i index bruker option.text (label). Hent samme tekst her.
+        const actSel = document.getElementById('f-activity');
+        const actOpt = actSel && actSel.options[actSel.selectedIndex];
+        obs.activity = actOpt && actOpt.text ? actOpt.text.trim() : (fActivity.value || '').trim();
+        obs.age = fAge.value || '';
+        obs.gender = fGender.value || '';
+        obs.placeName = fPlace.value.trim();
+        obs.comment = (document.getElementById('f-comment').value || '').trim();
+        // Oppdater lagring
+        observations[idx] = obs;
+        saveObservations(observations);
+        // Gå tilbake til index
+        window.location.href = '/public/index.html';
+      });
+    </script>
+  </body>
+</html>
