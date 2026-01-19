@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: fugleobservasjoner
+    env: docker
+    branch: main
+    dockerfilePath: Dockerfile
+    plan: free
+    envVars:
+      - key: PORT
+        value: "3000"
+      - key: NOMINATIM_URL
+        fromDatabase: false
+        value: "https://nominatim.openstreetmap.org/reverse"
+      - key: SUPABASE_URL
+        fromDatabase: false
+        value: ""
+      - key: SUPABASE_KEY
+        fromDatabase: false
+        value: ""
+      - key: STATS_KEY
+        fromDatabase: false
+        value: "salo"
