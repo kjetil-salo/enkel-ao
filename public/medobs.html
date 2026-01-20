@@ -4,31 +4,42 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>Medobservatører — Fugleobservasjoner</title>
-    <link rel="stylesheet" href="/style.css">
+    <link rel="stylesheet" href="/style.css" />
+    <style>
+      body { font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg, #0f172a); color: var(--text, #e5e7eb); padding:20px; }
+      .card { background: rgba(17,24,39,0.9); padding:16px; border-radius:10px; max-width:820px; margin:18px auto; }
+      label { display:block; margin:6px 0; color:var(--muted,#9ca3af); }
+      input, select, textarea { width:100%; padding:8px 10px; border-radius:8px; border:1px solid rgba(148,163,184,0.15); background:rgba(255,255,255,0.02); color:var(--text); }
+      .row { display:flex; gap:8px; }
+      .btn { padding:8px 12px; border-radius:8px; border:1px solid rgba(148,163,184,0.15); background: #3b82f6; color:white; cursor:pointer; }
+      .btn-ghost { background:transparent; border:1px solid rgba(148,163,184,0.12); color:var(--text); }
+      table { width:100%; border-collapse:collapse; }
+      td, th { padding:8px 6px; border-bottom:1px solid rgba(148,163,184,0.04); }
+      .muted { color:var(--muted); font-size:0.92em; }
+    </style>
   </head>
   <body>
-    <main class="container">
-      <h1>Medobservatører</h1>
-      <p>Her kan du legge til en liste over vanlige medobservatører. Denne listen beholdes selv om du tømmer på hovedsiden.</p>
+    <div class="card">
+      <h2>Medobservatører</h2>
+      <p class="muted">Her kan du holde en liste på opptil 10 medobservatører. Merk av for de som automatisk skal legges til nye observasjoner.</p>
 
       <div>
         <p>Fyll inn opptil 10 medobservatører. Merk av for de som skal legges på nye observasjoner automatisk.</p>
-        <table id="medobs-table" style="width:100%;border-collapse:collapse">
+        <table id="medobs-table">
           <thead>
             <tr><th style="text-align:left">Navn</th><th style="width:80px">Auto</th></tr>
           </thead>
           <tbody></tbody>
         </table>
-        <div style="margin-top:8px" class="row">
-          <button id="medobs-reset">Nullstill</button>
-          <button id="medobs-save" style="margin-left:8px">Lagre</button>
+        <div style="margin-top:12px;text-align:right;display:flex;gap:8px;justify-content:flex-end;">
+          <button id="medobs-reset" class="btn-ghost">Nullstill</button>
+          <button id="medobs-save" class="btn">Lagre</button>
         </div>
       </div>
 
-      <p style="margin-top:18px">Når du har lagret, vil valgte medobservatører legges automatisk på nye observasjoner.</p>
-      <p><a href="/">Tilbake</a></p>
-    </main>
-
+      <p style="margin-top:18px" class="muted">Når du har lagret, vil valgte medobservatører legges automatisk på nye observasjoner.</p>
+      <p><a href="/" class="btn-ghost">Tilbake</a></p>
+    </div>
     <script>
       const KEY = 'medobs_list_v1';
 
