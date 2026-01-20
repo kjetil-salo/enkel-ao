@@ -1667,20 +1667,36 @@
       });
 
       function commitObservationFromActivity() {
-        if (!selectedSpecies) return;
-
+        // Valider at alle obligatoriske felt er fylt ut
+        const place = (placeInput && placeInput.value.trim()) || currentPlaceName.trim();
+        if (!place) {
+          showRegisteredToast('Du må fylle inn sted!');
+          if (placeInput) placeInput.focus();
+          return;
+        }
+        if (!selectedSpecies) {
+          showRegisteredToast('Du må velge art!');
+          input.focus();
+          return;
+        }
         const raw = countInput.value.trim();
         const num = parseInt(raw, 10);
         if (!raw || isNaN(num) || num <= 0) {
+          showRegisteredToast('Du må fylle inn antall!');
+          countInput.focus();
           return;
         }
-
         let activity = 'Stasjonær';
         if (activitySelect && !activitySelect.disabled) {
           const opt = activitySelect.options[activitySelect.selectedIndex];
           if (opt && opt.text && opt.text.trim()) {
             activity = opt.text.trim();
           }
+        }
+        if (!activity || activity === '') {
+          showRegisteredToast('Du må velge aktivitet!');
+          activitySelect.focus();
+          return;
         }
 
         // Hent alder og kjønn
@@ -1692,7 +1708,7 @@
           count: num,
           position: currentPosition,
           activity,
-          placeName: currentPlaceName,
+          placeName: place,
           timestamp: new Date().toISOString(),
           age,
           gender,
@@ -1736,7 +1752,7 @@
       }
 
       // Toast/bekreftelse når art er registrert
-      function showRegisteredToast(artNavn) {
+      function showRegisteredToast(msg) {
         let toast = document.getElementById('registered-toast');
         if (!toast) {
           toast = document.createElement('div');
@@ -1757,11 +1773,16 @@
           toast.style.transition = 'opacity 0.15s';
           document.body.appendChild(toast);
         }
-        toast.textContent = `${artNavn} registrert`;
+        // Hvis meldingen er en feilmelding, vis kun meldingen
+        if (typeof msg === 'string' && msg.startsWith('Du må')) {
+          toast.textContent = msg;
+        } else {
+          toast.textContent = `${msg} registrert`;
+        }
         toast.style.opacity = '1';
         setTimeout(() => {
           toast.style.opacity = '0';
-        }, 800);
+        }, 1500);
       }
 
       // Event listener for aktivitetsknapp
