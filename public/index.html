@@ -1575,6 +1575,8 @@
         }
       }
 
+      // Enkel in-memory cache for artssøk med 1 time TTL
+      const speciesCache = {};
       async function fetchResults(term) {
         const q = term.trim();
         if (q.length < 2) {
@@ -1590,8 +1592,21 @@
         setStatus('loading', 'Søker i Artsobservasjoner …');
         emptyMsgEl.style.display = 'none';
 
+        // Cache-nøkkel: søkestreng + includeSubtaxa
+        const includeSubtaxa = document.getElementById('include-subtaxa')?.checked;
+        const cacheKey = `${q}::${includeSubtaxa ? 'sub' : 'nosub'}`;
+        const now = Date.now();
+        // Sjekk cache
+        if (speciesCache[cacheKey] && (now - speciesCache[cacheKey].ts < 3600_000)) {
+          const cached = speciesCache[cacheKey].data;
+          currentResults = Array.isArray(cached) ? cached : [];
+          activeIndex = currentResults.length ? 0 : -1;
+          renderResults();
+          setStatus('idle', 'Klar for søk (cache)');
+          return;
+        }
+
         try {
-          const includeSubtaxa = document.getElementById('include-subtaxa')?.checked;
           let url = `/api/species?search=${encodeURIComponent(q)}`;
           url += `&dontIncludeSubSpecies=${includeSubtaxa ? 'false' : 'true'}`;
           console.log('Arts-søk URL:', url); // Logging for feilsøking
@@ -1600,6 +1615,8 @@
             throw new Error(`HTTP ${resp.status}`);
           }
           const data = await resp.json();
+          // Lagre i cache
+          speciesCache[cacheKey] = { data, ts: now };
           currentResults = Array.isArray(data) ? data : [];
           activeIndex = currentResults.length ? 0 : -1;
           renderResults();
