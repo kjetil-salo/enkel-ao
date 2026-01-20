@@ -101,12 +101,19 @@
           cb.addEventListener('change', (e) => {
             const i = Number(e.currentTarget.getAttribute('data-i'));
             const l = load(); l[i].active = !!e.currentTarget.checked; save(l);
+            // Dispatch global event so other pages can react (e.g., update UI)
+            try {
+              window.dispatchEvent(new CustomEvent('medobs:updated', { detail: { medobs: l } }));
+            } catch (err) {
+              console.warn('Kunne ikke dispatch medobs:updated', err);
+            }
           });
         });
       }
 
       function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"})[c]); }
 
+      // Save button kept for compatibility, but changes auto-save on input/change.
       document.getElementById('medobs-save').addEventListener('click', () => { save(load()); alert('Lagret'); });
       document.getElementById('medobs-reset').addEventListener('click', () => { if (confirm('Nullstill medobservatørene?')) { save(defaultList()); render(); } });
 

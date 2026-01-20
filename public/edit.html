@@ -71,6 +71,7 @@
         <label>Kommentar (synlig for alle)
           <textarea id="f-comment" name="comment" rows="3" style="width:100%;padding:8px;border-radius:8px;border:1px solid rgba(148,163,184,0.12);background:rgba(255,255,255,0.02);color:var(--text);"></textarea>
         </label>
+        <div id="medobs-readonly" style="margin-top:8px;color:var(--muted)"></div>
         <div style="margin-top:12px;text-align:right;display:flex;gap:8px;justify-content:flex-end;">
           <button type="button" id="cancel-btn" class="btn-ghost">Avbryt</button>
           <button type="submit" class="btn">Lagre</button>
@@ -125,6 +126,16 @@
         fPlace.value = obs.placeName || '';
         // Kommentar
         document.getElementById('f-comment').value = obs.comment || '';
+        // Vis medobservatører (readonly)
+        const mDiv = document.getElementById('medobs-readonly');
+        if (mDiv) {
+          const list = (obs.coObservers || []).filter(Boolean);
+          if (list.length) {
+            mDiv.textContent = 'Medobservatører: ' + list.join(', ');
+          } else {
+            mDiv.textContent = 'Medobservatører: (ingen)';
+          }
+        }
       }
 
       document.getElementById('cancel-btn').addEventListener('click', () => {
