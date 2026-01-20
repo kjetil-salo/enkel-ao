@@ -201,6 +201,16 @@ export function initLocation(elements, onPositionUpdate, aoSizeMeters = 1000) {
     setLocationStatus(locDot, locText, 'pending', 'Oppdaterer posisjon …');
     locBtn.disabled = true;
 
+    // Les radius direkte fra inputfeltet hvis det finnes
+    let effectiveAoSize = aoSizeMeters;
+    const aoSizeInput = document.getElementById('ao-size');
+    if (aoSizeInput) {
+      const v = parseFloat(aoSizeInput.value);
+      if (!isNaN(v) && v > 0) {
+        effectiveAoSize = v;
+      }
+    }
+
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
         const currentPosition = {
@@ -208,31 +218,31 @@ export function initLocation(elements, onPositionUpdate, aoSizeMeters = 1000) {
           lon: pos.coords.longitude,
           accuracy: pos.coords.accuracy,
         };
-        
+
         const { lat, lon, accuracy } = currentPosition;
         const latStr = lat.toFixed(5);
         const lonStr = lon.toFixed(5);
         const accStr = Math.round(accuracy);
-        
+
         setLocationStatus(locDot, locText, 'ok', 'Posisjon oppdatert');
-        
+
         if (locText) {
           locText.title = `${latStr}, ${lonStr} (±${accStr} m)`;
         }
-        
-        // Hent forslag til lokaliteter fra Artsobservasjoner
+
+        // Hent forslag til lokaliteter fra Artsobservasjoner med OPPDATERT radius
         try {
-          const sites = await fetchAoSites(lat, lon, aoSizeMeters);
+          const sites = await fetchAoSites(lat, lon, effectiveAoSize);
           onPositionUpdate(currentPosition, sites);
         } catch (err) {
           console.warn('Feil ved henting av AO-lokaliteter', err);
           onPositionUpdate(currentPosition, []);
         }
-        
+
         if (locMapBtn) {
           locMapBtn.disabled = false;
         }
-        
+
         locBtn.disabled = false;
       },
       (err) => {
