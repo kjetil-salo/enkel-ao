@@ -116,6 +116,7 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
           e.stopPropagation();
           if (obs.count > 1) {
             obs.count--;
+            obs.tilKlokkeslett = new Date().toISOString();
             saveState();
             renderObservations(observations, obsListEl, buttons, saveState);
           }
@@ -157,6 +158,7 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
         plusBtn.addEventListener('click', (e) => {
           e.stopPropagation();
           obs.count++;
+          obs.tilKlokkeslett = new Date().toISOString();
           saveState();
           renderObservations(observations, obsListEl, buttons, saveState);
         });
@@ -188,6 +190,7 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
             return;
           }
           obs.count = num;
+          obs.tilKlokkeslett = new Date().toISOString();
           saveState();
           renderObservations(observations, obsListEl, buttons, saveState);
         }
@@ -361,6 +364,16 @@ export function toCsv(observations) {
         timeStr = `${hh}:${mi}`;
       }
     }
+    // Til klokkeslett (periode)
+    let tilTimeStr = '';
+    if (obs.tilKlokkeslett) {
+      const t = new Date(obs.tilKlokkeslett);
+      if (!isNaN(t.getTime())) {
+        const hh = String(t.getHours()).padStart(2, '0');
+        const mi = String(t.getMinutes()).padStart(2, '0');
+        tilTimeStr = `${hh}:${mi}`;
+      }
+    }
     
     if (!dateStr) {
       const d = new Date();
@@ -376,7 +389,7 @@ export function toCsv(observations) {
     cols[6] = dateStr;
     cols[7] = dateStr;
     cols[8] = timeStr;
-    cols[9] = timeStr;
+    cols[9] = tilTimeStr || timeStr;
     cols[10] = count;
     cols[11] = age;
     cols[12] = gender;
