@@ -939,6 +939,7 @@
               <span>🚀</span>
               <span>Kopier og åpne AO</span>
             </button>
+            <a class="btn" href="/medobs.html" style="margin-left:8px">👥 Medobservatører</a>
             <!-- Last ned CSV-knapp fjernet -->
           </div>
         </div>
@@ -1505,6 +1506,27 @@
 
       const STORAGE_KEY = 'fugleobservasjoner_v1';
 
+      // Medobservatører lagres separat slik at de ikke slettes ved "Tøm liste"
+      const MEDOBS_KEY = 'medobs_list_v1';
+
+      function loadMedobs() {
+        try { return JSON.parse(window.localStorage.getItem(MEDOBS_KEY) || '[]'); }
+        catch (e) { return []; }
+      }
+
+      function saveMedobs(list) {
+        try { window.localStorage.setItem(MEDOBS_KEY, JSON.stringify(list)); } catch (e) {}
+      }
+
+      // Return default medobservatører for nye observasjoner (max 10)
+      function defaultCoObservers() {
+        const l = loadMedobs();
+        // Use first up to 10 names as defaults
+        const res = Array(10).fill('');
+        for (let i = 0; i < Math.min(10, l.length); i++) res[i] = l[i];
+        return res;
+      }
+
       function saveState() {
         if (!window.localStorage) return;
         try {
@@ -1666,6 +1688,7 @@
           timestamp: new Date().toISOString(),
           age,
           gender,
+          coObservers: defaultCoObservers(),
         });
 
         renderObservations();
@@ -2002,6 +2025,19 @@
           cols[13] = activity;
           // 15: Kommentar (synlig for alle)
           cols[14] = comment;
+          // 16-25: Medobservatører (10 kolonner)
+          if (Array.isArray(obs.coObservers)) {
+            for (let i = 0; i < 10; i++) {
+              const v = obs.coObservers[i] || '';
+              cols[16 + i] = String(v).replace(/[;\t]/g, ',');
+            }
+          } else {
+            // Hvis ikke definert, prøv å fylle fra global medobs-liste
+            const defaults = loadMedobs();
+            for (let i = 0; i < 10; i++) {
+              cols[16 + i] = defaults[i] || '';
+            }
+          }
 
           lines.push(cols.join(SEP));
         }
