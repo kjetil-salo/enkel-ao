@@ -83,6 +83,10 @@ class Handler(SimpleHTTPRequestHandler):
         
         # Route til riktig handler
         try:
+            if parsed.path == '/health':
+                import time
+                self._send_json({'status': 'ok', 'timestamp': time.time()})
+                return
             if parsed.path == '/stats':
                 self._handle_stats_page(parsed)
             elif parsed.path == '/api/species':
