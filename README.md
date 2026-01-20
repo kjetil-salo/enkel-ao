@@ -1,4 +1,4 @@
-# Fugleobservasjoner v1.4.0
+# Fugleobservasjoner v1.6.0
 
 En norsk fugleobservasjons-app med intuitivt design, avanserte feltregistreringsmuligheter og valgfri Supabase-logging.
 
@@ -6,17 +6,21 @@ En norsk fugleobservasjons-app med intuitivt design, avanserte feltregistrerings
 - **Production**: https://enkel-ao.fly.dev
 - **Staging**: https://enkel-ao-staging.fly.dev
 
-## 🆕 Nytt i v1.4.0
-- **Forbedret UI/UX**: Tydelige seksjoner skiller obligatoriske og valgfrie felt med visuelt hierarki
-- **Valgfri Supabase**: Fungerer perfekt uten Supabase - faller automatisk tilbake til in-memory statistikk
-- **Forbedret portabilitet**: Kan kjøres i GitHub Codespaces og andre miljøer uten eksterne avhengigheter
-- **Staging/Production setup**: Separate miljøer for testing og produksjon
-- **Responsiv seksjonering**: Grønne bokser for viktige felt, grå for tilleggsinfo
 
-## Tidligere versjon (v1.3.0)
+## 🆕 Nytt i v1.6.0
+- **AO-lokasjonsdropdown**: Egen custom dropdown for Artsobservasjoner-lokaliteter med avstand, sortering og mobilvennlig visning
+- **Pluss/minus-knapper**: Rask endring av antall direkte i listen, optimalisert for mobil (touch-vennlig)
+- **Bugfixes**: Fikset lasting/visning av observasjoner, feil ved tom liste, og flere småfeil
+- **Mobilforbedringer**: Mindre og mer diskrete knapper, bedre layout for små skjermer
+- **Ytelse**: Raskere og mer robust initialisering av event listeners og state
+
+## Tidligere versjoner
 - **Avanserte felter**: Valgfrie alder- og kjønnsfelt kompatible med Artsobservasjoner.no import
 - **Utvidet CSV-eksport**: Inkluderer alder/kjønn for sømløs AO-import
 - **Responsiv design**: Optimalisert for mobile enheter
+
+## Nytt (ikke tagget)
+- Redigeringsside: `public/edit.html` gir mulighet for å endre registrerte observasjoner og legge til en kommentar. Kommentarer inkluderes i CSV-eksporten under kolonne 15 ("Kommentar (synlig for alle)").
 
 Dette repoet inneholder en liten Python HTTP-server som serverer en enkel web-app og noen API-endepunkter. Nedenfor finner du raske instruksjoner for å bygge og kjøre lokalt, starte en mock for eksterne tjenester med `docker-compose`, og kjøre forsiktige last-tester.
 
@@ -270,7 +274,7 @@ For mer detaljert brukerbeskrivelse (inkludert tips om AO-lokaliteter og import)
 
 ## Versjon
 
-Appversjon: **1.1.3**
+Appversjon: **1.7.0**
 
 Se også CHANGELOG.md for detaljer.
 

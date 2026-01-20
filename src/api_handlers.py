@@ -12,7 +12,7 @@ from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
 
-def handle_species_search(search_term):
+def handle_species_search(search_term, dont_include_sub='true'):
     """Håndter søk etter arter via Artsobservasjoner.no."""
     if not search_term.strip():
         return []
@@ -22,7 +22,7 @@ def handle_species_search(search_term):
         'search': search_term,
         'returnformat': 'html',
         'onlyReportable': 'true',
-        'dontIncludeSubSpecies': 'true',
+        'dontIncludeSubSpecies': dont_include_sub,
         'speciesGroup': '8',
         'language': '4',
     }

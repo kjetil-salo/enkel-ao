@@ -33,8 +33,16 @@
 
       .shell {
         width: 100%;
-        max-width: 600px;
+        max-width: 480px;
         margin: 0 auto;
+        padding: 0 8px;
+      }
+
+      @media (min-width: 600px) {
+        .shell {
+          max-width: 800px;
+          padding: 0 24px;
+        }
       }
 
       .card {
@@ -259,6 +267,8 @@
         <p style="font-size: 0.88rem; margin-top: 12px;">Kontakt: <a href="mailto:k@vikebo.com" style="color: var(--accent); text-decoration: none;">k@vikebo.com</a></p>
         <p style="font-size: 0.85rem; color: var(--muted); margin-top: 16px;">© 2026 Kjetil Salomonsen</p>
       </div>
+    </div>
+      <footer style="width:100%;text-align:center;color:#888;font-size:0.95em;padding:18px 0 8px 0;opacity:0.7;letter-spacing:0.04em;">Versjon v1.7.0 &nbsp;|&nbsp; © 2026 Kjetil Salomonsen</footer>
     </div>
   </body>
 </html>

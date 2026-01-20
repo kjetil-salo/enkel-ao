@@ -145,9 +145,9 @@ class Handler(SimpleHTTPRequestHandler):
         """Håndter arts-søk API."""
         params = parse_qs(parsed.query)
         search = params.get('search', [''])[0].strip()
-        
+        dont_include_sub = params.get('dontIncludeSubSpecies', ['true'])[0]
         try:
-            results = handle_species_search(search)
+            results = handle_species_search(search, dont_include_sub)
             self._send_json(results)
         except Exception as e:
             self._send_json({'error': 'Feil ved henting fra Artsobservasjoner.'}, status=500)

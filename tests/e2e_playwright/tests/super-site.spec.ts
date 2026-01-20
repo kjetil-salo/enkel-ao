@@ -38,20 +38,15 @@ test.describe('Superlokasjon UI', () => {
       await locBtn.click();
     }
 
-    // Vent på AO-sites-området å bli synlig
-    await page.waitForSelector('#ao-sites');
+    // Vent på AO-sites dropdown å bli synlig (ny UI bruker dropdown)
+    await page.waitForSelector('#ao-sites-dropdown');
 
-    // Finn første site-pill og sjekk at den har super-badge
-    const firstPill = await page.locator('#ao-sites .site-pill').first();
-    await expect(firstPill).toBeVisible();
+    // Sjekk at dropdown-innholdet inneholder Mock Sentrum
+    const aoDropdown = page.locator('#ao-sites-dropdown');
+    await expect(aoDropdown).toBeVisible();
 
-    // Badge finnes
-    const badge = await firstPill.locator('.super-badge');
-    await expect(badge).toBeVisible();
-    await expect(badge).toHaveAttribute('title', 'Superlokalitet');
-
-    // Og navnet skal være Mock Sentrum (våre mock-data plasserer denne som parent)
-    const text = await firstPill.innerText();
-    expect(text).toContain('Mock Sentrum');
+    // Finn et element i dropdown som inneholder teksten "Mock Sentrum"
+    const matching = aoDropdown.locator('text=Mock Sentrum');
+    await expect(matching.first()).toBeVisible({ timeout: 5000 });
   });
 });

@@ -1,6 +1,6 @@
 # Endringer og TODO
 
-## ✅ Gjennomførte forbedringer (v1.4.0)
+## ✅ Gjennomførte forbedringer (nyeste)
 
 ### 🎨 UI/UX Forbedringer
 - **Visuell seksjonering**: Tydelige bokser skiller obligatoriske og valgfrie felt
@@ -16,6 +16,11 @@
   - `./update-app.sh staging` → https://enkel-ao-staging.fly.dev
   - `./update-app.sh production` → https://enkel-ao.fly.dev
   - Staging branch for testing før produksjon
+
+  ### Siste endringer (ikke tagget)
+  - **Redigerings-side**: `public/edit.html` tilgjengelig for å endre eksisterende observasjoner (art, antall, aktivitet, alder, kjønn, sted, kommentar).
+  - **CSV-oppdatering**: Kommentarer mappes til kolonne 15 i eksportformatet (AO-kompatibelt felt "Kommentar (synlig for alle)").
+
 
 ### 📈 Statistikkmuligheter
 - **Supabase-statistikk**: Fullstendig historikk når miljøvariabler er konfigurert
