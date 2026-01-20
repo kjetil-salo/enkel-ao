@@ -11,25 +11,57 @@
       <h1>Medobservatører</h1>
       <p>Her kan du legge til en liste over vanlige medobservatører. Denne listen beholdes selv om du tømmer på hovedsiden.</p>
 
-      <div id="medobs-list"></div>
-
-      <div class="row" style="margin-top:12px">
-        <input id="medobs-input" type="text" placeholder="Navn på medobservatør" />
-        <button id="medobs-add">Legg til</button>
+      <div>
+        <p>Fyll inn opptil 10 medobservatører. Merk av for de som skal legges på nye observasjoner automatisk.</p>
+        <table id="medobs-table" style="width:100%;border-collapse:collapse">
+          <thead>
+            <tr><th style="text-align:left">Navn</th><th style="width:80px">Auto</th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+        <div style="margin-top:8px" class="row">
+          <button id="medobs-reset">Nullstill</button>
+          <button id="medobs-save" style="margin-left:8px">Lagre</button>
+        </div>
       </div>
 
-      <p style="margin-top:18px">Når du legger til medobservatører kan de velges i observasjons-editoren.</p>
+      <p style="margin-top:18px">Når du har lagret, vil valgte medobservatører legges automatisk på nye observasjoner.</p>
       <p><a href="/">Tilbake</a></p>
     </main>
 
     <script>
       const KEY = 'medobs_list_v1';
 
+      function defaultList() {
+        const arr = [];
+        for (let i = 0; i < 10; i++) arr.push({ name: '', active: false });
+        return arr;
+      }
+
       function load() {
         try {
-          return JSON.parse(localStorage.getItem(KEY) || '[]');
+          const raw = localStorage.getItem(KEY);
+          if (!raw) return defaultList();
+          const parsed = JSON.parse(raw);
+          // Backwards compatibility: array of strings
+          if (Array.isArray(parsed) && parsed.length && typeof parsed[0] === 'string') {
+            const out = defaultList();
+            for (let i = 0; i < Math.min(10, parsed.length); i++) out[i].name = parsed[i];
+            return out;
+          }
+          // If already array of objects, normalize length
+          if (Array.isArray(parsed)) {
+            const out = defaultList();
+            for (let i = 0; i < Math.min(10, parsed.length); i++) {
+              const it = parsed[i] || {};
+              out[i].name = it.name || '';
+              out[i].active = !!it.active;
+            }
+            return out;
+          }
+          return defaultList();
         } catch (e) {
-          return [];
+          return defaultList();
         }
       }
 
@@ -39,35 +71,33 @@
 
       function render() {
         const list = load();
-        const container = document.getElementById('medobs-list');
-        container.innerHTML = '';
-        if (!list.length) {
-          container.textContent = 'Ingen medobservatører lagret.';
-          return;
-        }
-        list.forEach((name, i) => {
-          const row = document.createElement('div');
-          row.className = 'row medobs-row';
-          row.innerHTML = `
-            <div style="flex:1">${escapeHtml(name)}</div>
-            <button data-i="${i}" class="medobs-remove">Fjern</button>
-          `;
-          container.appendChild(row);
+        const tbody = document.querySelector('#medobs-table tbody');
+        tbody.innerHTML = '';
+        list.forEach((it, i) => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `<td><input class="medobs-name" data-i="${i}" value="${escapeHtml(it.name)}" style="width:100%" /></td><td style="text-align:center"><input type="checkbox" class="medobs-active" data-i="${i}" ${it.active ? 'checked' : ''} /></td>`;
+          tbody.appendChild(tr);
         });
-        Array.from(document.getElementsByClassName('medobs-remove')).forEach(btn => {
-          btn.addEventListener('click', (e) => {
+
+        // Bind events
+        Array.from(document.getElementsByClassName('medobs-name')).forEach(inp => {
+          inp.addEventListener('input', (e) => {
             const i = Number(e.currentTarget.getAttribute('data-i'));
-            const l = load(); l.splice(i,1); save(l); render();
+            const l = load(); l[i].name = e.currentTarget.value; save(l);
+          });
+        });
+        Array.from(document.getElementsByClassName('medobs-active')).forEach(cb => {
+          cb.addEventListener('change', (e) => {
+            const i = Number(e.currentTarget.getAttribute('data-i'));
+            const l = load(); l[i].active = !!e.currentTarget.checked; save(l);
           });
         });
       }
 
       function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"})[c]); }
 
-      document.getElementById('medobs-add').addEventListener('click', ()=>{
-        const v = document.getElementById('medobs-input').value.trim();
-        if(!v) return; const l = load(); l.push(v); save(l); document.getElementById('medobs-input').value=''; render();
-      });
+      document.getElementById('medobs-save').addEventListener('click', () => { save(load()); alert('Lagret'); });
+      document.getElementById('medobs-reset').addEventListener('click', () => { if (confirm('Nullstill medobservatørene?')) { save(defaultList()); render(); } });
 
       render();
     </script>

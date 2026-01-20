@@ -1510,8 +1510,15 @@
       const MEDOBS_KEY = 'medobs_list_v1';
 
       function loadMedobs() {
-        try { return JSON.parse(window.localStorage.getItem(MEDOBS_KEY) || '[]'); }
-        catch (e) { return []; }
+        try {
+          const raw = JSON.parse(window.localStorage.getItem(MEDOBS_KEY) || 'null');
+          if (!raw) return [];
+          // If legacy array of strings, convert
+          if (Array.isArray(raw) && raw.length && typeof raw[0] === 'string') {
+            return raw.slice(0,10).map((n)=>({name:n, active:true}));
+          }
+          return Array.isArray(raw) ? raw : [];
+        } catch (e) { return []; }
       }
 
       function saveMedobs(list) {
@@ -1519,11 +1526,12 @@
       }
 
       // Return default medobservatører for nye observasjoner (max 10)
+      // Only include medobservatører marked active. Fill remaining slots with ''.
       function defaultCoObservers() {
         const l = loadMedobs();
-        // Use first up to 10 names as defaults
+        const active = (l || []).filter((it) => it && it.name && it.active).map((it) => it.name);
         const res = Array(10).fill('');
-        for (let i = 0; i < Math.min(10, l.length); i++) res[i] = l[i];
+        for (let i = 0; i < Math.min(10, active.length); i++) res[i] = active[i];
         return res;
       }
 
