@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="/style.css" />
     <style>
       body { font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg, #0f172a); color: var(--text, #e5e7eb); padding:20px; }
-      .card { background: rgba(17,24,39,0.9); padding:16px; border-radius:10px; max-width:820px; margin:18px auto; }
+      .card { background: rgba(17,24,39,0.9); padding:16px; border-radius:10px; max-width:1000px; width: calc(100% - 40px); margin:18px auto; }
       label { display:block; margin:6px 0; color:var(--muted,#9ca3af); }
       input, select, textarea { width:100%; padding:8px 10px; border-radius:8px; border:1px solid rgba(148,163,184,0.15); background:rgba(255,255,255,0.02); color:var(--text); }
       .row { display:flex; gap:8px; }
@@ -17,19 +17,27 @@
       @keyframes medobsPulse { 0%{background: rgba(59,130,246,0.06)} 50%{background: rgba(59,130,246,0.12)} 100%{background:transparent} }
       table { width:100%; border-collapse:collapse; }
       td, th { padding:8px 6px; border-bottom:1px solid rgba(148,163,184,0.04); }
+      /* Responsive adjustments to keep checkbox from overlapping name input on narrow screens */
+      #medobs-table { table-layout: fixed; width:100%; }
+      #medobs-table td:first-child, #medobs-table th:first-child { width: calc(100% - 120px); }
+      #medobs-table td:nth-child(2), #medobs-table th:nth-child(2) { width: 120px; text-align:center; }
+      .medobs-name { font-size: 16px; box-sizing: border-box; width: 100%; }
+      @media (max-width:420px) {
+        #medobs-table { table-layout: auto; width:100%; }
+        #medobs-table td:first-child, #medobs-table th:first-child { width: auto; }
+        #medobs-table td:nth-child(2), #medobs-table th:nth-child(2) { width: 72px; }
+        .medobs-name { font-size: 15px; }
+      }
       .muted { color:var(--muted); font-size:0.92em; }
     </style>
   </head>
   <body>
     <div class="card">
       <h2>Medobservatører</h2>
-      <p class="muted">Her kan du holde en liste på opptil 10 medobservatører. Merk av for de som automatisk skal legges til nye observasjoner.</p>
-
       <div>
-        <p>Fyll inn opptil 10 medobservatører. Merk av for de som skal legges på nye observasjoner automatisk.</p>
         <table id="medobs-table">
           <thead>
-            <tr><th style="text-align:left">Navn</th><th style="width:80px">Auto</th></tr>
+            <tr><th style="text-align:left">Navn</th><th style="width:80px" aria-label="Legg til automatisk">&nbsp;</th></tr>
           </thead>
           <tbody></tbody>
         </table>
