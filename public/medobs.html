@@ -34,7 +34,6 @@
           <tbody></tbody>
         </table>
         <div style="margin-top:12px;text-align:right;display:flex;gap:8px;justify-content:flex-end;">
-          <button id="medobs-reset" class="btn-ghost">Nullstill</button>
         </div>
       </div>
 
@@ -124,7 +123,7 @@
 
       function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"})[c]); }
 
-      document.getElementById('medobs-reset').addEventListener('click', () => { if (confirm('Nullstill medobservatørene?')) { save(defaultList()); render(); } });
+      // Reset button intentionally removed to avoid accidental mass-deletion.
 
       render();
     </script>
