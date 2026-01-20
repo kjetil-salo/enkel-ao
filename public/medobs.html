@@ -13,6 +13,8 @@
       .row { display:flex; gap:8px; }
       .btn { padding:8px 12px; border-radius:8px; border:1px solid rgba(148,163,184,0.15); background: #3b82f6; color:white; cursor:pointer; }
       .btn-ghost { background:transparent; border:1px solid rgba(148,163,184,0.12); color:var(--text); }
+      .medobs-pulse { animation: medobsPulse 520ms ease; }
+      @keyframes medobsPulse { 0%{background: rgba(59,130,246,0.06)} 50%{background: rgba(59,130,246,0.12)} 100%{background:transparent} }
       table { width:100%; border-collapse:collapse; }
       td, th { padding:8px 6px; border-bottom:1px solid rgba(148,163,184,0.04); }
       .muted { color:var(--muted); font-size:0.92em; }
@@ -33,7 +35,6 @@
         </table>
         <div style="margin-top:12px;text-align:right;display:flex;gap:8px;justify-content:flex-end;">
           <button id="medobs-reset" class="btn-ghost">Nullstill</button>
-          <button id="medobs-save" class="btn">Lagre</button>
         </div>
       </div>
 
@@ -107,14 +108,22 @@
             } catch (err) {
               console.warn('Kunne ikke dispatch medobs:updated', err);
             }
+            // Visual feedback: pulse the row
+            const row = e.currentTarget.closest('tr');
+            if (row) {
+              row.classList.remove('medobs-pulse');
+              // Force reflow to restart animation
+              // eslint-disable-next-line no-unused-expressions
+              row.offsetWidth;
+              row.classList.add('medobs-pulse');
+              setTimeout(() => row.classList.remove('medobs-pulse'), 600);
+            }
           });
         });
       }
 
       function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"})[c]); }
 
-      // Save button kept for compatibility, but changes auto-save on input/change.
-      document.getElementById('medobs-save').addEventListener('click', () => { save(load()); alert('Lagret'); });
       document.getElementById('medobs-reset').addEventListener('click', () => { if (confirm('Nullstill medobservatørene?')) { save(defaultList()); render(); } });
 
       render();
