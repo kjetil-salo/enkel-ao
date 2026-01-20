@@ -2025,17 +2025,17 @@
           cols[13] = activity;
           // 15: Kommentar (synlig for alle)
           cols[14] = comment;
-          // 16-25: Medobservatører (10 kolonner)
+          // 17-26: Medobservatører (10 kolonner)
           if (Array.isArray(obs.coObservers)) {
             for (let i = 0; i < 10; i++) {
               const v = obs.coObservers[i] || '';
-              cols[16 + i] = String(v).replace(/[;\t]/g, ',');
+              cols[17 + i] = String(v).replace(/[;\t]/g, ',');
             }
           } else {
             // Hvis ikke definert, prøv å fylle fra global medobs-liste
             const defaults = loadMedobs();
             for (let i = 0; i < 10; i++) {
-              cols[16 + i] = defaults[i] || '';
+              cols[17 + i] = defaults[i] || '';
             }
           }
 
