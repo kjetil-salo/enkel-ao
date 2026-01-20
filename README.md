@@ -5,8 +5,8 @@
 En lynrask, superenkel webapp for å registrere fugleobservasjoner direkte til Artsobservasjoner.no – alt fokus på minst mulig klikk og tastetrykk. Alt lagres kun i nettleseren din og eksporteres enkelt til AO-importskjemaet.
 
 **Live:**
-- https://enkel-ao.fly.dev (produksjon)
-- https://enkel-ao-staging.fly.dev (staging)
+- https://enkel-ao.fly.dev – stabil produksjon (alltid oppdatert og grundig testet)
+- https://enkel-ao-staging.fly.dev – siste endringer og eksperimenter (kan være ustabil)
 
 ## Hovedfunksjoner
 - 📍 Automatisk lokalitetsfinner (AO-integrasjon)
