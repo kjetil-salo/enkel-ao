@@ -254,7 +254,7 @@ export function initLocation(elements, onPositionUpdate, aoSizeMeters = 1000) {
       {
         enableHighAccuracy: true,
         maximumAge: 0,
-        timeout: 10000,
+        timeout: 30000,
       }
     );
   });

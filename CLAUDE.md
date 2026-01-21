@@ -101,3 +101,8 @@ except Exception as e:
 ### Mobile Considerations
 - Input `font-size: 16px` minimum to prevent iOS zoom
 - App is fully functional without Supabase (optional dependency)
+
+### Geolocation Limitations
+- **Mobil (anbefalt):** GPS gir nøyaktig posisjon (5-50 meter)
+- **PC/Mac:** Kun IP-basert lokalisering, kan gi feil posisjon (flere km avvik)
+- Appen er primært designet for bruk på mobil i felt
