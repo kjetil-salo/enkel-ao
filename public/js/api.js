@@ -2,8 +2,38 @@
  * API-modul for kommunikasjon med backend
  */
 
-// Enkel in-memory cache for artssøk med 1 time TTL
-const speciesCache = {};
+// localStorage-basert cache for artssøk med 1 års TTL
+const SPECIES_CACHE_PREFIX = 'species_';
+const SPECIES_CACHE_TTL = 365 * 24 * 60 * 60 * 1000; // 1 år
+
+/**
+ * Hent fra localStorage cache
+ */
+function getCachedSpecies(key) {
+  try {
+    const item = localStorage.getItem(SPECIES_CACHE_PREFIX + key);
+    if (!item) return null;
+    const { data, ts } = JSON.parse(item);
+    if (Date.now() - ts > SPECIES_CACHE_TTL) {
+      localStorage.removeItem(SPECIES_CACHE_PREFIX + key);
+      return null;
+    }
+    return data;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Lagre i localStorage cache
+ */
+function setCachedSpecies(key, data) {
+  try {
+    localStorage.setItem(SPECIES_CACHE_PREFIX + key, JSON.stringify({ data, ts: Date.now() }));
+  } catch {
+    // localStorage full eller utilgjengelig - ignorer
+  }
+}
 
 /**
  * Søk etter arter i Artsobservasjoner
@@ -13,36 +43,35 @@ const speciesCache = {};
  */
 export async function searchSpecies(term, includeSubtaxa = false) {
   const q = term.trim();
-  
+
   if (q.length < 2) {
     return [];
   }
 
-  // Cache-nøkkel: søkestreng + includeSubtaxa
-  const cacheKey = `${q}::${includeSubtaxa ? 'sub' : 'nosub'}`;
-  const now = Date.now();
-  
+  // Cache-nøkkel: søkestreng (lowercase) + includeSubtaxa
+  const cacheKey = `${q.toLowerCase()}::${includeSubtaxa ? 'sub' : 'nosub'}`;
+
   // Sjekk cache
-  if (speciesCache[cacheKey] && (now - speciesCache[cacheKey].ts < 3600_000)) {
-    return speciesCache[cacheKey].data;
+  const cached = getCachedSpecies(cacheKey);
+  if (cached) {
+    return cached;
   }
 
   let url = `/api/species?search=${encodeURIComponent(q)}`;
   url += `&dontIncludeSubSpecies=${includeSubtaxa ? 'false' : 'true'}`;
-  
-  console.log('Arts-søk URL:', url);
-  
+
   const resp = await fetch(url);
   if (!resp.ok) {
     throw new Error(`HTTP ${resp.status}`);
   }
-  
+
   const data = await resp.json();
-  
+  const result = Array.isArray(data) ? data : [];
+
   // Lagre i cache
-  speciesCache[cacheKey] = { data, ts: now };
-  
-  return Array.isArray(data) ? data : [];
+  setCachedSpecies(cacheKey, result);
+
+  return result;
 }
 
 /**

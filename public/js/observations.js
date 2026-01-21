@@ -91,27 +91,54 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
         countTd.innerHTML = '';
         countTd.style.display = 'flex';
         countTd.style.alignItems = 'center';
-        countTd.style.gap = '4px';
+        countTd.style.gap = '3px';
+
+        const btnStyle = {
+          width: '24px',
+          height: '24px',
+          fontSize: '0.9em',
+          borderRadius: '50%',
+          border: '1px solid #888',
+          background: 'rgba(34,34,34,0.7)',
+          color: '#bbb',
+          alignItems: 'center',
+          justifyContent: 'center',
+          cursor: 'pointer',
+          userSelect: 'none',
+        };
+
+        const btnStyleWithDisplay = { ...btnStyle, display: 'flex' };
+
+        // Sjekk om vi er på tablet (768px+)
+        const isTablet = window.innerWidth >= 768;
+
+        // Minus 10-knapp (kun tablet)
+        let minus10Btn = null;
+        if (isTablet) {
+          minus10Btn = document.createElement('button');
+          minus10Btn.type = 'button';
+          minus10Btn.textContent = '«';
+          minus10Btn.title = '−10';
+          Object.assign(minus10Btn.style, btnStyleWithDisplay);
+          minus10Btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (obs.count > 10) {
+              obs.count -= 10;
+            } else {
+              obs.count = 1;
+            }
+            obs.tilKlokkeslett = new Date().toISOString();
+            saveState();
+            renderObservations(observations, obsListEl, buttons, saveState);
+          });
+        }
 
         // Minus-knapp
         const minusBtn = document.createElement('button');
         minusBtn.type = 'button';
         minusBtn.textContent = '−';
-        minusBtn.title = 'Reduser antall';
-        Object.assign(minusBtn.style, {
-          width: '22px',
-          height: '22px',
-          fontSize: '1em',
-          borderRadius: '50%',
-          border: '1px solid #888',
-          background: 'rgba(34,34,34,0.7)',
-          color: '#bbb',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          cursor: 'pointer',
-          userSelect: 'none',
-        });
+        minusBtn.title = '−1';
+        Object.assign(minusBtn.style, btnStyleWithDisplay);
         minusBtn.addEventListener('click', (e) => {
           e.stopPropagation();
           if (obs.count > 1) {
@@ -140,21 +167,8 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
         const plusBtn = document.createElement('button');
         plusBtn.type = 'button';
         plusBtn.textContent = '+';
-        plusBtn.title = 'Øk antall';
-        Object.assign(plusBtn.style, {
-          width: '22px',
-          height: '22px',
-          fontSize: '1em',
-          borderRadius: '50%',
-          border: '1px solid #888',
-          background: 'rgba(34,34,34,0.7)',
-          color: '#bbb',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          cursor: 'pointer',
-          userSelect: 'none',
-        });
+        plusBtn.title = '+1';
+        Object.assign(plusBtn.style, btnStyleWithDisplay);
         plusBtn.addEventListener('click', (e) => {
           e.stopPropagation();
           obs.count++;
@@ -163,9 +177,28 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
           renderObservations(observations, obsListEl, buttons, saveState);
         });
 
+        // Pluss 10-knapp (kun tablet)
+        let plus10Btn = null;
+        if (isTablet) {
+          plus10Btn = document.createElement('button');
+          plus10Btn.type = 'button';
+          plus10Btn.textContent = '»';
+          plus10Btn.title = '+10';
+          Object.assign(plus10Btn.style, btnStyleWithDisplay);
+          plus10Btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            obs.count += 10;
+            obs.tilKlokkeslett = new Date().toISOString();
+            saveState();
+            renderObservations(observations, obsListEl, buttons, saveState);
+          });
+        }
+
+        if (minus10Btn) countTd.appendChild(minus10Btn);
         countTd.appendChild(minusBtn);
         countTd.appendChild(span);
         countTd.appendChild(plusBtn);
+        if (plus10Btn) countTd.appendChild(plus10Btn);
       }
       
       function showInput() {
@@ -213,6 +246,8 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
 
       const activityTd = document.createElement('td');
       activityTd.textContent = obs.activity || '';
+      activityTd.style.fontSize = '0.85em';
+      activityTd.style.color = '#9ca3af'; // Tonet ned, men WCAG AA-kompatibel
       tr.appendChild(activityTd);
 
       const detailsTd = document.createElement('td');

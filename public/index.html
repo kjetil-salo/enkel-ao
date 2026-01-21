@@ -1,7 +1,5 @@
 <!doctype html>
 <html lang="nb">
-<!doctype html>
-<html lang="nb">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -733,6 +731,95 @@
           font-size: 0.7rem;
         }
       }
+
+      /* ===== iPad/Tablet layout for trekktelling ===== */
+      @media (min-width: 768px) and (max-width: 1200px) {
+        .shell {
+          max-width: 100%;
+          padding: 0 16px;
+        }
+
+        .card {
+          margin: 0;
+          padding: 12px;
+        }
+
+        .tablet-layout {
+          display: grid;
+          grid-template-columns: 2fr 3fr;
+          gap: 16px;
+          align-items: start;
+        }
+
+        .tablet-input-column {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+
+        .tablet-list-column {
+          position: sticky;
+          top: 12px;
+          max-height: calc(100vh - 100px);
+          overflow-y: auto;
+        }
+
+        .tablet-list-column .section {
+          margin-top: 0;
+        }
+
+        /* Større touch-targets på tablet */
+        .section-main {
+          padding: 14px;
+        }
+
+        .obs-table th,
+        .obs-table td {
+          padding: 8px 10px;
+          font-size: 0.85rem;
+        }
+
+        /* Bedre plass for observasjonslisten */
+        .obs-list {
+          max-height: none;
+        }
+
+        /* Bredere input-felt */
+        input[type="number"] {
+          width: 130px;
+        }
+
+        /* Gjør observasjonstabellen lettere å lese */
+        .obs-table {
+          width: 100%;
+          margin-left: 0;
+        }
+
+        .obs-table th:first-child,
+        .obs-table td:first-child { width: 35%; }
+        .obs-table th:nth-child(2),
+        .obs-table td:nth-child(2) { width: 22%; }
+        .obs-table th:nth-child(3),
+        .obs-table td:nth-child(3) { width: 25%; }
+
+        /* Eksport-knapper i full bredde */
+        .export-row {
+          flex-direction: column;
+          gap: 8px;
+        }
+
+        .export-row .btn {
+          width: 100%;
+          justify-content: center;
+        }
+      }
+
+      /* Større skjermer (desktop) - behold sentrert layout */
+      @media (min-width: 1201px) {
+        .tablet-layout {
+          display: block;
+        }
+      }
     </style>
   </head>
   <body>
@@ -750,14 +837,15 @@
           </div>
         </header>
 
-
+        <div class="tablet-layout">
+        <div class="tablet-input-column">
 
         <div class="section-main">
           <div class="section-title">📍 Lokasjon</div>
           <div class="row" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-height:0;">
             <span class="loc-dot" id="loc-dot" style="width:10px;height:10px;margin-right:4px;"></span>
             <button class="icon-btn" id="loc-btn" title="Oppdater posisjon" style="font-size:0.9em;padding:6px 10px;border:1px solid var(--border);border-radius:6px;background:var(--accent-soft);color:var(--text);transition:all 0.2s;display:flex;align-items:center;gap:4px;height:32px;">
-              📍 <span style="font-size:0.85em;font-weight:500;">Oppdater posisjon</span>
+              <span style="font-size:0.85em;font-weight:500;">Oppdater posisjon</span>
             </button>
             <style>
               #loc-btn {
@@ -925,7 +1013,9 @@
             </div>
           </div>
         </div>
+        </div><!-- /tablet-input-column -->
 
+        <div class="tablet-list-column">
         <div class="section">
           <div class="section-title">Observasjoner</div>
           <div class="obs-list" id="obs-list"></div>
@@ -939,15 +1029,17 @@
               <span>🚀</span>
               <span>Kopier og åpne AO</span>
             </button>
-            <a class="btn" href="/medobs.html" style="margin-left:8px">👥 Medobservatører</a>
+            <a class="btn" href="/medobs.html">👥 Medobservatører</a>
             <!-- Last ned CSV-knapp fjernet -->
           </div>
         </div>
+        </div><!-- /tablet-list-column -->
+        </div><!-- /tablet-layout -->
       </div>
-      
+
     </div>
 
-    <script type="module" src="/js/main.js"></script>
+    <script type="module" src="/js/main.js?v=20260121b"></script>
     <footer class="footer-credit">Versjon v1.9.1  |  © 2026 Kjetil Salomonsen</footer>
   </body>
 </html>
