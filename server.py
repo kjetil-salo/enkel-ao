@@ -116,21 +116,43 @@ class Handler(SimpleHTTPRequestHandler):
         try:
             from src.supabase_log import supabase
             if supabase:
-                res = supabase.table("stats").select("ip,user_agent").execute()
+                res = supabase.table("stats").select("ip,user_agent,device_type,os,browser,timestamp").order("timestamp", desc=True).execute()
                 rows = res.data if hasattr(res, 'data') else res
-                
+
                 # Prosesser Supabase-statistikk
                 total = len(rows)
                 per_ip = {}
                 per_ua = {}
-                
+                per_device = {}
+                per_os = {}
+                per_browser = {}
+
+                # Først: tell opp alle
                 for row in rows:
                     ip = row.get('ip', '-')
                     ua = row.get('user_agent', '-')
+                    device = row.get('device_type') or 'unknown'
+                    os_name = row.get('os') or 'unknown'
+                    browser = row.get('browser') or 'unknown'
+
                     per_ip[ip] = per_ip.get(ip, 0) + 1
                     per_ua[ua] = per_ua.get(ua, 0) + 1
-                
-                html = generate_stats_page(per_ip, per_ua, total, source="Supabase")
+                    per_device[device] = per_device.get(device, 0) + 1
+                    per_os[os_name] = per_os.get(os_name, 0) + 1
+                    per_browser[browser] = per_browser.get(browser, 0) + 1
+
+                # Så: bygg liste over siste 10 unike IP-er (data er allerede sortert nyeste først)
+                recent_ips = []
+                seen_ips = set()
+                for row in rows:
+                    ip = row.get('ip', '-')
+                    if ip not in seen_ips:
+                        recent_ips.append((ip, per_ip[ip]))
+                        seen_ips.add(ip)
+                        if len(recent_ips) >= 10:
+                            break
+
+                html = generate_stats_page(recent_ips, per_ua, total, per_device, per_os, per_browser, len(per_ip), source="Supabase")
                 self._send_html_response(html)
                 return
         except Exception as e:
@@ -141,8 +163,9 @@ class Handler(SimpleHTTPRequestHandler):
             total = _stats['total']
             per_ip = dict(_stats['per_ip'])
             per_ua = dict(_stats['per_ua'])
-        
-        html = generate_stats_page(per_ip, per_ua, total, source="In-memory (denne økt)")
+
+        recent_ips = list(per_ip.items())[:10]
+        html = generate_stats_page(recent_ips, per_ua, total, {}, {}, {}, len(per_ip), source="In-memory (denne økt)")
         self._send_html_response(html)
     
     def _handle_species_api(self, parsed):
