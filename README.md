@@ -26,6 +26,39 @@ En lynrask, superenkel webapp for å registrere fugleobservasjoner direkte til A
 
 For mer detaljert brukerbeskrivelse, se [docs/bruk.md](docs/bruk.md).
 
+## Testing
+
+Prosjektet har både unit-tester og end-to-end-tester:
+
+### Unit-tester (JavaScript)
+```bash
+npm test                 # Kjør alle unit-tester
+npm run test:watch       # Watch-modus
+npm run test:coverage    # Med coverage-rapport
+```
+
+Tester for:
+- `haversine()` - Avstandsberegning mellom koordinater
+- `toCsv()` - CSV-eksport av observasjoner
+
+Se [tests/unit/README.md](tests/unit/README.md) for detaljer.
+
+### E2E-tester (Playwright)
+```bash
+cd tests/e2e_playwright
+npm test                 # Kjør mot live server
+npm run test:mock        # Kjør mot mock server
+```
+
+Tester hele brukerflyt fra lokasjon til eksport.
+
+### Python backend-tester
+```bash
+pytest --maxfail=3       # Kjør Python unit-tester
+```
+
+Tester API-endepunkter og backend-logikk.
+
 
 ## Personvern
 - **Ingen data lagres på server.** Alt lagres kun i nettleseren din (localStorage) til du eksporterer eller tømmer lista.

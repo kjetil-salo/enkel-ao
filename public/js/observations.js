@@ -3,6 +3,7 @@
  */
 
 import { defaultCoObservers, loadMedobs } from './storage.js';
+import { showToast } from './ui.js';
 
 /**
  * Render observasjoner i tabellvisning
@@ -281,9 +282,28 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
       deleteBtn.style.marginLeft = '6px';
       deleteBtn.addEventListener('click', () => {
         if (globalIndex === -1) return;
+
+        // Lagre slettet observasjon og posisjon for undo
+        const deletedObs = observations[globalIndex];
+        const deletedIndex = globalIndex;
+        const speciesName = deletedObs.species?.taxonName || 'Observasjon';
+
+        // Fjern fra array
         observations.splice(globalIndex, 1);
         renderObservations(observations, obsListEl, buttons, saveState);
         saveState();
+
+        // Vis toast med undo-mulighet
+        showToast(`Slettet ${speciesName}`, {
+          duration: 5000,
+          onUndo: () => {
+            // Sett tilbake observasjonen på samme posisjon
+            observations.splice(deletedIndex, 0, deletedObs);
+            renderObservations(observations, obsListEl, buttons, saveState);
+            saveState();
+            showToast(`${speciesName} gjenopprettet`);
+          }
+        });
       });
       actionTd.appendChild(deleteBtn);
       tr.appendChild(actionTd);

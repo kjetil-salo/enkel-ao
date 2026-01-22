@@ -26,8 +26,13 @@ export function flashButton(button, successLabel) {
 /**
  * Vis toast-melding
  * @param {string} msg - Meldingen som skal vises
+ * @param {Object} options - Valgfrie alternativer
+ * @param {Function} options.onUndo - Callback for undo-knapp
+ * @param {number} options.duration - Varighet i ms (default: 1500)
  */
-export function showToast(msg) {
+export function showToast(msg, options = {}) {
+  const { onUndo, duration = 1500 } = options;
+
   let toast = document.getElementById('registered-toast');
   if (!toast) {
     toast = document.createElement('div');
@@ -46,17 +51,60 @@ export function showToast(msg) {
       z-index: 9999;
       opacity: 0;
       transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+      display: flex;
+      align-items: center;
+      gap: 16px;
     `;
     document.body.appendChild(toast);
   }
 
+  // Clear existing content
+  toast.innerHTML = '';
+
   // Sett tekst og border
+  const textSpan = document.createElement('span');
   if (typeof msg === 'string' && msg.startsWith('Du må')) {
-    toast.textContent = msg;
+    textSpan.textContent = msg;
     toast.style.borderColor = '#ef4444';
+  } else if (typeof msg === 'string' && msg.startsWith('Slettet')) {
+    textSpan.textContent = msg;
+    toast.style.borderColor = '#f59e0b';
   } else {
-    toast.textContent = `${msg} registrert`;
+    textSpan.textContent = `${msg} registrert`;
     toast.style.borderColor = '#22c55e';
+  }
+  toast.appendChild(textSpan);
+
+  // Legg til undo-knapp hvis onUndo er gitt
+  let undoBtn = null;
+  if (onUndo) {
+    undoBtn = document.createElement('button');
+    undoBtn.textContent = 'Angre';
+    undoBtn.style.cssText = `
+      background: rgba(255,255,255,0.2);
+      border: 1px solid rgba(255,255,255,0.3);
+      color: #fff;
+      padding: 4px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.9em;
+      font-weight: 600;
+      transition: all 0.15s;
+    `;
+    undoBtn.addEventListener('mousedown', () => {
+      undoBtn.style.background = 'rgba(255,255,255,0.3)';
+    });
+    undoBtn.addEventListener('mouseup', () => {
+      undoBtn.style.background = 'rgba(255,255,255,0.2)';
+    });
+    undoBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      onUndo();
+      // Skjul toast umiddelbart
+      toast.style.opacity = '0';
+      toast.style.transform = 'translate(-50%, -50%) scale(0.95)';
+    });
+    toast.appendChild(undoBtn);
   }
 
   // Reset
@@ -78,7 +126,7 @@ export function showToast(msg) {
     setTimeout(() => {
       toast.style.borderColor = '#3b82f6';
     }, 400);
-  }, 1500);
+  }, duration);
 }
 
 /**

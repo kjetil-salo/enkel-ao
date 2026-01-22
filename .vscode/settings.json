@@ -1,5 +1,9 @@
 {
     "chat.tools.terminal.autoApprove": {
-        "docker logs": true
+        "docker logs": true,
+        "/^python3 tools/load_test\\.py --mode gentle --requests 30 --concurrency 5$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
     }
 }

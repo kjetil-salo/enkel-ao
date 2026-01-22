@@ -7,7 +7,10 @@ ENVIRONMENT=${1:-local}
 
 if [[ "$ENVIRONMENT" == "staging" ]]; then
     echo "🔄 Deployer til STAGING..."
-    flyctl deploy --config fly.staging.toml
+    SCRIPT_DIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+    PROJECT_ROOT="$SCRIPT_DIR"
+    cd "$PROJECT_ROOT"
+    flyctl deploy --config fly.staging.toml --app enkel-ao-staging --remote-only
     echo "✅ Staging deployment ferdig! URL: https://enkel-ao-staging.fly.dev"
     exit 0
 elif [[ "$ENVIRONMENT" == "production" ]]; then
