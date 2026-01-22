@@ -198,9 +198,21 @@ function chooseItem(index) {
   countInput.value = '';
   countInput.focus();
   // Flash antall-feltet tydelig
-  countInput.classList.remove('flash-strong');
+  countInput.classList.remove('focus-flash');
   void countInput.offsetWidth; // trigger reflow
-  countInput.classList.add('flash-strong');
+  countInput.classList.add('focus-flash');
+
+  // Når antall er fylt ut og fokus flyttes til aktivitetsdropdown, flash svakt
+  countInput.addEventListener('keydown', function handler(e) {
+    if ((e.key === 'Enter' || e.key === 'Tab') && countInput.value.trim()) {
+      setTimeout(() => {
+        activitySelect.classList.remove('focus-flash');
+        void activitySelect.offsetWidth;
+        activitySelect.classList.add('focus-flash');
+      }, 0);
+      countInput.removeEventListener('keydown', handler);
+    }
+  });
 
   if (activitySelect) {
     activitySelect.disabled = false;
@@ -317,7 +329,13 @@ function commitObservationFromActivity() {
   // Nullstill valgt art
   const artNavnToast = selectedSpecies.taxonName;
   selectedSpecies = null;
-  chosenEl.style.display = 'none';
+  // Flash valgt art før den skjules
+  chosenEl.classList.remove('focus-flash');
+  void chosenEl.offsetWidth;
+  chosenEl.classList.add('focus-flash');
+  setTimeout(() => {
+    chosenEl.style.display = 'none';
+  }, 250);
   countInput.value = '';
   countInput.disabled = true;
 
@@ -344,6 +362,10 @@ function commitObservationFromActivity() {
   showToast(artNavnToast);
   input.focus();
   input.select();
+  // Flash artsvelgeren svakt ved programmatisk fokus
+  input.classList.remove('focus-flash');
+  void input.offsetWidth;
+  input.classList.add('focus-flash');
 }
 
 // ============================================================

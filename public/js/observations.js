@@ -105,8 +105,10 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
 
         const btnStyleWithDisplay = { ...btnStyle, display: 'flex' };
 
-        // Sjekk om vi er på tablet (768px+)
-        const isTablet = window.innerWidth >= 768;
+        // Sjekk om vi er på tablet (ikke telefon i landscape)
+        // Tablet = bred skjerm OG (ikke touch ELLER høyde > 600px)
+        const isTablet = window.innerWidth >= 768 &&
+                        (!('ontouchstart' in window) || window.innerHeight > 600);
 
         // Minus 10-knapp (kun tablet)
         let minus10Btn = null;
