@@ -7,6 +7,7 @@
 - **Korrekt visuelt hierarki**: Grønne bokser for obligatoriske felt, grå for valgfrie
 - **Forbedret gruppering**: Lokasjon, observasjon (obligatorisk), og tilleggsinfo (valgfritt)
 - **Responsiv design**: Mindre padding og bedre mobile tilpasninger
+- **Valgt art flash-effekt**: Flash-animasjonen på valgt art ("chosen") er nå svært subtil og dempet, slik at fokus ikke tas bort fra antall-feltet ved registrering.
 
 ### 🔧 Tekniske forbedringer
 - **Valgfri Supabase**: App fungerer uten Supabase-credentials (in-memory modus)
