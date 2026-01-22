@@ -430,13 +430,18 @@ export function toCsv(observations) {
     // Medobservatører (10 kolonner)
     if (Array.isArray(obs.coObservers)) {
       for (let i = 0; i < 10; i++) {
-        const v = obs.coObservers[i] || '';
+        let v = obs.coObservers[i];
+        // Hvis objekt, hent .name, ellers bruk som streng
+        if (v && typeof v === 'object') {
+          v = v.name || '';
+        }
+        if (!v || v === 'undefined' || v === null) v = '';
         cols[17 + i] = String(v).replace(/[;\t]/g, ',');
       }
     } else {
-      const defaults = loadMedobs();
+      // Fyll med tomme strenger hvis ingen coObservers
       for (let i = 0; i < 10; i++) {
-        cols[17 + i] = defaults[i] || '';
+        cols[17 + i] = '';
       }
     }
 
