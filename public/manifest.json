@@ -1,7 +1,7 @@
 {
-  "name": "Fugleobservasjoner",
-  "short_name": "Fugleobs",
-  "description": "Enkel registrering av fugleobservasjoner",
+  "name": "Enkel-AO",
+  "short_name": "Enkel-AO",
+  "description": "Enkel registrering av fugleobservasjoner til Artsobservasjoner.no",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0f172a",
