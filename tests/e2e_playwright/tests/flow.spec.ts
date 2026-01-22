@@ -21,6 +21,8 @@ test.describe('Artssøk', () => {
     const base = process.env.BASE_URL || 'http://localhost:3000';
     await page.goto(base);
 
+    // Fyll inn lokasjon først
+    await page.fill('#place', 'Teststed');
     const searchInput = page.locator('#search');
     await expect(searchInput).toBeVisible();
     await expect(searchInput).toBeEmpty();
@@ -34,6 +36,7 @@ test.describe('Artssøk', () => {
     const base = process.env.BASE_URL || 'http://localhost:3000';
     await page.goto(base);
 
+    await page.fill('#place', 'Teststed');
     const searchInput = page.locator('#search');
     await searchInput.fill('meis');
 
@@ -54,6 +57,7 @@ test.describe('Artssøk', () => {
     const base = process.env.BASE_URL || 'http://localhost:3000';
     await page.goto(base);
 
+    await page.fill('#place', 'Teststed');
     const searchInput = page.locator('#search');
     // Søk etter noe som ikke finnes
     await searchInput.fill('xyznonexistent123');
@@ -77,6 +81,7 @@ test.describe('Artssøk', () => {
     const base = process.env.BASE_URL || 'http://localhost:3000';
     await page.goto(base);
 
+    await page.fill('#place', 'Teststed');
     const searchInput = page.locator('#search');
     await searchInput.fill('meis');
 
@@ -100,6 +105,7 @@ test.describe('Artssøk', () => {
     const base = process.env.BASE_URL || 'http://localhost:3000';
     await page.goto(base);
 
+    await page.fill('#place', 'Teststed');
     const searchInput = page.locator('#search');
     await searchInput.fill('meis');
 
@@ -123,8 +129,8 @@ test.describe('Artssøk', () => {
     const base = process.env.BASE_URL || 'http://localhost:3000';
     await page.goto(base);
 
+    await page.fill('#place', 'Teststed');
     const searchInput = page.locator('#search');
-    
     // Skriv bare ett tegn
     await searchInput.fill('m');
 
@@ -170,7 +176,9 @@ test.describe('Brukergrensesnitt', () => {
     const base = process.env.BASE_URL || 'http://localhost:3000';
     await page.goto(base);
 
-    // Velg en art først
+    // Fyll inn lokasjon først
+    await page.fill('#place', 'Teststed');
+    // Velg en art
     const searchInput = page.locator('#search');
     await searchInput.fill('meis');
 

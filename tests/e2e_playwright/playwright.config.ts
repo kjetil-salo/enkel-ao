@@ -12,7 +12,7 @@ export default defineConfig({
   ],
   use: {
     baseURL: process.env.BASE_URL || 'http://localhost:3000',
-    headless: process.env.CI ? true : false,
+    headless: true,
     viewport: { width: 480, height: 800 },
     // Screenshot ved feil
     screenshot: 'only-on-failure',
