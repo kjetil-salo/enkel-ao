@@ -11,6 +11,20 @@ import { setAoSiteSuggestions, initLocation, openMap } from './location.js';
 import { renderObservations, toCsv } from './observations.js';
 
 // ============================================================
+// Applikasjonstilstand (MÅ komme ALLER FØRST!)
+// ============================================================
+let currentResults = [];
+let activeIndex = -1;
+let debounceTimer = null;
+let selectedSpecies = null;
+const COMMON_ACTIVITIES = ['Stasjonær', 'Rastende', 'Overflygende', 'Næringssøkende'];
+const observations = [];
+let currentPosition = null;
+let currentPlaceName = '';
+let currentAoSites = [];
+let currentAoSizeMeters = 1000;
+
+// ============================================================
 // DOM-elementreferanser
 // ============================================================
 const input = document.getElementById('search');
@@ -23,6 +37,7 @@ const resultCount = document.getElementById('result-count');
 const countInput = document.getElementById('count');
 const activitySelect = document.getElementById('activity');
 const activitySubmitBtn = document.getElementById('activity-submit');
+const activityPillsEl = document.getElementById('activity-pills');
 const obsListEl = document.getElementById('obs-list');
 const exportBtn = document.getElementById('export-btn');
 const copyBtn = document.getElementById('copy-btn');
@@ -36,23 +51,49 @@ const placeInput = document.getElementById('place');
 const aoSitesEl = document.getElementById('ao-sites');
 const aoSitesDropdown = document.getElementById('ao-sites-dropdown');
 const aoSizeInput = document.getElementById('ao-size');
+// Seksjoner for progressiv flyt
+const sectionLokasjon = document.querySelector('.section-main:nth-of-type(1)');
+const sectionObservasjon = document.querySelector('.section-main:nth-of-type(2)');
+const sectionAktivitet = document.querySelector('.row .activity-input-row');
 
 // Avanserte felter
 const ageSelect = document.getElementById('age');
 const genderSelect = document.getElementById('gender');
 
 // ============================================================
-// Applikasjonstilstand
+// Progressiv aktivering/deaktivering av seksjoner
 // ============================================================
-let currentResults = [];
-let activeIndex = -1;
-let debounceTimer = null;
-let selectedSpecies = null;
-const observations = [];
-let currentPosition = null;
-let currentPlaceName = '';
-let currentAoSites = [];
-let currentAoSizeMeters = 1000;
+function updateSectionStates() {
+  // Lokasjon må være fylt inn for å aktivere observasjon
+  const hasLocation = !!(placeInput && placeInput.value.trim());
+  if (sectionObservasjon) {
+    sectionObservasjon.classList.toggle('dimmed', !hasLocation);
+    // Deaktiver alle input i observasjonsseksjonen hvis ingen lokasjon
+    input.disabled = !hasLocation;
+    countInput.disabled = !hasLocation || !selectedSpecies;
+    activitySelect.disabled = !hasLocation || !selectedSpecies || !countInput.value.trim();
+    activitySubmitBtn.disabled = activitySelect.disabled;
+    // ALDRI disable locBtn! (Oppdater posisjon skal alltid virke)
+    if (!hasLocation) {
+      input.value = '';
+      countInput.value = '';
+      selectedSpecies = null;
+      chosenEl.style.display = 'none';
+      ageSelect.disabled = true;
+      genderSelect.disabled = true;
+    }
+  }
+  // Antall må være fylt inn for å aktivere aktivitet
+  const hasCount = !!(countInput && countInput.value.trim() && !countInput.disabled);
+  if (sectionAktivitet) {
+    sectionAktivitet.classList.toggle('dimmed', !hasCount);
+    activitySelect.disabled = !hasCount;
+    activitySubmitBtn.disabled = !hasCount;
+  }
+  // Avanserte felter
+  ageSelect.disabled = !hasLocation || !selectedSpecies;
+  genderSelect.disabled = !hasLocation || !selectedSpecies;
+}
 
 // ============================================================
 // Hjelpefunksjoner for status
@@ -151,10 +192,15 @@ function chooseItem(index) {
     resultsEl.style.display = '';
   }, 200);
 
+
   // Aktiver antallsfelt og flytt fokus
   countInput.disabled = false;
   countInput.value = '';
   countInput.focus();
+  // Flash antall-feltet tydelig
+  countInput.classList.remove('flash-strong');
+  void countInput.offsetWidth; // trigger reflow
+  countInput.classList.add('flash-strong');
 
   if (activitySelect) {
     activitySelect.disabled = false;
@@ -394,9 +440,48 @@ function handleClear() {
 }
 
 // ============================================================
+// Aktivitets-pills (hurtigvalg)
+// ============================================================
+function renderActivityPills() {
+  if (!activityPillsEl) return;
+  activityPillsEl.innerHTML = '';
+
+  // De 4 faste hurtig-pills (bruker div for å unngå iOS form accessory bar)
+  COMMON_ACTIVITIES.forEach(act => {
+    const pill = document.createElement('div');
+    pill.className = 'activity-pill';
+    pill.textContent = act;
+    pill.role = 'button';
+    pill.addEventListener('click', () => {
+      // Sett dropdown til denne aktiviteten
+      if (activitySelect) {
+        for (let i = 0; i < activitySelect.options.length; i++) {
+          if (activitySelect.options[i].text === act) {
+            activitySelect.selectedIndex = i;
+            break;
+          }
+        }
+      }
+      commitObservationFromActivity();
+    });
+    activityPillsEl.appendChild(pill);
+  });
+}
+
+// ============================================================
 // Oppsett av event listeners
 // ============================================================
 function setupEventListeners() {
+  // Progressiv flyt: oppdater seksjonstilstand ved input
+  if (placeInput) {
+    placeInput.addEventListener('input', updateSectionStates);
+  }
+  if (countInput) {
+    countInput.addEventListener('input', updateSectionStates);
+  }
+  if (input) {
+    input.addEventListener('input', updateSectionStates);
+  }
   // Stedsnavn-input
   if (placeInput) {
     placeInput.addEventListener('input', () => {
@@ -435,6 +520,7 @@ function setupEventListeners() {
     }
   });
 
+  // Antallsfelt: Enter går til første pill, tall 1-5 velger og registrerer
   // Antallsfelt: Enter går til aktivitet
   countInput.addEventListener('keydown', (e) => {
     if (e.key !== 'Enter') return;
@@ -461,8 +547,9 @@ function setupEventListeners() {
   // Aktivitets-select
   if (activitySelect) {
     activitySelect.addEventListener('keydown', (e) => {
-      if (e.key !== 'Enter') return;
-      commitObservationFromActivity();
+      if (e.key === 'Enter') {
+        commitObservationFromActivity();
+      }
     });
 
     // På mobil/touch: lagre automatisk ved valg
@@ -515,6 +602,16 @@ function setupEventListeners() {
 function handlePositionUpdate(position, sites) {
   currentPosition = position;
 
+  // Wrapper for å oppdatere seksjonstilstand etter valg
+  function setCurrentPlaceAndUpdate(name) {
+    currentPlaceName = name;
+    if (placeInput) {
+      placeInput.value = name;
+      placeInput.dataset.autofilled = 'true';
+    }
+    updateSectionStates();
+  }
+
   if (sites && sites.length) {
     currentAoSites = setAoSiteSuggestions(
       sites,
@@ -522,7 +619,7 @@ function handlePositionUpdate(position, sites) {
       aoSitesDropdown,
       aoSitesEl,
       placeInput,
-      (name) => { currentPlaceName = name; }
+      setCurrentPlaceAndUpdate
     );
   } else {
     currentAoSites = setAoSiteSuggestions(
@@ -531,17 +628,22 @@ function handlePositionUpdate(position, sites) {
       aoSitesDropdown,
       aoSitesEl,
       placeInput,
-      (name) => { currentPlaceName = name; }
+      setCurrentPlaceAndUpdate
     );
   }
+  updateSectionStates();
 }
 
 // ============================================================
 // Initialisering
 // ============================================================
 async function init() {
-  // Nullstill stedsnavn-input
-  if (placeInput) {
+
+  // Last lagret state FØR rendering
+  loadState();
+
+  // Nullstill stedsnavn-input KUN hvis ingen lagret plass
+  if (placeInput && !placeInput.value) {
     placeInput.value = '';
     currentPlaceName = '';
   }
@@ -549,15 +651,15 @@ async function init() {
   // Sett opp event listeners
   setupEventListeners();
 
+  // Kjør progressiv seksjonsaktivering ved oppstart
+  updateSectionStates();
+
   // Initialiser geolokasjon
   initLocation(
     { locBtn, locMapBtn, locDot, locText },
     handlePositionUpdate,
     currentAoSizeMeters
   );
-
-  // Last lagret state
-  loadState();
 
   // Vis observasjoner
   doRenderObservations();
@@ -572,6 +674,8 @@ async function init() {
       if (a.selected) opt.selected = true;
       activitySelect.appendChild(opt);
     });
+    // Render hurtig-pills
+    renderActivityPills();
   } catch (e) {
     console.error('Kunne ikke laste aktiviteter:', e);
   }

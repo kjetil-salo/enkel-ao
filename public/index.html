@@ -149,6 +149,90 @@
   margin-left: 4px;
 }
 
+.activity-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.activity-pill {
+  font-size: 0.85em;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--card-bg);
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.activity-pill:hover {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.activity-pill.selected {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--text);
+}
+
+.activity-pill.last-used {
+  border-color: #22c55e;
+  background: rgba(34, 197, 94, 0.15);
+  color: #4ade80;
+}
+
+.activity-search-wrap {
+  position: relative;
+  margin-bottom: 6px;
+}
+
+.activity-search-wrap input {
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--card-bg);
+  color: var(--text);
+  font-size: 16px;
+}
+
+.activity-search-results {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  max-height: 200px;
+  overflow-y: auto;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  z-index: 100;
+  display: none;
+}
+
+.activity-search-results.visible {
+  display: block;
+}
+
+.activity-search-item {
+  padding: 8px 12px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--border);
+}
+
+.activity-search-item:last-child {
+  border-bottom: none;
+}
+
+.activity-search-item:hover,
+.activity-search-item.active {
+  background: var(--accent-soft);
+}
+
       input[type="text"]::placeholder {
         color: rgba(148, 163, 184, 0.75);
       }
@@ -841,7 +925,7 @@
         <div class="tablet-layout">
         <div class="tablet-input-column">
 
-        <div class="section-main">
+        <div class="section-main section-lokasjon">
           <div class="section-title">📍 Lokasjon</div>
           <div class="row" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-height:0;">
             <span class="loc-dot" id="loc-dot" style="width:10px;height:10px;margin-right:4px;"></span>
@@ -907,7 +991,7 @@
           </div>
         </div>
 
-        <div class="section-main">
+        <div class="section-main section-observasjon">
           <div class="section-title">🔍 Observasjon (obligatorisk)</div>
           <div class="status-row">
             <div class="status-left">
@@ -917,55 +1001,57 @@
             <div class="badge" id="result-count">0 treff</div>
           </div>
 
-          <label for="search" style="margin-top:10px; display:block;">Art</label>
-          <div class="input-wrap" style="display:flex;align-items:center;gap:8px;">
-            <span class="search-icon">🔍</span>
-            <input
-              type="text"
-              id="search"
-              autocomplete="off"
-              placeholder="F.eks. blåmeis, gråspurv …"
-              style="flex:1;"
-            />
-            <label style="font-size:0.65em;color:#b0b0b0;display:flex;align-items:center;gap:2px;user-select:none;">
-              <input type="checkbox" id="include-subtaxa" style="margin:0 4px 0 0;vertical-align:middle;" />
-              Vis underarter
-            </label>
+          <div style="display:flex;gap:8px;margin-top:10px;align-items:flex-end;">
+            <div style="flex:1;">
+              <label for="search" style="display:block;">Art</label>
+              <div class="input-wrap" style="display:flex;align-items:center;gap:8px;">
+                <span class="search-icon">🔍</span>
+                <input
+                  type="text"
+                  id="search"
+                  autocomplete="off"
+                  placeholder="F.eks. blåmeis …"
+                  style="flex:1;"
+                />
+              </div>
+            </div>
+            <div style="width:90px;">
+              <label for="count" style="display:block;">Antall</label>
+              <input
+                type="number"
+                id="count"
+                min="1"
+                step="1"
+                placeholder="0"
+                disabled
+                style="width:100%;"
+              />
+            </div>
           </div>
+          <label style="font-size:0.65em;color:#b0b0b0;display:flex;align-items:center;gap:2px;user-select:none;margin-top:4px;">
+            <input type="checkbox" id="include-subtaxa" style="margin:0 4px 0 0;vertical-align:middle;" />
+            Vis underarter
+          </label>
 
           <div class="results" id="results" role="listbox" aria-label="Arter"></div>
           <div class="result-empty" id="empty-msg" style="display:none;">Ingen treff ennå. Skriv minst 2 tegn.</div>
           <div class="chosen" id="chosen" style="display:none;"></div>
 
           <div class="row">
-            <label for="count">Antall</label>
-            <div class="row-inline">
-              <input
-                type="number"
-                id="count"
-                min="1"
-                step="1"
-                placeholder="Antall individer"
-                disabled
-              />
-              <span class="badge">Enter = gå til aktivitet</span>
-            </div>
-          </div>
-
-          <div class="row">
             <label for="activity">Aktivitet</label>
-            <div class="activity-input-row">
+            <div class="activity-input-row section-aktivitet">
               <select id="activity" disabled></select>
               <button
                 type="button"
                 id="activity-submit"
                 class="activity-submit-btn"
-                title="Registrer observasjon"
+                title="Registrer observasjon (Enter)"
                 disabled
               >
                 ✓
               </button>
             </div>
+            <div id="activity-pills" class="activity-pills"></div>
           </div>
         </div>
 
@@ -1040,7 +1126,7 @@
 
     </div>
 
-    <script type="module" src="/js/main.js?v=20260122"></script>
+    <script type="module" src="/js/main.js?v=20260122n"></script>
     <script>
       // Registrer Service Worker for offline-støtte
       if ('serviceWorker' in navigator) {

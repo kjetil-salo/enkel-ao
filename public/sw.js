@@ -1,5 +1,5 @@
 // Service Worker for offline-støtte
-const CACHE_NAME = 'fugleobs-v2';
+const CACHE_NAME = 'fugleobs-v14';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -38,36 +38,17 @@ self.addEventListener('activate', (event) => {
 
 // Håndter requests: cache-first for statiske filer, network-first for API
 self.addEventListener('fetch', (event) => {
-  const url = new URL(event.request.url);
-
-  // API-kall: prøv nett først, fall tilbake til cache
-  if (url.pathname.startsWith('/api/')) {
-    event.respondWith(
-      fetch(event.request)
-        .then((response) => {
-          // Cache vellykkede API-svar for species
-          if (url.pathname === '/api/species' && response.ok) {
-            const clone = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
-          }
-          return response;
-        })
-        .catch(() => caches.match(event.request))
-    );
-    return;
-  }
-
-  // Statiske filer: cache-first
+  // Network-first for alle requests: alltid prøv nett først, fallback til cache
   event.respondWith(
-    caches.match(event.request).then((cached) => {
-      return cached || fetch(event.request).then((response) => {
-        // Cache nye statiske filer
+    fetch(event.request)
+      .then((response) => {
+        // Oppdater cache med ferskt svar
         if (response.ok && event.request.method === 'GET') {
           const clone = response.clone();
           caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
         }
         return response;
-      });
-    })
+      })
+      .catch(() => caches.match(event.request))
   );
 });

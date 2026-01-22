@@ -51,24 +51,20 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
   const table = document.createElement('table');
   table.className = 'obs-table';
 
-  const thead = document.createElement('thead');
-  const headerRow = document.createElement('tr');
-  ['Art', 'Antall', 'Aktivitet', 'Detaljer', ''].forEach((label) => {
-    const th = document.createElement('th');
-    th.textContent = label;
-    headerRow.appendChild(th);
-  });
-  thead.appendChild(headerRow);
-  table.appendChild(thead);
-
   const tbody = document.createElement('tbody');
 
   groups.forEach((group) => {
+    // Finn antall unike arter i denne gruppen
+    const uniqueSpecies = new Set(
+      group.items
+        .map(obs => obs.species && obs.species.taxonName ? obs.species.taxonName.trim().toLowerCase() : null)
+        .filter(Boolean)
+    );
     const groupRow = document.createElement('tr');
     const groupCell = document.createElement('td');
     groupCell.colSpan = 5;
     groupCell.className = 'obs-group-title';
-    groupCell.textContent = group.key;
+    groupCell.innerHTML = `${group.key} <span style="font-weight:normal;font-size:0.98em;color:#3b82f6;margin-left:8px;">• ${uniqueSpecies.size} art${uniqueSpecies.size === 1 ? '' : 'er'}</span>`;
     groupRow.appendChild(groupCell);
     tbody.appendChild(groupRow);
 
