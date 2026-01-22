@@ -4,6 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="manifest" href="/manifest.json" />
     <title>Fugleobservasjoner – arts-autocomplete</title>
     <link rel="stylesheet" href="style.css" />
     <style>
@@ -926,7 +927,7 @@
               placeholder="F.eks. blåmeis, gråspurv …"
               style="flex:1;"
             />
-            <label style="font-size:0.75em;color:#b0b0b0;display:flex;align-items:center;gap:2px;user-select:none;">
+            <label style="font-size:0.65em;color:#b0b0b0;display:flex;align-items:center;gap:2px;user-select:none;">
               <input type="checkbox" id="include-subtaxa" style="margin:0 4px 0 0;vertical-align:middle;" />
               Vis underarter
             </label>
@@ -1039,7 +1040,13 @@
 
     </div>
 
-    <script type="module" src="/js/main.js?v=20260121b"></script>
+    <script type="module" src="/js/main.js?v=20260122"></script>
+    <script>
+      // Registrer Service Worker for offline-støtte
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/sw.js').catch(() => {});
+      }
+    </script>
     <footer class="footer-credit">Versjon v1.9.1  |  © 2026 Kjetil Salomonsen</footer>
   </body>
 </html>
