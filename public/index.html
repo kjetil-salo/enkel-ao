@@ -105,6 +105,7 @@
         letter-spacing: 0.11em;
         color: var(--muted);
         margin-bottom: 6px;
+        pointer-events: none;
       }
 
       .input-wrap {
@@ -132,7 +133,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   min-width: 0;
 }
 
@@ -152,15 +153,21 @@
 .activity-pills {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  margin-bottom: 6px;
+  gap: 5px;
+  margin-bottom: 4px;
+  margin-top: 6px;
+}
+
+/* Sikre at pills alltid er klikkbare uansett hva som ligger over */
+.activity-pill {
   position: relative;
-  z-index: 10;
+  z-index: 100;
+  pointer-events: auto !important;
 }
 
 .activity-pill {
-  font-size: 0.85em;
-  padding: 6px 12px;
+  font-size: 0.75em;
+  padding: 4px 10px;
   border-radius: 999px;
   border: 1px solid var(--border);
   background: var(--card-bg);
@@ -170,6 +177,7 @@
   white-space: nowrap;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
 .activity-pill:hover {
@@ -364,6 +372,11 @@
         padding: 4px 0 0;
       }
 
+      /* Når results er tom, la klikk gå gjennom */
+      .results:empty {
+        pointer-events: none;
+      }
+
       .result-item {
         padding: 7px 10px;
         border-radius: 10px;
@@ -414,6 +427,7 @@
 
       .chosen {
         margin-top: 10px;
+        margin-bottom: 16px;
         font-size: 0.8rem;
         padding: 6px 10px;
         border-radius: 999px;
@@ -422,6 +436,11 @@
         display: inline-flex;
         align-items: center;
         gap: 8px;
+      }
+
+      .chosen,
+      .chosen * {
+        pointer-events: none !important;
       }
 
       .chosen span:first-child {
@@ -811,14 +830,6 @@
         border-color: var(--accent) !important;
       }
 
-      .activity-input-row {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        flex-wrap: nowrap;
-        min-width: 0;
-      }
-
       .activity-submit-btn {
         border-radius: 999px;
         border: 1px solid rgba(22, 163, 74, 1);
@@ -1068,6 +1079,9 @@
               type="text"
               id="place"
               autocomplete="off"
+              autocorrect="off"
+              autocapitalize="off"
+              spellcheck="false"
               placeholder="F.eks. Osen, Herdla …"
             />
             <div class="result-empty" id="ao-sites" style="display:none; margin-top:4px;"></div>
@@ -1093,6 +1107,9 @@
                   type="text"
                   id="search"
                   autocomplete="off"
+                  autocorrect="off"
+                  autocapitalize="off"
+                  spellcheck="false"
                   placeholder="F.eks. blåmeis …"
                   style="flex:1;"
                 />
@@ -1107,6 +1124,7 @@
                 step="1"
                 placeholder="0"
                 disabled
+                autocomplete="off"
                 style="width:100%;"
               />
             </div>
@@ -1122,6 +1140,7 @@
 
           <div class="row">
             <label>Aktivitet</label>
+            <div id="activity-pills" class="activity-pills"></div>
             <div class="activity-input-row section-aktivitet">
               <select id="activity" disabled></select>
               <button
@@ -1134,7 +1153,6 @@
                 ✓
               </button>
             </div>
-            <div id="activity-pills" class="activity-pills"></div>
           </div>
         </div>
 
