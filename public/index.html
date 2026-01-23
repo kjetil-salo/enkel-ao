@@ -913,31 +913,31 @@
       @media (min-width: 768px) and (max-width: 1200px) and (min-height: 600px) {
         .shell {
           max-width: 100%;
-          padding: 0 16px;
+          padding: 0 12px;
         }
 
         .card {
           margin: 0;
-          padding: 12px;
+          padding: 8px;
         }
 
         .tablet-layout {
           display: grid;
           grid-template-columns: 2fr 3fr;
-          gap: 16px;
+          gap: 12px;
           align-items: start;
         }
 
         .tablet-input-column {
           display: flex;
           flex-direction: column;
-          gap: 12px;
+          gap: 6px;
         }
 
         .tablet-list-column {
           position: sticky;
-          top: 12px;
-          max-height: calc(100vh - 100px);
+          top: 8px;
+          max-height: calc(100vh - 60px);
           overflow-y: auto;
         }
 
@@ -945,9 +945,26 @@
           margin-top: 0;
         }
 
-        /* Større touch-targets på tablet */
+        /* Kompakt padding på tablet */
         .section-main {
-          padding: 14px;
+          padding: 10px;
+          margin-bottom: 0;
+        }
+
+        .section-optional {
+          padding: 8px;
+        }
+
+        .section-title {
+          margin-bottom: 2px;
+        }
+
+        .row {
+          margin-top: 6px;
+        }
+
+        header {
+          margin-bottom: 4px;
         }
 
         .obs-table th,
