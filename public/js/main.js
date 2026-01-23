@@ -191,11 +191,18 @@ function chooseItem(index) {
   const item = currentResults[index];
   if (!item) return;
 
+  // Stopp eventuelle ventende søk
+  if (debounceTimer) {
+    clearTimeout(debounceTimer);
+    debounceTimer = null;
+  }
+
   selectedSpecies = item;
   chosenEl.style.display = 'inline-flex';
   chosenEl.innerHTML = '';
 
-  // Skjul/minimer artsvelgeren
+  // Skjul/minimer artsvelgeren og tøm resultater
+  currentResults = [];
   resultsEl.innerHTML = '';
   resultsEl.style.display = 'none';
 
@@ -250,7 +257,7 @@ function updateSubtaxaCheckboxState() {
     if (forceOffline) {
       subtaxaCheckbox.checked = false;
       subtaxaCheckbox.disabled = true;
-      subtaxaWarning.style.display = 'block';
+      subtaxaWarning.style.display = 'inline';
     } else {
       subtaxaCheckbox.disabled = false;
       subtaxaWarning.style.display = 'none';
@@ -288,7 +295,7 @@ async function fetchResults(term) {
       subtaxaCheckbox.disabled = true;
     }
     if (subtaxaWarning) {
-      subtaxaWarning.style.display = 'block';
+      subtaxaWarning.style.display = 'inline';
     }
   } else {
     if (subtaxaCheckbox) {
