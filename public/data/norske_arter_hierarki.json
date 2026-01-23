@@ -1,0 +1,6874 @@
+[
+  {
+    "norwegian": "Norwegian name",
+    "latin": "Scientific name",
+    "subspecies": []
+  },
+  {
+    "norwegian": "andefugler",
+    "latin": "Anseriformes",
+    "subspecies": []
+  },
+  {
+    "norwegian": "andefamilien",
+    "latin": "Anatidae",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Oxyura",
+    "subspecies": []
+  },
+  {
+    "norwegian": "kobberand",
+    "latin": "Oxyura jamaicensis",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "O. j. jamaicensis"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Cygnus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "knoppsvane",
+    "latin": "Cygnus olor",
+    "subspecies": []
+  },
+  {
+    "norwegian": "dvergsvane",
+    "latin": "Cygnus columbianus",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "C. c. bewickii"
+      }
+    ]
+  },
+  {
+    "norwegian": "sangsvane",
+    "latin": "Cygnus cygnus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Branta",
+    "subspecies": []
+  },
+  {
+    "norwegian": "ringgås",
+    "latin": "Branta bernicla",
+    "subspecies": [
+      {
+        "norwegian": "svartbuket ringgås",
+        "latin": "B. b. nigricans"
+      },
+      {
+        "norwegian": "mørkbuket ringgås",
+        "latin": "B. b. bernicla"
+      },
+      {
+        "norwegian": "lysbuket ringgås",
+        "latin": "B. b. hrota"
+      }
+    ]
+  },
+  {
+    "norwegian": "rødhalsgås",
+    "latin": "Branta ruficollis",
+    "subspecies": []
+  },
+  {
+    "norwegian": "kanadagås",
+    "latin": "Branta canadensis",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "B. c. interior"
+      },
+      {
+        "norwegian": "nan",
+        "latin": "B. c. canadensis"
+      }
+    ]
+  },
+  {
+    "norwegian": "hvitkinngås",
+    "latin": "Branta leucopsis",
+    "subspecies": []
+  },
+  {
+    "norwegian": "polargås",
+    "latin": "Branta hutchinsii",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "B. h. hutchinsii"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Anser",
+    "subspecies": []
+  },
+  {
+    "norwegian": "stripegås",
+    "latin": "Anser indicus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "eskimogås",
+    "latin": "Anser rossii",
+    "subspecies": []
+  },
+  {
+    "norwegian": "snøgås",
+    "latin": "Anser caerulescens",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "A. c. caerulescens/atlanticus"
+      }
+    ]
+  },
+  {
+    "norwegian": "grågås",
+    "latin": "Anser anser",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "A. a. anser"
+      }
+    ]
+  },
+  {
+    "norwegian": "dverggås",
+    "latin": "Anser erythropus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "tundragås",
+    "latin": "Anser albifrons",
+    "subspecies": [
+      {
+        "norwegian": "grønlandsk tundragås",
+        "latin": "A. a. flavirostris"
+      },
+      {
+        "norwegian": "nan",
+        "latin": "A. a. albifrons"
+      }
+    ]
+  },
+  {
+    "norwegian": "tundrasædgås",
+    "latin": "Anser serrirostris",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "A. s. rossicus"
+      }
+    ]
+  },
+  {
+    "norwegian": "kortnebbgås",
+    "latin": "Anser brachyrhynchus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "taigasædgås",
+    "latin": "Anser fabalis",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "A. f. fabalis"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Aix",
+    "subspecies": []
+  },
+  {
+    "norwegian": "mandarinand",
+    "latin": "Aix galericulata",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Alopochen",
+    "subspecies": []
+  },
+  {
+    "norwegian": "niland",
+    "latin": "Alopochen aegyptiaca",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Tadorna",
+    "subspecies": []
+  },
+  {
+    "norwegian": "gravand",
+    "latin": "Tadorna tadorna",
+    "subspecies": []
+  },
+  {
+    "norwegian": "rustand",
+    "latin": "Tadorna ferruginea",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Clangula",
+    "subspecies": []
+  },
+  {
+    "norwegian": "havelle",
+    "latin": "Clangula hyemalis",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Polysticta",
+    "subspecies": []
+  },
+  {
+    "norwegian": "stellerand",
+    "latin": "Polysticta stelleri",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Somateria",
+    "subspecies": []
+  },
+  {
+    "norwegian": "brilleærfugl",
+    "latin": "Somateria fischeri",
+    "subspecies": []
+  },
+  {
+    "norwegian": "praktærfugl",
+    "latin": "Somateria spectabilis",
+    "subspecies": []
+  },
+  {
+    "norwegian": "ærfugl",
+    "latin": "Somateria mollissima",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "S. m. v-nigrum"
+      },
+      {
+        "norwegian": "nan",
+        "latin": "S. m. borealis"
+      },
+      {
+        "norwegian": "nan",
+        "latin": "S. m. mollissima"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Histrionicus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "harlekinand",
+    "latin": "Histrionicus histrionicus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Melanitta",
+    "subspecies": []
+  },
+  {
+    "norwegian": "svartand",
+    "latin": "Melanitta nigra",
+    "subspecies": []
+  },
+  {
+    "norwegian": "amerikasvartand",
+    "latin": "Melanitta americana",
+    "subspecies": []
+  },
+  {
+    "norwegian": "brilleand",
+    "latin": "Melanitta perspicillata",
+    "subspecies": []
+  },
+  {
+    "norwegian": "sjøorre",
+    "latin": "Melanitta fusca",
+    "subspecies": []
+  },
+  {
+    "norwegian": "amerikasjøorre",
+    "latin": "Melanitta deglandi",
+    "subspecies": []
+  },
+  {
+    "norwegian": "sibirsjøorre",
+    "latin": "Melanitta stejnegeri",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Bucephala",
+    "subspecies": []
+  },
+  {
+    "norwegian": "bøffeland",
+    "latin": "Bucephala albeola",
+    "subspecies": []
+  },
+  {
+    "norwegian": "islandsand",
+    "latin": "Bucephala islandica",
+    "subspecies": []
+  },
+  {
+    "norwegian": "kvinand",
+    "latin": "Bucephala clangula",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "B. c. clangula"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Mergellus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "lappfiskand",
+    "latin": "Mergellus albellus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Mergus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "siland",
+    "latin": "Mergus serrator",
+    "subspecies": []
+  },
+  {
+    "norwegian": "laksand",
+    "latin": "Mergus merganser",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "M. m. merganser"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Netta",
+    "subspecies": []
+  },
+  {
+    "norwegian": "rødhodeand",
+    "latin": "Netta rufina",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Aythya",
+    "subspecies": []
+  },
+  {
+    "norwegian": "hvitøyeand",
+    "latin": "Aythya nyroca",
+    "subspecies": []
+  },
+  {
+    "norwegian": "taffeland",
+    "latin": "Aythya ferina",
+    "subspecies": []
+  },
+  {
+    "norwegian": "ringand",
+    "latin": "Aythya collaris",
+    "subspecies": []
+  },
+  {
+    "norwegian": "toppand",
+    "latin": "Aythya fuligula",
+    "subspecies": []
+  },
+  {
+    "norwegian": "purpurhodeand",
+    "latin": "Aythya affinis",
+    "subspecies": []
+  },
+  {
+    "norwegian": "bergand",
+    "latin": "Aythya marila",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "A. m. marila"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Sibirionetta",
+    "subspecies": []
+  },
+  {
+    "norwegian": "gulkinnand",
+    "latin": "Sibirionetta formosa",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Spatula",
+    "subspecies": []
+  },
+  {
+    "norwegian": "knekkand",
+    "latin": "Spatula querquedula",
+    "subspecies": []
+  },
+  {
+    "norwegian": "blåvingeand",
+    "latin": "Spatula discors",
+    "subspecies": []
+  },
+  {
+    "norwegian": "skjeand",
+    "latin": "Spatula clypeata",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Mareca",
+    "subspecies": []
+  },
+  {
+    "norwegian": "snadderand",
+    "latin": "Mareca strepera",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "M. s. strepera"
+      }
+    ]
+  },
+  {
+    "norwegian": "brunnakke",
+    "latin": "Mareca penelope",
+    "subspecies": []
+  },
+  {
+    "norwegian": "amerikablesand",
+    "latin": "Mareca americana",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Anas",
+    "subspecies": []
+  },
+  {
+    "norwegian": "stokkand",
+    "latin": "Anas platyrhynchos",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "A. p. platyrhynchos"
+      }
+    ]
+  },
+  {
+    "norwegian": "rødfotand",
+    "latin": "Anas rubripes",
+    "subspecies": []
+  },
+  {
+    "norwegian": "stjertand",
+    "latin": "Anas acuta",
+    "subspecies": []
+  },
+  {
+    "norwegian": "krikkand",
+    "latin": "Anas crecca",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "A. c. crecca"
+      },
+      {
+        "norwegian": "amerikakrikkand",
+        "latin": "A. c. carolinensis"
+      }
+    ]
+  },
+  {
+    "norwegian": "hønsefugler",
+    "latin": "Galliformes",
+    "subspecies": []
+  },
+  {
+    "norwegian": "fasanfamilien",
+    "latin": "Phasianidae",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Tetrastes",
+    "subspecies": []
+  },
+  {
+    "norwegian": "jerpe",
+    "latin": "Tetrastes bonasia",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "T. b. bonasia"
+      },
+      {
+        "norwegian": "nan",
+        "latin": "T. b. griseonota"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Lagopus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "fjellrype",
+    "latin": "Lagopus muta",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "L. m. muta"
+      },
+      {
+        "norwegian": "svalbardrype",
+        "latin": "L. m. hyperborea"
+      }
+    ]
+  },
+  {
+    "norwegian": "lirype",
+    "latin": "Lagopus lagopus",
+    "subspecies": [
+      {
+        "norwegian": "smølalirype",
+        "latin": "L. l. variegata"
+      },
+      {
+        "norwegian": "nan",
+        "latin": "L. l. lagopus"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Tetrao",
+    "subspecies": []
+  },
+  {
+    "norwegian": "storfugl",
+    "latin": "Tetrao urogallus",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "T. u. urogallus"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Lyrurus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "orrfugl",
+    "latin": "Lyrurus tetrix",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "L. t. tetrix"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Perdix",
+    "subspecies": []
+  },
+  {
+    "norwegian": "rapphøne",
+    "latin": "Perdix perdix",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "P. p. perdix"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Coturnix",
+    "subspecies": []
+  },
+  {
+    "norwegian": "vaktel",
+    "latin": "Coturnix coturnix",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "C. c. coturnix"
+      }
+    ]
+  },
+  {
+    "norwegian": "dykkere",
+    "latin": "Podicipediformes",
+    "subspecies": []
+  },
+  {
+    "norwegian": "dykkerfamilien",
+    "latin": "Podicipedidae",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Tachybaptus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "dvergdykker",
+    "latin": "Tachybaptus ruficollis",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "T. r. ruficollis"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Podilymbus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "ringnebbdykker",
+    "latin": "Podilymbus podiceps",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "P. p. podiceps"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Podiceps",
+    "subspecies": []
+  },
+  {
+    "norwegian": "horndykker",
+    "latin": "Podiceps auritus",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "P. a. auritus"
+      }
+    ]
+  },
+  {
+    "norwegian": "gråstrupedykker",
+    "latin": "Podiceps grisegena",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "P. g. grisegena"
+      },
+      {
+        "norwegian": "nan",
+        "latin": "P. g. holbollii"
+      }
+    ]
+  },
+  {
+    "norwegian": "toppdykker",
+    "latin": "Podiceps cristatus",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "P. c. cristatus"
+      }
+    ]
+  },
+  {
+    "norwegian": "svarthalsdykker",
+    "latin": "Podiceps nigricollis",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "P. n. nigricollis"
+      }
+    ]
+  },
+  {
+    "norwegian": "trapper",
+    "latin": "Otidiformes",
+    "subspecies": []
+  },
+  {
+    "norwegian": "trappefamilien",
+    "latin": "Otididae",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Otis",
+    "subspecies": []
+  },
+  {
+    "norwegian": "stortrappe",
+    "latin": "Otis tarda",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "O. t. tarda"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Tetrax",
+    "subspecies": []
+  },
+  {
+    "norwegian": "dvergtrappe",
+    "latin": "Tetrax tetrax",
+    "subspecies": []
+  },
+  {
+    "norwegian": "gjøkfugler",
+    "latin": "Cuculiformes",
+    "subspecies": []
+  },
+  {
+    "norwegian": "gjøkfamilien",
+    "latin": "Cuculidae",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Clamator",
+    "subspecies": []
+  },
+  {
+    "norwegian": "skjæregjøk",
+    "latin": "Clamator glandarius",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Coccyzus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "gulnebbgjøk",
+    "latin": "Coccyzus americanus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Cuculus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "gjøk",
+    "latin": "Cuculus canorus",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "C. c. canorus"
+      }
+    ]
+  },
+  {
+    "norwegian": "sandhøns",
+    "latin": "Pterocliformes",
+    "subspecies": []
+  },
+  {
+    "norwegian": "sandhønefamilien",
+    "latin": "Pteroclidae",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Syrrhaptes",
+    "subspecies": []
+  },
+  {
+    "norwegian": "steppehøne",
+    "latin": "Syrrhaptes paradoxus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "duefugler",
+    "latin": "Columbiformes",
+    "subspecies": []
+  },
+  {
+    "norwegian": "duefamilien",
+    "latin": "Columbidae",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Streptopelia",
+    "subspecies": []
+  },
+  {
+    "norwegian": "mongolturteldue",
+    "latin": "Streptopelia orientalis",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "S. o. meena"
+      },
+      {
+        "norwegian": "nan",
+        "latin": "S. o. orientalis"
+      }
+    ]
+  },
+  {
+    "norwegian": "turteldue",
+    "latin": "Streptopelia turtur",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "S. t. turtur"
+      }
+    ]
+  },
+  {
+    "norwegian": "tyrkerdue",
+    "latin": "Streptopelia decaocto",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Columba",
+    "subspecies": []
+  },
+  {
+    "norwegian": "ringdue",
+    "latin": "Columba palumbus",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "C. p. palumbus"
+      }
+    ]
+  },
+  {
+    "norwegian": "bydue",
+    "latin": "Columba livia var. domestica",
+    "subspecies": []
+  },
+  {
+    "norwegian": "skogdue",
+    "latin": "Columba oenas",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "C. o. oenas"
+      }
+    ]
+  },
+  {
+    "norwegian": "tranefugler",
+    "latin": "Gruiformes",
+    "subspecies": []
+  },
+  {
+    "norwegian": "tranefamilien",
+    "latin": "Gruidae",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Antigone",
+    "subspecies": []
+  },
+  {
+    "norwegian": "kanadatrane",
+    "latin": "Antigone canadensis",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "A. c. canadensis"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Grus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "jomfrutrane",
+    "latin": "Grus virgo",
+    "subspecies": []
+  },
+  {
+    "norwegian": "trane",
+    "latin": "Grus grus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "riksefamilien",
+    "latin": "Rallidae",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Rallus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "vannrikse",
+    "latin": "Rallus aquaticus",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "R. a. aquaticus"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Crex",
+    "subspecies": []
+  },
+  {
+    "norwegian": "åkerrikse",
+    "latin": "Crex crex",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Porzana",
+    "subspecies": []
+  },
+  {
+    "norwegian": "maskerikse",
+    "latin": "Porzana carolina",
+    "subspecies": []
+  },
+  {
+    "norwegian": "myrrikse",
+    "latin": "Porzana porzana",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Gallinula",
+    "subspecies": []
+  },
+  {
+    "norwegian": "sivhøne",
+    "latin": "Gallinula chloropus",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "G. c. chloropus"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Fulica",
+    "subspecies": []
+  },
+  {
+    "norwegian": "sothøne",
+    "latin": "Fulica atra",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "F. a. atra"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Zapornia",
+    "subspecies": []
+  },
+  {
+    "norwegian": "sumprikse",
+    "latin": "Zapornia parva",
+    "subspecies": []
+  },
+  {
+    "norwegian": "vade-, måke- og alkefugler",
+    "latin": "Charadriiformes",
+    "subspecies": []
+  },
+  {
+    "norwegian": "trielfamilien",
+    "latin": "Burhinidae",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Burhinus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "triel",
+    "latin": "Burhinus oedicnemus",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "B. o. oedicnemus"
+      }
+    ]
+  },
+  {
+    "norwegian": "avosettfamilien",
+    "latin": "Recurvirostridae",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Recurvirostra",
+    "subspecies": []
+  },
+  {
+    "norwegian": "avosett",
+    "latin": "Recurvirostra avosetta",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Himantopus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "stylteløper",
+    "latin": "Himantopus himantopus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "tjeldfamilien",
+    "latin": "Haematopodidae",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Haematopus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "tjeld",
+    "latin": "Haematopus ostralegus",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "H. o. ostralegus"
+      }
+    ]
+  },
+  {
+    "norwegian": "lofamilien",
+    "latin": "Charadriidae",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Pluvialis",
+    "subspecies": []
+  },
+  {
+    "norwegian": "tundralo",
+    "latin": "Pluvialis squatarola",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "P. s. squatarola"
+      }
+    ]
+  },
+  {
+    "norwegian": "heilo",
+    "latin": "Pluvialis apricaria",
+    "subspecies": []
+  },
+  {
+    "norwegian": "kanadalo",
+    "latin": "Pluvialis dominica",
+    "subspecies": []
+  },
+  {
+    "norwegian": "sibirlo",
+    "latin": "Pluvialis fulva",
+    "subspecies": [
+      {
+        "norwegian": "kanada-/sibirlo",
+        "latin": "P. dominica/fulva"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Eudromias",
+    "subspecies": []
+  },
+  {
+    "norwegian": "boltit",
+    "latin": "Eudromias morinellus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Charadrius",
+    "subspecies": []
+  },
+  {
+    "norwegian": "tobeltelo",
+    "latin": "Charadrius vociferus",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "C. v. vociferus"
+      }
+    ]
+  },
+  {
+    "norwegian": "sandlo",
+    "latin": "Charadrius hiaticula",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "C. h. psammodromus"
+      },
+      {
+        "norwegian": "nan",
+        "latin": "C. h. hiaticula"
+      },
+      {
+        "norwegian": "nan",
+        "latin": "C. h. tundrae"
+      }
+    ]
+  },
+  {
+    "norwegian": "amerikasandlo",
+    "latin": "Charadrius semipalmatus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Thinornis",
+    "subspecies": []
+  },
+  {
+    "norwegian": "dverglo",
+    "latin": "Thinornis dubius",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "T. d. curonicus"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Vanellus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "vipe",
+    "latin": "Vanellus vanellus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "gråhodevipe",
+    "latin": "Vanellus cinereus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "sumpvipe",
+    "latin": "Vanellus leucurus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Anarhynchus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "rødbrystlo",
+    "latin": "Anarhynchus asiaticus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "steppelo",
+    "latin": "Anarhynchus veredus",
+    "subspecies": [
+      {
+        "norwegian": "rødbryst-/steppelo",
+        "latin": "A. asiaticus/veredus"
+      }
+    ]
+  },
+  {
+    "norwegian": "tibetlo",
+    "latin": "Anarhynchus atrifrons",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "A. a. ssp."
+      }
+    ]
+  },
+  {
+    "norwegian": "kamtsjatkalo",
+    "latin": "Anarhynchus mongolus",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "A. m. mongolus/stegmanni"
+      }
+    ]
+  },
+  {
+    "norwegian": "ørkenlo",
+    "latin": "Anarhynchus leschenaultii",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "A. l. ssp."
+      },
+      {
+        "norwegian": "tibet-/kamtsjatka-/ørkenlo",
+        "latin": "A. atrifrons/mongolus/leschenaultii"
+      }
+    ]
+  },
+  {
+    "norwegian": "hvitbrystlo",
+    "latin": "Anarhynchus alexandrinus",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "A. a. alexandrinus"
+      }
+    ]
+  },
+  {
+    "norwegian": "snipefamilien",
+    "latin": "Scolopacidae",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Bartramia",
+    "subspecies": []
+  },
+  {
+    "norwegian": "præriesnipe",
+    "latin": "Bartramia longicauda",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Numenius",
+    "subspecies": []
+  },
+  {
+    "norwegian": "dvergspove",
+    "latin": "Numenius minutus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "tundraspove",
+    "latin": "Numenius hudsonicus",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "N. h. rufiventris/hudsonicus"
+      }
+    ]
+  },
+  {
+    "norwegian": "småspove",
+    "latin": "Numenius phaeopus",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "N. p. phaeopus"
+      }
+    ]
+  },
+  {
+    "norwegian": "storspove",
+    "latin": "Numenius arquata",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "N. a. arquata"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Limosa",
+    "subspecies": []
+  },
+  {
+    "norwegian": "lappspove",
+    "latin": "Limosa lapponica",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "L. l. lapponica"
+      },
+      {
+        "norwegian": "nan",
+        "latin": "L. l. taymyrensis"
+      }
+    ]
+  },
+  {
+    "norwegian": "svarthalespove",
+    "latin": "Limosa limosa",
+    "subspecies": [
+      {
+        "norwegian": "islandsk svarthalespove",
+        "latin": "L. l. islandica"
+      },
+      {
+        "norwegian": "nan",
+        "latin": "L. l. limosa"
+      }
+    ]
+  },
+  {
+    "norwegian": "svartvingespove",
+    "latin": "Limosa haemastica",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Limnodromus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "langnebbekkasinsnipe",
+    "latin": "Limnodromus scolopaceus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "kortnebbekkasinsnipe",
+    "latin": "Limnodromus griseus",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "L. g. hendersoni/griseus"
+      },
+      {
+        "norwegian": "lang-/kortnebbekkasinsnipe",
+        "latin": "L. scolopaceus/griseus"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Lymnocryptes",
+    "subspecies": []
+  },
+  {
+    "norwegian": "kvartbekkasin",
+    "latin": "Lymnocryptes minimus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Scolopax",
+    "subspecies": []
+  },
+  {
+    "norwegian": "rugde",
+    "latin": "Scolopax rusticola",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Gallinago",
+    "subspecies": []
+  },
+  {
+    "norwegian": "dobbeltbekkasin",
+    "latin": "Gallinago media",
+    "subspecies": []
+  },
+  {
+    "norwegian": "kanadabekkasin",
+    "latin": "Gallinago delicata",
+    "subspecies": []
+  },
+  {
+    "norwegian": "enkeltbekkasin",
+    "latin": "Gallinago gallinago",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "G. g. gallinago"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Xenus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "tereksnipe",
+    "latin": "Xenus cinereus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Actitis",
+    "subspecies": []
+  },
+  {
+    "norwegian": "strandsnipe",
+    "latin": "Actitis hypoleucos",
+    "subspecies": []
+  },
+  {
+    "norwegian": "flekksnipe",
+    "latin": "Actitis macularius",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Phalaropus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "hvithalesvømmesnipe",
+    "latin": "Phalaropus tricolor",
+    "subspecies": []
+  },
+  {
+    "norwegian": "polarsvømmesnipe",
+    "latin": "Phalaropus fulicarius",
+    "subspecies": []
+  },
+  {
+    "norwegian": "svømmesnipe",
+    "latin": "Phalaropus lobatus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Tringa",
+    "subspecies": []
+  },
+  {
+    "norwegian": "skogsnipe",
+    "latin": "Tringa ochropus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "eremittsnipe",
+    "latin": "Tringa solitaria",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "T. s. cinnamomea/solitaria"
+      }
+    ]
+  },
+  {
+    "norwegian": "damsnipe",
+    "latin": "Tringa stagnatilis",
+    "subspecies": []
+  },
+  {
+    "norwegian": "grønnstilk",
+    "latin": "Tringa glareola",
+    "subspecies": []
+  },
+  {
+    "norwegian": "rødstilk",
+    "latin": "Tringa totanus",
+    "subspecies": [
+      {
+        "norwegian": "islandsk rødstilk",
+        "latin": "T. t. robusta"
+      },
+      {
+        "norwegian": "nan",
+        "latin": "T. t. totanus"
+      }
+    ]
+  },
+  {
+    "norwegian": "gulbeinsnipe",
+    "latin": "Tringa flavipes",
+    "subspecies": []
+  },
+  {
+    "norwegian": "willetsnipe",
+    "latin": "Tringa semipalmata",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "T. s. semipalmata"
+      }
+    ]
+  },
+  {
+    "norwegian": "sotsnipe",
+    "latin": "Tringa erythropus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "gluttsnipe",
+    "latin": "Tringa nebularia",
+    "subspecies": []
+  },
+  {
+    "norwegian": "plystresnipe",
+    "latin": "Tringa melanoleuca",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Arenaria",
+    "subspecies": []
+  },
+  {
+    "norwegian": "steinvender",
+    "latin": "Arenaria interpres",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "A. i. interpres"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Calidris",
+    "subspecies": []
+  },
+  {
+    "norwegian": "polarsnipe",
+    "latin": "Calidris canutus",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "C. c. canutus"
+      },
+      {
+        "norwegian": "nan",
+        "latin": "C. c. islandica"
+      }
+    ]
+  },
+  {
+    "norwegian": "sibirsnipe",
+    "latin": "Calidris tenuirostris",
+    "subspecies": []
+  },
+  {
+    "norwegian": "brushane",
+    "latin": "Calidris pugnax",
+    "subspecies": []
+  },
+  {
+    "norwegian": "spisshalesnipe",
+    "latin": "Calidris acuminata",
+    "subspecies": []
+  },
+  {
+    "norwegian": "fjellmyrløper",
+    "latin": "Calidris falcinellus",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "C. f. falcinellus"
+      }
+    ]
+  },
+  {
+    "norwegian": "tundrasnipe",
+    "latin": "Calidris ferruginea",
+    "subspecies": []
+  },
+  {
+    "norwegian": "styltesnipe",
+    "latin": "Calidris himantopus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "rødstrupesnipe",
+    "latin": "Calidris ruficollis",
+    "subspecies": []
+  },
+  {
+    "norwegian": "temmincksnipe",
+    "latin": "Calidris temminckii",
+    "subspecies": []
+  },
+  {
+    "norwegian": "langtåsnipe",
+    "latin": "Calidris subminuta",
+    "subspecies": []
+  },
+  {
+    "norwegian": "rustsnipe",
+    "latin": "Calidris subruficollis",
+    "subspecies": []
+  },
+  {
+    "norwegian": "sandløper",
+    "latin": "Calidris alba",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "C. a. alba"
+      }
+    ]
+  },
+  {
+    "norwegian": "myrsnipe",
+    "latin": "Calidris alpina",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "C. a. arctica"
+      },
+      {
+        "norwegian": "sørlig myrsnipe",
+        "latin": "C. a. schinzii"
+      },
+      {
+        "norwegian": "nan",
+        "latin": "C. a. alpina"
+      }
+    ]
+  },
+  {
+    "norwegian": "fjæreplytt",
+    "latin": "Calidris maritima",
+    "subspecies": []
+  },
+  {
+    "norwegian": "gulbrystsnipe",
+    "latin": "Calidris bairdii",
+    "subspecies": []
+  },
+  {
+    "norwegian": "alaskasnipe",
+    "latin": "Calidris melanotos",
+    "subspecies": []
+  },
+  {
+    "norwegian": "sandsnipe",
+    "latin": "Calidris pusilla",
+    "subspecies": []
+  },
+  {
+    "norwegian": "beringsnipe",
+    "latin": "Calidris mauri",
+    "subspecies": []
+  },
+  {
+    "norwegian": "dvergsnipe",
+    "latin": "Calidris minuta",
+    "subspecies": []
+  },
+  {
+    "norwegian": "bonapartesnipe",
+    "latin": "Calidris fuscicollis",
+    "subspecies": []
+  },
+  {
+    "norwegian": "brakksvalefamilien",
+    "latin": "Glareolidae",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Cursorius",
+    "subspecies": []
+  },
+  {
+    "norwegian": "ørkenløper",
+    "latin": "Cursorius cursor",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "C. c. cursor/bogolubovi"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Glareola",
+    "subspecies": []
+  },
+  {
+    "norwegian": "orientbrakksvale",
+    "latin": "Glareola maldivarum",
+    "subspecies": []
+  },
+  {
+    "norwegian": "steppebrakksvale",
+    "latin": "Glareola nordmanni",
+    "subspecies": []
+  },
+  {
+    "norwegian": "brakksvale",
+    "latin": "Glareola pratincola",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "G. p. pratincola"
+      }
+    ]
+  },
+  {
+    "norwegian": "jofamilien",
+    "latin": "Stercorariidae",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Stercorarius",
+    "subspecies": []
+  },
+  {
+    "norwegian": "tyvjo",
+    "latin": "Stercorarius parasiticus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "fjelljo",
+    "latin": "Stercorarius longicaudus",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "S. l. longicaudus"
+      },
+      {
+        "norwegian": "nan",
+        "latin": "S. l. pallescens"
+      }
+    ]
+  },
+  {
+    "norwegian": "polarjo",
+    "latin": "Stercorarius pomarinus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "storjo",
+    "latin": "Stercorarius skua",
+    "subspecies": []
+  },
+  {
+    "norwegian": "alkefamilien",
+    "latin": "Alcidae",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Fratercula",
+    "subspecies": []
+  },
+  {
+    "norwegian": "topplunde",
+    "latin": "Fratercula cirrhata",
+    "subspecies": []
+  },
+  {
+    "norwegian": "lunde",
+    "latin": "Fratercula arctica",
+    "subspecies": []
+  },
+  {
+    "norwegian": "hornlunde",
+    "latin": "Fratercula corniculata",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Cepphus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "teist",
+    "latin": "Cepphus grylle",
+    "subspecies": [
+      {
+        "norwegian": "svalbardteist",
+        "latin": "C. g. mandtii"
+      },
+      {
+        "norwegian": "nan",
+        "latin": "C. g. arcticus"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Alca",
+    "subspecies": []
+  },
+  {
+    "norwegian": "alke",
+    "latin": "Alca torda",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "A. t. torda"
+      },
+      {
+        "norwegian": "nan",
+        "latin": "A. t. islandica"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Alle",
+    "subspecies": []
+  },
+  {
+    "norwegian": "alkekonge",
+    "latin": "Alle alle",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "A. a. alle"
+      },
+      {
+        "norwegian": "nan",
+        "latin": "A. a. polaris"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Uria",
+    "subspecies": []
+  },
+  {
+    "norwegian": "polarlomvi",
+    "latin": "Uria lomvia",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "U. l. lomvia"
+      }
+    ]
+  },
+  {
+    "norwegian": "lomvi",
+    "latin": "Uria aalge",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "U. a. aalge"
+      },
+      {
+        "norwegian": "nan",
+        "latin": "U. a. hyperborea"
+      },
+      {
+        "norwegian": "nan",
+        "latin": "U. a. albionis"
+      }
+    ]
+  },
+  {
+    "norwegian": "måkefamilien",
+    "latin": "Laridae",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Onychoprion",
+    "subspecies": []
+  },
+  {
+    "norwegian": "tøyleterne",
+    "latin": "Onychoprion anaethetus",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "O. a. melanopterus/antarcticus"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Sternula",
+    "subspecies": []
+  },
+  {
+    "norwegian": "dvergterne",
+    "latin": "Sternula albifrons",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "S. a. albifrons"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Hydroprogne",
+    "subspecies": []
+  },
+  {
+    "norwegian": "rovterne",
+    "latin": "Hydroprogne caspia",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Gelochelidon",
+    "subspecies": []
+  },
+  {
+    "norwegian": "sandterne",
+    "latin": "Gelochelidon nilotica",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "G. n. nilotica"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Chlidonias",
+    "subspecies": []
+  },
+  {
+    "norwegian": "hvitkinnsvartterne",
+    "latin": "Chlidonias hybrida",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "C. h. hybrida"
+      }
+    ]
+  },
+  {
+    "norwegian": "hvitvingesvartterne",
+    "latin": "Chlidonias leucopterus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "svartterne",
+    "latin": "Chlidonias niger",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "C. n. niger"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Thalasseus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "splitterne",
+    "latin": "Thalasseus sandvicensis",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "T. s. sandvicensis"
+      }
+    ]
+  },
+  {
+    "norwegian": "konge-/høvdingterne",
+    "latin": "Thalasseus maximus/albididorsalis",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Sterna",
+    "subspecies": []
+  },
+  {
+    "norwegian": "rødnebbterne",
+    "latin": "Sterna paradisaea",
+    "subspecies": []
+  },
+  {
+    "norwegian": "makrellterne",
+    "latin": "Sterna hirundo",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "S. h. hirundo"
+      }
+    ]
+  },
+  {
+    "norwegian": "rosenterne",
+    "latin": "Sterna dougallii",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "S. d. dougallii"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Hydrocoloeus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "dvergmåke",
+    "latin": "Hydrocoloeus minutus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Rhodostethia",
+    "subspecies": []
+  },
+  {
+    "norwegian": "rosenmåke",
+    "latin": "Rhodostethia rosea",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Rissa",
+    "subspecies": []
+  },
+  {
+    "norwegian": "krykkje",
+    "latin": "Rissa tridactyla",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "R. t. tridactyla"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Xema",
+    "subspecies": []
+  },
+  {
+    "norwegian": "sabinemåke",
+    "latin": "Xema sabini",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Pagophila",
+    "subspecies": []
+  },
+  {
+    "norwegian": "ismåke",
+    "latin": "Pagophila eburnea",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Chroicocephalus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "kanadahettemåke",
+    "latin": "Chroicocephalus philadelphia",
+    "subspecies": []
+  },
+  {
+    "norwegian": "hettemåke",
+    "latin": "Chroicocephalus ridibundus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Leucophaeus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "lattermåke",
+    "latin": "Leucophaeus atricilla",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "L. a. megalopterus"
+      }
+    ]
+  },
+  {
+    "norwegian": "franklinmåke",
+    "latin": "Leucophaeus pipixcan",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Ichthyaetus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "steppemåke",
+    "latin": "Ichthyaetus ichthyaetus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "svartehavsmåke",
+    "latin": "Ichthyaetus melanocephalus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Larus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "ringnebbmåke",
+    "latin": "Larus delawarensis",
+    "subspecies": []
+  },
+  {
+    "norwegian": "fiskemåke",
+    "latin": "Larus canus",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "L. c. canus"
+      }
+    ]
+  },
+  {
+    "norwegian": "kaspimåke",
+    "latin": "Larus cachinnans",
+    "subspecies": []
+  },
+  {
+    "norwegian": "amerikagråmåke",
+    "latin": "Larus smithsonianus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "gråmåke",
+    "latin": "Larus argentatus",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "L. a. argenteus"
+      },
+      {
+        "norwegian": "nan",
+        "latin": "L. a. argentatus"
+      }
+    ]
+  },
+  {
+    "norwegian": "gulbeinmåke",
+    "latin": "Larus michahellis",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "L. m. michahellis"
+      }
+    ]
+  },
+  {
+    "norwegian": "svartbak",
+    "latin": "Larus marinus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "polarmåke",
+    "latin": "Larus hyperboreus",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "L. h. hyperboreus"
+      }
+    ]
+  },
+  {
+    "norwegian": "sildemåke",
+    "latin": "Larus fuscus",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "L. f. graellsii"
+      },
+      {
+        "norwegian": "nan",
+        "latin": "L. f. intermedius"
+      },
+      {
+        "norwegian": "nan",
+        "latin": "L. f. fuscus"
+      }
+    ]
+  },
+  {
+    "norwegian": "gråvingemåke",
+    "latin": "Larus glaucescens",
+    "subspecies": []
+  },
+  {
+    "norwegian": "grønlandsmåke",
+    "latin": "Larus glaucoides",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "L. g. glaucoides"
+      },
+      {
+        "norwegian": "nan",
+        "latin": "L. g. kumlieni"
+      },
+      {
+        "norwegian": "eskimomåke",
+        "latin": "L. g. thayeri"
+      }
+    ]
+  },
+  {
+    "norwegian": "lommer",
+    "latin": "Gaviiformes",
+    "subspecies": []
+  },
+  {
+    "norwegian": "lomfamilien",
+    "latin": "Gaviidae",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Gavia",
+    "subspecies": []
+  },
+  {
+    "norwegian": "smålom",
+    "latin": "Gavia stellata",
+    "subspecies": []
+  },
+  {
+    "norwegian": "islom",
+    "latin": "Gavia immer",
+    "subspecies": []
+  },
+  {
+    "norwegian": "gulnebblom",
+    "latin": "Gavia adamsii",
+    "subspecies": []
+  },
+  {
+    "norwegian": "amerikastorlom",
+    "latin": "Gavia pacifica",
+    "subspecies": []
+  },
+  {
+    "norwegian": "storlom",
+    "latin": "Gavia arctica",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "G. a. arctica"
+      }
+    ]
+  },
+  {
+    "norwegian": "stormfugler",
+    "latin": "Procellariiformes",
+    "subspecies": []
+  },
+  {
+    "norwegian": "albatrossfamilien",
+    "latin": "Diomedeidae",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Thalassarche",
+    "subspecies": []
+  },
+  {
+    "norwegian": "gulnesealbatross",
+    "latin": "Thalassarche chlororhynchos",
+    "subspecies": []
+  },
+  {
+    "norwegian": "svartbrynalbatross",
+    "latin": "Thalassarche melanophris",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "T. m. melanophis"
+      },
+      {
+        "norwegian": "gulnese-/svartbrynalbatross",
+        "latin": "T. chlororhynchos/melanophris"
+      }
+    ]
+  },
+  {
+    "norwegian": "oseansvalefamilien",
+    "latin": "Oceanitidae",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Oceanites",
+    "subspecies": []
+  },
+  {
+    "norwegian": "oseanstormsvale",
+    "latin": "Oceanites oceanicus",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "O. o. exasperatus"
+      }
+    ]
+  },
+  {
+    "norwegian": "stormsvalefamilien",
+    "latin": "Hydrobatidae",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Hydrobates",
+    "subspecies": []
+  },
+  {
+    "norwegian": "havsvale",
+    "latin": "Hydrobates pelagicus",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "H. p. pelagicus"
+      }
+    ]
+  },
+  {
+    "norwegian": "japanstormsvale",
+    "latin": "Hydrobates monorhis",
+    "subspecies": []
+  },
+  {
+    "norwegian": "stormsvale",
+    "latin": "Hydrobates leucorhous",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "H. l. leucorhous"
+      }
+    ]
+  },
+  {
+    "norwegian": "stormfuglfamilien",
+    "latin": "Procellariidae",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Daption",
+    "subspecies": []
+  },
+  {
+    "norwegian": "flekkpetrell",
+    "latin": "Daption capense",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "D. c. capense"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Fulmarus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "havhest",
+    "latin": "Fulmarus glacialis",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "F. g. glacialis"
+      },
+      {
+        "norwegian": "nan",
+        "latin": "F. g. auduboni"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Calonectris",
+    "subspecies": []
+  },
+  {
+    "norwegian": "poseidon-/portugiserlire",
+    "latin": "Calonectris diomedea/borealis",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Ardenna",
+    "subspecies": []
+  },
+  {
+    "norwegian": "grålire",
+    "latin": "Ardenna grisea",
+    "subspecies": []
+  },
+  {
+    "norwegian": "storlire",
+    "latin": "Ardenna gravis",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Puffinus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "havlire",
+    "latin": "Puffinus puffinus",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "P. p. puffinus"
+      }
+    ]
+  },
+  {
+    "norwegian": "middelhavslire",
+    "latin": "Puffinus yelkouan",
+    "subspecies": [
+      {
+        "norwegian": "balearlire",
+        "latin": "P. y. mauretanicus"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Pterodroma",
+    "subspecies": []
+  },
+  {
+    "norwegian": "silkepetrell",
+    "latin": "Pterodroma mollis",
+    "subspecies": []
+  },
+  {
+    "norwegian": "madeira-/kappverde-/desertaspetrell",
+    "latin": "Pterodroma madeira/feae/deserta",
+    "subspecies": []
+  },
+  {
+    "norwegian": "storker",
+    "latin": "Ciconiiformes",
+    "subspecies": []
+  },
+  {
+    "norwegian": "storkefamilien",
+    "latin": "Ciconiidae",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Ciconia",
+    "subspecies": []
+  },
+  {
+    "norwegian": "svartstork",
+    "latin": "Ciconia nigra",
+    "subspecies": []
+  },
+  {
+    "norwegian": "stork",
+    "latin": "Ciconia ciconia",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "C. c. ciconia"
+      }
+    ]
+  },
+  {
+    "norwegian": "sulefugler",
+    "latin": "Suliformes",
+    "subspecies": []
+  },
+  {
+    "norwegian": "sulefamilien",
+    "latin": "Sulidae",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Morus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "havsule",
+    "latin": "Morus bassanus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Sula",
+    "subspecies": []
+  },
+  {
+    "norwegian": "brunsule",
+    "latin": "Sula leucogaster",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "S. l. leucogaster/plotus"
+      }
+    ]
+  },
+  {
+    "norwegian": "skarvefamilien",
+    "latin": "Phalacrocoracidae",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Gulosus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "toppskarv",
+    "latin": "Gulosus aristotelis",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "G. a. aristotelis"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Phalacrocorax",
+    "subspecies": []
+  },
+  {
+    "norwegian": "storskarv",
+    "latin": "Phalacrocorax carbo",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "P. c. carbo"
+      },
+      {
+        "norwegian": "mellomskarv",
+        "latin": "P. c. sinensis"
+      }
+    ]
+  },
+  {
+    "norwegian": "pelikan- og hegrefugler",
+    "latin": "Pelecaniformes",
+    "subspecies": []
+  },
+  {
+    "norwegian": "ibisfamilien",
+    "latin": "Threskiornithidae",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Plegadis",
+    "subspecies": []
+  },
+  {
+    "norwegian": "bronseibis",
+    "latin": "Plegadis falcinellus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Platalea",
+    "subspecies": []
+  },
+  {
+    "norwegian": "skjestork",
+    "latin": "Platalea leucorodia",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "P. l. leucorodia"
+      }
+    ]
+  },
+  {
+    "norwegian": "hegrefamilien",
+    "latin": "Ardeidae",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Botaurus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "rørdrum",
+    "latin": "Botaurus stellaris",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "B. s. stellaris"
+      }
+    ]
+  },
+  {
+    "norwegian": "amerikarørdrum",
+    "latin": "Botaurus lentiginosus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "dvergrørdrum",
+    "latin": "Botaurus minutus",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "B. m. minutus"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Egretta",
+    "subspecies": []
+  },
+  {
+    "norwegian": "silkehegre",
+    "latin": "Egretta garzetta",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "E. g. garzetta"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Nycticorax",
+    "subspecies": []
+  },
+  {
+    "norwegian": "natthegre",
+    "latin": "Nycticorax nycticorax",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "N. n. nycticorax"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Ardeola",
+    "subspecies": []
+  },
+  {
+    "norwegian": "topphegre",
+    "latin": "Ardeola ralloides",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Ardea",
+    "subspecies": []
+  },
+  {
+    "norwegian": "egretthegre",
+    "latin": "Ardea alba",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "A. a. alba"
+      }
+    ]
+  },
+  {
+    "norwegian": "kuhegre",
+    "latin": "Ardea ibis",
+    "subspecies": []
+  },
+  {
+    "norwegian": "purpurhegre",
+    "latin": "Ardea purpurea",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "A. p. purpurea"
+      }
+    ]
+  },
+  {
+    "norwegian": "gråhegre",
+    "latin": "Ardea cinerea",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "A. c. cinerea"
+      }
+    ]
+  },
+  {
+    "norwegian": "nattravnfugler",
+    "latin": "Caprimulgiformes",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nattravnfamilien",
+    "latin": "Caprimulgidae",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Caprimulgus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nattravn",
+    "latin": "Caprimulgus europaeus",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "C. e. europaeus"
+      }
+    ]
+  },
+  {
+    "norwegian": "seilerfugler",
+    "latin": "Apodiformes",
+    "subspecies": []
+  },
+  {
+    "norwegian": "seilerfamilien",
+    "latin": "Apodidae",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Hirundapus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "pigghaleseiler",
+    "latin": "Hirundapus caudacutus",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "H. c caudacutus"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Tachymarptis",
+    "subspecies": []
+  },
+  {
+    "norwegian": "alpeseiler",
+    "latin": "Tachymarptis melba",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "T. m. melba"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Apus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "tårnseiler",
+    "latin": "Apus apus",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "A. a. apus"
+      }
+    ]
+  },
+  {
+    "norwegian": "gråseiler",
+    "latin": "Apus pallidus",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "A. p. ssp."
+      }
+    ]
+  },
+  {
+    "norwegian": "ugler",
+    "latin": "Strigiformes",
+    "subspecies": []
+  },
+  {
+    "norwegian": "tårnuglefamilien",
+    "latin": "Tytonidae",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Tyto",
+    "subspecies": []
+  },
+  {
+    "norwegian": "tårnugle",
+    "latin": "Tyto alba",
+    "subspecies": [
+      {
+        "norwegian": "mørkbrystet tårnugle",
+        "latin": "T. a. guttata"
+      }
+    ]
+  },
+  {
+    "norwegian": "uglefamilien",
+    "latin": "Strigidae",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Aegolius",
+    "subspecies": []
+  },
+  {
+    "norwegian": "perleugle",
+    "latin": "Aegolius funereus",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "A. f. funereus"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Surnia",
+    "subspecies": []
+  },
+  {
+    "norwegian": "haukugle",
+    "latin": "Surnia ulula",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "S. u. ulula"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Glaucidium",
+    "subspecies": []
+  },
+  {
+    "norwegian": "spurveugle",
+    "latin": "Glaucidium passerinum",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "G. p. passerinum"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Otus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "dverghornugle",
+    "latin": "Otus scops",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "O. s. scops"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Asio",
+    "subspecies": []
+  },
+  {
+    "norwegian": "jordugle",
+    "latin": "Asio flammeus",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "A. f. flammeus"
+      }
+    ]
+  },
+  {
+    "norwegian": "hornugle",
+    "latin": "Asio otus",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "A. o. otus"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Bubo",
+    "subspecies": []
+  },
+  {
+    "norwegian": "snøugle",
+    "latin": "Bubo scandiacus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "hubro",
+    "latin": "Bubo bubo",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "B. b. bubo"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Strix",
+    "subspecies": []
+  },
+  {
+    "norwegian": "kattugle",
+    "latin": "Strix aluco",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "S. a. aluco"
+      }
+    ]
+  },
+  {
+    "norwegian": "slagugle",
+    "latin": "Strix uralensis",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "S. u. liturata"
+      }
+    ]
+  },
+  {
+    "norwegian": "lappugle",
+    "latin": "Strix nebulosa",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "S. n. lapponica"
+      }
+    ]
+  },
+  {
+    "norwegian": "haukefugler",
+    "latin": "Accipitriformes",
+    "subspecies": []
+  },
+  {
+    "norwegian": "fiskeørnfamilien",
+    "latin": "Pandionidae",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Pandion",
+    "subspecies": []
+  },
+  {
+    "norwegian": "fiskeørn",
+    "latin": "Pandion haliaetus",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "P. h. haliaetus"
+      }
+    ]
+  },
+  {
+    "norwegian": "haukefamilien",
+    "latin": "Accipitridae",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Elanus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "svartvingeglente",
+    "latin": "Elanus caeruleus",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "E. c. caeruleus"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Neophron",
+    "subspecies": []
+  },
+  {
+    "norwegian": "åtselgribb",
+    "latin": "Neophron percnopterus",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "N. p. percnopterus"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Pernis",
+    "subspecies": []
+  },
+  {
+    "norwegian": "vepsevåk",
+    "latin": "Pernis apivorus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Aegypius",
+    "subspecies": []
+  },
+  {
+    "norwegian": "munkegribb",
+    "latin": "Aegypius monachus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Gyps",
+    "subspecies": []
+  },
+  {
+    "norwegian": "himalayagribb",
+    "latin": "Gyps himalayensis",
+    "subspecies": []
+  },
+  {
+    "norwegian": "gåsegribb",
+    "latin": "Gyps fulvus",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "G. f. fulvus/fulvescens"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Circaetus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "slangeørn",
+    "latin": "Circaetus gallicus",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "C. g. gallicus"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Clanga",
+    "subspecies": []
+  },
+  {
+    "norwegian": "storskrikørn",
+    "latin": "Clanga clanga",
+    "subspecies": []
+  },
+  {
+    "norwegian": "småskrikørn",
+    "latin": "Clanga pomarina",
+    "subspecies": [
+      {
+        "norwegian": "stor-/småskrikørn",
+        "latin": "C. clanga/pomarina"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Hieraaetus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "dvergørn",
+    "latin": "Hieraaetus pennatus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Aquila",
+    "subspecies": []
+  },
+  {
+    "norwegian": "steppeørn",
+    "latin": "Aquila nipalensis",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "A. n. orientalis"
+      }
+    ]
+  },
+  {
+    "norwegian": "keiserørn",
+    "latin": "Aquila heliaca",
+    "subspecies": []
+  },
+  {
+    "norwegian": "kongeørn",
+    "latin": "Aquila chrysaetos",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "A. c. chrysaetos"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Accipiter",
+    "subspecies": []
+  },
+  {
+    "norwegian": "spurvehauk",
+    "latin": "Accipiter nisus",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "A. n. nisus"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Astur",
+    "subspecies": []
+  },
+  {
+    "norwegian": "hønsehauk",
+    "latin": "Astur gentilis",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "A. g. buteoides"
+      },
+      {
+        "norwegian": "nan",
+        "latin": "A. g. gentilis"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Circus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "steppehauk",
+    "latin": "Circus macrourus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "myrhauk",
+    "latin": "Circus cyaneus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "mørkmyrhauk",
+    "latin": "Circus hudsonius",
+    "subspecies": []
+  },
+  {
+    "norwegian": "enghauk",
+    "latin": "Circus pygargus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "sivhauk",
+    "latin": "Circus aeruginosus",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "C. a. aeruginosus"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Milvus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "rødglente",
+    "latin": "Milvus milvus",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "M. m. milvus"
+      }
+    ]
+  },
+  {
+    "norwegian": "svartglente",
+    "latin": "Milvus migrans",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "M. m. migrans"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Haliaeetus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "båndhavørn",
+    "latin": "Haliaeetus leucoryphus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "havørn",
+    "latin": "Haliaeetus albicilla",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "H. a. albicilla"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Buteo",
+    "subspecies": []
+  },
+  {
+    "norwegian": "fjellvåk",
+    "latin": "Buteo lagopus",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "B. l. lagopus"
+      }
+    ]
+  },
+  {
+    "norwegian": "musvåk",
+    "latin": "Buteo buteo",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "B. b. buteo"
+      }
+    ]
+  },
+  {
+    "norwegian": "ørnvåk",
+    "latin": "Buteo rufinus",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "B. r. rufinus"
+      }
+    ]
+  },
+  {
+    "norwegian": "horn- og hærfugler",
+    "latin": "Bucerotiformes",
+    "subspecies": []
+  },
+  {
+    "norwegian": "hærfuglfamilien",
+    "latin": "Upupidae",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Upupa",
+    "subspecies": []
+  },
+  {
+    "norwegian": "hærfugl",
+    "latin": "Upupa epops",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "U. e. epops"
+      }
+    ]
+  },
+  {
+    "norwegian": "råkefugler",
+    "latin": "Coraciiformes",
+    "subspecies": []
+  },
+  {
+    "norwegian": "råkefamilien",
+    "latin": "Coraciidae",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Coracias",
+    "subspecies": []
+  },
+  {
+    "norwegian": "blåråke",
+    "latin": "Coracias garrulus",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "C. g. garrulus"
+      }
+    ]
+  },
+  {
+    "norwegian": "bieterfamilien",
+    "latin": "Meropidae",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Merops",
+    "subspecies": []
+  },
+  {
+    "norwegian": "bieter",
+    "latin": "Merops apiaster",
+    "subspecies": []
+  },
+  {
+    "norwegian": "blåkinnbieter",
+    "latin": "Merops persicus",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "M. p. persicus"
+      }
+    ]
+  },
+  {
+    "norwegian": "isfuglfamilien",
+    "latin": "Alcedinidae",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Alcedo",
+    "subspecies": []
+  },
+  {
+    "norwegian": "isfugl",
+    "latin": "Alcedo atthis",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "A. a. ispida"
+      }
+    ]
+  },
+  {
+    "norwegian": "spettefugler",
+    "latin": "Piciformes",
+    "subspecies": []
+  },
+  {
+    "norwegian": "spettefamilien",
+    "latin": "Picidae",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Jynx",
+    "subspecies": []
+  },
+  {
+    "norwegian": "vendehals",
+    "latin": "Jynx torquilla",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "J. t. torquilla"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Picus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "gråspett",
+    "latin": "Picus canus",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "P. c. canus"
+      }
+    ]
+  },
+  {
+    "norwegian": "grønnspett",
+    "latin": "Picus viridis",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "P. v. viridis"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Dryocopus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "svartspett",
+    "latin": "Dryocopus martius",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "D. m. martius"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Picoides",
+    "subspecies": []
+  },
+  {
+    "norwegian": "tretåspett",
+    "latin": "Picoides tridactylus",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "P. t. tridactylus"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Dendrocoptes",
+    "subspecies": []
+  },
+  {
+    "norwegian": "mellomspett",
+    "latin": "Dendrocoptes medius",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "D. m. medius"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Dendrocopos",
+    "subspecies": []
+  },
+  {
+    "norwegian": "hvitryggspett",
+    "latin": "Dendrocopos leucotos",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "D. l. leucotos"
+      }
+    ]
+  },
+  {
+    "norwegian": "flaggspett",
+    "latin": "Dendrocopos major",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "D. m. major"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Dryobates",
+    "subspecies": []
+  },
+  {
+    "norwegian": "dvergspett",
+    "latin": "Dryobates minor",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "D. m. minor"
+      }
+    ]
+  },
+  {
+    "norwegian": "falkefugler",
+    "latin": "Falconiformes",
+    "subspecies": []
+  },
+  {
+    "norwegian": "falkefamilien",
+    "latin": "Falconidae",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Falco",
+    "subspecies": []
+  },
+  {
+    "norwegian": "rødfalk",
+    "latin": "Falco naumanni",
+    "subspecies": []
+  },
+  {
+    "norwegian": "tårnfalk",
+    "latin": "Falco tinnunculus",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "F. t. tinnunculus"
+      }
+    ]
+  },
+  {
+    "norwegian": "aftenfalk",
+    "latin": "Falco vespertinus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "dvergfalk",
+    "latin": "Falco columbarius",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "F. c. subaesalon"
+      },
+      {
+        "norwegian": "nan",
+        "latin": "F. c. aesalon"
+      }
+    ]
+  },
+  {
+    "norwegian": "lerkefalk",
+    "latin": "Falco subbuteo",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "F. s. subbuteo"
+      }
+    ]
+  },
+  {
+    "norwegian": "vandrefalk",
+    "latin": "Falco peregrinus",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "F. p. peregrinus"
+      },
+      {
+        "norwegian": "nan",
+        "latin": "F. p. calidus"
+      }
+    ]
+  },
+  {
+    "norwegian": "jaktfalk",
+    "latin": "Falco rusticolus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "spurvefugler",
+    "latin": "Passeriformes",
+    "subspecies": []
+  },
+  {
+    "norwegian": "tyrannfamilien",
+    "latin": "Tyrannidae",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Empidonax",
+    "subspecies": []
+  },
+  {
+    "norwegian": "oreempid",
+    "latin": "Empidonax alnorum",
+    "subspecies": []
+  },
+  {
+    "norwegian": "vireofamilien",
+    "latin": "Vireonidae",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Vireo",
+    "subspecies": []
+  },
+  {
+    "norwegian": "rødøyevireo",
+    "latin": "Vireo olivaceus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "pirolfamilien",
+    "latin": "Oriolidae",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Oriolus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "pirol",
+    "latin": "Oriolus oriolus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "varslerfamilien",
+    "latin": "Laniidae",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Lanius",
+    "subspecies": []
+  },
+  {
+    "norwegian": "varsler",
+    "latin": "Lanius excubitor",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "L. e. excubitor"
+      },
+      {
+        "norwegian": "steppevarsler",
+        "latin": "L. e. pallidirostris"
+      }
+    ]
+  },
+  {
+    "norwegian": "borealvarsler",
+    "latin": "Lanius borealis",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "L. b. sibiricus"
+      }
+    ]
+  },
+  {
+    "norwegian": "hvitpannevarsler",
+    "latin": "Lanius nubicus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "rosenvarsler",
+    "latin": "Lanius minor",
+    "subspecies": []
+  },
+  {
+    "norwegian": "rødhodevarsler",
+    "latin": "Lanius senator",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "L. s. senator"
+      },
+      {
+        "norwegian": "nan",
+        "latin": "L. s. badius"
+      }
+    ]
+  },
+  {
+    "norwegian": "isabellavarsler",
+    "latin": "Lanius isabellinus",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "L. i. isabellinus"
+      }
+    ]
+  },
+  {
+    "norwegian": "tornskate",
+    "latin": "Lanius collurio",
+    "subspecies": []
+  },
+  {
+    "norwegian": "rødhalevarsler",
+    "latin": "Lanius phoenicuroides",
+    "subspecies": [
+      {
+        "norwegian": "isabella-/rødhalevarsler",
+        "latin": "L. isabellinus/phoenicuroides"
+      }
+    ]
+  },
+  {
+    "norwegian": "brunvarsler",
+    "latin": "Lanius cristatus",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "L. c. cristatus"
+      }
+    ]
+  },
+  {
+    "norwegian": "kråkefamilien",
+    "latin": "Corvidae",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Perisoreus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "lavskrike",
+    "latin": "Perisoreus infaustus",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "P. i. infaustus"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Garrulus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nøtteskrike",
+    "latin": "Garrulus glandarius",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "G. g. glandarius"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Pica",
+    "subspecies": []
+  },
+  {
+    "norwegian": "skjære",
+    "latin": "Pica pica",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "P. p. fennorum"
+      },
+      {
+        "norwegian": "nan",
+        "latin": "P. p. pica"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Nucifraga",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nøttekråke",
+    "latin": "Nucifraga caryocatactes",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "N. c. caryocatactes"
+      },
+      {
+        "norwegian": "sibirnøttekråke",
+        "latin": "N. c. macrorhynchos"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Coloeus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "kaie",
+    "latin": "Coloeus monedula",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "C. m. monedula"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Corvus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "kornkråke",
+    "latin": "Corvus frugilegus",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "C. f. frugilegus"
+      }
+    ]
+  },
+  {
+    "norwegian": "ravn",
+    "latin": "Corvus corax",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "C. c. corax"
+      }
+    ]
+  },
+  {
+    "norwegian": "kråke",
+    "latin": "Corvus corone",
+    "subspecies": [
+      {
+        "norwegian": "svartkråke",
+        "latin": "C. c. corone"
+      },
+      {
+        "norwegian": "nan",
+        "latin": "C. c. cornix"
+      }
+    ]
+  },
+  {
+    "norwegian": "pungmeisfamilien",
+    "latin": "Remizidae",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Remiz",
+    "subspecies": []
+  },
+  {
+    "norwegian": "pungmeis",
+    "latin": "Remiz pendulinus",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "R. p. pendulinus"
+      }
+    ]
+  },
+  {
+    "norwegian": "meisefamilien",
+    "latin": "Paridae",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Cyanistes",
+    "subspecies": []
+  },
+  {
+    "norwegian": "blåmeis",
+    "latin": "Cyanistes caeruleus",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "C. c. caeruleus"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Parus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "kjøttmeis",
+    "latin": "Parus major",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "P. m. major"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Periparus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "svartmeis",
+    "latin": "Periparus ater",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "P. a. ater"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Lophophanes",
+    "subspecies": []
+  },
+  {
+    "norwegian": "toppmeis",
+    "latin": "Lophophanes cristatus",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "L. c. cristatus"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Poecile",
+    "subspecies": []
+  },
+  {
+    "norwegian": "løvmeis",
+    "latin": "Poecile palustris",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "P. p. palustris"
+      }
+    ]
+  },
+  {
+    "norwegian": "granmeis",
+    "latin": "Poecile montanus",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "P. m. borealis"
+      }
+    ]
+  },
+  {
+    "norwegian": "lappmeis",
+    "latin": "Poecile cinctus",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "P. c. lapponicus"
+      }
+    ]
+  },
+  {
+    "norwegian": "skjeggmeisfamilien",
+    "latin": "Panuridae",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Panurus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "skjeggmeis",
+    "latin": "Panurus biarmicus",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "P. b. biarmicus"
+      }
+    ]
+  },
+  {
+    "norwegian": "lerkefamilien",
+    "latin": "Alaudidae",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Lullula",
+    "subspecies": []
+  },
+  {
+    "norwegian": "trelerke",
+    "latin": "Lullula arborea",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "L. a. arborea"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Alauda",
+    "subspecies": []
+  },
+  {
+    "norwegian": "hvitvingelerke",
+    "latin": "Alauda leucoptera",
+    "subspecies": []
+  },
+  {
+    "norwegian": "sanglerke",
+    "latin": "Alauda arvensis",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "A. a. arvensis"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Galerida",
+    "subspecies": []
+  },
+  {
+    "norwegian": "topplerke",
+    "latin": "Galerida cristata",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "G. c. cristata"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Eremophila",
+    "subspecies": []
+  },
+  {
+    "norwegian": "fjellerke",
+    "latin": "Eremophila alpestris",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "E. a. flava"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Calandrella",
+    "subspecies": []
+  },
+  {
+    "norwegian": "dverglerke",
+    "latin": "Calandrella brachydactyla",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "C. b. ssp."
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Melanocorypha",
+    "subspecies": []
+  },
+  {
+    "norwegian": "fjellkalanderlerke",
+    "latin": "Melanocorypha bimaculata",
+    "subspecies": []
+  },
+  {
+    "norwegian": "kalanderlerke",
+    "latin": "Melanocorypha calandra",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "M. c. ssp."
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Alaudala",
+    "subspecies": []
+  },
+  {
+    "norwegian": "turkestandverglerke",
+    "latin": "Alaudala heinei",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "A. h. ssp."
+      },
+      {
+        "norwegian": "salt-/flekk-/turkestandverglerke",
+        "latin": "A. cheleensis/rufescens/heinei"
+      }
+    ]
+  },
+  {
+    "norwegian": "kjerrsangerfamilien",
+    "latin": "Acrocephalidae",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Hippolais",
+    "subspecies": []
+  },
+  {
+    "norwegian": "gulsanger",
+    "latin": "Hippolais icterina",
+    "subspecies": []
+  },
+  {
+    "norwegian": "spottesanger",
+    "latin": "Hippolais polyglotta",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Arundinax",
+    "subspecies": []
+  },
+  {
+    "norwegian": "tykknebbsanger",
+    "latin": "Arundinax aedon",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "A. a. aedon/rufescens"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Iduna",
+    "subspecies": []
+  },
+  {
+    "norwegian": "tartarsanger",
+    "latin": "Iduna caligata",
+    "subspecies": []
+  },
+  {
+    "norwegian": "ramasanger",
+    "latin": "Iduna rama",
+    "subspecies": []
+  },
+  {
+    "norwegian": "bleksanger",
+    "latin": "Iduna pallida",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "I. p. elaeica"
+      },
+      {
+        "norwegian": "rama-/bleksanger",
+        "latin": "I. rama/pallida"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Acrocephalus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "sivsanger",
+    "latin": "Acrocephalus schoenobaenus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "vannsanger",
+    "latin": "Acrocephalus paludicola",
+    "subspecies": []
+  },
+  {
+    "norwegian": "åkersanger",
+    "latin": "Acrocephalus agricola",
+    "subspecies": []
+  },
+  {
+    "norwegian": "busksanger",
+    "latin": "Acrocephalus dumetorum",
+    "subspecies": []
+  },
+  {
+    "norwegian": "myrsanger",
+    "latin": "Acrocephalus palustris",
+    "subspecies": []
+  },
+  {
+    "norwegian": "rørsanger",
+    "latin": "Acrocephalus scirpaceus",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "A. s. scirpaceus"
+      }
+    ]
+  },
+  {
+    "norwegian": "trostesanger",
+    "latin": "Acrocephalus arundinaceus",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "A. a. arundinaceus"
+      }
+    ]
+  },
+  {
+    "norwegian": "sumpsangerfamilien",
+    "latin": "Locustellidae",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Helopsaltes",
+    "subspecies": []
+  },
+  {
+    "norwegian": "starrsanger",
+    "latin": "Helopsaltes certhiola",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "H. c. ssp."
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Locustella",
+    "subspecies": []
+  },
+  {
+    "norwegian": "stripesanger",
+    "latin": "Locustella lanceolata",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "L. l. lanceolata"
+      }
+    ]
+  },
+  {
+    "norwegian": "elvesanger",
+    "latin": "Locustella fluviatilis",
+    "subspecies": []
+  },
+  {
+    "norwegian": "sumpsanger",
+    "latin": "Locustella luscinioides",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "L. l. luscinioides"
+      }
+    ]
+  },
+  {
+    "norwegian": "gresshoppesanger",
+    "latin": "Locustella naevia",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "L. n. naevia"
+      }
+    ]
+  },
+  {
+    "norwegian": "svalefamilien",
+    "latin": "Hirundinidae",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Riparia",
+    "subspecies": []
+  },
+  {
+    "norwegian": "sandsvale",
+    "latin": "Riparia riparia",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "R. r. riparia"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Ptyonoprogne",
+    "subspecies": []
+  },
+  {
+    "norwegian": "klippesvale",
+    "latin": "Ptyonoprogne rupestris",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Hirundo",
+    "subspecies": []
+  },
+  {
+    "norwegian": "låvesvale",
+    "latin": "Hirundo rustica",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "H. r. rustica"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Delichon",
+    "subspecies": []
+  },
+  {
+    "norwegian": "taksvale",
+    "latin": "Delichon urbicum",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "D. u. urbicum"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Cecropis",
+    "subspecies": []
+  },
+  {
+    "norwegian": "brosvale",
+    "latin": "Cecropis rufula",
+    "subspecies": []
+  },
+  {
+    "norwegian": "tempelsvale",
+    "latin": "Cecropis daurica",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "C. d. japonica"
+      },
+      {
+        "norwegian": "bro-/tempelsvale",
+        "latin": "C. rufula/daurica"
+      }
+    ]
+  },
+  {
+    "norwegian": "stjertmeisfamilien",
+    "latin": "Aegithalidae",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Aegithalos",
+    "subspecies": []
+  },
+  {
+    "norwegian": "stjertmeis",
+    "latin": "Aegithalos caudatus",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "A. c. caudatus"
+      },
+      {
+        "norwegian": "nan",
+        "latin": "A. c. europaeus"
+      }
+    ]
+  },
+  {
+    "norwegian": "bladsangerfamilien",
+    "latin": "Phylloscopidae",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Phylloscopus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "bøksanger",
+    "latin": "Phylloscopus sibilatrix",
+    "subspecies": []
+  },
+  {
+    "norwegian": "eikesanger",
+    "latin": "Phylloscopus bonelli",
+    "subspecies": []
+  },
+  {
+    "norwegian": "furusanger",
+    "latin": "Phylloscopus orientalis",
+    "subspecies": [
+      {
+        "norwegian": "eike-/furusanger",
+        "latin": "P. bonelli/orientalis"
+      }
+    ]
+  },
+  {
+    "norwegian": "gulbrynsanger",
+    "latin": "Phylloscopus inornatus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "blekbrynsanger",
+    "latin": "Phylloscopus humei",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "P. h. humei"
+      }
+    ]
+  },
+  {
+    "norwegian": "fuglekongesanger",
+    "latin": "Phylloscopus proregulus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "viersanger",
+    "latin": "Phylloscopus schwarzi",
+    "subspecies": []
+  },
+  {
+    "norwegian": "brunsanger",
+    "latin": "Phylloscopus fuscatus",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "P. f. fuscatus"
+      }
+    ]
+  },
+  {
+    "norwegian": "løvsanger",
+    "latin": "Phylloscopus trochilus",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "P. t. trochilus"
+      },
+      {
+        "norwegian": "nan",
+        "latin": "P. t. acredula"
+      }
+    ]
+  },
+  {
+    "norwegian": "gransanger",
+    "latin": "Phylloscopus collybita",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "P. c. abietinus"
+      },
+      {
+        "norwegian": "nan",
+        "latin": "P. c. collybita"
+      },
+      {
+        "norwegian": "sibirgransanger",
+        "latin": "P. c. tristis"
+      }
+    ]
+  },
+  {
+    "norwegian": "østkronsanger",
+    "latin": "Phylloscopus coronatus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "einersanger",
+    "latin": "Phylloscopus nitidus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "ospesanger",
+    "latin": "Phylloscopus plumbeitarsus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "østsanger",
+    "latin": "Phylloscopus trochiloides",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "P. t. viridanus"
+      }
+    ]
+  },
+  {
+    "norwegian": "lappsanger",
+    "latin": "Phylloscopus borealis",
+    "subspecies": []
+  },
+  {
+    "norwegian": "sangerfamilien",
+    "latin": "Sylviidae",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Sylvia",
+    "subspecies": []
+  },
+  {
+    "norwegian": "hagesanger",
+    "latin": "Sylvia borin",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "S. b. borin"
+      }
+    ]
+  },
+  {
+    "norwegian": "munk",
+    "latin": "Sylvia atricapilla",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "S. a. atricapilla"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Curruca",
+    "subspecies": []
+  },
+  {
+    "norwegian": "hauksanger",
+    "latin": "Curruca nisoria",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "C. n. nisoria"
+      }
+    ]
+  },
+  {
+    "norwegian": "møller",
+    "latin": "Curruca curruca",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "C. c. curruca"
+      },
+      {
+        "norwegian": "sibirmøller",
+        "latin": "C. c. blythi"
+      },
+      {
+        "norwegian": "nan",
+        "latin": "C. c. halimodendri"
+      }
+    ]
+  },
+  {
+    "norwegian": "mestersanger",
+    "latin": "Curruca crassirostris",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "C. c. ssp."
+      }
+    ]
+  },
+  {
+    "norwegian": "ørkensanger",
+    "latin": "Curruca nana",
+    "subspecies": []
+  },
+  {
+    "norwegian": "tornsanger",
+    "latin": "Curruca communis",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "C. c. communis"
+      }
+    ]
+  },
+  {
+    "norwegian": "svarthodesanger",
+    "latin": "Curruca melanocephala",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "C. m. melanocephala"
+      }
+    ]
+  },
+  {
+    "norwegian": "rødbrystsanger",
+    "latin": "Curruca iberiae",
+    "subspecies": []
+  },
+  {
+    "norwegian": "rødsmekkesanger",
+    "latin": "Curruca cantillans",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "C. c. cantillans"
+      },
+      {
+        "norwegian": "nan",
+        "latin": "C. c. albistriata"
+      },
+      {
+        "norwegian": "rødbryst-/rødsmekkesanger",
+        "latin": "C. iberiae/cantillans"
+      },
+      {
+        "norwegian": "rosen-/rødbryst-/rødsmekkesanger",
+        "latin": "C. subalpina/iberiae/cantillans"
+      }
+    ]
+  },
+  {
+    "norwegian": "sidensvansfamilien",
+    "latin": "Bombycillidae",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Bombycilla",
+    "subspecies": []
+  },
+  {
+    "norwegian": "sidensvans",
+    "latin": "Bombycilla garrulus",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "B. g. garrulus"
+      }
+    ]
+  },
+  {
+    "norwegian": "fuglekongefamilien",
+    "latin": "Regulidae",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Regulus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "rødtoppfuglekonge",
+    "latin": "Regulus ignicapilla",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "R. i. ignicapilla"
+      }
+    ]
+  },
+  {
+    "norwegian": "fuglekonge",
+    "latin": "Regulus regulus",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "R. r. regulus"
+      }
+    ]
+  },
+  {
+    "norwegian": "spettmeisfamilien",
+    "latin": "Sittidae",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Sitta",
+    "subspecies": []
+  },
+  {
+    "norwegian": "spettmeis",
+    "latin": "Sitta europaea",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "S. e. asiatica"
+      },
+      {
+        "norwegian": "nan",
+        "latin": "S. e. europaea"
+      }
+    ]
+  },
+  {
+    "norwegian": "trekryperfamilien",
+    "latin": "Certhiidae",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Certhia",
+    "subspecies": []
+  },
+  {
+    "norwegian": "trekryper",
+    "latin": "Certhia familiaris",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "C. f. familiaris"
+      }
+    ]
+  },
+  {
+    "norwegian": "gjerdesmettfamilien",
+    "latin": "Troglodytidae",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Troglodytes",
+    "subspecies": []
+  },
+  {
+    "norwegian": "gjerdesmett",
+    "latin": "Troglodytes troglodytes",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "T. t. troglodytes"
+      }
+    ]
+  },
+  {
+    "norwegian": "stærfamilien",
+    "latin": "Sturnidae",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Sturnus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "stær",
+    "latin": "Sturnus vulgaris",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "S. v. vulgaris"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Pastor",
+    "subspecies": []
+  },
+  {
+    "norwegian": "rosenstær",
+    "latin": "Pastor roseus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "fossekallfamilien",
+    "latin": "Cinclidae",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Cinclus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "fossekall",
+    "latin": "Cinclus cinclus",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "C. c. cinclus"
+      }
+    ]
+  },
+  {
+    "norwegian": "trostefamilien",
+    "latin": "Turdidae",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Zoothera",
+    "subspecies": []
+  },
+  {
+    "norwegian": "gulltrost",
+    "latin": "Zoothera aurea",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "Z. a. aurea"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Catharus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "brunkinnskogtrost",
+    "latin": "Catharus ustulatus",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "C. u. ssp."
+      }
+    ]
+  },
+  {
+    "norwegian": "viriskogtrost",
+    "latin": "Catharus fuscescens",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "C. f. fuscescens/fuliginosus"
+      }
+    ]
+  },
+  {
+    "norwegian": "gråkinnskogtrost",
+    "latin": "Catharus minimus",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "C. m. minimus/aliciae"
+      },
+      {
+        "norwegian": "brunkinn-/gråkinnskogtrost",
+        "latin": "C. ustulatus/minimus"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Geokichla",
+    "subspecies": []
+  },
+  {
+    "norwegian": "sibirtrost",
+    "latin": "Geokichla sibirica",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "G. s. sibirica"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Turdus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "duetrost",
+    "latin": "Turdus viscivorus",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "T. v. viscivorus"
+      }
+    ]
+  },
+  {
+    "norwegian": "måltrost",
+    "latin": "Turdus philomelos",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "T. p. philomelos"
+      }
+    ]
+  },
+  {
+    "norwegian": "rødvingetrost",
+    "latin": "Turdus iliacus",
+    "subspecies": [
+      {
+        "norwegian": "islandsk rødvingetrost",
+        "latin": "T. t. coburni"
+      },
+      {
+        "norwegian": "nan",
+        "latin": "T. i. iliacus"
+      }
+    ]
+  },
+  {
+    "norwegian": "svarttrost",
+    "latin": "Turdus merula",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "T. m. merula"
+      }
+    ]
+  },
+  {
+    "norwegian": "gråtrost",
+    "latin": "Turdus pilaris",
+    "subspecies": []
+  },
+  {
+    "norwegian": "ringtrost",
+    "latin": "Turdus torquatus",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "T. t. torquatus"
+      }
+    ]
+  },
+  {
+    "norwegian": "svartstrupetrost",
+    "latin": "Turdus atrogularis",
+    "subspecies": []
+  },
+  {
+    "norwegian": "rødflekktrost",
+    "latin": "Turdus naumanni",
+    "subspecies": []
+  },
+  {
+    "norwegian": "svartflekktrost",
+    "latin": "Turdus eunomus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "gråstrupetrost",
+    "latin": "Turdus obscurus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "fluesnapperfamilien",
+    "latin": "Muscicapidae",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Cercotrichas",
+    "subspecies": []
+  },
+  {
+    "norwegian": "hekkskvett",
+    "latin": "Cercotrichas galactotes",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "C. g. syriaca/familiaris"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Muscicapa",
+    "subspecies": []
+  },
+  {
+    "norwegian": "gråflankefluesnapper",
+    "latin": "Muscicapa sibirica",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "M. s. sibirica"
+      }
+    ]
+  },
+  {
+    "norwegian": "gråfluesnapper",
+    "latin": "Muscicapa striata",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "M. s. striata"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Erithacus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "rødstrupe",
+    "latin": "Erithacus rubecula",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "E. r. rubecula"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Irania",
+    "subspecies": []
+  },
+  {
+    "norwegian": "hvitstrupenattergal",
+    "latin": "Irania gutturalis",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Luscinia",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nattergal",
+    "latin": "Luscinia luscinia",
+    "subspecies": []
+  },
+  {
+    "norwegian": "sørnattergal",
+    "latin": "Luscinia megarhynchos",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "L. m. megarhynchos"
+      }
+    ]
+  },
+  {
+    "norwegian": "blåstrupe",
+    "latin": "Luscinia svecica",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "L. s. svecica"
+      },
+      {
+        "norwegian": "sørlig blåstrupe",
+        "latin": "L. s. cyanecula"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Calliope",
+    "subspecies": []
+  },
+  {
+    "norwegian": "rubinstrupe",
+    "latin": "Calliope calliope",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "C. c. calliope"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Ficedula",
+    "subspecies": []
+  },
+  {
+    "norwegian": "mugimakifluesnapper",
+    "latin": "Ficedula mugimaki",
+    "subspecies": []
+  },
+  {
+    "norwegian": "dvergfluesnapper",
+    "latin": "Ficedula parva",
+    "subspecies": []
+  },
+  {
+    "norwegian": "taigafluesnapper",
+    "latin": "Ficedula albicilla",
+    "subspecies": []
+  },
+  {
+    "norwegian": "halsbåndfluesnapper",
+    "latin": "Ficedula albicollis",
+    "subspecies": []
+  },
+  {
+    "norwegian": "svarthvit fluesnapper",
+    "latin": "Ficedula hypoleuca",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "F. h. hypoleuca"
+      },
+      {
+        "norwegian": "nan",
+        "latin": "F. h. sibirica"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Tarsiger",
+    "subspecies": []
+  },
+  {
+    "norwegian": "blåstjert",
+    "latin": "Tarsiger cyanurus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Phoenicurus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "svartrødstjert",
+    "latin": "Phoenicurus ochruros",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "P. o. gibraltariensis"
+      },
+      {
+        "norwegian": "nan",
+        "latin": "P. o. phoenicuroides/murinus"
+      }
+    ]
+  },
+  {
+    "norwegian": "rødstjert",
+    "latin": "Phoenicurus phoenicurus",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "P. p. phoenicurus"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Monticola",
+    "subspecies": []
+  },
+  {
+    "norwegian": "steintrost",
+    "latin": "Monticola saxatilis",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Saxicola",
+    "subspecies": []
+  },
+  {
+    "norwegian": "buskskvett",
+    "latin": "Saxicola rubetra",
+    "subspecies": []
+  },
+  {
+    "norwegian": "asiasvartstrupe",
+    "latin": "Saxicola maurus",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "S. m. hemprichii"
+      },
+      {
+        "norwegian": "nan",
+        "latin": "S. m. variegatus"
+      },
+      {
+        "norwegian": "russesvartstrupe",
+        "latin": "S. m. maurus"
+      },
+      {
+        "norwegian": "taigasvartstrupe",
+        "latin": "S. m. stejnegeri"
+      }
+    ]
+  },
+  {
+    "norwegian": "svartstrupe",
+    "latin": "Saxicola rubicola",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "S. r. hibernans"
+      },
+      {
+        "norwegian": "nan",
+        "latin": "S. r. rubicola"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Oenanthe",
+    "subspecies": []
+  },
+  {
+    "norwegian": "ørkensteinskvett",
+    "latin": "Oenanthe deserti",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "O. d. deserti"
+      }
+    ]
+  },
+  {
+    "norwegian": "svartstrupesteinskvett",
+    "latin": "Oenanthe pleschanka",
+    "subspecies": []
+  },
+  {
+    "norwegian": "tyrkersteinskvett",
+    "latin": "Oenanthe melanoleuca",
+    "subspecies": [
+      {
+        "norwegian": "puner-/tyrkersteinskvett",
+        "latin": "O. hispanica/melanoleuca"
+      }
+    ]
+  },
+  {
+    "norwegian": "steinskvett",
+    "latin": "Oenanthe oenanthe",
+    "subspecies": [
+      {
+        "norwegian": "grønlandsk steinskvett",
+        "latin": "O. o. leucorhoa"
+      },
+      {
+        "norwegian": "nan",
+        "latin": "O. o. oenanthe"
+      }
+    ]
+  },
+  {
+    "norwegian": "isabellasteinskvett",
+    "latin": "Oenanthe isabellina",
+    "subspecies": []
+  },
+  {
+    "norwegian": "jernspurvfamilien",
+    "latin": "Prunellidae",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Prunella",
+    "subspecies": []
+  },
+  {
+    "norwegian": "alpejernspurv",
+    "latin": "Prunella collaris",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "P. c. collaris"
+      }
+    ]
+  },
+  {
+    "norwegian": "svartstrupejernspurv",
+    "latin": "Prunella atrogularis",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "P. a. atrogularis"
+      }
+    ]
+  },
+  {
+    "norwegian": "jernspurv",
+    "latin": "Prunella modularis",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "P. m. modularis"
+      }
+    ]
+  },
+  {
+    "norwegian": "sibirjernspurv",
+    "latin": "Prunella montanella",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "P. m. montanella"
+      }
+    ]
+  },
+  {
+    "norwegian": "spurvefamilien",
+    "latin": "Passeridae",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Passer",
+    "subspecies": []
+  },
+  {
+    "norwegian": "pilfink",
+    "latin": "Passer montanus",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "P. m. montanus"
+      }
+    ]
+  },
+  {
+    "norwegian": "middelhavsspurv",
+    "latin": "Passer hispaniolensis",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "P. h. hispaniolensis/transcaspicus"
+      }
+    ]
+  },
+  {
+    "norwegian": "gråspurv",
+    "latin": "Passer domesticus",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "P. d. domesticus"
+      }
+    ]
+  },
+  {
+    "norwegian": "erlefamilien",
+    "latin": "Motacillidae",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Motacilla",
+    "subspecies": []
+  },
+  {
+    "norwegian": "vintererle",
+    "latin": "Motacilla cinerea",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "M. c. cinerea"
+      }
+    ]
+  },
+  {
+    "norwegian": "gulerle",
+    "latin": "Motacilla flava",
+    "subspecies": [
+      {
+        "norwegian": "engelsk gulerle",
+        "latin": "M. f. flavissima"
+      },
+      {
+        "norwegian": "sørlig gulerle",
+        "latin": "M. f. flava"
+      },
+      {
+        "norwegian": "svarthodet gulerle",
+        "latin": "M. f. feldegg"
+      },
+      {
+        "norwegian": "såerle",
+        "latin": "M. f. thunbergi"
+      }
+    ]
+  },
+  {
+    "norwegian": "sitronerle",
+    "latin": "Motacilla citreola",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "M. c. citreola"
+      }
+    ]
+  },
+  {
+    "norwegian": "østgulerle",
+    "latin": "Motacilla tschutschensis",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "M. t. plexa/tschutschensis"
+      }
+    ]
+  },
+  {
+    "norwegian": "linerle",
+    "latin": "Motacilla alba",
+    "subspecies": [
+      {
+        "norwegian": "svartryggerle",
+        "latin": "M. a. yarrellii"
+      },
+      {
+        "norwegian": "nan",
+        "latin": "M. a. alba"
+      },
+      {
+        "norwegian": "maskeerle",
+        "latin": "M. a. personata"
+      },
+      {
+        "norwegian": "nan",
+        "latin": "M. a. leucopsis"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Anthus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "mongolpiplerke",
+    "latin": "Anthus godlewskii",
+    "subspecies": []
+  },
+  {
+    "norwegian": "markpiplerke",
+    "latin": "Anthus campestris",
+    "subspecies": []
+  },
+  {
+    "norwegian": "tartarpiplerke",
+    "latin": "Anthus richardi",
+    "subspecies": []
+  },
+  {
+    "norwegian": "tundrapiplerke",
+    "latin": "Anthus gustavi",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "A. g. gustavi"
+      }
+    ]
+  },
+  {
+    "norwegian": "trepiplerke",
+    "latin": "Anthus trivialis",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "A. t. trivialis"
+      }
+    ]
+  },
+  {
+    "norwegian": "sibirpiplerke",
+    "latin": "Anthus hodgsoni",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "A. h. yunnanensis"
+      }
+    ]
+  },
+  {
+    "norwegian": "lappiplerke",
+    "latin": "Anthus cervinus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "amurpiplerke",
+    "latin": "Anthus japonicus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "kanadapiplerke",
+    "latin": "Anthus rubescens",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "A. r. rubescens"
+      },
+      {
+        "norwegian": "amur-/kanadapiplerke",
+        "latin": "A. japonicus/rubescens"
+      }
+    ]
+  },
+  {
+    "norwegian": "heipiplerke",
+    "latin": "Anthus pratensis",
+    "subspecies": []
+  },
+  {
+    "norwegian": "skjærpiplerke",
+    "latin": "Anthus petrosus",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "A. p. littoralis"
+      }
+    ]
+  },
+  {
+    "norwegian": "vannpiplerke",
+    "latin": "Anthus spinoletta",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "A. s. spinoletta"
+      }
+    ]
+  },
+  {
+    "norwegian": "finkefamilien",
+    "latin": "Fringillidae",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Fringilla",
+    "subspecies": []
+  },
+  {
+    "norwegian": "bjørkefink",
+    "latin": "Fringilla montifringilla",
+    "subspecies": []
+  },
+  {
+    "norwegian": "bokfink",
+    "latin": "Fringilla coelebs",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "F. c. coelebs"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Coccothraustes",
+    "subspecies": []
+  },
+  {
+    "norwegian": "kjernebiter",
+    "latin": "Coccothraustes coccothraustes",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "C. c. coccothraustes"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Carpodacus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "rosenfink",
+    "latin": "Carpodacus erythrinus",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "C. e. erythrinus"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Pinicola",
+    "subspecies": []
+  },
+  {
+    "norwegian": "konglebit",
+    "latin": "Pinicola enucleator",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "P. e. enucleator"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Pyrrhula",
+    "subspecies": []
+  },
+  {
+    "norwegian": "dompap",
+    "latin": "Pyrrhula pyrrhula",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "P. p. pyrrhula"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Bucanetes",
+    "subspecies": []
+  },
+  {
+    "norwegian": "steinfink",
+    "latin": "Bucanetes mongolicus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "trompetfink",
+    "latin": "Bucanetes githagineus",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "B. g. ssp."
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Chloris",
+    "subspecies": []
+  },
+  {
+    "norwegian": "grønnfink",
+    "latin": "Chloris chloris",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "C. c. chloris"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Linaria",
+    "subspecies": []
+  },
+  {
+    "norwegian": "bergirisk",
+    "latin": "Linaria flavirostris",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "L. f. flavirostris"
+      }
+    ]
+  },
+  {
+    "norwegian": "tornirisk",
+    "latin": "Linaria cannabina",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "L. c. cannabina"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Acanthis",
+    "subspecies": []
+  },
+  {
+    "norwegian": "gråsisik",
+    "latin": "Acanthis flammea",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "A. f. flammea"
+      },
+      {
+        "norwegian": "nan",
+        "latin": "A. f. rostrata"
+      },
+      {
+        "norwegian": "brunsisik",
+        "latin": "A. f. cabaret"
+      },
+      {
+        "norwegian": "polarsisik",
+        "latin": "A. f. exilipes"
+      },
+      {
+        "norwegian": "grønlandsk polarsisik",
+        "latin": "A. f. hornemanni"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Loxia",
+    "subspecies": []
+  },
+  {
+    "norwegian": "båndkorsnebb",
+    "latin": "Loxia leucoptera",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "L. l. bifasciata"
+      }
+    ]
+  },
+  {
+    "norwegian": "furukorsnebb",
+    "latin": "Loxia pytyopsittacus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "grankorsnebb",
+    "latin": "Loxia curvirostra",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "L. c. curvirostra"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Carduelis",
+    "subspecies": []
+  },
+  {
+    "norwegian": "stillits",
+    "latin": "Carduelis carduelis",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "C. c. carduelis"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Serinus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "gulirisk",
+    "latin": "Serinus serinus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Spinus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "grønnsisik",
+    "latin": "Spinus spinus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "lappspurvfamilien",
+    "latin": "Calcariidae",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Plectrophenax",
+    "subspecies": []
+  },
+  {
+    "norwegian": "snøspurv",
+    "latin": "Plectrophenax nivalis",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "P. n. nivalis"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Calcarius",
+    "subspecies": []
+  },
+  {
+    "norwegian": "lappspurv",
+    "latin": "Calcarius lapponicus",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "C. l. lapponicus"
+      }
+    ]
+  },
+  {
+    "norwegian": "buskspurvfamilien",
+    "latin": "Emberizidae",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Emberiza",
+    "subspecies": []
+  },
+  {
+    "norwegian": "krattspurv",
+    "latin": "Emberiza pallasi",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "E. p. pallasi/polaris"
+      }
+    ]
+  },
+  {
+    "norwegian": "sivspurv",
+    "latin": "Emberiza schoeniclus",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "E. s. schoeniclus"
+      }
+    ]
+  },
+  {
+    "norwegian": "gulbrynspurv",
+    "latin": "Emberiza chrysophrys",
+    "subspecies": []
+  },
+  {
+    "norwegian": "kastanjespurv",
+    "latin": "Emberiza rutila",
+    "subspecies": []
+  },
+  {
+    "norwegian": "sibirspurv",
+    "latin": "Emberiza aureola",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "E. a. aureola"
+      }
+    ]
+  },
+  {
+    "norwegian": "dvergspurv",
+    "latin": "Emberiza pusilla",
+    "subspecies": []
+  },
+  {
+    "norwegian": "vierspurv",
+    "latin": "Emberiza rustica",
+    "subspecies": []
+  },
+  {
+    "norwegian": "gråhodespurv",
+    "latin": "Emberiza spodocephala",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "E. s. spodocephala"
+      }
+    ]
+  },
+  {
+    "norwegian": "svarthodespurv",
+    "latin": "Emberiza melanocephala",
+    "subspecies": []
+  },
+  {
+    "norwegian": "brunhodespurv",
+    "latin": "Emberiza bruniceps",
+    "subspecies": [
+      {
+        "norwegian": "svarthode-/brunhodespurv",
+        "latin": "E. melanocephala/bruniceps"
+      }
+    ]
+  },
+  {
+    "norwegian": "kornspurv",
+    "latin": "Emberiza calandra",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "E. c. calandra"
+      }
+    ]
+  },
+  {
+    "norwegian": "rødbrystspurv",
+    "latin": "Emberiza buchanani",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "E. b. ssp."
+      }
+    ]
+  },
+  {
+    "norwegian": "hortulan",
+    "latin": "Emberiza hortulana",
+    "subspecies": []
+  },
+  {
+    "norwegian": "rustspurv",
+    "latin": "Emberiza caesia",
+    "subspecies": []
+  },
+  {
+    "norwegian": "hvithodespurv",
+    "latin": "Emberiza leucocephalos",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "E. l. leucocephalos"
+      }
+    ]
+  },
+  {
+    "norwegian": "gulspurv",
+    "latin": "Emberiza citrinella",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "E. c. citrinella"
+      }
+    ]
+  },
+  {
+    "norwegian": "amerikaspurvfamilien",
+    "latin": "Passerellidae",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Junco",
+    "subspecies": []
+  },
+  {
+    "norwegian": "vinterjunko",
+    "latin": "Junco hyemalis",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "J. h. hyemalis"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Zonotrichia",
+    "subspecies": []
+  },
+  {
+    "norwegian": "hvitstrupespurv",
+    "latin": "Zonotrichia albicollis",
+    "subspecies": []
+  },
+  {
+    "norwegian": "hvitkronespurv",
+    "latin": "Zonotrichia leucophrys",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "Z. l. gambelii"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Passerculus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "musespurv",
+    "latin": "Passerculus sandwichensis",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "P. s. ssp."
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Melospiza",
+    "subspecies": []
+  },
+  {
+    "norwegian": "sangspurv",
+    "latin": "Melospiza melodia",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "M. m. melodia"
+      }
+    ]
+  },
+  {
+    "norwegian": "trupialfamilien",
+    "latin": "Icteridae",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Dolichonyx",
+    "subspecies": []
+  },
+  {
+    "norwegian": "bobolink",
+    "latin": "Dolichonyx oryzivorus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Icterus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "lundtrupial",
+    "latin": "Icterus galbula",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Molothrus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "brunhodetrupial",
+    "latin": "Molothrus ater",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "M. a. artemisiae/ater"
+      }
+    ]
+  },
+  {
+    "norwegian": "parulafamilien",
+    "latin": "Parulidae",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Seiurus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "ovnparula",
+    "latin": "Seiurus aurocapilla",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "S. a. aurocapilla/furvior"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Mniotilta",
+    "subspecies": []
+  },
+  {
+    "norwegian": "klatreparula",
+    "latin": "Mniotilta varia",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Geothlypis",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nordgulstrupe",
+    "latin": "Geothlypis trichas",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "G. t. ssp."
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Setophaga",
+    "subspecies": []
+  },
+  {
+    "norwegian": "svarthetteparula",
+    "latin": "Setophaga striata",
+    "subspecies": []
+  },
+  {
+    "norwegian": "brunkinnparula",
+    "latin": "Setophaga tigrina",
+    "subspecies": []
+  },
+  {
+    "norwegian": "myrteparula",
+    "latin": "Setophaga coronata",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "S. c. hooveri/coronata"
+      }
+    ]
+  },
+  {
+    "norwegian": "kardinalfamilien",
+    "latin": "Cardinalidae",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "Pheucticus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "rosenbrysttykknebb",
+    "latin": "Pheucticus ludovicianus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "nan",
+    "subspecies": []
+  },
+  {
+    "norwegian": "###",
+    "latin": "###",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "nan",
+    "subspecies": []
+  },
+  {
+    "norwegian": "KATEGORI D",
+    "latin": "nan",
+    "subspecies": []
+  },
+  {
+    "norwegian": "hjelmfiskand",
+    "latin": "Lophodytes cucullatus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "hvitpelikan",
+    "latin": "Pelecanus onocrotalus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "krabbehegre",
+    "latin": "Butorides atricapilla",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "B. a. amurensis"
+      }
+    ]
+  },
+  {
+    "norwegian": "vinhegre",
+    "latin": "Ardeola bacchus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "prærievåk",
+    "latin": "Buteo swainsoni",
+    "subspecies": []
+  },
+  {
+    "norwegian": "askedrongo",
+    "latin": "Dicrurus leucophaeus",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "D. l. longicaudatus/hopwoodi"
+      }
+    ]
+  },
+  {
+    "norwegian": "gulbrynkjernebiter",
+    "latin": "Hesperiphona vespertina",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "H. v. ssp."
+      }
+    ]
+  },
+  {
+    "norwegian": "gulstrupespurv",
+    "latin": "Emberiza elegans",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "E. e. elegans/elegantula"
+      }
+    ]
+  },
+  {
+    "norwegian": "nan",
+    "latin": "nan",
+    "subspecies": []
+  },
+  {
+    "norwegian": "###",
+    "latin": "###",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nan",
+    "latin": "nan",
+    "subspecies": []
+  },
+  {
+    "norwegian": "KATEGORI E",
+    "latin": "nan",
+    "subspecies": []
+  },
+  {
+    "norwegian": "knoppsvane",
+    "latin": "Cygnus olor",
+    "subspecies": []
+  },
+  {
+    "norwegian": "svartsvane",
+    "latin": "Cygnus atratus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "rødhalsgås",
+    "latin": "Branta ruficollis",
+    "subspecies": []
+  },
+  {
+    "norwegian": "kanadagås",
+    "latin": "Branta canadensis",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "B. c. canadensis"
+      }
+    ]
+  },
+  {
+    "norwegian": "hvitkinngås",
+    "latin": "Branta leucopsis",
+    "subspecies": []
+  },
+  {
+    "norwegian": "polargås",
+    "latin": "Branta hutchinsii",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "B. h. minima"
+      }
+    ]
+  },
+  {
+    "norwegian": "stripegås",
+    "latin": "Anser indicus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "keisergås",
+    "latin": "Anser canagicus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "eskimogås",
+    "latin": "Anser rossii",
+    "subspecies": []
+  },
+  {
+    "norwegian": "snøgås",
+    "latin": "Anser caerulescens",
+    "subspecies": []
+  },
+  {
+    "norwegian": "grågås",
+    "latin": "Anser anser",
+    "subspecies": []
+  },
+  {
+    "norwegian": "svanegås",
+    "latin": "Anser cygnoides",
+    "subspecies": []
+  },
+  {
+    "norwegian": "dverggås",
+    "latin": "Anser erythropus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "taigasædgås",
+    "latin": "Anser fabalis",
+    "subspecies": []
+  },
+  {
+    "norwegian": "moskusand",
+    "latin": "Cairina moschata var. domestica",
+    "subspecies": []
+  },
+  {
+    "norwegian": "mandarinand",
+    "latin": "Aix galericulata",
+    "subspecies": []
+  },
+  {
+    "norwegian": "brudeand",
+    "latin": "Aix sponsa",
+    "subspecies": []
+  },
+  {
+    "norwegian": "niland",
+    "latin": "Alopochen aegyptiaca",
+    "subspecies": []
+  },
+  {
+    "norwegian": "gravand",
+    "latin": "Tadorna tadorna",
+    "subspecies": []
+  },
+  {
+    "norwegian": "kapprustand",
+    "latin": "Tadorna cana",
+    "subspecies": []
+  },
+  {
+    "norwegian": "rustand",
+    "latin": "Tadorna ferruginea",
+    "subspecies": []
+  },
+  {
+    "norwegian": "bøffeland",
+    "latin": "Bucephala albeola",
+    "subspecies": []
+  },
+  {
+    "norwegian": "hjelmfiskand",
+    "latin": "Lophodytes cucullatus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "rødhodeand",
+    "latin": "Netta rufina",
+    "subspecies": []
+  },
+  {
+    "norwegian": "kaneland",
+    "latin": "Spatula cyanoptera",
+    "subspecies": []
+  },
+  {
+    "norwegian": "sørblesand",
+    "latin": "Mareca sibilatrix",
+    "subspecies": []
+  },
+  {
+    "norwegian": "stokkand",
+    "latin": "Anas platyrhynchos",
+    "subspecies": []
+  },
+  {
+    "norwegian": "hvitkinnand",
+    "latin": "Anas bahamensis",
+    "subspecies": []
+  },
+  {
+    "norwegian": "rødnebband",
+    "latin": "Anas erythrorhyncha",
+    "subspecies": []
+  },
+  {
+    "norwegian": "stjertand",
+    "latin": "Anas acuta",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nordkrattvaktel",
+    "latin": "Colinus virginianus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "gælerrype",
+    "latin": "Lagopus scotica",
+    "subspecies": []
+  },
+  {
+    "norwegian": "storfugl",
+    "latin": "Tetrao urogallus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "orrfugl",
+    "latin": "Lyrurus tetrix",
+    "subspecies": []
+  },
+  {
+    "norwegian": "rapphøne",
+    "latin": "Perdix perdix",
+    "subspecies": []
+  },
+  {
+    "norwegian": "gullfasan",
+    "latin": "Chrysolophus pictus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "fasan",
+    "latin": "Phasianus colchicus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "engvaktel",
+    "latin": "Coturnix japonica",
+    "subspecies": []
+  },
+  {
+    "norwegian": "vaktel",
+    "latin": "Coturnix coturnix",
+    "subspecies": []
+  },
+  {
+    "norwegian": "rødhøne",
+    "latin": "Alectoris rufa",
+    "subspecies": []
+  },
+  {
+    "norwegian": "berghøne",
+    "latin": "Alectoris chukar",
+    "subspecies": []
+  },
+  {
+    "norwegian": "dvergflamingo",
+    "latin": "Phoeniconaias minor",
+    "subspecies": []
+  },
+  {
+    "norwegian": "chileflamingo",
+    "latin": "Phoenicopterus chilensis",
+    "subspecies": []
+  },
+  {
+    "norwegian": "rosenflamingo",
+    "latin": "Phoenicopterus roseus",
+    "subspecies": [
+      {
+        "norwegian": "chile-/rosen-/rødflamingo",
+        "latin": "P. chilensis/roseus/ruber"
+      }
+    ]
+  },
+  {
+    "norwegian": "palmedue",
+    "latin": "Spilopelia senegalensis",
+    "subspecies": []
+  },
+  {
+    "norwegian": "turteldue",
+    "latin": "Streptopelia turtur",
+    "subspecies": []
+  },
+  {
+    "norwegian": "latterdue",
+    "latin": "Streptopelia roseogrisea var. risoria",
+    "subspecies": []
+  },
+  {
+    "norwegian": "bydue",
+    "latin": "Columba livia var. domestica",
+    "subspecies": []
+  },
+  {
+    "norwegian": "jomfrutrane",
+    "latin": "Anthropoides virgo",
+    "subspecies": []
+  },
+  {
+    "norwegian": "amerikapurpurhøne",
+    "latin": "Porphyrio martinica",
+    "subspecies": []
+  },
+  {
+    "norwegian": "sultanhøne",
+    "latin": "Porphyrio porphyrio",
+    "subspecies": [
+      {
+        "norwegian": "gråhodesultanhøne",
+        "latin": "P. p. seistanicus/poliocephalus"
+      }
+    ]
+  },
+  {
+    "norwegian": "kongepingvin",
+    "latin": "Aptenodytes patagonicus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "bøylepingvin",
+    "latin": "Pygoscelis papua",
+    "subspecies": []
+  },
+  {
+    "norwegian": "gulltoppingvin",
+    "latin": "Eudyptes chrysolophus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "gråhodealbatross",
+    "latin": "Thalassarche chrysostoma",
+    "subspecies": []
+  },
+  {
+    "norwegian": "stork",
+    "latin": "Ciconia ciconia",
+    "subspecies": []
+  },
+  {
+    "norwegian": "blåmaskestork",
+    "latin": "Ciconia abdimii",
+    "subspecies": []
+  },
+  {
+    "norwegian": "hvitpelikan",
+    "latin": "Pelecanus onocrotalus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "rosenpelikan",
+    "latin": "Pelecanus rufescens",
+    "subspecies": []
+  },
+  {
+    "norwegian": "krøllpelikan",
+    "latin": "Pelecanus crispus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "tårnugle",
+    "latin": "Tyto alba",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "T. a. guttata"
+      }
+    ]
+  },
+  {
+    "norwegian": "kirkeugle",
+    "latin": "Athene noctua",
+    "subspecies": []
+  },
+  {
+    "norwegian": "hubro",
+    "latin": "Bubo bubo",
+    "subspecies": []
+  },
+  {
+    "norwegian": "kalkunkondor",
+    "latin": "Cathartes aura",
+    "subspecies": []
+  },
+  {
+    "norwegian": "lammegribb",
+    "latin": "Gypaetus barbatus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "åtselgribb",
+    "latin": "Neophron percnopterus",
+    "subspecies": [
+      {
+        "norwegian": "nan",
+        "latin": "N. p. ginginianus"
+      }
+    ]
+  },
+  {
+    "norwegian": "munkegribb",
+    "latin": "Aegypius monachus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "storskrikørn",
+    "latin": "Clanga clanga",
+    "subspecies": []
+  },
+  {
+    "norwegian": "steppeørn",
+    "latin": "Aquila nipalensis",
+    "subspecies": []
+  },
+  {
+    "norwegian": "vandrefalk",
+    "latin": "Falco peregrinus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "tartarfalk",
+    "latin": "Falco cherrug",
+    "subspecies": []
+  },
+  {
+    "norwegian": "nymfekakadu",
+    "latin": "Nymphicus hollandicus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "halsbåndparakitt",
+    "latin": "Psittacula krameri",
+    "subspecies": []
+  },
+  {
+    "norwegian": "praktrosella",
+    "latin": "Platycercus eximius",
+    "subspecies": []
+  },
+  {
+    "norwegian": "rosenhodet dvergpapegøye",
+    "latin": "Agapornis roseicollis",
+    "subspecies": []
+  },
+  {
+    "norwegian": "undulat",
+    "latin": "Melopsittacus undulatus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "sothettebylbyl",
+    "latin": "Pycnonotus aurigaster",
+    "subspecies": []
+  },
+  {
+    "norwegian": "hvitørebylbyl",
+    "latin": "Pycnonotus leucotis",
+    "subspecies": []
+  },
+  {
+    "norwegian": "hage-/lundbrillefugl",
+    "latin": "Zosterops japonicus/palpebrosus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "mandsjuriastær",
+    "latin": "Agropsar sturninus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "tigerastrild",
+    "latin": "Amandava amandava",
+    "subspecies": []
+  },
+  {
+    "norwegian": "bokfink",
+    "latin": "Fringilla coelebs",
+    "subspecies": []
+  },
+  {
+    "norwegian": "gråkjernebiter",
+    "latin": "Eophona personata",
+    "subspecies": []
+  },
+  {
+    "norwegian": "skrentrosenfink",
+    "latin": "Carpodacus rubicilloides",
+    "subspecies": []
+  },
+  {
+    "norwegian": "langhalefink",
+    "latin": "Carpodacus sibiricus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "karminfink",
+    "latin": "Carpodacus roseus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "orientfink",
+    "latin": "Chloris sinica",
+    "subspecies": []
+  },
+  {
+    "norwegian": "savanneirisk",
+    "latin": "Crithagra mozambica",
+    "subspecies": []
+  },
+  {
+    "norwegian": "brunsisik",
+    "latin": "Acanthis cabaret",
+    "subspecies": []
+  },
+  {
+    "norwegian": "gulirisk",
+    "latin": "Serinus serinus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "grønnsisik",
+    "latin": "Spinus spinus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "gulstrupespurv",
+    "latin": "Emberiza elegans",
+    "subspecies": []
+  },
+  {
+    "norwegian": "brunhodespurv",
+    "latin": "Emberiza bruniceps",
+    "subspecies": []
+  },
+  {
+    "norwegian": "gulhodetrupial",
+    "latin": "Xanthocephalus xanthocephalus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "svartgumptrupial",
+    "latin": "Icterus waglerii",
+    "subspecies": []
+  },
+  {
+    "norwegian": "rosenbrysttykknebb",
+    "latin": "Pheucticus ludovicianus",
+    "subspecies": []
+  },
+  {
+    "norwegian": "sisselspurv",
+    "latin": "Spiza americana",
+    "subspecies": []
+  },
+  {
+    "norwegian": "indigospurv",
+    "latin": "Passerina cyanea",
+    "subspecies": []
+  },
+  {
+    "norwegian": "lazulispurv",
+    "latin": "Passerina amoena",
+    "subspecies": []
+  },
+  {
+    "norwegian": "blåtykknebb",
+    "latin": "Passerina caerulea",
+    "subspecies": []
+  },
+  {
+    "norwegian": "pavespurv",
+    "latin": "Passerina ciris",
+    "subspecies": []
+  },
+  {
+    "norwegian": "rødkardinal",
+    "latin": "Cardinalis cardinalis",
+    "subspecies": []
+  }
+]

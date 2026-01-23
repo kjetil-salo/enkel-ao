@@ -2,6 +2,16 @@
 .chosen {
   overflow: visible;
 }
+.slider.disabled {
+  background: #6b7280 !important;
+}
+input:checked + .slider {
+  background: #3b82f6 !important;
+}
+input:not(:checked) + .slider {
+  background: #6b7280;
+}
+}
 /* Tydelig flash for antall-feltet når art velges */
 
 
@@ -66,9 +76,16 @@
 /* Dimmet seksjon for progressiv flyt */
 .dimmed {
   opacity: 0.5;
-  pointer-events: none;
   filter: grayscale(0.2);
   transition: opacity 0.2s, filter 0.2s;
+}
+
+/* Sørg for at underarts-checkbox alltid er klikkbar selv om seksjonen er dimmet */
+.dimmed #include-subtaxa,
+#include-subtaxa {
+  pointer-events: auto !important;
+  opacity: 1 !important;
+  filter: none !important;
 }
 .ao-sites-dropdown-list {
   width: 100%;

@@ -11,6 +11,7 @@ En lynrask, superenkel webapp for å registrere fugleobservasjoner direkte til A
 ## Hovedfunksjoner
 - 📍 Automatisk lokalitetsfinner (AO-integrasjon)
 - 🔍 Artssøk med autocomplete
+   - Underarter kan vises ("Vis underarter") kun når du er online. I offline-modus får du kun hovedarter, og en tydelig advarsel vises under boksen.
 - ⚡ Lynrask og enkel registrering (art, antall, aktivitet, sted)
 - 👥 Medobservatører (AO-import)
 - 🗑️ Redigering og sletting
@@ -90,6 +91,7 @@ Se [fly.toml](fly.toml) og [docs/deploy_strategy.md](docs/deploy_strategy.md) fo
 - Mulighet for å vise/skjule valgfrie felt (kjønn, alder, kommentar)
 - Batch-operasjoner (endre lokalitet på flere observasjoner samtidig)
 - Ytelsesforbedringer og flere eksportmuligheter
+- Mulig støtte for underarter i offline-modus hvis AO åpner for bedre import av slike navn.
 
 Forslag? Send en e-post til [k@vikebo.com](mailto:k@vikebo.com)!
 

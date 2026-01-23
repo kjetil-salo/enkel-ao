@@ -5,6 +5,7 @@
 
 // Importer fra moduler
 import { searchSpecies, logPageView, loadActivities } from './api.js';
+import { searchOfflineSpecies } from './species_offline.js';
 import { loadObservations, saveObservations, defaultCoObservers } from './storage.js';
 import { flashButton, showToast, setStatus, setLocationStatus } from './ui.js';
 import { setAoSiteSuggestions, initLocation, openMap } from './location.js';
@@ -151,15 +152,30 @@ function renderResults() {
     const row = document.createElement('div');
     row.className = 'result-name-row';
 
+    // Vis både norsk og latin hvis tilgjengelig
     const nameSpan = document.createElement('span');
     nameSpan.className = 'result-name';
-    nameSpan.textContent = item.taxonName || '(ukjent navn)';
+    nameSpan.textContent = item.taxonName || item.norwegian || '(ukjent navn)';
     row.appendChild(nameSpan);
+
+    if (item.scientificName || item.latin) {
+      const sciSpan = document.createElement('span');
+      sciSpan.className = 'result-sci';
+      sciSpan.textContent = item.scientificName || item.latin;
+      row.appendChild(sciSpan);
+    }
 
     div.appendChild(row);
 
+    // Sørg for at alle resultater (også underarter/offline) er klikkbare
+    div.tabIndex = 0;
     div.addEventListener('click', () => {
       chooseItem(index);
+    });
+    div.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        chooseItem(index);
+      }
     });
 
     resultsEl.appendChild(div);
@@ -225,11 +241,28 @@ function chooseItem(index) {
   ageSelect.disabled = false;
   genderSelect.disabled = false;
 }
+// Oppdater underartsboks og advarsel ut fra offline-modus
+function updateSubtaxaCheckboxState() {
+  const forceOffline = localStorage.getItem('forceOfflineSpecies') === '1';
+  const subtaxaCheckbox = document.getElementById('include-subtaxa');
+  const subtaxaWarning = document.getElementById('subtaxa-offline-warning');
+  if (subtaxaCheckbox && subtaxaWarning) {
+    if (forceOffline) {
+      subtaxaCheckbox.checked = false;
+      subtaxaCheckbox.disabled = true;
+      subtaxaWarning.style.display = 'block';
+    } else {
+      subtaxaCheckbox.disabled = false;
+      subtaxaWarning.style.display = 'none';
+    }
+  }
+}
 
 // ============================================================
 // Søk etter arter
 // ============================================================
 async function fetchResults(term) {
+  updateSubtaxaCheckboxState();
   const q = term.trim();
 
   if (q.length < 2) {
@@ -245,9 +278,59 @@ async function fetchResults(term) {
   updateStatus('loading', 'Søker i Artsobservasjoner …');
   emptyMsgEl.style.display = 'none';
 
-  try {
+  // Sjekk om tvungen offline-modus er aktivert
+  const forceOffline = localStorage.getItem('forceOfflineSpecies') === '1';
+  const subtaxaCheckbox = document.getElementById('include-subtaxa');
+  const subtaxaWarning = document.getElementById('subtaxa-offline-warning');
+  if (forceOffline) {
+    if (subtaxaCheckbox) {
+      subtaxaCheckbox.checked = false;
+      subtaxaCheckbox.disabled = true;
+    }
+    if (subtaxaWarning) {
+      subtaxaWarning.style.display = 'block';
+    }
+  } else {
+    if (subtaxaCheckbox) {
+      subtaxaCheckbox.disabled = false;
+    }
+    if (subtaxaWarning) {
+      subtaxaWarning.style.display = 'none';
+    }
+  }
+  if (forceOffline) {
     const includeSubtaxa = document.getElementById('include-subtaxa')?.checked;
-    const data = await searchSpecies(q, includeSubtaxa);
+    const offline = await searchOfflineSpecies(q, includeSubtaxa);
+    currentResults = offline.map(s => ({
+      taxonName: s.taxonName,
+      scientificName: s.scientificName,
+      source: 'offline'
+    }));
+    activeIndex = currentResults.length ? 0 : -1;
+    renderResults();
+    emptyMsgEl.style.display = currentResults.length ? 'none' : 'block';
+    emptyMsgEl.textContent = currentResults.length
+      ? 'Viser offline artsliste (innstilling: kun offline)'
+      : 'Ingen treff i offline-listen.';
+    updateStatus('idle', 'Klar for søk (offline)');
+    return;
+  }
+
+  // Timeout for AO-søk (10 sekunder)
+  function withTimeout(promise, ms) {
+    return Promise.race([
+      promise,
+      new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), ms))
+    ]);
+  }
+
+  let aoTimedOut = false;
+  try {
+    // Default: ikke vis underarter (kun hovedarter)
+    let includeSubtaxa = false;
+    const cb = document.getElementById('include-subtaxa');
+    if (cb && cb.checked) includeSubtaxa = true;
+    const data = await withTimeout(searchSpecies(q, includeSubtaxa), 10000);
 
     currentResults = data;
     activeIndex = currentResults.length ? 0 : -1;
@@ -260,13 +343,32 @@ async function fetchResults(term) {
 
     updateStatus('idle', 'Klar for søk');
   } catch (err) {
-    console.error('Feil ved henting av artsliste', err);
-    currentResults = [];
-    activeIndex = -1;
+    aoTimedOut = err && err.message === 'timeout';
+    if (aoTimedOut) {
+      emptyMsgEl.style.display = 'block';
+      emptyMsgEl.textContent = 'Ingen svar fra Artsobservasjoner etter 10 sekunder. Du kan bruke offline artsliste fra innstillinger.';
+      updateStatus('error', 'Timeout mot AO');
+      // Ikke automatisk fallback, men viser melding
+      currentResults = [];
+      activeIndex = -1;
+      renderResults();
+      return;
+    }
+    // Prøv offline fallback ved andre feil
+    console.warn('AO-søk feilet, prøver offline fallback:', err);
+    const offline = await searchOfflineSpecies(q);
+    currentResults = offline.map(s => ({
+      taxonName: s.norwegian,
+      scientificName: s.latin,
+      source: 'offline'
+    }));
+    activeIndex = currentResults.length ? 0 : -1;
     renderResults();
-    emptyMsgEl.style.display = 'block';
-    emptyMsgEl.textContent = 'Feil ved kontakt med proxy/Artsobservasjoner.';
-    updateStatus('error', 'Feil ved søk');
+    emptyMsgEl.style.display = currentResults.length ? 'none' : 'block';
+    emptyMsgEl.textContent = currentResults.length
+      ? 'Viser offline artsliste (ingen kontakt med Artsobservasjoner)'
+      : 'Ingen treff i offline-listen.';
+    updateStatus('idle', 'Klar for søk (offline)');
   }
 }
 
@@ -494,6 +596,13 @@ function renderActivityPills() {
 // Oppsett av event listeners
 // ============================================================
 function setupEventListeners() {
+    // Vis underarter: oppdater søk når checkboksen endres
+    const includeSubtaxaCheckbox = document.getElementById('include-subtaxa');
+    if (includeSubtaxaCheckbox) {
+      includeSubtaxaCheckbox.addEventListener('change', () => {
+        fetchResults(input.value);
+      });
+    }
   // Progressiv flyt: oppdater seksjonstilstand ved input
   if (placeInput) {
     placeInput.addEventListener('input', updateSectionStates);
@@ -670,7 +779,8 @@ async function init() {
     currentPlaceName = '';
   }
 
-  // Sett opp event listeners
+
+  // Sett opp event listeners (inkl. underarts-checkbox)
   setupEventListeners();
 
   // Kjør progressiv seksjonsaktivering ved oppstart
@@ -707,4 +817,7 @@ async function init() {
 }
 
 // Start appen når DOM er klar
-window.addEventListener('DOMContentLoaded', init);
+window.addEventListener('DOMContentLoaded', () => {
+  updateSubtaxaCheckboxState();
+  init();
+});

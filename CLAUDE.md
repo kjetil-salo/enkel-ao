@@ -106,3 +106,6 @@ except Exception as e:
 - **Mobil (anbefalt):** GPS gir nøyaktig posisjon (5-50 meter)
 - **PC/Mac:** Kun IP-basert lokalisering, kan gi feil posisjon (flere km avvik)
 - Appen er primært designet for bruk på mobil i felt
+
+### Git Commits
+- **Aldri bruk Co-Authored-By** - commit uten co-author linje

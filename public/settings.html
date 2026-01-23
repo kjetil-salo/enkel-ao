@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="nb">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Innstillinger – Fugleobservasjoner</title>
+    <link rel="stylesheet" href="style.css" />
+      <style>
+        .settings-card {
+          background: var(--card-bg, #111827);
+          border-radius: 16px;
+          padding: 24px 18px 18px 18px;
+          max-width: 420px;
+          margin: 32px auto 0 auto;
+          box-shadow: 0 8px 32px rgba(30,40,60,0.13);
+        }
+        .settings-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-bottom: 18px;
+        }
+        .settings-label {
+          font-size: 1.08em;
+          color: var(--text, #e5e7eb);
+        }
+        .switch {
+          position: relative;
+          display: inline-block;
+          width: 48px;
+          height: 28px;
+        }
+        .switch input { display: none; }
+        .slider {
+          position: absolute;
+          cursor: pointer;
+          top: 0; left: 0; right: 0; bottom: 0;
+          border-radius: 28px;
+          transition: background 0.2s;
+        }
+        .slider:before {
+          position: absolute;
+          content: "";
+          height: 22px;
+          width: 22px;
+          left: 3px;
+          bottom: 3px;
+          background: #fff;
+          border-radius: 50%;
+          transition: transform 0.2s;
+        }
+        input:checked + .slider {
+          background: #3b82f6;
+        }
+        input:not(:checked) + .slider {
+          background: #6b7280;
+        }
+        input:checked + .slider:before {
+          transform: translateX(20px);
+        }
+      </style>
+  </head>
+  <body style="margin:0;min-height:100vh;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:radial-gradient(circle at top,#1f2937 0,#020617 55%);color:var(--text,#e5e7eb);padding:6px 0 0 0;">
+    <div class="settings-card" style="background:linear-gradient(145deg,rgba(15,23,42,0.96),rgba(15,23,42,0.92));border-radius:10px;border:1px solid rgba(148,163,184,0.12);box-shadow:0 12px 28px rgba(15,23,42,0.72),0 0 0 1px rgba(15,23,42,0.9);padding:24px 18px 18px 18px;max-width:420px;margin:32px auto 0 auto;overflow:visible;backdrop-filter:blur(14px);">
+      <h2>Innstillinger</h2>
+      <div class="settings-row">
+        <span class="settings-label">Tving offline arts-søk</span>
+        <label class="switch">
+          <input type="checkbox" id="force-offline-species" />
+          <span class="slider"></span>
+        </label>
+      </div>
+      <div style="font-size:0.98em;color:var(--muted,#aaa);margin-top:18px;">
+        Når denne er på, brukes kun den lokale artslisten (ingen søk mot Artsobservasjoner).
+      </div>
+      <div style="margin-top:32px;text-align:center;">
+        <a href="/" style="color:#3b82f6;text-decoration:none;font-size:1.05em;">← Tilbake</a>
+      </div>
+    </div>
+    <script>
+      // Last inn og lagre setting i localStorage
+      const key = 'forceOfflineSpecies';
+      const cb = document.getElementById('force-offline-species');
+      cb.checked = localStorage.getItem(key) === '1';
+      cb.addEventListener('change', () => {
+        if(cb.checked) localStorage.setItem(key, '1');
+        else localStorage.removeItem(key);
+      });
+    </script>
+  </body>
+</html>

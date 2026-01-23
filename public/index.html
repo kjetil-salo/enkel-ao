@@ -1010,6 +1010,7 @@
           </div>
           <div style="display: flex; align-items: center; gap: 8px;">
             <a href="/help.html" style="color: var(--muted); text-decoration: none; font-size: 1.2rem; padding: 4px 8px; border-radius: 8px; transition: all 0.2s; display: flex; align-items: center;" title="Hjelp" onmouseover="this.style.color='var(--accent)'; this.style.background='var(--accent-soft)'" onmouseout="this.style.color='var(--muted)'; this.style.background='transparent'">📖</a>
+            <a href="/settings.html" style="color: var(--muted); text-decoration: none; font-size: 1.2rem; padding: 4px 8px; border-radius: 8px; transition: all 0.2s; display: flex; align-items: center;" title="Innstillinger" onmouseover="this.style.color='var(--accent)'; this.style.background='var(--accent-soft)'" onmouseout="this.style.color='var(--muted)'; this.style.background='transparent'">⚙️</a>
             <div class="kbd-hint">
               <span class="kbd-key">↑</span><span class="kbd-key">↓</span><span class="kbd-key">Enter</span>
             </div>
@@ -1130,9 +1131,13 @@
             </div>
           </div>
           <label style="font-size:0.65em;color:#b0b0b0;display:flex;align-items:center;gap:2px;user-select:none;margin-top:4px;">
-            <input type="checkbox" id="include-subtaxa" style="margin:0 4px 0 0;vertical-align:middle;" />
-            Vis underarter
+			<input type="checkbox" id="include-subtaxa" style="margin:0 4px 0 0;vertical-align:middle;" />
+			Vis underarter
           </label>
+          <div id="subtaxa-offline-warning" style="display:none;font-size:0.65em;color:#eab308;margin:2px 0 6px 0;line-height:1.1;max-width:340px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:flex-start;gap:4px;">
+            <span style="font-size:1.1em;line-height:1;">&#9888;&#65039;</span>
+            Underarter støttes ikke i offline-modus.
+          </div>
 
           <div class="results" id="results" role="listbox" aria-label="Arter"></div>
           <div class="result-empty" id="empty-msg" style="display:none;">Ingen treff ennå. Skriv minst 2 tegn.</div>
@@ -1234,7 +1239,7 @@
         navigator.serviceWorker.register('/sw.js').catch(() => {});
       }
     </script>
-    <footer class="footer-credit">Versjon v1.10.2  |  © 2026 Kjetil Salomonsen</footer>
+    <footer class="footer-credit">Versjon v1.11.0  |  © 2026 Kjetil Salomonsen</footer>
   </body>
 </html>
 

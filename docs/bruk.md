@@ -26,11 +26,14 @@ Det er anbefalt å oppdatere posisjon, men du kan også registrere observasjoner
 
 ## 3. Registrere arter raskt
 
+
 For hver art du vil registrere:
 
 1. **Søk etter art**
    - Skriv inn i **Art**-feltet til du ser riktig art i listen.
    - Bruk piltaster (↑/↓) og **Enter** for å velge, eller klikk med mus.
+   - <b>Vis underarter</b>-boksen er kun tilgjengelig når du er online. I offline-modus er boksen deaktivert og du får en diskret advarsel med gult ikon under boksen: <span style="color:#eab308;font-size:0.95em;">&#9888;&#65039; Underarter støttes ikke i offline-modus.</span>
+   - Dette er for å sikre at eksporten alltid matcher AO sitt importformat og for å unngå feil navn.
 2. **Angi antall**
    - Når art er valgt flyttes fokus til **Antall**.
    - Skriv inn antall og trykk **Enter**.

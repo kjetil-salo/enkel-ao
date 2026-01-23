@@ -18,7 +18,9 @@
   - `./update-app.sh production` → https://enkel-ao.fly.dev
   - Staging branch for testing før produksjon
 
+
   ### Siste endringer (ikke tagget)
+  - **Offline underarter**: Underarter er deaktivert i offline-modus. Brukeren får en tydelig, men diskret advarsel med gult ikon under boksen. Dette er for å sikre at eksporten alltid matcher AO sitt importformat og for å unngå feil navn.
   - **Redigerings-side**: `public/edit.html` tilgjengelig for å endre eksisterende observasjoner (art, antall, aktivitet, alder, kjønn, sted, kommentar).
   - **CSV-oppdatering**: Kommentarer mappes til kolonne 15 i eksportformatet (AO-kompatibelt felt "Kommentar (synlig for alle)").
 
