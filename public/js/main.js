@@ -639,6 +639,13 @@ function setupEventListeners() {
     }, 300);
   });
 
+  // Marker all tekst når bruker klikker i feltet med valgt art
+  input.addEventListener('focus', () => {
+    if (selectedSpecies) {
+      input.select();
+    }
+  });
+
   // Tastaturnavigering i søkefeltet
   input.addEventListener('keydown', (e) => {
     if (!currentResults.length) return;
