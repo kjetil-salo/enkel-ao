@@ -333,6 +333,14 @@
         box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.6), 0 0 0 8px rgba(59, 130, 246, 0.15);
       }
 
+      /* Valgt art i søkefeltet */
+      input[type="text"].species-selected {
+        border-color: rgba(34, 197, 94, 0.9);
+        background: radial-gradient(circle at top left, rgba(34, 197, 94, 0.15), rgba(15, 23, 42, 0.95));
+        color: #4ade80;
+        font-weight: 500;
+      }
+
       .search-icon {
         position: absolute;
         left: 9px;
@@ -421,28 +429,6 @@
         color: var(--muted);
         padding: 8px 2px 4px;
         pointer-events: none; /* La klikk gå gjennom */
-      }
-
-      .chosen {
-        margin-top: 10px;
-        margin-bottom: 16px;
-        font-size: 0.8rem;
-        padding: 6px 10px;
-        border-radius: 999px;
-        border: 1px solid rgba(148, 163, 184, 0.45);
-        background: radial-gradient(circle at left, rgba(34, 197, 94, 0.15), rgba(15, 23, 42, 0.95));
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-      }
-
-      .chosen,
-      .chosen * {
-        pointer-events: none !important;
-      }
-
-      .chosen span:first-child {
-        font-weight: 500;
       }
 
       .badge {
@@ -1157,8 +1143,6 @@
 
           <div class="results" id="results" role="listbox" aria-label="Arter"></div>
           <div class="result-empty" id="empty-msg" style="display:none;">Ingen treff ennå. Skriv minst 2 tegn.</div>
-          <div class="chosen" id="chosen" style="display:none;"></div>
-
           <div class="row">
             <label>Aktivitet</label>
             <div id="activity-pills" class="activity-pills"></div>
@@ -1248,7 +1232,7 @@
 
     </div>
 
-    <script type="module" src="/js/main.js?v=20260123c"></script>
+    <script type="module" src="/js/main.js?v=20260123d"></script>
     <script>
       // Registrer Service Worker for offline-støtte
       if ('serviceWorker' in navigator) {

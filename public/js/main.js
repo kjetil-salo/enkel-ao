@@ -31,7 +31,6 @@ let currentAoSizeMeters = 1000;
 const input = document.getElementById('search');
 const resultsEl = document.getElementById('results');
 const emptyMsgEl = document.getElementById('empty-msg');
-const chosenEl = document.getElementById('chosen');
 const statusDot = document.getElementById('status-dot');
 const statusText = document.getElementById('status-text');
 const resultCount = document.getElementById('result-count');
@@ -77,9 +76,9 @@ function updateSectionStates() {
     // ALDRI disable locBtn! (Oppdater posisjon skal alltid virke)
     if (!hasLocation) {
       input.value = '';
+      input.classList.remove('species-selected');
       countInput.value = '';
       selectedSpecies = null;
-      chosenEl.style.display = 'none';
       ageSelect.disabled = true;
       genderSelect.disabled = true;
     }
@@ -198,23 +197,20 @@ function chooseItem(index) {
   }
 
   selectedSpecies = item;
-  chosenEl.style.display = 'inline-flex';
-  chosenEl.innerHTML = '';
+
+  // Vis valgt art i søkefeltet med grønn styling
+  input.value = item.taxonName;
+  input.classList.add('species-selected');
 
   // Skjul/minimer artsvelgeren og tøm resultater
   currentResults = [];
   resultsEl.innerHTML = '';
   resultsEl.style.display = 'none';
 
-  const nameSpan = document.createElement('span');
-  nameSpan.textContent = item.taxonName;
-  chosenEl.appendChild(nameSpan);
-
   // Sørg for at artsvelgeren kan vises igjen ved nytt søk
   setTimeout(() => {
     resultsEl.style.display = '';
   }, 200);
-
 
   // Aktiver antallsfelt og flytt fokus
   countInput.disabled = false;
@@ -438,13 +434,6 @@ function commitObservationFromActivity() {
   // Nullstill valgt art
   const artNavnToast = selectedSpecies.taxonName;
   selectedSpecies = null;
-  // Flash valgt art før den skjules
-  chosenEl.classList.remove('focus-flash');
-  void chosenEl.offsetWidth;
-  chosenEl.classList.add('focus-flash');
-  setTimeout(() => {
-    chosenEl.style.display = 'none';
-  }, 250);
   countInput.value = '';
   countInput.disabled = true;
 
@@ -462,8 +451,9 @@ function commitObservationFromActivity() {
     activitySubmitBtn.disabled = true;
   }
 
-  // Tøm søkefeltet og resultater
+  // Tøm søkefeltet og fjern valgt-styling
   input.value = '';
+  input.classList.remove('species-selected');
   currentResults = [];
   activeIndex = -1;
   renderResults();
@@ -630,6 +620,17 @@ function setupEventListeners() {
 
   // Søkefelt
   input.addEventListener('input', () => {
+    // Hvis art var valgt og bruker begynner å skrive, nullstill valget
+    if (selectedSpecies) {
+      selectedSpecies = null;
+      input.classList.remove('species-selected');
+      countInput.disabled = true;
+      countInput.value = '';
+      activitySelect.disabled = true;
+      activitySubmitBtn.disabled = true;
+      ageSelect.disabled = true;
+      genderSelect.disabled = true;
+    }
     if (debounceTimer) {
       clearTimeout(debounceTimer);
     }
