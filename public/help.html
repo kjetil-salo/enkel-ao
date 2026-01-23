@@ -200,7 +200,10 @@
         <ul>
           <li><strong>Oppdater lokasjon først:</strong> Trykk på «Oppdater posisjon» for å få riktig stedsnavn før du registrerer arter.</li>
           <li>Registrer art, antall og aktivitet – alt lagres kun i nettleseren din.</li>
+          <li>Etter valg av art flyttes fokus automatisk til antall-feltet, og valgt art får en svært subtil blå animasjon for å markere valget.</li>
+          <li>Feilmeldinger og tilbakemeldinger vises som blå toast-meldinger midt på skjermen.</li>
           <li>Trykk «Kopier og åpne AO» for å lime inn i Artsobservasjoner.</li>
+          <li>Du kan redigere eller slette observasjoner på <a href="/edit.html" style="color:var(--accent)">redigeringssiden</a>.</li>
         </ul>
 
         <div class="note">
@@ -210,7 +213,11 @@
         <h2>Viktig ved import til Artsobservasjoner</h2>
         <div class="tip" style="font-size:1.05em;">
           <strong>Velg alltid en lokalitet i importskjemaet på AO!</strong><br>
-          Selv om stedsnavn følger med, bør du alltid velge en lokalitet fra listen i AO for å unngå feil sted.
+          Selv om stedsnavn følger med, bør du alltid velge en lokalitet fra listen i AO for å unngå feil sted.<br>
+          <br>
+          <span style="color:var(--muted)">Grunnen er at mange lokaliteter i Artsobservasjoner har <strong>samme navn</strong> (f.eks. «Byparken»). AO kan ikke vite om du mener Byparken i Bergen eller Byparken i Haugesund, med mindre du har valgt «Prioriter lokaliteter i området:» i importskjemaet.<br>
+          <br>
+          For å gjøre det enklere for deg selv, bør du i AO markere dine vanlige lokaliteter som <strong>favoritter</strong> – spesielt hvis favoritten har et generelt navn. Da vil AO oftere foreslå «din» variant automatisk.</span>
         </div>
 
         <h2>Ofte stilte spørsmål</h2>
@@ -243,7 +250,7 @@
 
         <h3>🔑 Tastatursnarveier (desktop)</h3>
         <ul>
-          <li><code>↑</code> / <code>↓</code> – Naviger i artslisten</li>
+          <li><code>↑</code> / <code>↓</code> – Naviger i artslisten (kun på fysisk tastatur, ikke iPad)</li>
           <li><code>Enter</code> – Velg art / Gå videre til neste felt / Lagre observasjon</li>
           <li><code>Esc</code> – Lukk artslisten</li>
         </ul>
@@ -268,7 +275,7 @@
         <p style="font-size: 0.85rem; color: var(--muted); margin-top: 16px;">© 2026 Kjetil Salomonsen</p>
       </div>
     </div>
-      <footer style="width:100%;text-align:center;color:#888;font-size:0.95em;padding:18px 0 8px 0;opacity:0.7;letter-spacing:0.04em;">Versjon v1.7.0 &nbsp;|&nbsp; © 2026 Kjetil Salomonsen</footer>
+      <footer style="width:100%;text-align:center;color:#888;font-size:0.95em;padding:18px 0 8px 0;opacity:0.7;letter-spacing:0.04em;">Versjon v1.10.2 &nbsp;|&nbsp; © 2026 Kjetil Salomonsen</footer>
     </div>
   </body>
 </html>
