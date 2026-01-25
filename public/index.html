@@ -333,6 +333,60 @@
         box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.6), 0 0 0 8px rgba(59, 130, 246, 0.15);
       }
 
+      /* Progressiv fremheving - basis for alle aktive felt */
+      .field-highlight {
+        border: 2px solid var(--accent) !important;
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.12), rgba(15, 23, 42, 0.95)) !important;
+        box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
+      }
+
+      /* Pulsering kun for art-feltet - bruker outline for å unngå konflikt med :focus box-shadow */
+      @keyframes field-pulse {
+        0%, 100% {
+          outline: 3px solid rgba(59, 130, 246, 0.4);
+          outline-offset: 0px;
+        }
+        50% {
+          outline: 5px solid rgba(59, 130, 246, 0.8);
+          outline-offset: 3px;
+        }
+      }
+
+      #search.field-highlight {
+        animation: field-pulse 1.5s ease-in-out infinite;
+        outline: 3px solid rgba(59, 130, 246, 0.4);
+      }
+
+      .field-highlight::placeholder {
+        color: rgba(59, 130, 246, 0.7) !important;
+        font-weight: 500;
+      }
+
+      /* Art-feltet - alltid litt større */
+      #search {
+        font-size: 1.05rem;
+        padding: 11px 34px 11px 32px;
+      }
+
+      /* Antall-feltet når aktivt */
+      #count.field-highlight {
+        width: 100px !important;
+      }
+
+      /* Aktivitet-select når aktiv */
+      #activity.field-highlight {
+        border: 2px solid var(--accent) !important;
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.12), rgba(15, 23, 42, 0.95)) !important;
+        box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15) !important;
+      }
+
+      /* Submit-knapp når aktiv */
+      #activity-submit.field-highlight {
+        border: 2px solid #22c55e !important;
+        box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.25) !important;
+        transform: scale(1.05);
+      }
+
       /* Valgt art i søkefeltet */
       input[type="text"].species-selected {
         border-color: rgba(34, 197, 94, 0.9);
@@ -348,6 +402,7 @@
         transform: translateY(-50%);
         font-size: 0.9rem;
         color: rgba(148, 163, 184, 0.9);
+        pointer-events: none;
       }
 
       .status-dot {
@@ -668,9 +723,9 @@
 
       /* Make the first column (Art) expand, shrink the middle columns */
       .obs-table th:first-child,
-      .obs-table td:first-child { width: 58%; }
+      .obs-table td:first-child { width: 40%; }
       .obs-table th:nth-child(2),
-      .obs-table td:nth-child(2) { width: 10%; }
+      .obs-table td:nth-child(2) { width: 28%; min-width: 150px; }
       .obs-table th:nth-child(3),
       .obs-table td:nth-child(3) { width: 18%; }
       .obs-table th:nth-last-child(2),
@@ -686,6 +741,22 @@
           font-size: 0.7em;
         }
         .obs-table th, .obs-table td { padding: 4px 6px; }
+      }
+
+      /* Pluss/minus-knapper for antall i observasjonslisten */
+      .count-btn {
+        transition: all 0.15s ease;
+      }
+
+      .count-btn:hover {
+        background: var(--accent) !important;
+        color: white !important;
+        transform: scale(1.1);
+      }
+
+      .count-btn:active {
+        background: #2563eb !important;
+        transform: scale(0.95);
       }
 
       .delete-obs-btn {
@@ -949,6 +1020,22 @@
           margin-top: 6px;
         }
 
+        /* Kompakte aktivitetspiller på tablet - én rad */
+        .activity-pills {
+          gap: 4px;
+          margin-top: 4px;
+          margin-bottom: 2px;
+          flex-wrap: nowrap;
+        }
+
+        .activity-pill {
+          padding: 4px 6px;
+          margin: 0;
+          min-height: 28px;
+          min-width: unset;
+          font-size: 0.8em;
+        }
+
         header {
           margin-bottom: 4px;
         }
@@ -956,7 +1043,7 @@
         .obs-table th,
         .obs-table td {
           padding: 8px 10px;
-          font-size: 0.85rem;
+          font-size: 1rem;
         }
 
         /* Bedre plass for observasjonslisten */
@@ -1112,7 +1199,7 @@
                   autocorrect="off"
                   autocapitalize="off"
                   spellcheck="false"
-                  placeholder="F.eks. blåmeis …"
+                  placeholder="Skriv artsnavn her …"
                   style="flex:1;"
                 />
               </div>

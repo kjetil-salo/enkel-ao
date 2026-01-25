@@ -88,28 +88,41 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
         countTd.innerHTML = '';
         countTd.style.display = 'flex';
         countTd.style.alignItems = 'center';
-        countTd.style.gap = '3px';
-
-        const btnStyle = {
-          width: '24px',
-          height: '24px',
-          fontSize: '0.9em',
-          borderRadius: '50%',
-          border: '1px solid #888',
-          background: 'rgba(34,34,34,0.7)',
-          color: '#bbb',
-          alignItems: 'center',
-          justifyContent: 'center',
-          cursor: 'pointer',
-          userSelect: 'none',
-        };
-
-        const btnStyleWithDisplay = { ...btnStyle, display: 'flex' };
 
         // Sjekk om vi er på tablet (ikke telefon i landscape)
         // Tablet = bred skjerm OG (ikke touch ELLER høyde > 600px)
         const isTablet = window.innerWidth >= 768 &&
                         (!('ontouchstart' in window) || window.innerHeight > 600);
+
+        // Mindre knapper på tablet for å spare vertikal plass
+        const btnSize = isTablet ? '34px' : '44px';
+        const btnFontSize = isTablet ? '1.2em' : '1.5em';
+        countTd.style.gap = isTablet ? '4px' : '6px';
+
+        const btnStyle = {
+          width: btnSize,
+          height: btnSize,
+          minWidth: btnSize,
+          minHeight: btnSize,
+          maxWidth: btnSize,
+          maxHeight: btnSize,
+          flexShrink: '0',
+          fontSize: btnFontSize,
+          fontWeight: '600',
+          borderRadius: '50%',
+          border: '2px solid var(--accent, #3b82f6)',
+          background: 'var(--accent-soft, rgba(59,130,246,0.2))',
+          color: 'var(--text, #e5e7eb)',
+          alignItems: 'center',
+          justifyContent: 'center',
+          cursor: 'pointer',
+          userSelect: 'none',
+          WebkitTapHighlightColor: 'transparent',
+          touchAction: 'manipulation',
+          boxSizing: 'border-box',
+        };
+
+        const btnStyleWithDisplay = { ...btnStyle, display: 'flex' };
 
         // Minus 10-knapp (kun tablet)
         let minus10Btn = null;
@@ -118,6 +131,7 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
           minus10Btn.type = 'button';
           minus10Btn.textContent = '«';
           minus10Btn.title = '−10';
+          minus10Btn.className = 'count-btn';
           Object.assign(minus10Btn.style, btnStyleWithDisplay);
           minus10Btn.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -137,6 +151,7 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
         minusBtn.type = 'button';
         minusBtn.textContent = '−';
         minusBtn.title = '−1';
+        minusBtn.className = 'count-btn';
         Object.assign(minusBtn.style, btnStyleWithDisplay);
         minusBtn.addEventListener('click', (e) => {
           e.stopPropagation();
@@ -153,9 +168,11 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
         span.textContent = obs.count != null ? String(obs.count) : '';
         Object.assign(span.style, {
           cursor: 'pointer',
-          minWidth: '28px',
+          minWidth: '36px',
           textAlign: 'center',
-          fontSize: '1.1em',
+          fontSize: '1.3em',
+          fontWeight: '600',
+          padding: '4px 8px',
         });
         span.title = 'Klikk for å endre antall';
         span.addEventListener('click', () => {
@@ -167,6 +184,7 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
         plusBtn.type = 'button';
         plusBtn.textContent = '+';
         plusBtn.title = '+1';
+        plusBtn.className = 'count-btn';
         Object.assign(plusBtn.style, btnStyleWithDisplay);
         plusBtn.addEventListener('click', (e) => {
           e.stopPropagation();
@@ -183,6 +201,7 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
           plus10Btn.type = 'button';
           plus10Btn.textContent = '»';
           plus10Btn.title = '+10';
+          plus10Btn.className = 'count-btn';
           Object.assign(plus10Btn.style, btnStyleWithDisplay);
           plus10Btn.addEventListener('click', (e) => {
             e.stopPropagation();
