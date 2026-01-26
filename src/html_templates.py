@@ -60,9 +60,10 @@ def generate_stats_page(recent_ips, per_ua, total, per_device=None, per_os=None,
 
     # Bygg device/os/browser seksjon kun hvis data finnes
     device_section = ""
-    if per_device:
-        device_section = f"""
-        <div class="stats-grid">
+    if per_device or per_os or per_browser:
+        device_section = '<div class="stats-grid">'
+        if per_device:
+            device_section += f'''
             <div class="stats-card">
                 <div class="card-title">Enhetstype</div>
                 <table>
@@ -70,6 +71,9 @@ def generate_stats_page(recent_ips, per_ua, total, per_device=None, per_os=None,
                     {device_rows}
                 </table>
             </div>
+            '''
+        if per_os:
+            device_section += f'''
             <div class="stats-card">
                 <div class="card-title">Operativsystem</div>
                 <table>
@@ -77,6 +81,9 @@ def generate_stats_page(recent_ips, per_ua, total, per_device=None, per_os=None,
                     {os_rows}
                 </table>
             </div>
+            '''
+        if per_browser:
+            device_section += f'''
             <div class="stats-card">
                 <div class="card-title">Nettleser</div>
                 <table>
@@ -84,8 +91,8 @@ def generate_stats_page(recent_ips, per_ua, total, per_device=None, per_os=None,
                     {browser_rows}
                 </table>
             </div>
-        </div>
-        """
+            '''
+        device_section += '</div>'
 
     return f"""
 <html>
@@ -99,9 +106,9 @@ def generate_stats_page(recent_ips, per_ua, total, per_device=None, per_os=None,
         table {{ border-collapse: collapse; width: 100%; margin-bottom: 1em; }}
         th, td {{ border: 1px solid #ddd; padding: 8px; text-align: left; }}
         th {{ background: #f0f0f0; }}
-        .stat {{ font-size: 2em; font-weight: bold; margin-bottom: 0.5em; }}
+        .stat-row {{ display: flex; gap: 2em; align-items: center; font-size: 1.5em; font-weight: bold; margin-bottom: 1em; }}
         .section-title {{ margin-top: 2em; margin-bottom: 0.5em; font-size: 1.2em; color: #444; }}
-        .source {{ color: #666; font-size: 0.9em; margin-bottom: 1em; }}
+        .source {{ color: #666; font-size: 0.9em; margin-top: 2em; text-align: right; }}
         .stats-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1em; margin-bottom: 2em; }}
         .stats-card {{ background: #f8f9fa; border-radius: 8px; padding: 1em; }}
         .card-title {{ font-weight: 600; margin-bottom: 0.5em; color: #333; }}
@@ -111,23 +118,19 @@ def generate_stats_page(recent_ips, per_ua, total, per_device=None, per_os=None,
 <body>
     <div class="container">
         <h1>Brukerstatistikk</h1>
-        <div class="source">Datakilde: {source}</div>
-        <div class="stat">{total} sidevisninger</div>
-        <div>{total_unique_ips} unike IP-adresser</div>
-
-        {device_section}
-
-        <div class="section-title">User-Agents (topp 10)</div>
-        <table>
-            <tr><th>User-Agent</th><th>Antall</th></tr>
-            {ua_rows}
-        </table>
+        <div class="stat-row">
+            <span>{total} sidevisninger</span>
+            <span>{total_unique_ips} unike IP-adresser</span>
+        </div>
 
         <div class="section-title">Siste 10 IP-adresser</div>
         <table>
             <tr><th>IP-adresse</th><th>Antall visninger</th></tr>
             {ip_rows}
         </table>
+
+        {device_section}
+        <div class="source">Datakilde: {source}</div>
     </div>
 </body>
 </html>

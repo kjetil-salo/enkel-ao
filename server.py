@@ -116,43 +116,37 @@ class Handler(SimpleHTTPRequestHandler):
         try:
             from src.supabase_log import supabase
             if supabase:
-                res = supabase.table("stats").select("ip,user_agent,device_type,os,browser,timestamp").order("timestamp", desc=True).execute()
-                rows = res.data if hasattr(res, 'data') else res
+                # Hent totalt antall sidevisninger
+                count_res = supabase.table("stats").select("id", count='exact').execute()
+                total = count_res.count if hasattr(count_res, 'count') else 0
 
-                # Prosesser Supabase-statistikk
-                total = len(rows)
-                per_ip = {}
-                per_ua = {}
-                per_device = {}
-                per_os = {}
-                per_browser = {}
+                # Hent de siste 10 unike IP-er (nyeste først)
+                ip_res = supabase.rpc('recent_unique_ips', {"limit_num": 10}).execute()
+                # Forventet at recent_unique_ips returnerer [{ip: 'x.x.x.x', count: n}, ...]
+                recent_ips = [(row['ip'], row['count']) for row in ip_res.data] if hasattr(ip_res, 'data') else []
 
-                # Først: tell opp alle
-                for row in rows:
-                    ip = row.get('ip', '-')
-                    ua = row.get('user_agent', '-')
-                    device = row.get('device_type') or 'unknown'
-                    os_name = row.get('os') or 'unknown'
-                    browser = row.get('browser') or 'unknown'
+                # Hent totalt antall unike IP-er
+                unique_ip_res = supabase.rpc('count_unique_ips').execute()
+                total_unique_ips = unique_ip_res.data[0]['count'] if hasattr(unique_ip_res, 'data') and unique_ip_res.data else 0
 
-                    per_ip[ip] = per_ip.get(ip, 0) + 1
-                    per_ua[ua] = per_ua.get(ua, 0) + 1
-                    per_device[device] = per_device.get(device, 0) + 1
-                    per_os[os_name] = per_os.get(os_name, 0) + 1
-                    per_browser[browser] = per_browser.get(browser, 0) + 1
+                # Hent statistikk for nettleser
+                browser_res = supabase.rpc('count_per_browser').execute()
+                per_browser = {row['browser']: row['count'] for row in browser_res.data} if hasattr(browser_res, 'data') and browser_res.data else {}
 
-                # Så: bygg liste over siste 10 unike IP-er (data er allerede sortert nyeste først)
-                recent_ips = []
-                seen_ips = set()
-                for row in rows:
-                    ip = row.get('ip', '-')
-                    if ip not in seen_ips:
-                        recent_ips.append((ip, per_ip[ip]))
-                        seen_ips.add(ip)
-                        if len(recent_ips) >= 10:
-                            break
+                # Hent statistikk for OS
+                os_res = supabase.rpc('count_per_os').execute()
+                per_os = {row['os']: row['count'] for row in os_res.data} if hasattr(os_res, 'data') and os_res.data else {}
 
-                html = generate_stats_page(recent_ips, per_ua, total, per_device, per_os, per_browser, len(per_ip), source="Supabase")
+                html = generate_stats_page(
+                    recent_ips,
+                    {},  # per_ua ikke brukt med Supabase-data
+                    total,
+                    {},  # per_device ikke brukt
+                    per_os=per_os,
+                    per_browser=per_browser,
+                    total_unique_ips=total_unique_ips,
+                    source="Supabase"
+                )
                 self._send_html_response(html)
                 return
         except Exception as e:
@@ -165,7 +159,17 @@ class Handler(SimpleHTTPRequestHandler):
             per_ua = dict(_stats['per_ua'])
 
         recent_ips = list(per_ip.items())[:10]
-        html = generate_stats_page(recent_ips, per_ua, total, {}, {}, {}, len(per_ip), source="In-memory (denne økt)")
+        # per_ua brukes som fallback for både browser og os hvis Supabase ikke er tilgjengelig
+        html = generate_stats_page(
+            recent_ips,
+            per_ua,
+            total,
+            {},  # per_device
+            {},  # per_os
+            {},  # per_browser
+            len(per_ip),
+            source="In-memory (denne økt)"
+        )
         self._send_html_response(html)
     
     def _handle_species_api(self, parsed):
