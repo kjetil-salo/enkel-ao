@@ -94,9 +94,17 @@ except Exception as e:
 
 ### Environment Variables
 - `PORT` (default: 3000)
-- `NOMINATIM_URL` (override for testing)
+- `AO_URL` (default: `https://www.artsobservasjoner.no`) — base-URL for artssøk
+- `AO_MOBILE_URL` (default: `https://mobil.artsobservasjoner.no`) — base-URL for AO-lokaliteter
+- `NOMINATIM_URL` (default: `https://nominatim.openstreetmap.org/reverse`) — reverse geokoding
 - `SUPABASE_URL`, `SUPABASE_KEY` (optional logging)
 - `STATS_KEY` (stats page auth, default: 'salo')
+
+For å teste med mock (simulere AO-timeout):
+```bash
+python3 mock/nominatim_app_timeout.py &                # Start mock på port 8080
+AO_URL=http://localhost:8080 AO_MOBILE_URL=http://localhost:8080 python3 server.py
+```
 
 ### Mobile Considerations
 - Input `font-size: 16px` minimum to prevent iOS zoom
