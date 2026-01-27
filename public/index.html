@@ -133,8 +133,13 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  flex-wrap: wrap;
   min-width: 0;
+}
+
+.activity-input-row select {
+  flex: 1;
+  min-width: 0;
+  width: auto;
 }
 
 .activity-submit-btn {
@@ -145,9 +150,9 @@
   font-size: 16px;
   padding: 4px 10px;
   min-width: 32px;
-  max-width: 100%;
   box-sizing: border-box;
   margin-left: 4px;
+  flex-shrink: 0;
 }
 
 .activity-pills {
@@ -921,9 +926,9 @@
         font-size: 16px;
         padding: 4px 10px;
         min-width: 32px;
-        max-width: 100%;
         box-sizing: border-box;
         margin-left: 4px;
+        flex-shrink: 0;
       }
 
       .advanced-row {
