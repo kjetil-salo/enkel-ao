@@ -1,5 +1,5 @@
 // Service Worker for offline-støtte
-const CACHE_NAME = 'fugleobs-v42';
+const CACHE_NAME = 'fugleobs-v43';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -54,7 +54,13 @@ function fetchWithTimeout(request, ms) {
 }
 
 // Håndter requests: network-first med timeout, fallback til cache
+// API-kall går direkte til nettverket uten SW-timeout (backend har egen timeout)
 self.addEventListener('fetch', (event) => {
+  const url = new URL(event.request.url);
+  if (url.pathname.startsWith('/api/')) {
+    return;
+  }
+
   event.respondWith(
     fetchWithTimeout(event.request, 5000)
       .then((response) => {

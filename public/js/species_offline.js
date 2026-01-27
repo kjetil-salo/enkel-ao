@@ -71,26 +71,31 @@ export async function searchOfflineSpecies(term, includeSubtaxa = false) {
   // Filtrer ut resultater uten navn
   const filtered = results.filter(r => r.taxonName && r.taxonName !== 'nan');
 
-  // Sorter: norsk starter med > norsk inneholder > latin
+  // Sorter: norsk starter med > latin starter med > norsk inneholder > latin inneholder
   filtered.sort((a, b) => {
     const aName = a.taxonName.toLowerCase();
     const bName = b.taxonName.toLowerCase();
+    const aLatin = (a.scientificName || '').toLowerCase();
+    const bLatin = (b.scientificName || '').toLowerCase();
+
     const aStartsNorsk = aName.startsWith(q);
     const bStartsNorsk = bName.startsWith(q);
-    const aContainsNorsk = aName.includes(q);
-    const bContainsNorsk = bName.includes(q);
-
-    // Først: starter med søketerm i norsk navn
     if (aStartsNorsk && !bStartsNorsk) return -1;
     if (!aStartsNorsk && bStartsNorsk) return 1;
 
-    // Deretter: inneholder søketerm i norsk navn
+    const aStartsLatin = aLatin.startsWith(q);
+    const bStartsLatin = bLatin.startsWith(q);
+    if (aStartsLatin && !bStartsLatin) return -1;
+    if (!aStartsLatin && bStartsLatin) return 1;
+
+    const aContainsNorsk = aName.includes(q);
+    const bContainsNorsk = bName.includes(q);
     if (aContainsNorsk && !bContainsNorsk) return -1;
     if (!aContainsNorsk && bContainsNorsk) return 1;
 
-    // Til slutt: alfabetisk
     return aName.localeCompare(bName, 'nb');
   });
 
-  return filtered;
+  // Begrens til 15 treff for å unngå lang, støyete liste
+  return filtered.slice(0, 15);
 }

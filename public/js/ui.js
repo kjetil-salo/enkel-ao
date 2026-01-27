@@ -136,8 +136,12 @@ export function showToast(msg, options = {}) {
  * @param {string} mode - Modus: 'idle', 'loading', 'error'
  * @param {string} text - Teksten som skal vises
  */
-export function setStatus(statusDot, statusText, mode, text) {
-  statusText.textContent = text;
+export function setStatus(statusDot, statusText, mode, text, html) {
+  if (html) {
+    statusText.innerHTML = html;
+  } else {
+    statusText.textContent = text;
+  }
   
   if (mode === 'idle') {
     statusDot.style.background = '#22c55e';

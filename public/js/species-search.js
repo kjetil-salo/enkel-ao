@@ -203,17 +203,6 @@ export async function fetchResults(term, state, dom, callbacks) {
     callbacks.updateStatus('idle', 'Klar for søk');
   } catch (err) {
     aoTimedOut = err && err.message === 'timeout';
-    if (aoTimedOut) {
-      dom.emptyMsgEl.style.display = 'block';
-      dom.emptyMsgEl.innerHTML = navigator.onLine
-        ? 'Artsobservasjoner svarer ikke (timeout). Slå på offline artsliste i <a href="/settings.html" style="color:#3b82f6;">⚙️ Innstillinger</a>.'
-        : 'Du er offline. Slå på offline artsliste i <a href="/settings.html" style="color:#3b82f6;">⚙️ Innstillinger</a>.';
-      callbacks.updateStatus('error', navigator.onLine ? 'AO svarer ikke' : 'Offline');
-      state.currentResults = [];
-      state.activeIndex = -1;
-      renderResults(state, dom);
-      return;
-    }
     // TypeError = nettverksfeil (vår server er nede), Error('HTTP ...') = server svarte men AO feilet
     const serverNede = err instanceof TypeError;
     console.warn(serverNede ? 'Server utilgjengelig, bruker offline fallback:' : 'AO-søk feilet, prøver offline fallback:', err);
@@ -225,18 +214,26 @@ export async function fetchResults(term, state, dom, callbacks) {
     }));
     state.activeIndex = state.currentResults.length ? 0 : -1;
     renderResults(state, dom);
-    dom.emptyMsgEl.style.display = state.currentResults.length ? 'none' : 'block';
-    if (state.currentResults.length) {
-      const melding = serverNede
-        ? 'Ingen kontakt med server. Viser lokal artsliste.'
-        : navigator.onLine
-          ? 'Artsobservasjoner svarer ikke. Viser lokal artsliste. Slå på offline-modus i <a href="/settings.html" style="color:#3b82f6;">⚙️ Innstillinger</a>.'
-          : 'Du er offline. Viser lokal artsliste.';
-      dom.emptyMsgEl.innerHTML = melding;
+    // Deaktiver underarter (lokal liste støtter det ikke pålitelig)
+    const subtaxaCheckbox = document.getElementById('include-subtaxa');
+    const subtaxaWarning = document.getElementById('subtaxa-offline-warning');
+    if (subtaxaCheckbox) { subtaxaCheckbox.checked = false; subtaxaCheckbox.disabled = true; }
+    if (subtaxaWarning) { subtaxaWarning.style.display = 'inline'; }
+
+    const settingsLenke = '<a href="/settings.html" style="color:#3b82f6;text-decoration:underline;">⚙️ Innstillinger</a>';
+    let årsak;
+    if (serverNede) {
+      årsak = 'Ingen kontakt med server';
+    } else if (!navigator.onLine) {
+      årsak = 'Du er offline';
     } else {
-      dom.emptyMsgEl.innerHTML = 'Ingen treff i offline-listen.';
+      årsak = 'AO svarer ikke';
     }
-    const statusTekst = serverNede ? 'Server utilgjengelig (lokal liste)' : navigator.onLine ? 'AO utilgjengelig (lokal liste)' : 'Offline (lokal liste)';
-    callbacks.updateStatus('idle', statusTekst);
+    const statusHtml = årsak + ' — bruker lokal artsliste — ' + settingsLenke;
+    callbacks.updateStatus('error', årsak, statusHtml);
+    if (!state.currentResults.length) {
+      dom.emptyMsgEl.style.display = 'block';
+      dom.emptyMsgEl.textContent = 'Ingen treff i lokal artsliste.';
+    }
   }
 }

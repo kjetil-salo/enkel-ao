@@ -72,7 +72,7 @@ const dom = {
 // ============================================================
 const callbacks = {
   updateSectionStates: () => updateSectionStates(appState, dom),
-  updateStatus: (mode, text) => setStatus(dom.statusDot, dom.statusText, mode, text),
+  updateStatus: (mode, text, html) => setStatus(dom.statusDot, dom.statusText, mode, text, html),
   updateLocationStatus: (mode, text) => setLocationStatus(dom.locDot, dom.locText, mode, text),
   doRenderObservations,
   saveState,
