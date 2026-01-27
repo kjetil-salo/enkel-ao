@@ -214,7 +214,9 @@ export async function fetchResults(term, state, dom, callbacks) {
       renderResults(state, dom);
       return;
     }
-    console.warn('AO-søk feilet, prøver offline fallback:', err);
+    // TypeError = nettverksfeil (vår server er nede), Error('HTTP ...') = server svarte men AO feilet
+    const serverNede = err instanceof TypeError;
+    console.warn(serverNede ? 'Server utilgjengelig, bruker offline fallback:' : 'AO-søk feilet, prøver offline fallback:', err);
     const offline = await searchOfflineSpecies(q);
     state.currentResults = offline.map(s => ({
       taxonName: s.taxonName,
@@ -225,12 +227,16 @@ export async function fetchResults(term, state, dom, callbacks) {
     renderResults(state, dom);
     dom.emptyMsgEl.style.display = state.currentResults.length ? 'none' : 'block';
     if (state.currentResults.length) {
-      dom.emptyMsgEl.innerHTML = navigator.onLine
-        ? 'Artsobservasjoner svarer ikke. Viser lokal artsliste. Slå på offline-modus i <a href="/settings.html" style="color:#3b82f6;">⚙️ Innstillinger</a>.'
-        : 'Du er offline. Viser lokal artsliste.';
+      const melding = serverNede
+        ? 'Ingen kontakt med server. Viser lokal artsliste.'
+        : navigator.onLine
+          ? 'Artsobservasjoner svarer ikke. Viser lokal artsliste. Slå på offline-modus i <a href="/settings.html" style="color:#3b82f6;">⚙️ Innstillinger</a>.'
+          : 'Du er offline. Viser lokal artsliste.';
+      dom.emptyMsgEl.innerHTML = melding;
     } else {
       dom.emptyMsgEl.innerHTML = 'Ingen treff i offline-listen.';
     }
-    callbacks.updateStatus('idle', navigator.onLine ? 'AO utilgjengelig (lokal liste)' : 'Offline (lokal liste)');
+    const statusTekst = serverNede ? 'Server utilgjengelig (lokal liste)' : navigator.onLine ? 'AO utilgjengelig (lokal liste)' : 'Offline (lokal liste)';
+    callbacks.updateStatus('idle', statusTekst);
   }
 }
