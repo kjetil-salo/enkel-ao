@@ -7,7 +7,7 @@ test('@smoke side laster', async ({ page }) => {
   await page.goto(base);
 
   // Verifiser at siden har lastet med tittel
-  await expect(page).toHaveTitle(/Fugleobservasjoner/);
+  await expect(page).toHaveTitle(/Enkel-AO/);
 
   // Verifiser at viktige elementer er synlige
   await expect(page.locator('#loc-btn')).toBeVisible();
@@ -92,13 +92,11 @@ test.describe('Artssøk', () => {
     // Klikk på første resultat
     await resultsList.locator('.result-item').first().click();
 
-    // Sjekk at valgt art vises i chosen-seksjonen
-    const chosenSection = page.locator('#chosen');
-    await expect(chosenSection).toBeVisible();
-
-    // Sjekk at chosen inneholder noe tekst (artsnavn)
-    const chosenText = await chosenSection.textContent();
-    expect(chosenText?.length).toBeGreaterThan(0);
+    // Sjekk at valgt art vises i søkefeltet med grønn styling
+    const searchField = page.locator('#search');
+    await expect(searchField).toHaveClass(/species-selected/);
+    const chosenText = await searchField.inputValue();
+    expect(chosenText.length).toBeGreaterThan(0);
   });
 
   test('kan navigere med piltaster og velge med Enter', async ({ page }) => {
@@ -121,8 +119,8 @@ test.describe('Artssøk', () => {
     await searchInput.press('Enter');
 
     // Sjekk at en art ble valgt
-    const chosenSection = page.locator('#chosen');
-    await expect(chosenSection).toBeVisible();
+    const searchField = page.locator('#search');
+    await expect(searchField).toHaveClass(/species-selected/);
   });
 
   test('viser melding ved for kort søkestreng', async ({ page }) => {
