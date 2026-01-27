@@ -20,9 +20,21 @@
 
 
   ### Siste endringer (ikke tagget)
+  - **Refaktorert main.js**: Splittet fra 919 til 306 linjer ved å ekstrahere 4 nye moduler:
+    - `form-state.js` — progressiv aktivering av skjemafelter
+    - `species-search.js` — artssøk, resultatvisning og artsvalg
+    - `observation-commit.js` — validering, lagring og aktivitets-pills
+    - `export-operations.js` — CSV-eksport, kopiering og sletting
+  - **Delt tilstand**: All mutable state samlet i `appState`-objekt, DOM-referanser i `dom`-objekt
+  - **Fikset 3 E2E-tester**: Oppdatert tittel-sjekk og erstattet manglende `#chosen` med `#search.species-selected`
+  - **Valgt art vises i søkefeltet**: Når du velger en art, vises navnet nå direkte i søkefeltet (ikke som separat "pill").
+  - **Marker all tekst ved klikk**: Når det står en valgt art i søkefeltet, markeres hele teksten automatisk ved klikk (for rask overskriving).
+  - **Kompakt layout for iPad**: Mindre vertikal padding og gap for bedre oversikt på store nettbrett.
+  - **Aktivitets-pills klikkbare i offline-modus**: Nå kan du velge aktivitet med pills også når du er offline.
   - **Offline underarter**: Underarter er deaktivert i offline-modus. Brukeren får en tydelig, men diskret advarsel med gult ikon under boksen. Dette er for å sikre at eksporten alltid matcher AO sitt importformat og for å unngå feil navn.
   - **Redigerings-side**: `public/edit.html` tilgjengelig for å endre eksisterende observasjoner (art, antall, aktivitet, alder, kjønn, sted, kommentar).
   - **CSV-oppdatering**: Kommentarer mappes til kolonne 15 i eksportformatet (AO-kompatibelt felt "Kommentar (synlig for alle)").
+  - **Brukervurdering**: Se [docs/brukervurdering.md](docs/brukervurdering.md) for fersk vurdering av styrker, svakheter og forslag.
 
 
 ### 📈 Statistikkmuligheter
@@ -115,4 +127,4 @@ Appen fungerer perfekt uten Supabase-konfigurasjon og faller tilbake til in-memo
 - `NOMINATIM_URL` (override for testing - default: OpenStreetMap)
 - `STATS_KEY` (for statistikk-side, default: 'salo')
 
-Sist oppdatert: 13.01.2026
+Sist oppdatert: 27.01.2026
