@@ -177,8 +177,11 @@ class Handler(SimpleHTTPRequestHandler):
         params = parse_qs(parsed.query)
         search = params.get('search', [''])[0].strip()
         dont_include_sub = params.get('dontIncludeSubSpecies', ['true'])[0]
+        ao_base = os.environ.get(
+            'AO_URL', 'https://www.artsobservasjoner.no'
+        )
         try:
-            results = handle_species_search(search, dont_include_sub)
+            results = handle_species_search(search, dont_include_sub, ao_base)
             self._send_json(results)
         except Exception as e:
             self._send_json({'error': 'Feil ved henting fra Artsobservasjoner.'}, status=500)
@@ -209,8 +212,11 @@ class Handler(SimpleHTTPRequestHandler):
         lon_raw = params.get('lon', [''])[0].strip()
         size_raw = params.get('size', ['600'])[0].strip()
         
+        ao_mobile_base = os.environ.get(
+            'AO_MOBILE_URL', 'https://mobil.artsobservasjoner.no'
+        )
         try:
-            sites = handle_ao_sites_search(lat_raw, lon_raw, size_raw)
+            sites = handle_ao_sites_search(lat_raw, lon_raw, size_raw, ao_mobile_base)
             self._send_json({'sites': sites})
         except ValueError as e:
             self._send_json({'error': str(e)}, status=400)

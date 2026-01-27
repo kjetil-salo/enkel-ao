@@ -12,7 +12,7 @@ from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
 
-def handle_species_search(search_term, dont_include_sub='true'):
+def handle_species_search(search_term, dont_include_sub='true', ao_base_url='https://www.artsobservasjoner.no'):
     """Håndter søk etter arter via Artsobservasjoner.no."""
     if not search_term.strip():
         return []
@@ -26,7 +26,7 @@ def handle_species_search(search_term, dont_include_sub='true'):
         'speciesGroup': '8',
         'language': '4',
     }
-    ao_url = 'https://www.artsobservasjoner.no/Taxon/PickerSearch?' + urlencode(query_params)
+    ao_url = ao_base_url + '/Taxon/PickerSearch?' + urlencode(query_params)
 
     req = Request(
         ao_url,
@@ -121,7 +121,7 @@ def handle_reverse_geocoding(lat, lon, nominatim_base_url):
         raise
 
 
-def handle_ao_sites_search(lat, lon, size_m=600.0):
+def handle_ao_sites_search(lat, lon, size_m=600.0, ao_mobile_base_url='https://mobil.artsobservasjoner.no'):
     """Håndter søk etter AO-lokaliteter."""
     # Valider input
     try:
@@ -159,7 +159,7 @@ def handle_ao_sites_search(lat, lon, size_m=600.0):
     }
 
     ao_sites_url = (
-        'https://mobil.artsobservasjoner.no/core/Sites/ByBoundingBox?' +
+        ao_mobile_base_url + '/core/Sites/ByBoundingBox?' +
         urlencode(query_params)
     )
 
