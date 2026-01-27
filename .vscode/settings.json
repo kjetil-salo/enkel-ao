@@ -4,6 +4,9 @@
         "/^python3 tools/load_test\\.py --mode gentle --requests 30 --concurrency 5$/": {
             "approve": true,
             "matchCommandLine": true
-        }
+        },
+        "pkill": true,
+        "true": true,
+        "nohup": true
     }
 }

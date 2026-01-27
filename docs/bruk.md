@@ -31,6 +31,8 @@ For hver art du vil registrere:
 
 1. **Søk etter art**
    - Skriv inn i **Art**-feltet til du ser riktig art i listen.
+   - Når du velger en art, vises navnet direkte i søkefeltet (ikke som separat "pill").
+   - Hele teksten i søkefeltet markeres automatisk ved klikk når en art er valgt, slik at du raskt kan overskrive eller søke på nytt.
    - Bruk piltaster (↑/↓) og **Enter** for å velge, eller klikk med mus.
    - <b>Vis underarter</b>-boksen er kun tilgjengelig når du er online. I offline-modus er boksen deaktivert og du får en diskret advarsel med gult ikon under boksen: <span style="color:#eab308;font-size:0.95em;">&#9888;&#65039; Underarter støttes ikke i offline-modus.</span>
    - Dette er for å sikre at eksporten alltid matcher AO sitt importformat og for å unngå feil navn.
@@ -39,13 +41,16 @@ For hver art du vil registrere:
    - Skriv inn antall og trykk **Enter**.
    - Fokus flyttes videre til **Aktivitet**.
 3. **Velg aktivitet og lagre**
-   - Standardverdi er **Stasjonær**.
-   - Du kan velge en annen aktivitet i nedtrekksmenyen.
-   - For å lagre observasjonen kan du enten:
-     - trykke **Enter** mens du står i aktivitet-feltet (desktop),
-     - eller trykke på den **grønne ✓‑knappen** til høyre for aktivitetsfeltet (spesielt praktisk på mobil),
-     - eller bare endre verdien i aktivitetsfeltet på mobil, som også utløser lagring.
-   - Etter lagring nullstilles art/antall/aktivitet, søkefeltet tømmes, og fokus flyttes tilbake til **Art**-feltet, klar for neste art.
+    - Standardverdi er **Stasjonær**.
+    - Du kan velge en annen aktivitet i nedtrekksmenyen, eller bruke **aktivitets-pills** (hurtigvalg) – disse fungerer nå også i offline-modus.
+    - For å lagre observasjonen kan du enten:
+       - trykke **Enter** mens du står i aktivitet-feltet (desktop),
+       - eller trykke på den **grønne ✓‑knappen** til høyre for aktivitetsfeltet (spesielt praktisk på mobil),
+       - eller bare endre verdien i aktivitetsfeltet på mobil, som også utløser lagring.
+    - Etter lagring nullstilles art/antall/aktivitet, søkefeltet tømmes, og fokus flyttes tilbake til **Art**-feltet, klar for neste art.
+# Kompakt layout for iPad og store skjermer
+
+Appen har nå mindre vertikal padding og tettere layout på store skjermer (f.eks. iPad i landskap), slik at du får bedre oversikt ved trekktelling og mange observasjoner.
 4. **Stedsnavn (valgfritt, men anbefalt)**
    - Ligger under lokasjonsseksjonen.
    - Kan komme fra automatisk oppslag, men du kan skrive inn ditt eget (f.eks. "Vikstranda, Østensjøvannet").

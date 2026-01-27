@@ -64,13 +64,28 @@
     <div class="settings-card" style="background:linear-gradient(145deg,rgba(15,23,42,0.96),rgba(15,23,42,0.92));border-radius:10px;border:1px solid rgba(148,163,184,0.12);box-shadow:0 12px 28px rgba(15,23,42,0.72),0 0 0 1px rgba(15,23,42,0.9);padding:24px 18px 18px 18px;max-width:420px;margin:32px auto 0 auto;overflow:visible;backdrop-filter:blur(14px);">
       <h2>Innstillinger</h2>
       <div class="settings-row">
+        <span class="settings-label">Antall hurtigknapper</span>
+        <select id="activity-pill-count" style="padding:8px 12px;border-radius:8px;border:1px solid rgba(148,163,184,0.45);background:rgba(15,23,42,0.95);color:var(--text,#e5e7eb);font-size:1em;">
+          <option value="1">1</option>
+          <option value="2">2</option>
+          <option value="3">3</option>
+          <option value="4" selected>4</option>
+          <option value="5">5</option>
+          <option value="6">6</option>
+        </select>
+      </div>
+      <div style="font-size:0.92em;color:var(--muted,#aaa);margin-bottom:18px;">
+        Antall aktivitets-hurtigknapper som vises (Stasjonær, Rastende, Overflygende, Næringssøkende, Trekkende, Sang/spill).
+      </div>
+
+      <div class="settings-row">
         <span class="settings-label">Tving offline arts-søk</span>
         <label class="switch">
           <input type="checkbox" id="force-offline-species" />
           <span class="slider"></span>
         </label>
       </div>
-      <div style="font-size:0.98em;color:var(--muted,#aaa);margin-top:18px;">
+      <div style="font-size:0.92em;color:var(--muted,#aaa);">
         Når denne er på, brukes kun den lokale artslisten (ingen søk mot Artsobservasjoner).
       </div>
       <div style="margin-top:32px;text-align:center;">
@@ -78,7 +93,17 @@
       </div>
     </div>
     <script>
-      // Last inn og lagre setting i localStorage
+      // Antall hurtigknapper
+      const pillSelect = document.getElementById('activity-pill-count');
+      const storedPillCount = localStorage.getItem('activityPillCount');
+      if (storedPillCount) {
+        pillSelect.value = storedPillCount;
+      }
+      pillSelect.addEventListener('change', () => {
+        localStorage.setItem('activityPillCount', pillSelect.value);
+      });
+
+      // Offline arts-søk
       const key = 'forceOfflineSpecies';
       const cb = document.getElementById('force-offline-species');
       cb.checked = localStorage.getItem(key) === '1';

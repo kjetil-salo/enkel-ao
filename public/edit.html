@@ -68,6 +68,14 @@
         <label>Sted
           <input id="f-place" name="placeName" type="text" />
         </label>
+        <div class="row">
+          <label style="flex:1">Fra klokkeslett
+            <input id="f-time-from" name="timeFrom" type="time" />
+          </label>
+          <label style="flex:1">Til klokkeslett
+            <input id="f-time-to" name="timeTo" type="time" />
+          </label>
+        </div>
         <label>Kommentar (synlig for alle)
           <textarea id="f-comment" name="comment" rows="3" style="width:100%;padding:8px;border-radius:8px;border:1px solid rgba(148,163,184,0.12);background:rgba(255,255,255,0.02);color:var(--text);"></textarea>
         </label>
@@ -112,6 +120,28 @@
       const fAge = document.getElementById('f-age');
       const fGender = document.getElementById('f-gender');
       const fPlace = document.getElementById('f-place');
+      const fTimeFrom = document.getElementById('f-time-from');
+      const fTimeTo = document.getElementById('f-time-to');
+
+      // Hjelpefunksjon for å hente HH:MM fra ISO-streng
+      function isoToTime(isoStr) {
+        if (!isoStr) return '';
+        const d = new Date(isoStr);
+        if (isNaN(d.getTime())) return '';
+        const hh = String(d.getHours()).padStart(2, '0');
+        const mm = String(d.getMinutes()).padStart(2, '0');
+        return `${hh}:${mm}`;
+      }
+
+      // Hjelpefunksjon for å oppdatere tid i ISO-streng
+      function updateTimeInIso(isoStr, timeStr) {
+        if (!timeStr) return isoStr;
+        const [hh, mm] = timeStr.split(':').map(Number);
+        const d = isoStr ? new Date(isoStr) : new Date();
+        if (isNaN(d.getTime())) return isoStr;
+        d.setHours(hh, mm, 0, 0);
+        return d.toISOString();
+      }
 
       if (!obs) {
         // Hvis ingen gyldig observasjon, vis tomt skjema og gi beskjed
@@ -124,6 +154,9 @@
         fAge.value = obs.age || '';
         fGender.value = obs.gender || '';
         fPlace.value = obs.placeName || '';
+        // Klokkeslett
+        fTimeFrom.value = isoToTime(obs.timestamp);
+        fTimeTo.value = isoToTime(obs.tilKlokkeslett);
         // Kommentar
         document.getElementById('f-comment').value = obs.comment || '';
         // Vis medobservatører (readonly)
@@ -185,6 +218,13 @@
         obs.age = fAge.value || '';
         obs.gender = fGender.value || '';
         obs.placeName = fPlace.value.trim();
+        // Klokkeslett
+        if (fTimeFrom.value) {
+          obs.timestamp = updateTimeInIso(obs.timestamp, fTimeFrom.value);
+        }
+        if (fTimeTo.value) {
+          obs.tilKlokkeslett = updateTimeInIso(obs.tilKlokkeslett || obs.timestamp, fTimeTo.value);
+        }
         obs.comment = (document.getElementById('f-comment').value || '').trim();
         // Oppdater lagring
         observations[idx] = obs;

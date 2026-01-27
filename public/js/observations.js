@@ -89,15 +89,14 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
         countTd.style.display = 'flex';
         countTd.style.alignItems = 'center';
 
-        // Sjekk om vi er på tablet (ikke telefon i landscape)
-        // Tablet = bred skjerm OG (ikke touch ELLER høyde > 600px)
-        const isTablet = window.innerWidth >= 768 &&
-                        (!('ontouchstart' in window) || window.innerHeight > 600);
+        // Detekter om vi har presis peker (mus/trackpad) vs touch
+        const hasFineMouse = window.matchMedia('(pointer: fine) and (hover: hover)').matches;
+        const isLargeScreen = window.innerWidth >= 768 && window.innerHeight >= 600;
 
-        // Mindre knapper på tablet for å spare vertikal plass
-        const btnSize = isTablet ? '34px' : '44px';
-        const btnFontSize = isTablet ? '1.2em' : '1.5em';
-        countTd.style.gap = isTablet ? '4px' : '6px';
+        // Mindre knapper på desktop/laptop med mus - større på touch
+        const btnSize = hasFineMouse ? '28px' : '44px';
+        const btnFontSize = hasFineMouse ? '1em' : '1.5em';
+        countTd.style.gap = hasFineMouse ? '3px' : '6px';
 
         const btnStyle = {
           width: btnSize,
@@ -124,9 +123,9 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
 
         const btnStyleWithDisplay = { ...btnStyle, display: 'flex' };
 
-        // Minus 10-knapp (kun tablet)
+        // Minus 10-knapp (kun på stor skjerm)
         let minus10Btn = null;
-        if (isTablet) {
+        if (isLargeScreen) {
           minus10Btn = document.createElement('button');
           minus10Btn.type = 'button';
           minus10Btn.textContent = '«';
@@ -194,9 +193,9 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
           renderObservations(observations, obsListEl, buttons, saveState);
         });
 
-        // Pluss 10-knapp (kun tablet)
+        // Pluss 10-knapp (kun på stor skjerm)
         let plus10Btn = null;
-        if (isTablet) {
+        if (isLargeScreen) {
           plus10Btn = document.createElement('button');
           plus10Btn.type = 'button';
           plus10Btn.textContent = '»';

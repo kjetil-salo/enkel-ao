@@ -136,12 +136,6 @@
       }
 
       strong {
-      <div class="card" style="background:rgba(234,183,8,0.10);border:1px solid #eab308;margin-bottom:18px;">
-        <div style="display:flex;align-items:flex-start;gap:7px;font-size:0.98em;color:#eab308;">
-          <span style="font-size:1.2em;line-height:1;">&#9888;&#65039;</span>
-          Underarter støttes ikke i offline-modus. <span style="color:#e5e7eb;font-size:0.97em;">Dette er for å unngå feil navn og importproblemer mot Artsobservasjoner.no.</span>
-        </div>
-      </div>
         color: var(--text);
         font-weight: 600;
       }
@@ -168,7 +162,7 @@
         body {
           padding: 12px;
         }
-        
+
         .card {
           padding: 16px;
         }
@@ -197,99 +191,64 @@
           </a>
         </header>
 
-        <div style="font-size:1.08em; margin-bottom:18px; color:var(--accent); font-weight:500;">
-          <span>🕊️</span> En digital notatbok for fugleobservasjoner i felt – ingen innlogging, ingen venting, bare <strong>art, antall og aktivitet</strong> på sekunder.<br>
-          Når du er ferdig i felt, kan notatblokken enkelt importeres til Artsobservasjoner (AO).
-        </div>
+        <p style="font-size:1.05em; margin-bottom:18px;">
+          En digital notatbok for fugleobservasjoner i felt – ingen innlogging, ingen venting, bare <strong>art, antall og aktivitet</strong> på sekunder. Når du er ferdig, kan du enkelt importere til Artsobservasjoner.
+        </p>
 
-        <h2>Bruk</h2>
-        <ul>
-          <li><strong>Oppdater lokasjon først:</strong> Trykk på «Oppdater posisjon» for å få riktig stedsnavn før du registrerer arter.</li>
-          <li>Registrer art, antall og aktivitet – alt lagres kun i nettleseren din.</li>
-          <li>Etter valg av art flyttes fokus automatisk til antall-feltet, og valgt art får en svært subtil blå animasjon for å markere valget.</li>
-          <li>Feilmeldinger og tilbakemeldinger vises som blå toast-meldinger midt på skjermen.</li>
-          <li>Trykk «Kopier og åpne AO» for å lime inn i Artsobservasjoner.</li>
-          <li>Du kan redigere eller slette observasjoner på <a href="/edit.html" style="color:var(--accent)">redigeringssiden</a>.</li>
-        </ul>
+        <h2>Kom i gang</h2>
+        <ol>
+          <li><strong>Oppdater posisjon</strong> – trykk knappen for å få riktig stedsnavn.</li>
+          <li><strong>Velg lokasjon</strong> – velg fra listen over nærliggende lokaliteter.</li>
+          <li><strong>Søk art</strong> – skriv norsk eller latinsk navn.</li>
+          <li><strong>Sett antall og aktivitet</strong> – bruk hurtigknappene eller velg fra dropdown.</li>
+          <li><strong>Kopier og åpne AO</strong> – lim inn i Artsobservasjoner.</li>
+        </ol>
 
         <div class="note">
-          <strong>⚠️ Personvern:</strong> Ingenting lagres på serveren. Alt lagres kun i nettleseren din (localStorage).
+          <strong>Personvern:</strong> Alt lagres kun i nettleseren din (localStorage). Ingenting sendes til server.
         </div>
 
         <h2>Viktig ved import til Artsobservasjoner</h2>
-        <div class="tip" style="font-size:1.05em;">
-          <strong>Velg alltid en lokalitet i importskjemaet på AO!</strong><br>
-          Selv om stedsnavn følger med, bør du alltid velge en lokalitet fra listen i AO for å unngå feil sted.<br>
-          <br>
-          <span style="color:var(--muted)">Grunnen er at mange lokaliteter i Artsobservasjoner har <strong>samme navn</strong> (f.eks. «Byparken»). AO kan ikke vite om du mener Byparken i Bergen eller Byparken i Haugesund, med mindre du har valgt «Prioriter lokaliteter i området:» i importskjemaet.<br>
-          <br>
-          For å gjøre det enklere for deg selv, bør du i AO markere dine vanlige lokaliteter som <strong>favoritter</strong> – spesielt hvis favoritten har et generelt navn. Da vil AO oftere foreslå «din» variant automatisk.</span>
-        </div>
-
-        <h2>Ofte stilte spørsmål</h2>
-        <ul>
-          <li>Observasjonene forsvinner kun hvis du tømmer listen eller sletter nettleserdata.</li>
-        </ul>
-          <p style="font-size: 0.88rem; margin-top: 12px;">Kontakt: <a href="mailto:k@vikebo.com" style="color: var(--accent); text-decoration: none;">k@vikebo.com</a></p>
-          <p style="font-size: 0.85rem; color: var(--muted); margin-top: 16px;">© 2026 Kjetil Salomonsen</p>
-          <h2>Viktige tips</h2>
-          <h3>📍 Lokaliteter og stedsnavn</h3>
-          <p>Mange lokaliteter i Artsobservasjoner har <strong>samme navn</strong> (f.eks. «Byparken»). Når du importerer, kan Artsobservasjoner velge feil lokalitet hvis navnet finnes flere ganger.</p>
-          <div class="tip">
-            <strong>💡 Løsning:</strong> Logg inn på Artsobservasjoner.no, finn lokalitetene du bruker ofte, og marker dem som <strong>favoritter</strong>. Da vil AO oftere velge «din» variant når du importerer.
-          </div>
-
-        <p style="font-size: 0.88rem; margin-top: 12px;">Kontakt: <a href="mailto:k@vikebo.com" style="color: var(--accent); text-decoration: none;">k@vikebo.com</a></p>
-        <p style="font-size: 0.85rem; color: var(--muted); margin-top: 16px;">© 2026 Kjetil Salomonsen</p>
-
-        <h2>Viktige tips</h2>
-
-        <h3>📍 Lokaliteter og stedsnavn</h3>
-        <p>Mange lokaliteter i Artsobservasjoner har <strong>samme navn</strong> (f.eks. «Byparken»). Når du importerer, kan Artsobservasjoner velge feil lokalitet hvis navnet finnes flere ganger.</p>
-
+        <p>Mange lokaliteter har <strong>samme navn</strong> (f.eks. «Byparken»). AO kan velge feil sted hvis navnet finnes flere ganger.</p>
         <div class="tip">
-          <strong>💡 Løsning:</strong> Logg inn på Artsobservasjoner.no, finn lokalitetene du bruker ofte, og marker dem som <strong>favoritter</strong>. Da vil AO oftere velge «din» variant når du importerer.
+          <strong>Tips:</strong> Marker dine vanlige lokaliteter som <strong>favoritter</strong> i AO. Da foreslår AO oftere «din» variant automatisk.
         </div>
 
-        <h3>🕒 Dato og klokkeslett</h3>
-        <p>Appen setter automatisk dagens dato og nåværende klokkeslett når du registrerer en observasjon. Dette eksporteres i formatet <code>HH:MM</code> (f.eks. 08:30) som Artsobservasjoner forventer.</p>
-
-        <h3>💾 Lagring og synkronisering</h3>
+        <h2>Lagring</h2>
         <ul>
-          <li>Observasjonene lagres kun i <strong>nettleseren din</strong> (localStorage).</li>
-          <li>De forsvinner ikke hvis du refresher siden eller lukker fanen.</li>
-          <li>Men de synkroniseres <strong>ikke</strong> mellom enheter (mobil/PC) eller nettlesere.</li>
-          <li>Hvis du sletter nettleserens data eller bruker privat modus, mister du observasjonene.</li>
+          <li>Observasjonene lagres i <strong>nettleseren din</strong> og forsvinner ikke ved refresh.</li>
+          <li>De synkroniseres <strong>ikke</strong> mellom enheter eller nettlesere.</li>
+          <li>Hvis du sletter nettleserdata eller bruker privat modus, mistes observasjonene.</li>
         </ul>
 
-        <h3>🔑 Tastatursnarveier (desktop)</h3>
+        <h2>Tastatursnarveier (desktop)</h2>
         <ul>
-          <li><code>↑</code> / <code>↓</code> – Naviger i artslisten (kun på fysisk tastatur, ikke iPad)</li>
-          <li><code>Enter</code> – Velg art / Gå videre til neste felt / Lagre observasjon</li>
+          <li><code>↑</code> / <code>↓</code> – Naviger i artslisten</li>
+          <li><code>Enter</code> – Velg art / Gå videre / Lagre</li>
           <li><code>Esc</code> – Lukk artslisten</li>
         </ul>
 
-        <h2>Vanlige problemer</h2>
+        <h2>Feilsøking</h2>
 
-        <h3>❓ «Posisjon ikke tilgjengelig»</h3>
-        <p>Sørg for at du har gitt nettleseren tillatelse til å bruke posisjonen din. Du finner dette i nettleserens innstillinger eller i adressefeltet (ofte et lås-ikon).</p>
+        <h3>Posisjon ikke tilgjengelig</h3>
+        <p>Sjekk at nettleseren har tillatelse til å bruke posisjonen din (lås-ikon i adressefeltet).</p>
 
-        <h3>❓ Artslisten viser ingenting</h3>
-        <p>Du må skrive minst 2-3 tegn før søket starter. Hvis du fortsatt ikke ser noe, kan det være et midlertidig problem med Artsobservasjoner-API-et.</p>
+        <h3>Artslisten viser ingenting</h3>
+        <p>Skriv minst 2-3 tegn. Hvis fortsatt tomt, kan det være midlertidig problem med Artsobservasjoner-API-et.</p>
 
-        <h3>❓ Stedsnavn blir ikke foreslått</h3>
-        <p>Forslagene kommer fra Artsobservasjoner sitt mobil-API. Hvis du ikke ser noe, kan det bety at det ikke finnes registrerte lokaliteter i nærheten, eller at API-et er utilgjengelig. Du kan alltid skrive inn stedsnavnet manuelt.</p>
+        <h3>Stedsnavn foreslås ikke</h3>
+        <p>Forslagene kommer fra Artsobservasjoner. Hvis ingen vises, finnes kanskje ingen registrerte lokaliteter i nærheten. Du kan alltid skrive inn manuelt.</p>
 
-        <h3>❓ Importfeil i Artsobservasjoner</h3>
-        <p>Kontroller at du har limt inn hele teksten, inkludert overskriftsraden. Hvis du får feilmelding om ugyldig format, kan du prøve å åpne CSV-en i Excel/Google Sheets, sjekke at kolonnene ser riktige ut, og eksportere på nytt som «Tab-separerte verdier».</p>
+        <h3>Importfeil i Artsobservasjoner</h3>
+        <p>Kontroller at hele teksten er limt inn, inkludert overskriftsraden.</p>
 
         <h2>Om appen</h2>
-        <p>Fugleobservasjoner er utviklet av <strong>Kjetil Salomonsen</strong> som et personlig verktøy for effektiv registrering av fugleobservasjoner i felt.</p>
+        <p>Utviklet av <strong>Kjetil Salomonsen</strong> som et personlig verktøy for effektiv registrering av fugleobservasjoner i felt.</p>
         <p style="font-size: 0.88rem; margin-top: 12px;">Kontakt: <a href="mailto:k@vikebo.com" style="color: var(--accent); text-decoration: none;">k@vikebo.com</a></p>
-        <p style="font-size: 0.85rem; color: var(--muted); margin-top: 16px;">© 2026 Kjetil Salomonsen</p>
       </div>
-    </div>
-      <footer style="width:100%;text-align:center;color:#888;font-size:0.95em;padding:18px 0 8px 0;opacity:0.7;letter-spacing:0.04em;">Versjon v1.11.0 &nbsp;|&nbsp; © 2026 Kjetil Salomonsen</footer>
+      <footer style="text-align:center;color:#888;font-size:0.9em;padding:12px 0;opacity:0.7;">
+        Versjon v1.11.0 · © 2026 Kjetil Salomonsen
+      </footer>
     </div>
   </body>
 </html>

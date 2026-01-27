@@ -51,6 +51,7 @@
 - **Løsning:** Klikkbar lenke til ⚙️ Innstillinger ved timeout og offline fallback
 - **Verdi:** Hjelper brukeren å oppdage offline-innstillingen når den trengs
 - **Status:** Implementert
+- **Åpent punkt:** Vurdere om "offline" er riktig begrep — appen er online, det er AO som ikke svarer. Unit-tester kan mocke dette scenariet.
 
 ## Lavere prioritet (nice-to-have)
 
@@ -88,7 +89,7 @@
 2. ✅ **Unit-tester** — 114 tester med Vitest
 3. ✅ **Refaktorer main.js** — splittet i 5 moduler
 4. **Cloud backup med Supabase** (kritisk for datavern)
-5. **Offline-varsling** (guide brukeren til innstillinger ved nettverksfeil)
+5. ✅ **Offline-varsling** — implementert, men meldingstekster bør vurderes
 
 ---
 

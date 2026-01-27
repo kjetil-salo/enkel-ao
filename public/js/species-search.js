@@ -215,8 +215,8 @@ export async function fetchResults(term, state, dom, callbacks) {
     console.warn('AO-søk feilet, prøver offline fallback:', err);
     const offline = await searchOfflineSpecies(q);
     state.currentResults = offline.map(s => ({
-      taxonName: s.norwegian,
-      scientificName: s.latin,
+      taxonName: s.taxonName,
+      scientificName: s.scientificName,
       source: 'offline'
     }));
     state.activeIndex = state.currentResults.length ? 0 : -1;

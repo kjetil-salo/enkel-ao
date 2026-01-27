@@ -1,5 +1,5 @@
 // Service Worker for offline-støtte
-const CACHE_NAME = 'fugleobs-v41';
+const CACHE_NAME = 'fugleobs-v42';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -10,7 +10,13 @@ const STATIC_ASSETS = [
   '/js/storage.js',
   '/js/location.js',
   '/js/observations.js',
+  '/js/form-state.js',
+  '/js/species-search.js',
+  '/js/observation-commit.js',
+  '/js/export-operations.js',
+  '/js/species_offline.js',
   '/data/activities.json',
+  '/data/norske_arter.json',
   '/favicon.svg'
 ];
 
@@ -36,13 +42,22 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Håndter requests: cache-first for statiske filer, network-first for API
+// Nettverkskall med timeout — faller tilbake til cache hvis nett er tregt/nede
+function fetchWithTimeout(request, ms) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error('timeout')), ms);
+    fetch(request).then(
+      (res) => { clearTimeout(timer); resolve(res); },
+      (err) => { clearTimeout(timer); reject(err); }
+    );
+  });
+}
+
+// Håndter requests: network-first med timeout, fallback til cache
 self.addEventListener('fetch', (event) => {
-  // Network-first for alle requests: alltid prøv nett først, fallback til cache
   event.respondWith(
-    fetch(event.request)
+    fetchWithTimeout(event.request, 5000)
       .then((response) => {
-        // Oppdater cache med ferskt svar
         if (response.ok && event.request.method === 'GET') {
           const clone = response.clone();
           caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));

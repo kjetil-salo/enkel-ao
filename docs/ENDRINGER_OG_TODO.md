@@ -27,6 +27,9 @@
     - `export-operations.js` — CSV-eksport, kopiering og sletting
   - **Delt tilstand**: All mutable state samlet i `appState`-objekt, DOM-referanser i `dom`-objekt
   - **Fikset 3 E2E-tester**: Oppdatert tittel-sjekk og erstattet manglende `#chosen` med `#search.species-selected`
+  - **Offline fallback-bugfiks**: Rettet feil der artsnavn viste "(ukjent navn)" ved offline fallback (`s.norwegian` → `s.taxonName`)
+  - **Lenke til innstillinger**: Ved timeout og offline fallback vises klikkbar lenke til ⚙️ Innstillinger
+  - **Forbedret service worker (v42)**: Nye moduler og `norske_arter.json` caches. 5s timeout på nettverkskall forhindrer at appen henger når server er nede
   - **Valgt art vises i søkefeltet**: Når du velger en art, vises navnet nå direkte i søkefeltet (ikke som separat "pill").
   - **Marker all tekst ved klikk**: Når det står en valgt art i søkefeltet, markeres hele teksten automatisk ved klikk (for rask overskriving).
   - **Kompakt layout for iPad**: Mindre vertikal padding og gap for bedre oversikt på store nettbrett.
@@ -89,11 +92,11 @@
 ### 🔴 Høy prioritet
 
 #### Tekniske forbedringer:
-- **Forbedret feilhåndtering**: Bedre fallback for API-feil
+- ✅ **Forbedret feilhåndtering**: Offline fallback med lenke til innstillinger, SW timeout
+- **Bedre meldingstekster ved AO-feil**: Vurdere om "offline" er riktig begrep når appen fungerer men AO ikke svarer. Kan testes med unit-tester (mock `searchSpecies` til å kaste feil).
 
 #### Mobile forbedringer:
-- **"Chosen species" bug**: Valgt art kan dekke over forslags-dropdown på mobile
-  - Må fikse z-index eller layout for mindre skjermer
+- ~~**"Chosen species" bug**~~: Løst — valgt art vises nå i søkefeltet, ikke som separat element
 
 ### 🟡 Middels prioritet
 

@@ -12,12 +12,18 @@ En lynrask, superenkel webapp for å registrere fugleobservasjoner direkte til A
 - 📍 Automatisk lokalitetsfinner (AO-integrasjon)
 - 🔍 Artssøk med autocomplete
    - Underarter kan vises ("Vis underarter") kun når du er online. I offline-modus får du kun hovedarter, og en tydelig advarsel vises under boksen.
+   - **Valgt art vises direkte i søkefeltet** (ikke som separat "pill").
+   - **All tekst i søkefeltet markeres ved klikk** når art er valgt, for rask overskriving.
 - ⚡ Lynrask og enkel registrering (art, antall, aktivitet, sted)
 - 👥 Medobservatører (AO-import)
 - 🗑️ Redigering og sletting
 - 🚀 Direkte eksport til AO-importskjema
 - 📖 Innebygd hjelpeside
 - 🔒 100% personvern (ingen data på server)
+- 🟦 Kompakt layout for iPad og store skjermer
+- 🟢 Aktivitets-pills fungerer også i offline-modus
+
+Se også fersk [brukervurdering](docs/brukervurdering.md) for styrker, svakheter og forslag.
 
 ## Kom i gang
 1. Sørg for at du har Python 3 installert.
