@@ -205,8 +205,10 @@ export async function fetchResults(term, state, dom, callbacks) {
     aoTimedOut = err && err.message === 'timeout';
     if (aoTimedOut) {
       dom.emptyMsgEl.style.display = 'block';
-      dom.emptyMsgEl.innerHTML = 'Ingen svar fra Artsobservasjoner etter 10 sekunder. Slå på offline artsliste i <a href="/settings.html" style="color:#3b82f6;">⚙️ Innstillinger</a>.';
-      callbacks.updateStatus('error', 'Timeout mot AO');
+      dom.emptyMsgEl.innerHTML = navigator.onLine
+        ? 'Artsobservasjoner svarer ikke (timeout). Slå på offline artsliste i <a href="/settings.html" style="color:#3b82f6;">⚙️ Innstillinger</a>.'
+        : 'Du er offline. Slå på offline artsliste i <a href="/settings.html" style="color:#3b82f6;">⚙️ Innstillinger</a>.';
+      callbacks.updateStatus('error', navigator.onLine ? 'AO svarer ikke' : 'Offline');
       state.currentResults = [];
       state.activeIndex = -1;
       renderResults(state, dom);
@@ -222,9 +224,13 @@ export async function fetchResults(term, state, dom, callbacks) {
     state.activeIndex = state.currentResults.length ? 0 : -1;
     renderResults(state, dom);
     dom.emptyMsgEl.style.display = state.currentResults.length ? 'none' : 'block';
-    dom.emptyMsgEl.innerHTML = state.currentResults.length
-      ? 'Viser offline artsliste (ingen kontakt med Artsobservasjoner). Slå på offline-modus i <a href="/settings.html" style="color:#3b82f6;">⚙️ Innstillinger</a>.'
-      : 'Ingen treff i offline-listen.';
-    callbacks.updateStatus('idle', 'Klar for søk (offline)');
+    if (state.currentResults.length) {
+      dom.emptyMsgEl.innerHTML = navigator.onLine
+        ? 'Artsobservasjoner svarer ikke. Viser lokal artsliste. Slå på offline-modus i <a href="/settings.html" style="color:#3b82f6;">⚙️ Innstillinger</a>.'
+        : 'Du er offline. Viser lokal artsliste.';
+    } else {
+      dom.emptyMsgEl.innerHTML = 'Ingen treff i offline-listen.';
+    }
+    callbacks.updateStatus('idle', navigator.onLine ? 'AO utilgjengelig (lokal liste)' : 'Offline (lokal liste)');
   }
 }
