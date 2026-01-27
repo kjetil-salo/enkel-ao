@@ -8,22 +8,21 @@
 - **Verdi:** Enkel UX-forbedring som folk setter pris på
 - **Status:** Implementert
 
-### 2. Unit-tester for JS-moduler
+### 2. ✅ Unit-tester for JS-moduler
 - **Problem:** Har E2E-tester, men ingen unit-tester
-- **Løsning:** Test `toCsv()`, `haversine()`, `renderObservations()` isolert
-- **Verdi:** Ville fanget bugs før deploy
-- **Estimat:** 1-2 dager
-- **Status:** Ikke startet
+- **Løsning:** 114 unit-tester med Vitest for storage, location, api, species_offline, observations og ui
+- **Verdi:** Fanger bugs før deploy
+- **Status:** Implementert
 
-### 3. Refaktorer main.js
-- **Problem:** main.js er blitt 400+ linjer
-- **Løsning:** Splitt i flere moduler:
-  - `form-state.js` (progressive activation logic)
-  - `event-handlers.js` (all event listener setup)
-  - `observation-commit.js` (commit logic)
+### 3. ✅ Refaktorer main.js
+- **Problem:** main.js var blitt 919 linjer
+- **Løsning:** Splittet til 306 linjer + 4 nye moduler:
+  - `form-state.js` — progressiv aktivering av skjemafelter
+  - `species-search.js` — artssøk, resultatvisning og artsvalg
+  - `observation-commit.js` — validering, lagring og aktivitets-pills
+  - `export-operations.js` — CSV-eksport, kopiering og sletting
 - **Verdi:** Bedre vedlikeholdbarhet og testbarhet
-- **Estimat:** Halvdag
-- **Status:** Ikke startet
+- **Status:** Implementert
 
 ## Medium prioritet (mer arbeid, god verdi)
 
@@ -47,12 +46,11 @@
 - **Estimat:** 1-2 dager
 - **Status:** Ikke startet
 
-### 6. Bedre offline-indikator
-- **Problem:** Service worker cacher, men bruker vet ikke når de er offline
-- **Løsning:** Tydelig banner: "Du er offline - endringer lagres lokalt"
-- **Verdi:** Bedre forståelse av app-tilstand
-- **Estimat:** 2-3 timer
-- **Status:** Ikke startet
+### 6. ✅ Offline-varsling med lenke til innstillinger
+- **Problem:** Bruker med online-modus kan oppleve timeout/færre treff uten å forstå hvorfor
+- **Løsning:** Klikkbar lenke til ⚙️ Innstillinger ved timeout og offline fallback
+- **Verdi:** Hjelper brukeren å oppdage offline-innstillingen når den trengs
+- **Status:** Implementert
 
 ## Lavere prioritet (nice-to-have)
 
@@ -86,12 +84,12 @@
 
 ## Anbefalt rekkefølge
 
-1. ✅ **Undo ved sletting** (1-2 timer, stor UX-gevinst)
-2. **Cloud backup med Supabase** (halvdag, kritisk for datavern)
-3. **Refaktorer main.js** (halvdag, bedre vedlikeholdbarhet)
-4. **Unit-tester** (1-2 dager, bedre kvalitetssikring)
-5. **Offline-indikator** (2-3 timer, bedre brukeropplevelse)
+1. ✅ **Undo ved sletting** — implementert
+2. ✅ **Unit-tester** — 114 tester med Vitest
+3. ✅ **Refaktorer main.js** — splittet i 5 moduler
+4. **Cloud backup med Supabase** (kritisk for datavern)
+5. **Offline-varsling** (guide brukeren til innstillinger ved nettverksfeil)
 
 ---
 
-*Sist oppdatert: 2026-01-22*
+*Sist oppdatert: 2026-01-27*

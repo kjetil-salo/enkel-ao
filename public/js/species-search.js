@@ -205,7 +205,7 @@ export async function fetchResults(term, state, dom, callbacks) {
     aoTimedOut = err && err.message === 'timeout';
     if (aoTimedOut) {
       dom.emptyMsgEl.style.display = 'block';
-      dom.emptyMsgEl.textContent = 'Ingen svar fra Artsobservasjoner etter 10 sekunder. Du kan bruke offline artsliste fra innstillinger.';
+      dom.emptyMsgEl.innerHTML = 'Ingen svar fra Artsobservasjoner etter 10 sekunder. Slå på offline artsliste i <a href="/settings.html" style="color:#3b82f6;">⚙️ Innstillinger</a>.';
       callbacks.updateStatus('error', 'Timeout mot AO');
       state.currentResults = [];
       state.activeIndex = -1;
@@ -222,8 +222,8 @@ export async function fetchResults(term, state, dom, callbacks) {
     state.activeIndex = state.currentResults.length ? 0 : -1;
     renderResults(state, dom);
     dom.emptyMsgEl.style.display = state.currentResults.length ? 'none' : 'block';
-    dom.emptyMsgEl.textContent = state.currentResults.length
-      ? 'Viser offline artsliste (ingen kontakt med Artsobservasjoner)'
+    dom.emptyMsgEl.innerHTML = state.currentResults.length
+      ? 'Viser offline artsliste (ingen kontakt med Artsobservasjoner). Slå på offline-modus i <a href="/settings.html" style="color:#3b82f6;">⚙️ Innstillinger</a>.'
       : 'Ingen treff i offline-listen.';
     callbacks.updateStatus('idle', 'Klar for søk (offline)');
   }

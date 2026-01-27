@@ -105,7 +105,7 @@
         letter-spacing: 0.11em;
         color: var(--muted);
         margin-bottom: 6px;
-        pointer-events: none;
+        cursor: pointer;
       }
 
       .input-wrap {
@@ -133,7 +133,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   min-width: 0;
 }
 
@@ -556,12 +556,39 @@
       }
 
       .section-main {
-        background: rgba(34, 197, 94, 0.08);
-        border: 2px solid rgba(34, 197, 94, 0.3);
         border-radius: 12px;
         padding: 18px;
         margin-bottom: 16px;
+      }
+
+      /* Lokasjon: Blå tema */
+      .section-lokasjon {
+        background: rgba(59, 130, 246, 0.08);
+        border: 2px solid rgba(59, 130, 246, 0.3);
+        box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15);
+      }
+
+      /* Observasjon: Grønn tema */
+      .section-observasjon {
+        background: rgba(34, 197, 94, 0.08);
+        border: 2px solid rgba(34, 197, 94, 0.3);
         box-shadow: 0 2px 8px rgba(34, 197, 94, 0.15);
+      }
+
+      /* Fieldset reset */
+      fieldset.section-main {
+        margin: 0;
+        margin-bottom: 16px;
+      }
+
+      fieldset.section-main legend {
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: var(--text);
+        font-weight: 600;
+        padding: 0 8px;
+        margin-left: -4px;
       }
 
       .section-optional {
@@ -570,16 +597,17 @@
         border-radius: 8px;
         padding: 12px;
         opacity: 0.85;
+        margin: 0;
+        margin-bottom: 16px;
       }
 
-      .optional-subtitle {
+      .section-optional legend {
         font-size: 0.75rem;
         color: var(--muted);
-        opacity: 0.6;
-        margin-bottom: 10px;
-        font-style: italic;
         font-weight: 400;
+        padding: 0 6px;
       }
+
 
       .row {
         margin-top: 12px;
@@ -922,14 +950,6 @@
         border-color: rgba(148, 163, 184, 0.25);
       }
 
-      .optional-subtitle {
-        font-size: 0.75rem;
-        color: var(--muted);
-        opacity: 0.7;
-        margin-bottom: 8px;
-        font-style: italic;
-      }
-
       @media (max-width: 480px) {
         .advanced-row {
           flex-direction: column;
@@ -966,8 +986,8 @@
         }
       }
 
-      /* ===== iPad/Tablet layout for trekktelling ===== */
-      @media (min-width: 768px) and (max-width: 1200px) and (min-height: 600px) {
+      /* ===== To-kolonner layout (iPad, Mac, PC) ===== */
+      @media (min-width: 768px) and (min-height: 600px) {
         .shell {
           max-width: 100%;
           padding: 0 12px;
@@ -1025,7 +1045,7 @@
           gap: 4px;
           margin-top: 4px;
           margin-bottom: 2px;
-          flex-wrap: nowrap;
+          flex-wrap: wrap;
         }
 
         .activity-pill {
@@ -1042,8 +1062,13 @@
 
         .obs-table th,
         .obs-table td {
-          padding: 8px 10px;
-          font-size: 1rem;
+          padding: 4px 8px;
+          font-size: 0.9rem;
+        }
+
+        .obs-group-title {
+          padding: 4px 8px;
+          margin-bottom: 0;
         }
 
         /* Bedre plass for observasjonslisten */
@@ -1081,12 +1106,6 @@
         }
       }
 
-      /* Større skjermer (desktop) - behold sentrert layout */
-      @media (min-width: 1201px) {
-        .tablet-layout {
-          display: block;
-        }
-      }
     </style>
   </head>
   <body>
@@ -1108,8 +1127,8 @@
         <div class="tablet-layout">
         <div class="tablet-input-column">
 
-        <div class="section-main section-lokasjon">
-          <div class="section-title">📍 Lokasjon</div>
+        <fieldset class="section-main section-lokasjon">
+          <legend>① Lokasjon</legend>
           <div class="row" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-height:0;">
             <span class="loc-dot" id="loc-dot" style="width:10px;height:10px;margin-right:4px;"></span>
             <button class="icon-btn" id="loc-btn" title="Oppdater posisjon" style="font-size:0.9em;padding:6px 10px;border:1px solid var(--border);border-radius:6px;background:var(--accent-soft);color:var(--text);transition:all 0.2s;display:flex;align-items:center;gap:4px;height:32px;">
@@ -1175,10 +1194,10 @@
             />
             <div class="result-empty" id="ao-sites" style="display:none; margin-top:4px;"></div>
           </div>
-        </div>
+        </fieldset>
 
-        <div class="section-main section-observasjon">
-          <div class="section-title">🔍 Observasjon (obligatorisk)</div>
+        <fieldset class="section-main section-observasjon">
+          <legend>② Observasjon</legend>
           <div class="status-row">
             <div class="status-left">
               <span class="status-dot" id="status-dot"></span>
@@ -1246,10 +1265,10 @@
               </button>
             </div>
           </div>
-        </div>
+        </fieldset>
 
-        <div class="section-optional">
-          <div class="optional-subtitle">Tilleggsinfo (valgfritt for AO-import)</div>
+        <fieldset class="section-optional">
+          <legend style="font-size:0.75rem;color:var(--muted);font-weight:400;padding:0 6px;">③ Tilleggsinfo (valgfritt)</legend>
           <div class="row advanced-row">
             <div class="advanced-field">
               <label for="age">Alder</label>
@@ -1292,7 +1311,7 @@
               </select>
             </div>
           </div>
-        </div>
+        </fieldset>
         </div><!-- /tablet-input-column -->
 
         <div class="tablet-list-column">
@@ -1319,7 +1338,7 @@
 
     </div>
 
-    <script type="module" src="/js/main.js?v=20260123d"></script>
+    <script type="module" src="/js/main.js?v=20260127a"></script>
     <script>
       // Registrer Service Worker for offline-støtte
       if ('serviceWorker' in navigator) {
