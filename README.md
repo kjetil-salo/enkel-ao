@@ -19,6 +19,10 @@ En lynrask, superenkel webapp for å registrere fugleobservasjoner direkte til A
    - **Valgt art vises direkte i søkefeltet** (ikke som separat "pill").
    - **All tekst i søkefeltet markeres ved klikk** når art er valgt, for rask overskriving.
 - ⚡ Lynrask og enkel registrering (art, antall, aktivitet, sted)
+- 🕐 **Feltmodus vs Etterregistrering**
+  - **Felt** (grønn pill): Timestamp settes automatisk til "nå"
+  - **Etterreg** (rød pill): Velg egen dato + valgfri tid for tidligere observasjoner
+  - Bytt modus ved å klikke på pill i header eller via innstillinger
 - 👥 Medobservatører (AO-import)
 - 🗑️ Redigering og sletting
 - 🚀 Direkte eksport til AO-importskjema
