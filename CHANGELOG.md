@@ -1,3 +1,18 @@
+## 1.14.0 – 2026-01-28
+### ✨ Nye funksjoner
+- **Kartsymbol ved AO-lokaliteter**: Hver lokalitet i dropdown har nå et 🗺️-ikon
+- **Native kart-app integrasjon**:
+  - iOS: Åpner Apple Maps med ruteanvisning
+  - Android: Åpner Google Maps med ruteanvisning
+  - Desktop: Åpner Google Maps i nettleser
+- **Oppdatert "Vis i kart"-knapp**: Bruker nå også native kart-apper
+- **Ruteanvisning**: Kart viser både din posisjon og valgt lokalitet med rute mellom punktene
+- **Automatisk zoom**: Zoomnivå justeres basert på avstand til lokalitet
+
+### 🎨 UI/UX
+- Hover-effekt på kartknappene for bedre visuell feedback
+- Kartikon posisjonert til høyre i hver lokalitetsrad
+
 ## 1.7.0 – 2026-01-19
 ### Forbedringer og visuelle endringer
 - Bredere desktop-visning (max-width 800px)
@@ -6,7 +21,6 @@
 - Mer diskret label uten caps lock
 - Observasjonslisten uten scroll – eksportknapp alltid synlig
 - Diverse små visuelle justeringer og bedre design
-```markdown
 
 ## Unreleased
 ### Dato: 2026-01-19
