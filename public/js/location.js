@@ -132,22 +132,30 @@ export function setAoSiteSuggestions(sites, currentPosition, dropdown, aoSitesEl
   visibleSites.forEach((site) => {
     const item = document.createElement('div');
     item.className = 'ao-site-suggestion';
-    
+    item.style.display = 'flex';
+    item.style.justifyContent = 'space-between';
+    item.style.alignItems = 'center';
+    item.style.gap = '8px';
+
+    // Tekstdel
+    const textSpan = document.createElement('span');
+    textSpan.style.flex = '1';
+
     let label = getSiteLabel(site) || site.name;
     if (site.isSuper) label = '🏷️ ' + label;
     if (isPrivateSite(site)) label = '🔒 ' + label;
-    
+
     let distStr = '';
     if (site._distance != null) {
-      distStr = site._distance < 1000 
-        ? ` (${Math.round(site._distance)} m)` 
+      distStr = site._distance < 1000
+        ? ` (${Math.round(site._distance)} m)`
         : ` (${(site._distance / 1000).toFixed(1)} km)`;
     }
-    
+
     label = label + distStr;
-    item.textContent = label;
-    item.tabIndex = 0;
-    
+    textSpan.textContent = label;
+    textSpan.tabIndex = 0;
+
     const selectSite = () => {
       const name = getSiteLabel(site) || site.name;
       setCurrentPlace(name);
@@ -157,14 +165,49 @@ export function setAoSiteSuggestions(sites, currentPosition, dropdown, aoSitesEl
       }
       dropdown.style.display = 'none';
     };
-    
-    item.addEventListener('click', selectSite);
-    item.addEventListener('keydown', (e) => {
+
+    textSpan.addEventListener('click', selectSite);
+    textSpan.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' || e.key === ' ') {
         selectSite();
       }
     });
-    
+
+    // Kartknapp
+    const mapBtn = document.createElement('button');
+    mapBtn.textContent = '🗺️';
+    mapBtn.title = 'Vis i kart';
+    mapBtn.style.cssText = `
+      background: transparent;
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      border-radius: 6px;
+      padding: 4px 8px;
+      cursor: pointer;
+      font-size: 1rem;
+      opacity: 0.7;
+      transition: all 0.2s;
+      flex-shrink: 0;
+    `;
+
+    mapBtn.addEventListener('mouseenter', () => {
+      mapBtn.style.opacity = '1';
+      mapBtn.style.background = 'rgba(59, 130, 246, 0.15)';
+      mapBtn.style.borderColor = 'rgba(59, 130, 246, 0.6)';
+    });
+
+    mapBtn.addEventListener('mouseleave', () => {
+      mapBtn.style.opacity = '0.7';
+      mapBtn.style.background = 'transparent';
+      mapBtn.style.borderColor = 'rgba(148, 163, 184, 0.3)';
+    });
+
+    mapBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      openMapWithTwoPoints(currentPosition, { lat: site.lat, lon: site.lon }, getSiteLabel(site) || site.name);
+    });
+
+    item.appendChild(textSpan);
+    item.appendChild(mapBtn);
     dropdown.appendChild(item);
   });
   
@@ -262,12 +305,75 @@ export function initLocation(elements, onPositionUpdate, aoSizeMeters = 1000) {
 
 /**
  * Åpne kart med nåværende posisjon
+ * Bruker native kart-app på mobil (Apple Maps/Google Maps), Google Maps på desktop
  * @param {Object} position - Posisjon {lat, lon}
  */
 export function openMap(position) {
   if (!position) return;
-  
+
   const { lat, lon } = position;
-  const url = `https://www.openstreetmap.org/?mlat=${encodeURIComponent(lat)}&mlon=${encodeURIComponent(lon)}#map=16/${encodeURIComponent(lat)}/${encodeURIComponent(lon)}`;
+
+  // Detekter plattform
+  const ua = navigator.userAgent || '';
+  const isIOS = /iPhone|iPad|iPod/.test(ua);
+  const isAndroid = /Android/.test(ua);
+
+  let url;
+
+  if (isIOS) {
+    // Apple Maps på iOS
+    url = `https://maps.apple.com/?q=${encodeURIComponent(lat)},${encodeURIComponent(lon)}&ll=${encodeURIComponent(lat)},${encodeURIComponent(lon)}&z=16`;
+  } else if (isAndroid) {
+    // Google Maps på Android
+    url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(lat)},${encodeURIComponent(lon)}`;
+  } else {
+    // Desktop: Google Maps
+    url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(lat)},${encodeURIComponent(lon)}`;
+  }
+
+  window.open(url, '_blank', 'noopener');
+}
+
+/**
+ * Åpne kart med to punkter (egen posisjon og lokalitet)
+ * Bruker native kart-app på mobil (Apple Maps/Google Maps), Google Maps på desktop
+ * @param {Object} fromPos - Fra-posisjon {lat, lon}
+ * @param {Object} toPos - Til-posisjon {lat, lon}
+ * @param {string} locationName - Navn på destinasjonen
+ */
+export function openMapWithTwoPoints(fromPos, toPos, locationName = 'Lokalitet') {
+  if (!fromPos || !toPos) {
+    console.warn('openMapWithTwoPoints: Mangler posisjon(er)');
+    return;
+  }
+
+  const fromLat = fromPos.lat;
+  const fromLon = fromPos.lon;
+  const toLat = parseFloat(toPos.lat);
+  const toLon = parseFloat(toPos.lon);
+
+  if (isNaN(toLat) || isNaN(toLon)) {
+    console.warn('openMapWithTwoPoints: Ugyldig til-posisjon', toPos);
+    return;
+  }
+
+  // Detekter plattform
+  const ua = navigator.userAgent || '';
+  const isIOS = /iPhone|iPad|iPod/.test(ua);
+  const isAndroid = /Android/.test(ua);
+
+  let url;
+
+  if (isIOS) {
+    // Apple Maps på iOS - støtter directions med saddr og daddr
+    url = `https://maps.apple.com/?saddr=${encodeURIComponent(fromLat)},${encodeURIComponent(fromLon)}&daddr=${encodeURIComponent(toLat)},${encodeURIComponent(toLon)}&dirflg=d`;
+  } else if (isAndroid) {
+    // Google Maps på Android - bruker saddr og daddr for directions
+    url = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(fromLat)},${encodeURIComponent(fromLon)}&destination=${encodeURIComponent(toLat)},${encodeURIComponent(toLon)}&travelmode=driving`;
+  } else {
+    // Desktop: Google Maps directions
+    url = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(fromLat)},${encodeURIComponent(fromLon)}&destination=${encodeURIComponent(toLat)},${encodeURIComponent(toLon)}&travelmode=driving`;
+  }
+
   window.open(url, '_blank', 'noopener');
 }
