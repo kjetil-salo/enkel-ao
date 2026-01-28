@@ -13,6 +13,98 @@
 - Hover-effekt på kartknappene for bedre visuell feedback
 - Kartikon posisjonert til høyre i hver lokalitetsrad
 
+## 1.13.0 – 2026-01-27
+### 🎨 UI/UX forbedringer
+- Kompaktere søkefelt og resultatliste
+- Antall-felt aksepterer kun sifre (inputmode numeric, pattern restricting)
+- Forbedret spacing og layout
+
+## 1.12.1 – 2026-01-26
+### 🐛 Feilrettinger og forbedringer
+- Forbedret pluss/minus-knapper i observasjonslisten
+- Optimalisert tablet-layout med bedre spacing
+- Touch-vennlige knapper på mobil
+
+## 1.12.0 – 2026-01-25
+### ✨ Nye funksjoner
+- Lagt til brukervurdering av appen
+- Tilbakemeldingsmekanisme for brukere
+
+## 1.11.0 – 2026-01-24
+### ✨ Nye funksjoner
+- **Offline artssøk**: Service Worker med cache av populære arter
+- **Innstillingsside**: Ny `/settings.html` for app-konfigurasjon
+- **UI-forbedringer**: Bedre responsivitet og visuell feedback
+
+### 🔧 Tekniske forbedringer
+- Service Worker for offline-funksjonalitet
+- localStorage for innstillinger
+
+## 1.10.2 – 2026-01-23
+### 🐛 Feilrettinger
+- Søkefeltet bruker igjen `type=text` (ikke `inputmode=search`)
+- Rullet tilbake Claude-forslag som skapte problemer på iOS
+
+## 1.10.1 – 2026-01-23
+### 🐛 Feilrettinger
+- Fikset toast-animasjon som ikke viste korrekt
+- Fikset pill-klikk som ikke fungerte på mobil
+- Forbedret landscape-layout på iPhone
+
+## 1.10.0 – 2026-01-22
+### 🐛 Feilrettinger
+- **CSV-eksport**: Medobservatører eksporteres nå som navn (ikke ID)
+- **Tomme felt**: Tomme felter blir tomme i CSV (ikke "undefined" eller "null")
+- Forbedret datakvalitet i eksport
+
+## 1.9.1 – 2026-01-20
+### 🔧 Tekniske forbedringer
+- **Refaktorering**: JavaScript fra ~1280 linjer inline til ES6-moduler
+- Ny modulstruktur i `/public/js/`:
+  - `main.js` - Entry point og event listeners
+  - `api.js` - API-kommunikasjon med 1-times cache
+  - `storage.js` - localStorage-håndtering
+  - `ui.js` - Generelle UI-funksjoner
+  - `location.js` - Geolokasjon og AO-sites
+  - `observations.js` - Observasjonstabell og CSV-eksport
+- Ingen brukersynlige endringer
+- Forbedret vedlikeholdbarhet og testbarhet
+
+## 1.9.0 – 2026-01-20
+### ✨ Nye funksjoner
+- **Medobservatør-funksjon**: Egen side (`/medobs.html`) for å administrere medobservatører
+- Medobservatører lagres i localStorage
+- Medobservatører inkluderes automatisk i CSV-eksport (10 kolonner)
+- Medobservatører påvirkes ikke av "Tøm liste"
+
+### 🔒 Validering
+- Streng validering: Sted, art, antall og aktivitet er nå påkrevd
+- Forbedrede feilmeldinger (1.5 sek varighet)
+
+### 🎨 UI/UX
+- Medobs-tabell utnytter hele bredden
+- Mobiltilpasning og visuell feedback
+- Versjon v1.9.0 synlig i footer
+
+## 1.8.0 – 2026-01-19
+### ✨ Nye funksjoner
+- **Rediger-side**: Ny `/edit.html` for å redigere registrerte observasjoner
+- **Edit-knapp**: ✏️-knapp på hver rad i observasjonslisten
+- **Kommentar-felt**: Kommentarer lagres og eksporteres til CSV (kolonne 15)
+
+### 🔧 Tekniske forbedringer
+- `loadState()` kjører tidlig ved oppstart
+- Observasjoner vises umiddelbart ved lasting
+
+### 🎨 UI/UX
+- Layout- og mobilforbedringer
+- Mindre paddings på mobil
+- Kortere posisjonsknapp
+- Bedre plassering av sletteknapp
+
+### 🗑️ Opprydding
+- Fjernet `public/ao-import.html`
+
 ## 1.7.0 – 2026-01-19
 ### Forbedringer og visuelle endringer
 - Bredere desktop-visning (max-width 800px)
