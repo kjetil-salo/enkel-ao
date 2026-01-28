@@ -335,6 +335,33 @@ export function openMap(position) {
 }
 
 /**
+ * Åpne kartside med brukerposisjon og alle AO-lokaliteter
+ * @param {Object} userPosition - Brukerens posisjon {lat, lon, accuracy}
+ * @param {Array} sites - Liste med AO-lokaliteter
+ */
+export function openMapPage(userPosition, sites) {
+  if (!userPosition || !userPosition.lat || !userPosition.lon) {
+    console.warn('openMapPage: Mangler brukerposisjon');
+    return;
+  }
+
+  // Lagre data i localStorage
+  const mapData = {
+    userPosition: {
+      lat: userPosition.lat,
+      lon: userPosition.lon,
+      accuracy: userPosition.accuracy
+    },
+    sites: sites || []
+  };
+
+  localStorage.setItem('mapData', JSON.stringify(mapData));
+
+  // Åpne kartside
+  window.open('/map.html', '_blank');
+}
+
+/**
  * Åpne kart med to punkter (egen posisjon og lokalitet)
  * Bruker native kart-app på mobil (Apple Maps/Google Maps), Google Maps på desktop
  * @param {Object} fromPos - Fra-posisjon {lat, lon}
@@ -377,3 +404,4 @@ export function openMapWithTwoPoints(fromPos, toPos, locationName = 'Lokalitet')
 
   window.open(url, '_blank', 'noopener');
 }
+

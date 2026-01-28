@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="nb">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Kart - Enkel-AO</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+    crossorigin=""/>
+
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #0f172a;
+      --card-bg: #111827;
+      --border: #1f2937;
+      --accent: #3b82f6;
+      --text: #e5e7eb;
+      --muted: #9ca3af;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      overflow: hidden;
+    }
+
+    #map {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 1;
+    }
+
+    .back-btn {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      z-index: 1000;
+      background: white;
+      border: 2px solid rgba(0,0,0,0.2);
+      border-radius: 8px;
+      padding: 8px 16px;
+      font-size: 16px;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 500;
+      color: #0f172a;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+
+    .back-btn:hover {
+      background: #f1f5f9;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    }
+
+    .info-box {
+      position: absolute;
+      bottom: 10px;
+      right: 10px;
+      z-index: 1000;
+      background: white;
+      border: 2px solid rgba(0,0,0,0.2);
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 13px;
+      color: #0f172a;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+      max-width: 250px;
+    }
+
+    .info-box strong {
+      display: block;
+      margin-bottom: 4px;
+      color: #3b82f6;
+    }
+
+    /* Custom marker styling via Leaflet */
+    .user-marker {
+      background-color: #3b82f6;
+      border: 3px solid white;
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+    }
+
+    /* Permanent labels for sites */
+    .site-label {
+      background: rgba(255, 255, 255, 0.95);
+      border: 1px solid rgba(0, 0, 0, 0.2);
+      border-radius: 4px;
+      padding: 2px 6px;
+      font-size: 12px;
+      font-weight: 500;
+      color: #0f172a;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+      white-space: nowrap;
+    }
+
+    .site-label::before {
+      display: none; /* Fjern tooltip-pilen */
+    }
+  </style>
+</head>
+<body>
+  <a href="/" class="back-btn">← Tilbake</a>
+
+  <div id="map"></div>
+
+  <div class="info-box" id="info-box" style="display: none;">
+    <strong>Lokaliteter:</strong>
+    <span id="site-count">0</span> offentlige lokaliteter
+  </div>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+    crossorigin=""></script>
+
+  <script type="module" src="/js/map.js"></script>
+</body>
+</html>

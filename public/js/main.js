@@ -7,7 +7,7 @@
 import { logPageView, loadActivities } from './api.js';
 import { loadObservations, saveObservations } from './storage.js';
 import { setStatus, setLocationStatus } from './ui.js';
-import { setAoSiteSuggestions, initLocation, openMap } from './location.js';
+import { setAoSiteSuggestions, initLocation, openMap, openMapPage } from './location.js';
 import { renderObservations } from './observations.js';
 
 // Nye moduler
@@ -245,7 +245,7 @@ function setupEventListeners() {
   }
 
   if (dom.locMapBtn) {
-    dom.locMapBtn.addEventListener('click', () => openMap(appState.currentPosition));
+    dom.locMapBtn.addEventListener('click', () => openMapPage(appState.currentPosition, appState.currentAoSites));
   }
 
   if (dom.aoSizeInput) {
