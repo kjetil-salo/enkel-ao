@@ -351,8 +351,60 @@ async function init() {
   logPageView();
 }
 
+/**
+ * Oppdater UI for modus-pill (Felt vs Etterregistrering)
+ */
+function updateModeUI() {
+  const modePill = document.getElementById('mode-pill');
+  const datetimeFields = document.getElementById('datetime-fields');
+  const obsDateInput = document.getElementById('obs-date');
+  const obsTimeInput = document.getElementById('obs-time');
+
+  if (!modePill || !datetimeFields) return;
+
+  const isAfterMode = localStorage.getItem('afterRegistrationMode') === '1';
+
+  if (isAfterMode) {
+    modePill.textContent = 'Etterreg';
+    modePill.className = 'pill mode-pill after-mode';
+    datetimeFields.style.display = 'block';
+
+    // Sett dagens dato som default
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    if (obsDateInput) obsDateInput.value = `${yyyy}-${mm}-${dd}`;
+    if (obsTimeInput) obsTimeInput.value = ''; // Ingen tid som default
+  } else {
+    modePill.textContent = 'Felt';
+    modePill.className = 'pill mode-pill field-mode';
+    datetimeFields.style.display = 'none';
+  }
+}
+
+/**
+ * Setup modus-toggle event listener
+ */
+function setupModeToggle() {
+  const modePill = document.getElementById('mode-pill');
+  if (!modePill) return;
+
+  modePill.addEventListener('click', () => {
+    const current = localStorage.getItem('afterRegistrationMode') === '1';
+    if (current) {
+      localStorage.removeItem('afterRegistrationMode');
+    } else {
+      localStorage.setItem('afterRegistrationMode', '1');
+    }
+    updateModeUI();
+  });
+}
+
 window.addEventListener('DOMContentLoaded', () => {
   updateSubtaxaCheckboxState();
   init();
   updateMapBtnVisibility();
+  updateModeUI();
+  setupModeToggle();
 });

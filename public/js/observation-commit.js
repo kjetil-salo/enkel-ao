@@ -8,6 +8,41 @@ import { showToast } from './ui.js';
 const ALL_ACTIVITY_PILLS = ['Stasjonær', 'Rastende', 'Overflygende', 'Næringssøkende', 'Trekkende', 'Sang/spill'];
 const DEFAULT_PILL_COUNT = 4;
 
+/**
+ * Hent timestamp for observasjon basert på modus
+ * @returns {string} ISO timestamp
+ */
+function getObservationTimestamp() {
+  const isAfterMode = localStorage.getItem('afterRegistrationMode') === '1';
+
+  if (!isAfterMode) {
+    // Feltmodus: bruk nå
+    return new Date().toISOString();
+  }
+
+  // Etterregistreringsmodus: bruk valgt dato/tid
+  const dateInput = document.getElementById('obs-date');
+  const timeInput = document.getElementById('obs-time');
+
+  if (!dateInput || !dateInput.value) {
+    // Fallback til nå hvis dato mangler
+    return new Date().toISOString();
+  }
+
+  const dateStr = dateInput.value; // "2026-01-28"
+  const timeStr = timeInput && timeInput.value ? timeInput.value : '00:00'; // Midnatt hvis ikke oppgitt
+
+  const combined = `${dateStr}T${timeStr}:00`; // "2026-01-28T14:30:00" eller "2026-01-28T00:00:00"
+  const d = new Date(combined);
+
+  if (isNaN(d.getTime())) {
+    // Ugyldig dato - fallback til nå
+    return new Date().toISOString();
+  }
+
+  return d.toISOString();
+}
+
 function getActivityPillCount() {
   const stored = localStorage.getItem('activityPillCount');
   if (stored) {
@@ -63,7 +98,7 @@ export function commitObservation(state, dom, callbacks) {
     position: state.currentPosition,
     activity,
     placeName: place,
-    timestamp: new Date().toISOString(),
+    timestamp: getObservationTimestamp(),
     age,
     gender,
     coObservers: defaultCoObservers(),

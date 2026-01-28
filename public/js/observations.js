@@ -429,10 +429,12 @@ export function toCsv(observations) {
         const yyyy = d.getFullYear();
         dateStr = `${dd}.${mm}.${yyyy}`;
 
-        // Tidspunkt – format HH:MM
+        // Tidspunkt – format HH:MM (unntatt hvis 00:00, som betyr tid ikke er satt)
         const hh = String(d.getHours()).padStart(2, '0');
         const mi = String(d.getMinutes()).padStart(2, '0');
-        timeStr = `${hh}:${mi}`;
+        if (hh !== '00' || mi !== '00') {
+          timeStr = `${hh}:${mi}`;
+        }
       }
     }
     // Til klokkeslett (periode)
