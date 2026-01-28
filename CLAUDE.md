@@ -36,7 +36,7 @@ docker-compose up --build  # Run with mock Nominatim (safe for load testing)
 
 # Deploy to Fly.io
 ./update-app.sh staging    # Deploy to staging
-./update-app.sh production # Deploy to production
+./update-app.sh production # Deploy to production — kjør pytest først!
 ```
 
 ### Load Testing
@@ -117,6 +117,9 @@ AO_URL=http://localhost:8080 AO_MOBILE_URL=http://localhost:8080 python3 server.
 
 ### Git Commits
 - **Aldri bruk Co-Authored-By** - commit uten co-author linje
+
+### Deploy
+- **Før deploy til production**: Kjør alltid `pytest --maxfail=3` først. Ikke deploy hvis tester feiler.
 
 ### Versjonering
 - Ved ny versjon (git tag): Oppdater alltid versjonsnummeret i `<footer>` i `public/index.html`
