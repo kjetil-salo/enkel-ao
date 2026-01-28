@@ -114,7 +114,7 @@
 
       input[type="text"] {
         width: 100%;
-        padding: 9px 34px 9px 28px;
+        padding: 7px 34px 7px 28px;
         border-radius: 999px;
         border: 1px solid rgba(148, 163, 184, 0.45);
         background: radial-gradient(circle at top left, rgba(248, 250, 252, 0.06), rgba(15, 23, 42, 0.95));
@@ -369,8 +369,8 @@
 
       /* Art-feltet - alltid litt større */
       #search {
-        font-size: 1.05rem;
-        padding: 11px 34px 11px 32px;
+        font-size: 1.25rem !important;
+        padding: 8px 34px 8px 32px;
       }
 
       /* Antall-feltet når aktivt */
@@ -402,10 +402,10 @@
 
       .search-icon {
         position: absolute;
-        left: 9px;
+        left: 10px;
         top: 50%;
         transform: translateY(-50%);
-        font-size: 0.9rem;
+        font-size: 1.05rem;
         color: rgba(148, 163, 184, 0.9);
         pointer-events: none;
       }
@@ -442,33 +442,31 @@
       }
 
       .result-item {
-        padding: 5px 8px;
-        border-radius: 10px;
+        padding: 6px 10px;
+        border-radius: 6px;
         display: flex;
         flex-direction: column;
         gap: 0;
         cursor: pointer;
         border: 1px solid transparent;
         pointer-events: auto; /* Resultat-elementer ER klikkbare */
-        transition: background 120ms ease, border-color 120ms ease, transform 80ms ease;
+        transition: background 120ms ease, border-color 120ms ease;
       }
 
       .result-item:hover,
       .result-item[aria-selected="true"] {
         background: radial-gradient(circle at left, var(--accent-soft), rgba(15, 23, 42, 0.98));
         border-color: rgba(59, 130, 246, 0.6);
-        transform: translateY(-1px);
       }
 
       .result-name-row {
         display: flex;
-        align-items: center;
-        justify-content: space-between;
+        align-items: baseline;
         gap: 8px;
       }
 
       .result-name {
-        font-size: 0.95rem;
+        font-size: 1.08rem;
         font-weight: 500;
       }
 
@@ -1238,6 +1236,8 @@
                 id="count"
                 min="1"
                 step="1"
+                inputmode="numeric"
+                pattern="[0-9]*"
                 placeholder="0"
                 disabled
                 autocomplete="off"

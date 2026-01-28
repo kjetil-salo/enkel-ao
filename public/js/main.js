@@ -214,6 +214,12 @@ function setupEventListeners() {
   });
 
   dom.countInput.addEventListener('keydown', (e) => {
+    // Tillat kun sifre, navigasjon og kontrolltaster
+    const allowed = ['Backspace', 'Delete', 'Tab', 'Enter', 'ArrowLeft', 'ArrowRight', 'Home', 'End'];
+    if (!allowed.includes(e.key) && !e.ctrlKey && !e.metaKey && !/^[0-9]$/.test(e.key)) {
+      e.preventDefault();
+      return;
+    }
     if (e.key !== 'Enter') return;
     if (!appState.selectedSpecies) return;
     const raw = dom.countInput.value.trim();
