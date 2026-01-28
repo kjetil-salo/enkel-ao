@@ -10,6 +10,10 @@ En lynrask, superenkel webapp for å registrere fugleobservasjoner direkte til A
 
 ## Hovedfunksjoner
 - 📍 Automatisk lokalitetsfinner (AO-integrasjon)
+- 🗺️ **Interaktivt kart** med alle AO-lokaliteter (Leaflet + OpenStreetMap)
+  - Klikk på lokalitet i kart for å velge den automatisk
+  - Grønne/oransje markører med navn og avstand
+  - Private lokaliteter filtreres bort
 - 🔍 Artssøk med autocomplete
    - Underarter kan vises ("Vis underarter") kun når du er online. I offline-modus får du kun hovedarter, og en tydelig advarsel vises under boksen.
    - **Valgt art vises direkte i søkefeltet** (ikke som separat "pill").
@@ -71,13 +75,12 @@ Tester API-endepunkter og backend-logikk.
 - **Ingen data lagres på server.** Alt lagres kun i nettleseren din (localStorage) til du eksporterer eller tømmer lista.
 - Ingen tracking, ingen analytics, ingen skylagring.
 
-## 🆕 Nytt i v1.9.1
-- Medobservatører: Egen side for å administrere medobservatører, lagring i localStorage, og eksport til AO-importfil (10 kolonner).
-- Streng validering: Det er ikke lenger mulig å registrere observasjoner uten sted, art, antall og aktivitet.
-- Forbedret feilmelding: Feilmeldinger vises tydelig og i 1.5 sekunder, uten ordet "registrert".
-- UI-forbedringer: Medobs-tabellen utnytter hele bredden, mobiltilpasning og visuell feedback.
-- In-memory caching av artssøk: Raskere artssøk og mindre belastning på Artsobservasjoner.
-- Health check-endpoint: /health for Fly.io monitoring.
+## 🆕 Nytt i v1.15.0
+- **Interaktivt kart**: Se alle AO-lokaliteter på et OpenStreetMap-basert kart (Leaflet)
+- **Velg lokalitet fra kart**: Klikk på lokalitet i kart → sendes tilbake med stedsnavn fylt ut → art-feltet får fokus
+- **Fargekodede markører**: Grønne for vanlige lokaliteter, oransje for superlokasjon
+- **Permanent labels**: Navn og avstand vises alltid på kartet
+- **Smart filtrering**: Private lokaliteter vises ikke på kartet
 - Always-on: Appen er alltid våken (min_machines_running = 1 i fly.toml).
 - Eksport av periode: "Til klokkeslett" (AO-periode) oppdateres alltid når antall endres i artslisten.
 - Redigeringsside: `public/edit.html` gir mulighet for å endre registrerte observasjoner og legge til en kommentar. Kommentarer inkluderes i CSV-eksporten under kolonne 15 ("Kommentar (synlig for alle)").

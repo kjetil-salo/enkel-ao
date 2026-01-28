@@ -1,3 +1,26 @@
+## 1.15.0 – 2026-01-28
+### ✨ Nye funksjoner
+- **Interaktivt kart med Leaflet + OpenStreetMap**:
+  - Ny kartside (`/map.html`) med interaktivt kart
+  - Viser brukerposisjon og alle offentlige AO-lokaliteter
+  - 🟢 Grønne markører for vanlige lokaliteter
+  - 🟠 Oransje markører for superlokasjon
+  - Permanent labels med navn og avstand på alle markører
+  - Private lokaliteter filtreres automatisk bort
+  - Automatisk zoom til alle markers
+- **Lokalitetsvalg fra kart**:
+  - Klikk på lokalitet i kart velger den automatisk
+  - Sendes tilbake til hovedsiden med stedsnavn fylt ut
+  - Art-feltet pulserer og får fokus automatisk
+  - Samme flyt som ved valg fra dropdown-liste
+- **Kartknapp ved "Oppdater posisjon"**: Åpner ny kartside med oversikt
+
+### 🔧 Tekniske forbedringer
+- Leaflet 1.9.4 for kartvisning
+- OpenStreetMap tiles (gratis og åpen)
+- localStorage for dataoverføring mellom sider
+- Gjenbruker eksisterende `pulseSearchFieldAndFocus()` for konsistent UX
+
 ## 1.14.0 – 2026-01-28
 ### ✨ Nye funksjoner
 - **Kartsymbol ved AO-lokaliteter**: Hver lokalitet i dropdown har nå et 🗺️-ikon
