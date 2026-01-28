@@ -19,7 +19,7 @@ python3 server.py          # Start server on port 3000
 ### Running Tests
 ```bash
 # Python unit tests
-pytest --maxfail=3
+python3 -m pytest --maxfail=3
 
 # E2E tests (Playwright)
 cd tests/e2e_playwright
@@ -36,7 +36,7 @@ docker-compose up --build  # Run with mock Nominatim (safe for load testing)
 
 # Deploy to Fly.io
 ./update-app.sh staging    # Deploy to staging
-./update-app.sh production # Deploy to production — kjør pytest først!
+./update-app.sh production # Deploy to production — tester kjøres automatisk!
 ```
 
 ### Load Testing
@@ -119,7 +119,7 @@ AO_URL=http://localhost:8080 AO_MOBILE_URL=http://localhost:8080 python3 server.
 - **Aldri bruk Co-Authored-By** - commit uten co-author linje
 
 ### Deploy
-- **Før deploy til production**: Kjør alltid `pytest --maxfail=3` først. Ikke deploy hvis tester feiler.
+- **Production deploy**: `update-app.sh production` kjører automatisk `python3 -m pytest --maxfail=3` først. Deploy avbrytes hvis tester feiler.
 
 ### Versjonering
 - Ved ny versjon (git tag): Oppdater alltid `VERSION` i `public/js/version.js` (brukes av index.html og help.html footers)

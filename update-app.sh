@@ -15,6 +15,18 @@ if [[ "$ENVIRONMENT" == "staging" ]]; then
     exit 0
 elif [[ "$ENVIRONMENT" == "production" ]]; then
     echo "🔄 Deployer til PRODUCTION..."
+
+    # Kjør tester før production deploy
+    echo "🧪 Kjører tester før production deploy..."
+    python3 -m pytest --maxfail=3
+    if [ $? -ne 0 ]; then
+        echo "❌ Tester feilet! Avbryter production deploy."
+        echo "💡 Fikse testene før du prøver igjen."
+        exit 1
+    fi
+    echo "✅ Alle tester passerte"
+    echo ""
+
     flyctl deploy --config fly.toml
     echo "✅ Production deployment ferdig! URL: https://enkel-ao.fly.dev"
     exit 0
