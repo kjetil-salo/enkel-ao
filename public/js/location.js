@@ -2,8 +2,10 @@
  * Location-modul for geolokasjon og AO-sites
  */
 
+
 import { fetchAoSites } from './api.js';
 import { setLocationStatus, haversine } from './ui.js';
+
 
 /**
  * Sjekk om et site er privat
@@ -274,6 +276,7 @@ export function initLocation(elements, onPositionUpdate, aoSizeMeters = 1000) {
         }
 
         // Hent forslag til lokaliteter fra Artsobservasjoner med OPPDATERT radius
+
         try {
           const sites = await fetchAoSites(lat, lon, effectiveAoSize);
           onPositionUpdate(currentPosition, sites);
@@ -281,17 +284,28 @@ export function initLocation(elements, onPositionUpdate, aoSizeMeters = 1000) {
           console.warn('Feil ved henting av AO-lokaliteter', err);
           onPositionUpdate(currentPosition, []);
         }
+        // Oppdater kartknappens synlighet etter posisjonsoppdatering
+        if (typeof updateMapBtnVisibility === 'function') updateMapBtnVisibility();
+
 
         if (locMapBtn) {
-          locMapBtn.disabled = false;
+          locMapBtn.style.display = 'block';
         }
+        // Oppdater kartknappens synlighet
+        if (typeof updateMapBtnVisibility === 'function') updateMapBtnVisibility();
 
         locBtn.disabled = false;
       },
       (err) => {
         console.warn('Feil ved geolokasjon', err);
         setLocationStatus(locDot, locText, 'error', 'Fikk ikke tak i posisjon. Sjekk tillatelser og prøv igjen.');
+
         onPositionUpdate(null, []);
+        if (locMapBtn) {
+          locMapBtn.style.display = 'none';
+        }
+        // Oppdater kartknappens synlighet
+        if (typeof updateMapBtnVisibility === 'function') updateMapBtnVisibility();
         locBtn.disabled = false;
       },
       {

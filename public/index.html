@@ -132,8 +132,10 @@
 .activity-input-row {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 0;
   min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .activity-input-row select {
@@ -147,12 +149,15 @@
   border: 1px solid rgba(22, 163, 74, 1);
   background: #22c55e;
   color: #ffffff;
-  font-size: 16px;
-  padding: 4px 10px;
-  min-width: 32px;
+  font-size: 1em;
+  padding: 0 6px;
+  width: 32px;
+  height: 32px;
   box-sizing: border-box;
-  margin-left: 4px;
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .activity-pills {
@@ -581,11 +586,12 @@
         box-shadow: 0 2px 8px rgba(34, 197, 94, 0.15);
       }
 
-      /* Fieldset reset */
-      fieldset.section-main {
-        margin: 0;
-        margin-bottom: 16px;
-      }
+        fieldset.section-main {
+          margin: 0;
+          margin-bottom: 16px;
+          max-width: 100%;
+          margin: 0;
+        }
 
       fieldset.section-main legend {
         font-size: 0.78rem;
@@ -752,7 +758,7 @@
         width: 56px;
         text-align: center;
         padding-left: 6px;
-        padding-right: 6px;
+        padding-right: 12px;
       }
 
       /* Make the first column (Art) expand, shrink the middle columns */
@@ -775,6 +781,10 @@
           font-size: 0.7em;
         }
         .obs-table th, .obs-table td { padding: 4px 6px; }
+        .obs-table th:last-child,
+        .obs-table td:last-child {
+          padding-right: 10px;
+        }
       }
 
       /* Pluss/minus-knapper for antall i observasjonslisten */
@@ -924,12 +934,16 @@
         border: 1px solid rgba(22, 163, 74, 1);
         background: #22c55e;
         color: #ffffff;
-        font-size: 16px;
-        padding: 4px 10px;
-        min-width: 32px;
+        font-size: 1em;
+        padding: 0 8px;
+        width: 32px;
+        height: 32px;
         box-sizing: border-box;
         margin-left: 4px;
         flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
       }
 
       .advanced-row {
@@ -1183,7 +1197,7 @@
                 <span style="font-size:0.95em;color:var(--muted);white-space:nowrap;">m</span>
               </div>
             </div>
-            <button class="icon-btn" id="loc-map-btn" title="Vis i kart" style="font-size:1.2em;padding:6px 8px;border:1px solid var(--border);border-radius:6px;background:var(--accent-soft);color:var(--text);height:32px;min-width:42px;transition:all 0.2s;">🗺️</button>
+            <button class="icon-btn" id="loc-map-btn" title="Vis i kart" style="font-size:1.5em;padding:6px 10px;border:2px solid var(--accent);border-radius:8px;background:var(--accent-soft);color:var(--text);height:38px;min-width:46px;transition:all 0.2s;display:none;box-shadow:0 2px 8px rgba(59,130,246,0.10);">🗺️</button>
           </div>
           <div class="row" style="margin-top:10px;">
             <!-- AO-lokasjoner custom dropdown (kun div) -->
@@ -1202,7 +1216,7 @@
           </div>
         </fieldset>
 
-        <fieldset class="section-main section-observasjon">
+        <fieldset class="section-main section-observasjon" style="margin:0;padding:0 6px 12px 6px;box-sizing:border-box;">
           <legend>② Observasjon</legend>
           <div class="status-row">
             <div class="status-left">
@@ -1326,8 +1340,8 @@
         <div class="section">
           <div class="section-title">Observasjoner</div>
           <div class="obs-list" id="obs-list"></div>
-          <div class="export-row">
-            <button class="btn" id="clear-btn" disabled>
+          <div class="export-row" style="max-width:calc(100% - 16px);padding-right:12px;">
+            <button class="btn" id="clear-btn" disabled style="margin-right:16px;">
               <span>🗑️</span>
               <span>Tøm liste</span>
             </button>
