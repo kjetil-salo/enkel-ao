@@ -19,33 +19,43 @@
   - Staging branch for testing før produksjon
 
 
-  ### Siste endringer (ikke tagget)
-  - **Refaktorert main.js**: Splittet fra 919 til 306 linjer ved å ekstrahere 4 nye moduler:
-    - `form-state.js` — progressiv aktivering av skjemafelter
-    - `species-search.js` — artssøk, resultatvisning og artsvalg
-    - `observation-commit.js` — validering, lagring og aktivitets-pills
-    - `export-operations.js` — CSV-eksport, kopiering og sletting
-  - **Delt tilstand**: All mutable state samlet i `appState`-objekt, DOM-referanser i `dom`-objekt
-  - **Fikset 3 E2E-tester**: Oppdatert tittel-sjekk og erstattet manglende `#chosen` med `#search.species-selected`
-  - **Offline fallback-bugfiks**: Rettet feil der artsnavn viste "(ukjent navn)" ved offline fallback (`s.norwegian` → `s.taxonName`)
-  - **Forbedret feilhåndtering med tre scenarioer**:
-    - *Server nede*: "Ingen kontakt med server — bruker lokal artsliste — ⚙️ Innstillinger"
-    - *AO nede*: "AO svarer ikke — bruker lokal artsliste — ⚙️ Innstillinger"
-    - *Offline*: "Du er offline — bruker lokal artsliste — ⚙️ Innstillinger"
-    - Rød prikk i status-raden med klikkbar lenke til innstillinger
-    - Underarter-checkbox deaktiveres automatisk ved offline fallback
-  - **Service worker v43**: API-kall (`/api/`) går utenom SW-timeout, statiske filer har 5s timeout med cache-fallback. Nye moduler og `norske_arter.json` caches
-  - **Offline artsliste**: Begrenset til 15 treff med forbedret sortering (startsWith prioriteres)
-  - **Konfigurerbare AO-URLer**: `AO_URL` og `AO_MOBILE_URL` miljøvariabler for lokal testing med mock
-  - **Valgt art vises i søkefeltet**: Når du velger en art, vises navnet nå direkte i søkefeltet (ikke som separat "pill").
-  - **Marker all tekst ved klikk**: Når det står en valgt art i søkefeltet, markeres hele teksten automatisk ved klikk (for rask overskriving).
-  - **Kompakt layout for iPad**: Mindre vertikal padding og gap for bedre oversikt på store nettbrett.
-  - **Aktivitets-pills klikkbare i offline-modus**: Nå kan du velge aktivitet med pills også når du er offline.
-  - **Offline underarter**: Underarter er deaktivert i offline-modus. Brukeren får en tydelig, men diskret advarsel med gult ikon under boksen. Dette er for å sikre at eksporten alltid matcher AO sitt importformat og for å unngå feil navn.
-  - **Redigerings-side**: `public/edit.html` tilgjengelig for å endre eksisterende observasjoner (art, antall, aktivitet, alder, kjønn, sted, kommentar).
-  - **CSV-oppdatering**: Kommentarer mappes til kolonne 15 i eksportformatet (AO-kompatibelt felt "Kommentar (synlig for alle)").
-  - **Brukervurdering**: Se [docs/brukervurdering.md](docs/brukervurdering.md) for fersk vurdering av styrker, svakheter og forslag.
+### v1.13.0 (28. januar 2026)
 
+#### 🔧 Refaktorering
+- **Splittet main.js**: Fra 919 til 306 linjer ved å ekstrahere 4 nye moduler:
+  - `form-state.js` — progressiv aktivering av skjemafelter
+  - `species-search.js` — artssøk, resultatvisning og artsvalg
+  - `observation-commit.js` — validering, lagring og aktivitets-pills
+  - `export-operations.js` — CSV-eksport, kopiering og sletting
+- **Delt tilstand**: All mutable state samlet i `appState`-objekt, DOM-referanser i `dom`-objekt
+- **Unit-tester**: Nye tester for storage, location, api og species_offline
+- **Fikset 3 E2E-tester**: Oppdatert tittel-sjekk og erstattet `#chosen` med `#search.species-selected`
+
+#### 🛡️ Feilhåndtering og robusthet
+- **Tre separate feilscenarioer**:
+  - *Server nede*: "Ingen kontakt med server — bruker lokal artsliste — ⚙️ Innstillinger"
+  - *AO nede*: "AO svarer ikke — bruker lokal artsliste — ⚙️ Innstillinger"
+  - *Offline*: "Du er offline — bruker lokal artsliste — ⚙️ Innstillinger"
+- **Status-rad**: Rød prikk med klikkbar lenke til innstillinger ved feil
+- **Underarter deaktiveres** automatisk ved offline fallback
+- **Service worker v43**: API-kall (`/api/`) går utenom SW-timeout, statiske filer har 5s timeout med cache-fallback
+- **Offline artsliste**: Begrenset til 15 treff med forbedret sortering (startsWith prioriteres)
+
+#### ⚙️ Konfigurasjon
+- **Konfigurerbare AO-URLer**: `AO_URL` og `AO_MOBILE_URL` miljøvariabler for lokal testing med mock
+- **Mock-server**: `mock/nominatim_app_timeout.py` for testing av timeout-scenarioer
+
+#### 🎨 UI/UX
+- **Større artsnavn**: Søkefelt 1.25rem, resultatliste 1.08rem, større søkeikon
+- **Kompaktere layout**: Strammere padding i søkefelt og resultatliste, 6px border-radius
+- **Kun sifre i antall-felt**: Blokkerer bokstaver, `e`, `.`, `+`, `-` på desktop
+- **Grønn knapp på linje**: Aktivitetsknappen holder seg på samme linje som dropdown
+- **Valgt art i søkefeltet**: Artsnavn vises direkte i feltet, markeres ved klikk
+- **Kompakt iPad-layout**: Mindre vertikal padding og gap
+- **Aktivitets-pills offline**: Klikkbare også i offline-modus
+- **Offline underarter-advarsel**: Diskret gult ikon under boksen
+- **Redigerings-side**: `public/edit.html` for å endre eksisterende observasjoner
+- **CSV-kommentarer**: Mappes til kolonne 15 (AO-kompatibelt felt)
 
 ### 📈 Statistikkmuligheter
 - **Supabase-statistikk**: Fullstendig historikk når miljøvariabler er konfigurert
