@@ -122,4 +122,4 @@ AO_URL=http://localhost:8080 AO_MOBILE_URL=http://localhost:8080 python3 server.
 - **Før deploy til production**: Kjør alltid `pytest --maxfail=3` først. Ikke deploy hvis tester feiler.
 
 ### Versjonering
-- Ved ny versjon (git tag): Oppdater alltid versjonsnummeret i `<footer>` i `public/index.html`
+- Ved ny versjon (git tag): Oppdater alltid `VERSION` i `public/js/version.js` (brukes av index.html og help.html footers)
