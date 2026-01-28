@@ -5,7 +5,7 @@
 
 // Eksisterende moduler
 import { logPageView, loadActivities } from './api.js';
-import { loadObservations, saveObservations } from './storage.js';
+import { loadObservations, saveObservations, loadAoSearchRadius, saveAoSearchRadius } from './storage.js';
 import { setStatus, setLocationStatus } from './ui.js';
 import { setAoSiteSuggestions, initLocation, openMap, openMapPage } from './location.js';
 import { renderObservations } from './observations.js';
@@ -276,14 +276,16 @@ function updateMapBtnVisibility() {
 window.updateMapBtnVisibility = updateMapBtnVisibility;
 
   if (dom.aoSizeInput) {
-    const initial = parseFloat(dom.aoSizeInput.value);
-    if (!isNaN(initial) && initial > 0) {
-      appState.currentAoSizeMeters = initial;
-    }
+    // Last lagret radius fra localStorage
+    const savedRadius = loadAoSearchRadius();
+    dom.aoSizeInput.value = savedRadius;
+    appState.currentAoSizeMeters = savedRadius;
+
     dom.aoSizeInput.addEventListener('input', () => {
       const v = parseFloat(dom.aoSizeInput.value);
       if (isNaN(v) || v <= 0) return;
       appState.currentAoSizeMeters = v;
+      saveAoSearchRadius(v);
     });
   }
 

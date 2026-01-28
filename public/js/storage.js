@@ -4,6 +4,7 @@
 
 const STORAGE_KEY = 'fugleobservasjoner_v1';
 const MEDOBS_KEY = 'medobs_list_v1';
+const AO_SIZE_KEY = 'ao_search_radius_v1';
 
 /**
  * Last medobservatører fra localStorage
@@ -76,17 +77,52 @@ export function saveObservations(observations) {
  */
 export function loadObservations() {
   if (!window.localStorage) return [];
-  
+
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (!raw) return [];
-    
+
     const payload = JSON.parse(raw);
     if (!payload || !Array.isArray(payload.observations)) return [];
-    
+
     return payload.observations;
   } catch (e) {
     console.warn('Kunne ikke lese fra localStorage', e);
     return [];
+  }
+}
+
+/**
+ * Lagre søkeradius til localStorage
+ * @param {number} radius - Radius i meter
+ */
+export function saveAoSearchRadius(radius) {
+  if (!window.localStorage) return;
+
+  try {
+    window.localStorage.setItem(AO_SIZE_KEY, String(radius));
+  } catch (e) {
+    console.warn('Kunne ikke lagre søkeradius', e);
+  }
+}
+
+/**
+ * Last søkeradius fra localStorage
+ * @returns {number} - Radius i meter (default 1000)
+ */
+export function loadAoSearchRadius() {
+  if (!window.localStorage) return 1000;
+
+  try {
+    const raw = window.localStorage.getItem(AO_SIZE_KEY);
+    if (!raw) return 1000;
+
+    const radius = parseFloat(raw);
+    if (isNaN(radius) || radius < 100 || radius > 3000) return 1000;
+
+    return radius;
+  } catch (e) {
+    console.warn('Kunne ikke lese søkeradius', e);
+    return 1000;
   }
 }
