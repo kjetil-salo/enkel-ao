@@ -136,6 +136,7 @@ function handlePositionUpdate(position, sites) {
     setCurrentPlaceAndUpdate
   );
   updateSectionStates(appState, dom);
+  updateMapBtnVisibility();
 }
 
 // ============================================================
@@ -245,8 +246,34 @@ function setupEventListeners() {
   }
 
   if (dom.locMapBtn) {
+    dom.locMapBtn.style.display = 'none'; // Skjul som default
     dom.locMapBtn.addEventListener('click', () => openMapPage(appState.currentPosition, appState.currentAoSites));
   }
+
+
+
+
+// Oppdater synlighet og stil på kart-ikonet basert på posisjon
+function updateMapBtnVisibility() {
+  if (!dom.locMapBtn) return;
+  if (appState.currentPosition && typeof appState.currentPosition.lat === 'number' && typeof appState.currentPosition.lon === 'number') {
+    dom.locMapBtn.style.display = '';
+    dom.locMapBtn.style.background = 'var(--accent)';
+    dom.locMapBtn.style.color = 'white';
+    dom.locMapBtn.style.borderColor = 'var(--accent)';
+    dom.locMapBtn.style.boxShadow = '0 0 0 3px #22c55e55, 0 2px 8px rgba(59,130,246,0.18)';
+    dom.locMapBtn.style.fontWeight = 'bold';
+    dom.locMapBtn.style.fontSize = '1.7em';
+    dom.locMapBtn.title = 'Vis posisjon og AO-lokaliteter i kart';
+    dom.locMapBtn.classList.add('map-btn-active');
+  } else {
+    dom.locMapBtn.style.display = 'none';
+    dom.locMapBtn.classList.remove('map-btn-active');
+  }
+}
+
+// Gjør funksjonen globalt tilgjengelig for andre moduler (f.eks. location.js)
+window.updateMapBtnVisibility = updateMapBtnVisibility;
 
   if (dom.aoSizeInput) {
     const initial = parseFloat(dom.aoSizeInput.value);
@@ -325,4 +352,5 @@ async function init() {
 window.addEventListener('DOMContentLoaded', () => {
   updateSubtaxaCheckboxState();
   init();
+  updateMapBtnVisibility();
 });

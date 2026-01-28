@@ -1,3 +1,14 @@
+/* Eksport-rad: alltid luft mot høyre kant */
+.export-row {
+  display: flex;
+  justify-content: flex-start;
+  gap: 8px;
+  padding-right: 18px;
+}
+
+#clear-btn {
+  margin-right: 0 !important;
+}
 /* Sørg for at flash vises på valgt art (chosen) */
 .chosen {
   overflow: visible;
