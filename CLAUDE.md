@@ -117,3 +117,6 @@ AO_URL=http://localhost:8080 AO_MOBILE_URL=http://localhost:8080 python3 server.
 
 ### Git Commits
 - **Aldri bruk Co-Authored-By** - commit uten co-author linje
+
+### Versjonering
+- Ved ny versjon (git tag): Oppdater alltid versjonsnummeret i `<footer>` i `public/index.html`
