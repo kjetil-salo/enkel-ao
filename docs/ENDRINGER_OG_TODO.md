@@ -117,6 +117,7 @@
 ### 🟡 Middels prioritet
 
 #### UX-forbedringer:
+- **Dropdown uten layout-forskyvning**: Vurder å vise søkeresultater med `position: absolute` så de ligger over innholdet under i stedet for å forskyve det ned. Gir mer stabil layout under søk.
 - **Performance optimaliseringer**: Raskere artsøk og lokalitetshenting
 - **Optimaliser dropdown-design**: Grupper alder-valg logisk (Egg | Ungfugl: 1K-serie | Voksen: Adult)
 - **Lyst/mørkt tema**: Implementere theme-switching for alle sider (index, hjelp, stats)
