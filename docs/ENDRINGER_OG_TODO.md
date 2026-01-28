@@ -28,8 +28,15 @@
   - **Delt tilstand**: All mutable state samlet i `appState`-objekt, DOM-referanser i `dom`-objekt
   - **Fikset 3 E2E-tester**: Oppdatert tittel-sjekk og erstattet manglende `#chosen` med `#search.species-selected`
   - **Offline fallback-bugfiks**: Rettet feil der artsnavn viste "(ukjent navn)" ved offline fallback (`s.norwegian` → `s.taxonName`)
-  - **Lenke til innstillinger**: Ved timeout og offline fallback vises klikkbar lenke til ⚙️ Innstillinger
-  - **Forbedret service worker (v42)**: Nye moduler og `norske_arter.json` caches. 5s timeout på nettverkskall forhindrer at appen henger når server er nede
+  - **Forbedret feilhåndtering med tre scenarioer**:
+    - *Server nede*: "Ingen kontakt med server — bruker lokal artsliste — ⚙️ Innstillinger"
+    - *AO nede*: "AO svarer ikke — bruker lokal artsliste — ⚙️ Innstillinger"
+    - *Offline*: "Du er offline — bruker lokal artsliste — ⚙️ Innstillinger"
+    - Rød prikk i status-raden med klikkbar lenke til innstillinger
+    - Underarter-checkbox deaktiveres automatisk ved offline fallback
+  - **Service worker v43**: API-kall (`/api/`) går utenom SW-timeout, statiske filer har 5s timeout med cache-fallback. Nye moduler og `norske_arter.json` caches
+  - **Offline artsliste**: Begrenset til 15 treff med forbedret sortering (startsWith prioriteres)
+  - **Konfigurerbare AO-URLer**: `AO_URL` og `AO_MOBILE_URL` miljøvariabler for lokal testing med mock
   - **Valgt art vises i søkefeltet**: Når du velger en art, vises navnet nå direkte i søkefeltet (ikke som separat "pill").
   - **Marker all tekst ved klikk**: Når det står en valgt art i søkefeltet, markeres hele teksten automatisk ved klikk (for rask overskriving).
   - **Kompakt layout for iPad**: Mindre vertikal padding og gap for bedre oversikt på store nettbrett.
@@ -92,8 +99,7 @@
 ### 🔴 Høy prioritet
 
 #### Tekniske forbedringer:
-- ✅ **Forbedret feilhåndtering**: Offline fallback med lenke til innstillinger, SW timeout
-- **Bedre meldingstekster ved AO-feil**: Vurdere om "offline" er riktig begrep når appen fungerer men AO ikke svarer. Kan testes med unit-tester (mock `searchSpecies` til å kaste feil).
+- ✅ **Forbedret feilhåndtering**: Tre separate meldinger for server nede, AO nede og offline. Status-rad med lenke til innstillinger. Underarter deaktiveres ved fallback. Mock-server for testing (`mock/nominatim_app_timeout.py`).
 
 #### Mobile forbedringer:
 - ~~**"Chosen species" bug**~~: Løst — valgt art vises nå i søkefeltet, ikke som separat element
@@ -127,7 +133,9 @@ Appen fungerer perfekt uten Supabase-konfigurasjon og faller tilbake til in-memo
 
 ### Andre miljøvariabler:
 - `PORT` (default: 3000)
-- `NOMINATIM_URL` (override for testing - default: OpenStreetMap)
+- `AO_URL` (default: `https://www.artsobservasjoner.no`) — base-URL for artssøk
+- `AO_MOBILE_URL` (default: `https://mobil.artsobservasjoner.no`) — base-URL for AO-lokaliteter
+- `NOMINATIM_URL` (default: `https://nominatim.openstreetmap.org/reverse`) — reverse geokoding
 - `STATS_KEY` (for statistikk-side, default: 'salo')
 
-Sist oppdatert: 27.01.2026
+Sist oppdatert: 28.01.2026
