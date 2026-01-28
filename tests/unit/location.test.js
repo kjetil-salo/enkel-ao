@@ -123,12 +123,12 @@ describe('openMap', () => {
     expect(openSpy).not.toHaveBeenCalled();
   });
 
-  it('should open OpenStreetMap with correct coordinates', () => {
+  it('should open map (Google Maps for desktop) with correct coordinates', () => {
     openMap({ lat: 59.9139, lon: 10.7522 });
     expect(openSpy).toHaveBeenCalledOnce();
 
     const url = openSpy.mock.calls[0][0];
-    expect(url).toContain('openstreetmap.org');
+    expect(url).toContain('google.com/maps');
     expect(url).toContain('59.9139');
     expect(url).toContain('10.7522');
   });
@@ -289,8 +289,10 @@ describe('setAoSiteSuggestions', () => {
 
     setAoSiteSuggestions(sites, { lat: 59.9, lon: 10.7 }, dropdown, aoSitesEl, placeInput, setCurrentPlace);
 
-    // Klikk på site-elementet (index 1, etter "Velg lokasjon")
-    dropdown.children[1].click();
+    // Klikk på textSpan-elementet (første child av site-elementet)
+    const siteElement = dropdown.children[1];
+    const textSpan = siteElement.querySelector('span');
+    textSpan.click();
 
     expect(setCurrentPlace).toHaveBeenCalledWith('Østensjøvannet');
     expect(placeInput.value).toBe('Østensjøvannet');
