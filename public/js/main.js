@@ -277,8 +277,25 @@ async function init() {
     appState.currentPlaceName = '';
   }
 
+  // Sjekk om bruker har valgt lokalitet fra kartet
+  const selectedLocation = localStorage.getItem('selectedLocation');
+  if (selectedLocation) {
+    appState.currentPlaceName = selectedLocation;
+    if (dom.placeInput) {
+      dom.placeInput.value = selectedLocation;
+      dom.placeInput.dataset.autofilled = 'true';
+    }
+    // Fjern fra localStorage etter bruk
+    localStorage.removeItem('selectedLocation');
+  }
+
   setupEventListeners();
   updateSectionStates(appState, dom);
+
+  // Hvis lokalitet ble valgt fra kart, sett fokus på art-feltet
+  if (selectedLocation) {
+    pulseSearchFieldAndFocus(appState, dom);
+  }
 
   initLocation(
     { locBtn: dom.locBtn, locMapBtn: dom.locMapBtn, locDot: dom.locDot, locText: dom.locText },

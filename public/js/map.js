@@ -95,6 +95,7 @@ if (sites && Array.isArray(sites)) {
     if (distStr) {
       popupHtml += `<br>Avstand: ${distStr}`;
     }
+    popupHtml += `<br><br><button onclick="selectLocation('${siteName.replace(/'/g, "\\'")}')">Velg denne lokaliteten</button>`;
     marker.bindPopup(popupHtml);
 
     // Tooltip med navn (vises permanent)
@@ -104,6 +105,11 @@ if (sites && Array.isArray(sites)) {
       direction: 'top',
       className: 'site-label',
       offset: [0, -35]
+    });
+
+    // Klikk på markør velger lokalitet
+    marker.on('click', () => {
+      selectLocation(siteName);
     });
 
     // Legg til i bounds
@@ -151,6 +157,21 @@ function isPrivateSite(site) {
 
   return false;
 }
+
+/**
+ * Velg lokalitet og gå tilbake til hovedsiden
+ * @param {string} locationName - Navn på valgt lokalitet
+ */
+function selectLocation(locationName) {
+  // Lagre valgt lokalitet i localStorage
+  localStorage.setItem('selectedLocation', locationName);
+
+  // Gå tilbake til hovedsiden
+  window.location.href = '/';
+}
+
+// Gjør selectLocation tilgjengelig globalt for onclick i popup
+window.selectLocation = selectLocation;
 
 /**
  * Beregn avstand mellom to punkter (haversine-formel)
