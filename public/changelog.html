@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="nb">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <title>Endringslogg – Fugleobservasjoner</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #0f172a;
+        --card-bg: #111827;
+        --border: #1f2937;
+        --accent: #3b82f6;
+        --accent-soft: rgba(59, 130, 246, 0.15);
+        --text: #e5e7eb;
+        --muted: #9ca3af;
+        --green: #22c55e;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        background: radial-gradient(circle at top, #1f2937 0, #020617 55%);
+        color: var(--text);
+        padding: 16px;
+        line-height: 1.6;
+      }
+
+      .shell {
+        width: 100%;
+        max-width: 680px;
+        margin: 0 auto;
+        padding: 0 8px;
+      }
+
+      .card {
+        background: linear-gradient(145deg, rgba(15,23,42,0.96), rgba(15,23,42,0.92));
+        border-radius: 18px;
+        border: 1px solid rgba(148, 163, 184, 0.18);
+        box-shadow:
+          0 22px 65px rgba(15, 23, 42, 0.85),
+          0 0 0 1px rgba(15, 23, 42, 0.9);
+        padding: 20px;
+        backdrop-filter: blur(22px);
+        margin-bottom: 16px;
+      }
+
+      header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 20px;
+        gap: 12px;
+      }
+
+      .title {
+        font-size: 1.3rem;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .back-link {
+        color: var(--accent);
+        text-decoration: none;
+        font-size: 0.9rem;
+        padding: 6px 12px;
+        border-radius: 8px;
+        transition: background 0.2s;
+      }
+
+      .back-link:hover {
+        background: var(--accent-soft);
+      }
+
+      .version {
+        margin-bottom: 24px;
+        padding-bottom: 24px;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+      }
+
+      .version:last-child {
+        border-bottom: none;
+      }
+
+      .version-header {
+        display: flex;
+        align-items: baseline;
+        gap: 12px;
+        margin-bottom: 12px;
+      }
+
+      .version-number {
+        font-size: 1.15rem;
+        font-weight: 600;
+        color: var(--green);
+      }
+
+      .version-date {
+        font-size: 0.85rem;
+        color: var(--muted);
+      }
+
+      .changes {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+
+      .changes li {
+        padding: 6px 0 6px 24px;
+        position: relative;
+        font-size: 0.95rem;
+      }
+
+      .changes li::before {
+        content: '✓';
+        position: absolute;
+        left: 0;
+        color: var(--green);
+        font-weight: bold;
+      }
+
+      .section-title {
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: var(--muted);
+        margin-top: 12px;
+        margin-bottom: 8px;
+        font-weight: 600;
+      }
+
+      .footer {
+        text-align: center;
+        color: var(--muted);
+        font-size: 0.85rem;
+        margin-top: 32px;
+        padding-top: 16px;
+        border-top: 1px solid rgba(148, 163, 184, 0.12);
+      }
+
+      .footer a {
+        color: var(--accent);
+        text-decoration: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <div class="card">
+        <header>
+          <h1 class="title">📋 Endringslogg</h1>
+          <a href="/" class="back-link">← Tilbake</a>
+        </header>
+
+        <div class="version">
+          <div class="version-header">
+            <span class="version-number">v1.18.0</span>
+            <span class="version-date">30. januar 2026</span>
+          </div>
+          <div class="section-title">Nye features</div>
+          <ul class="changes">
+            <li>Konfigurerbare aktivitetspills - velg fritt fra alle 75 aktiviteter</li>
+            <li>Tilpass aktiviteter basert på sesong, lokasjon eller kontekst</li>
+            <li>Egendefinert rekkefølge på hurtigknapper (0-6 pills)</li>
+            <li>Nytt innstillings-UI med +/- knapper</li>
+          </ul>
+          <div class="section-title">Forbedringer</div>
+          <ul class="changes">
+            <li>Automatisk migrering fra gammelt "antall hurtigknapper" system</li>
+            <li>Lagring i localStorage med versjonering</li>
+          </ul>
+        </div>
+
+        <div class="version">
+          <div class="version-header">
+            <span class="version-number">v1.17.1</span>
+            <span class="version-date">28. januar 2026</span>
+          </div>
+          <div class="section-title">Bug-fikser</div>
+          <ul class="changes">
+            <li>Vis klokkeslett kun på ferdig/feil-meldinger, ikke under lasting</li>
+          </ul>
+        </div>
+
+        <div class="version">
+          <div class="version-header">
+            <span class="version-number">v1.17.0</span>
+            <span class="version-date">27. januar 2026</span>
+          </div>
+          <div class="section-title">Nye features</div>
+          <ul class="changes">
+            <li>Beholder artnavnet i søkefeltet etter registrering</li>
+            <li>Husker sist valgt aktivitet</li>
+            <li>Dropdown krever bekreftelse, pills lagrer umiddelbart</li>
+          </ul>
+          <div class="section-title">Forbedringer</div>
+          <ul class="changes">
+            <li>Første bokstav skrives korrekt ved nytt søk (fikser "tjeld"→"jeld")</li>
+            <li>V-knappen konsekvent grønn (ingen highlight-effekt)</li>
+            <li>Antall-felt 80px i stedet for 65px (bedre på Mac)</li>
+            <li>Tydeligere moduspill: "Etterregistrering"</li>
+          </ul>
+          <div class="section-title">Bug-fikser</div>
+          <ul class="changes">
+            <li>Antall-felt låst etter registrering</li>
+            <li>Layout-overflow på Mac</li>
+          </ul>
+        </div>
+
+        <div class="version">
+          <div class="version-header">
+            <span class="version-number">v1.16.0</span>
+            <span class="version-date">28. januar 2026</span>
+          </div>
+          <div class="section-title">Nye features</div>
+          <ul class="changes">
+            <li>Feltmodus vs etterregistreringsmodus</li>
+            <li>Velg dato og tidspunkt ved etterregistrering</li>
+            <li>Husk søkeradius i localStorage</li>
+          </ul>
+        </div>
+
+        <div class="version">
+          <div class="version-header">
+            <span class="version-number">v1.15.0</span>
+            <span class="version-date">27. januar 2026</span>
+          </div>
+          <div class="section-title">Nye features</div>
+          <ul class="changes">
+            <li>Alder og kjønn på observasjoner</li>
+            <li>Medregistranter med aktiv/inaktiv-toggle</li>
+            <li>Forbedret eksportformat med alle felt</li>
+          </ul>
+        </div>
+
+        <div class="version">
+          <div class="version-header">
+            <span class="version-number">v1.14.0</span>
+            <span class="version-date">26. januar 2026</span>
+          </div>
+          <div class="section-title">Nye features</div>
+          <ul class="changes">
+            <li>Undo-funksjon ved sletting (5 sekunder)</li>
+            <li>+/- knapper i observasjonsliste</li>
+            <li>Desktop: «/» knapper for ±10</li>
+            <li>Klikk på antall for direkte input</li>
+          </ul>
+        </div>
+
+        <div class="version">
+          <div class="version-header">
+            <span class="version-number">v1.13.0</span>
+            <span class="version-date">25. januar 2026</span>
+          </div>
+          <div class="section-title">Nye features</div>
+          <ul class="changes">
+            <li>Smart gruppering per lokalitet</li>
+            <li>Alfabetisk sortering innenfor gruppe</li>
+            <li>Aktivitets-pills for hurtigvalg</li>
+          </ul>
+        </div>
+
+        <div class="footer">
+          <p>
+            Åpen kildekode på
+            <a href="https://github.com/kjetil-salo/bird-observations-made-simple" target="_blank">GitHub</a>
+          </p>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

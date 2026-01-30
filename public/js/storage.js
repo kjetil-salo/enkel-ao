@@ -5,6 +5,7 @@
 const STORAGE_KEY = 'fugleobservasjoner_v1';
 const MEDOBS_KEY = 'medobs_list_v1';
 const AO_SIZE_KEY = 'ao_search_radius_v1';
+const ACTIVITY_PILLS_KEY = 'activityPills_v1';
 
 /**
  * Last medobservatører fra localStorage
@@ -125,4 +126,69 @@ export function loadAoSearchRadius() {
     console.warn('Kunne ikke lese søkeradius', e);
     return 1000;
   }
+}
+
+/**
+ * Lagre konfigurasjon av aktivitetspills
+ * @param {Array<{label: string, value: string}>} pills - Array av pill-objekter
+ */
+export function saveActivityPills(pills) {
+  try {
+    const config = {
+      version: 1,
+      pills: pills.slice(0, 6) // max 6
+    };
+    localStorage.setItem(ACTIVITY_PILLS_KEY, JSON.stringify(config));
+  } catch (e) {
+    console.warn('Kunne ikke lagre aktivitetspills', e);
+  }
+}
+
+/**
+ * Last konfigurasjon av aktivitetspills
+ * @returns {Array<{label: string, value: string}>}
+ */
+export function loadActivityPills() {
+  try {
+    const raw = localStorage.getItem(ACTIVITY_PILLS_KEY);
+    if (raw) {
+      const config = JSON.parse(raw);
+      if (config.version === 1 && Array.isArray(config.pills)) {
+        return config.pills;
+      }
+    }
+  } catch (e) {
+    console.warn('Kunne ikke laste aktivitetspills', e);
+  }
+
+  // Migrer fra gammelt system
+  return migrateFromOldPillCount();
+}
+
+/**
+ * Migrer fra gammelt activityPillCount til nytt system
+ * @returns {Array<{label: string, value: string}>}
+ */
+function migrateFromOldPillCount() {
+  const oldCount = localStorage.getItem('activityPillCount');
+
+  // Standard pills (matching observation-commit.js hardkoded array)
+  const defaultPills = [
+    { label: 'Stasjonær', value: '23' },
+    { label: 'Rastende', value: '22' },
+    { label: 'Overflygende', value: '24' },
+    { label: 'Næringssøkende', value: '25' },
+    { label: 'Trekkende', value: '32' },
+    { label: 'Sang/spill', value: '52' }
+  ];
+
+  if (oldCount) {
+    const count = parseInt(oldCount, 10);
+    if (count >= 1 && count <= 6) {
+      return defaultPills.slice(0, count);
+    }
+  }
+
+  // Default for helt nye brukere: 4 første
+  return defaultPills.slice(0, 4);
 }

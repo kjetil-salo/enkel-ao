@@ -2,11 +2,8 @@
  * Observasjons-modul for validering, lagring og aktivitets-pills
  */
 
-import { defaultCoObservers } from './storage.js';
+import { defaultCoObservers, loadActivityPills } from './storage.js';
 import { showToast } from './ui.js';
-
-const ALL_ACTIVITY_PILLS = ['Stasjonær', 'Rastende', 'Overflygende', 'Næringssøkende', 'Trekkende', 'Sang/spill'];
-const DEFAULT_PILL_COUNT = 4;
 
 /**
  * Hent timestamp for observasjon basert på modus
@@ -72,17 +69,9 @@ function getObservationTimestampTo() {
   return d.toISOString();
 }
 
-function getActivityPillCount() {
-  const stored = localStorage.getItem('activityPillCount');
-  if (stored) {
-    const num = parseInt(stored, 10);
-    if (num >= 1 && num <= 6) return num;
-  }
-  return DEFAULT_PILL_COUNT;
-}
-
 function getActivePills() {
-  return ALL_ACTIVITY_PILLS.slice(0, getActivityPillCount());
+  const pills = loadActivityPills();
+  return pills.map(p => p.label); // Returner kun labels
 }
 
 export function commitObservation(state, dom, callbacks) {
