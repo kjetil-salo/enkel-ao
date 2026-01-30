@@ -402,9 +402,9 @@
         padding: 8px 34px 8px 32px;
       }
 
-      /* Antall-feltet når aktivt */
+      /* Antall-feltet når aktivt - beholder normal bredde */
       #count.field-highlight {
-        width: 100px !important;
+        /* Fjernet width override - bruker container-bredden (80px) */
       }
 
       /* Aktivitet-select når aktiv */
@@ -1252,7 +1252,7 @@
           </div>
 
           <div style="display:flex;gap:8px;margin-top:10px;align-items:flex-end;">
-            <div style="flex:1;">
+            <div style="flex:1;min-width:0;">
               <label for="search" style="display:block;">Art</label>
               <div class="input-wrap" style="display:flex;align-items:center;gap:8px;">
                 <span class="search-icon">🔍</span>
@@ -1268,7 +1268,7 @@
                 />
               </div>
             </div>
-            <div style="width:65px;">
+            <div style="width:80px;flex-shrink:0;">
               <label for="count" style="display:block;">Antall</label>
               <input
                 type="number"

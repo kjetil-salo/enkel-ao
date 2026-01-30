@@ -166,6 +166,14 @@ function setupEventListeners() {
 
   // Søkefelt
   dom.input.addEventListener('input', () => {
+    // Ved første tastetrykk etter registrering - nullstill state
+    // IKKE tøm feltet - .select() gjør at første tastetrykk automatisk erstatter teksten
+    if (dom.input.dataset.pendingClear === 'true') {
+      dom.input.dataset.pendingClear = 'false';
+      appState.selectedSpecies = null;
+      dom.input.classList.remove('species-selected');
+    }
+
     if (appState.searchPulseTimeout) {
       clearTimeout(appState.searchPulseTimeout);
       appState.searchPulseTimeout = null;
@@ -191,7 +199,10 @@ function setupEventListeners() {
   });
 
   dom.input.addEventListener('focus', () => {
-    if (appState.selectedSpecies) {
+    // Re-select teksten hvis pendingClear (hvis bruker klikker i stedet for å skrive)
+    if (dom.input.dataset.pendingClear === 'true') {
+      dom.input.select();
+    } else if (appState.selectedSpecies) {
       dom.input.select();
     }
   });
@@ -239,10 +250,8 @@ function setupEventListeners() {
     dom.activitySelect.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') commitFromActivity();
     });
-    const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-    if (isTouchDevice) {
-      dom.activitySelect.addEventListener('change', commitFromActivity);
-    }
+    // Fjernet auto-commit ved dropdown-endring - bruker må klikke grønn knapp
+    // Pills (hurtigvalg) lagrer fortsatt umiddelbart
   }
 
   if (dom.locMapBtn) {
@@ -365,7 +374,7 @@ function updateModeUI() {
   const isAfterMode = localStorage.getItem('afterRegistrationMode') === '1';
 
   if (isAfterMode) {
-    modePill.textContent = 'Etterreg';
+    modePill.textContent = 'Etterregistrering';
     modePill.className = 'pill mode-pill after-mode';
     datetimeFields.style.display = 'block';
 

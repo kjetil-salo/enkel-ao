@@ -108,16 +108,23 @@ export function commitObservation(state, dom, callbacks) {
   callbacks.saveState();
 
   const artNavnToast = state.selectedSpecies.taxonName;
-  state.selectedSpecies = null;
+
+  // Behold selectedSpecies for å tillate umiddelbar ny registrering med nytt antall
+  // Nullstilles først når bruker begynner å skrive nytt søk
   dom.countInput.value = '';
-  dom.countInput.disabled = true;
+  dom.countInput.disabled = false; // Hold aktivert så bruker kan endre antall
+
+  // Lagre sist valgt aktivitet for gjenbruk
+  if (dom.activitySelect && activity) {
+    localStorage.setItem('lastActivity', activity);
+  }
 
   if (dom.activitySelect) {
     dom.activitySelect.disabled = true;
   }
 
-  dom.ageSelect.disabled = true;
-  dom.genderSelect.disabled = true;
+  dom.ageSelect.disabled = false; // Hold aktivert
+  dom.genderSelect.disabled = false; // Hold aktivert
   dom.ageSelect.value = '';
   dom.genderSelect.value = '';
 
@@ -125,8 +132,8 @@ export function commitObservation(state, dom, callbacks) {
     dom.activitySubmitBtn.disabled = true;
   }
 
-  dom.input.value = '';
-  dom.input.classList.remove('species-selected');
+  // Behold både artnavnet OG selectedSpecies - tømmes ved første tastetrykk
+  dom.input.dataset.pendingClear = 'true';
   state.currentResults = [];
   state.activeIndex = -1;
   callbacks.renderResults();

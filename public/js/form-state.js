@@ -22,8 +22,22 @@ export function updateSectionStates(state, dom) {
   const hasCount = !!(dom.countInput && dom.countInput.value.trim() && !dom.countInput.disabled);
   if (dom.sectionAktivitet) {
     dom.sectionAktivitet.classList.toggle('dimmed', !hasCount);
+    const wasDisabled = dom.activitySelect.disabled;
     dom.activitySelect.disabled = !hasCount;
     dom.activitySubmitBtn.disabled = !hasCount;
+
+    // Pre-select sist valgt aktivitet når feltet aktiveres
+    if (wasDisabled && !dom.activitySelect.disabled) {
+      const lastActivity = localStorage.getItem('lastActivity');
+      if (lastActivity && dom.activitySelect) {
+        for (let i = 0; i < dom.activitySelect.options.length; i++) {
+          if (dom.activitySelect.options[i].text === lastActivity) {
+            dom.activitySelect.selectedIndex = i;
+            break;
+          }
+        }
+      }
+    }
   }
   dom.ageSelect.disabled = !hasLocation || !state.selectedSpecies;
   dom.genderSelect.disabled = !hasLocation || !state.selectedSpecies;
@@ -40,7 +54,7 @@ export function updateFieldHighlights(dom, selectedSpecies, hasCount) {
     dom.countInput.classList.add('field-highlight');
   } else if (hasCount) {
     dom.activitySelect.classList.add('field-highlight');
-    dom.activitySubmitBtn.classList.add('field-highlight');
+    // Fjernet highlight fra V-knappen - den skal være konsekvent grønn
   }
 }
 
