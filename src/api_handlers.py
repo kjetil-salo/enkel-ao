@@ -150,7 +150,7 @@ def handle_ao_sites_search(lat, lon, size_m=600.0, ao_mobile_base_url='https://m
     )
 
     query_params = {
-        'maxSites': '500',  # Økt fra 200 for å sikre nok offentlige lokaliteter
+        'maxSites': '2000',  # Høy grense for å få både offentlige og private lokaliteter
         'minX': f'{min_x:.6f}',
         'minY': f'{min_y:.6f}',
         'maxX': f'{max_x:.6f}',
@@ -192,18 +192,6 @@ def handle_ao_sites_search(lat, lon, size_m=600.0, ao_mobile_base_url='https://m
         for item in raw_sites or []:
             if not isinstance(item, dict):
                 continue
-
-            # Filtrer bort private lokaliteter tidlig for å unngå at de tar plass i maxSites
-            is_private = False
-            for pk in ('isPrivate', 'IsPrivate', 'is_private'):
-                if pk in item:
-                    v = item.get(pk)
-                    if v is True or v == 'true' or v == 'True' or v == '1':
-                        is_private = True
-                        break
-
-            if is_private:
-                continue  # Hopp over private lokaliteter
 
             name = (
                 item.get('name') or
@@ -281,10 +269,7 @@ def handle_ao_sites_search(lat, lon, size_m=600.0, ao_mobile_base_url='https://m
         except Exception:
             pass
 
-        num_raw = len(raw_sites) if raw_sites else 0
-        num_public = len(sites)
-        num_private = num_raw - num_public
-        print(f'AO-sites svar: {num_raw} totalt, {num_private} private filtrert bort, {num_public} offentlige returnert')
+        print(f'AO-sites svar: {len(sites)} lokaliteter returnert')
         if sites[:3]:
             print('AO-sites eksempelsteder:', [s.get('name') for s in sites[:3]])
 

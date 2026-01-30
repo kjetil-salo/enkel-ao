@@ -164,15 +164,25 @@
 
         <div class="version">
           <div class="version-header">
+            <span class="version-number">v1.18.2</span>
+            <span class="version-date">30. januar 2026</span>
+          </div>
+          <div class="section-title">Feilrettinger</div>
+          <ul class="changes">
+            <li>Fikset kritisk feil: Private lokaliteter vises nå igjen (inkludert dine egne)</li>
+            <li>Økt maxSites til 2000 for bedre dekning i store områder</li>
+            <li>Frontend sorterer offentlige før private (som opprinnelig)</li>
+          </ul>
+        </div>
+
+        <div class="version">
+          <div class="version-header">
             <span class="version-number">v1.18.1</span>
             <span class="version-date">30. januar 2026</span>
           </div>
-          <div class="section-title">Forbedringer</div>
+          <div class="section-title">Forbedringer (reversert i v1.18.2)</div>
           <ul class="changes">
-            <li>Betydelig bedre lokalitetssøk i store områder</li>
-            <li>Private lokaliteter filtreres nå i backend før retur</li>
-            <li>Forhindrer at private lokaliteter skyver ut relevante offentlige fra søkeresultatene</li>
-            <li>Økt maxSites fra 200 til 500 for å sikre nok offentlige lokaliteter</li>
+            <li><del>Private lokaliteter filtreres i backend</del> - Dette var feil, nå reversert</li>
           </ul>
         </div>
 
