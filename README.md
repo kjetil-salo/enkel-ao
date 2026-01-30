@@ -19,6 +19,10 @@ En lynrask, superenkel webapp for å registrere fugleobservasjoner direkte til A
    - **Valgt art vises direkte i søkefeltet** (ikke som separat "pill").
    - **All tekst i søkefeltet markeres ved klikk** når art er valgt, for rask overskriving.
 - ⚡ Lynrask og enkel registrering (art, antall, aktivitet, sted)
+- 🎯 **Konfigurerbare aktivitetspills** (v1.18.0+)
+  - Velg fritt fra alle 75 aktiviteter som hurtigknapper (0-6 pills)
+  - Tilpass basert på sesong/lokasjon (f.eks. "Trekkende mot N" for høst, "Sang/spill" for vår)
+  - Konfigurer i innstillinger med enkle +/- knapper
 - 🕐 **Feltmodus vs Etterregistrering**
   - **Felt** (grønn pill): Timestamp settes automatisk til "nå"
   - **Etterreg** (rød pill): Velg egen dato + valgfri tid for tidligere observasjoner
@@ -29,7 +33,7 @@ En lynrask, superenkel webapp for å registrere fugleobservasjoner direkte til A
 - 📖 Innebygd hjelpeside
 - 🔒 100% personvern (ingen data på server)
 - 🟦 Kompakt layout for iPad og store skjermer
-- 🟢 Aktivitets-pills fungerer også i offline-modus
+- 📱 Full offline-støtte med lokal artsliste
 
 Se også fersk [brukervurdering](docs/brukervurdering.md) for styrker, svakheter og forslag.
 

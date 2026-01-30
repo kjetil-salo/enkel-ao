@@ -67,8 +67,19 @@ Pure ES6 modules with no framework:
 - `api.js` — API communication with 1-hour species cache
 - `location.js` — Geolocation and AO sites integration
 - `observations.js` — Main observation form logic
-- `storage.js` — Browser localStorage management
+- `observation-commit.js` — Observation validation and activity pills rendering
+- `storage.js` — Browser localStorage management (includes activity pills config)
 - `ui.js` — UI state and rendering
+
+### Konfigurerbare Aktivitetspills (v1.18.0+)
+Brukere kan velge 0-6 aktiviteter som vises som hurtigknapper:
+- **localStorage-nøkkel:** `activityPills_v1`
+- **Format:** `{version: 1, pills: [{label: "Stasjonær", value: "23"}, ...]}`
+- **Funksjoner:** `saveActivityPills()`, `loadActivityPills()` i `storage.js`
+- **UI:** Settings-side med dynamisk liste og +/- knapper
+- **Migrering:** Automatisk fra gammelt `activityPillCount` format
+- **Default:** 4 pills (Stasjonær, Rastende, Overflygende, Næringssøkende)
+- **Dokumentasjon:** Se `docs/aktivitetspills-konfigurasjon.md`
 
 ### Test Structure
 - `tests/test_*.py` — Python unit tests (pytest)
