@@ -249,13 +249,27 @@ class Handler(SimpleHTTPRequestHandler):
         Vi overstyrer for å peke eksplisitt på ./public.
         """
         path = super().translate_path(path)
-        
+
         # Sørg for at alt under /public havner i PUBLIC_DIR
         rel = os.path.relpath(path, os.getcwd())
         if rel.startswith('public' + os.sep):
             return os.path.join(BASE_DIR, rel)
         return path
-    
+
+    def end_headers(self):
+        """Legg til Cache-Control headers for å unngå aggressive mobilcache."""
+        # HTML-filer: Alltid revalider med server (inkluderer root path /)
+        if self.path.endswith('.html') or self.path == '/' or self.path == '/public/index.html':
+            self.send_header('Cache-Control', 'no-cache, must-revalidate')
+        # JS/CSS: Kort cache (5 minutter) for bedre ytelse
+        elif self.path.endswith(('.js', '.css')):
+            self.send_header('Cache-Control', 'max-age=300')
+        # Andre filer: Standard 1-time cache
+        else:
+            self.send_header('Cache-Control', 'max-age=3600')
+
+        super().end_headers()
+
     def _send_json(self, data, status=200):
         """Send JSON-respons til klient."""
         payload = json.dumps(data).encode('utf-8')

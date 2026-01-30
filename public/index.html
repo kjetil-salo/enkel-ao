@@ -1174,10 +1174,13 @@
 
         <fieldset class="section-main section-lokasjon">
           <legend>① Lokasjon</legend>
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;min-height:20px;">
+            <span class="loc-dot" id="loc-dot" style="width:10px;height:10px;"></span>
+            <span id="loc-text" style="font-size:0.85em;color:var(--muted);line-height:1.3;"></span>
+          </div>
           <div class="row" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-height:0;">
-            <span class="loc-dot" id="loc-dot" style="width:10px;height:10px;margin-right:4px;"></span>
-            <button class="icon-btn" id="loc-btn" title="Oppdater posisjon" style="font-size:0.9em;padding:6px 10px;border:1px solid var(--border);border-radius:6px;background:var(--accent-soft);color:var(--text);transition:all 0.2s;display:flex;align-items:center;gap:4px;height:32px;">
-              <span style="font-size:0.85em;font-weight:500;">Oppdater posisjon</span>
+            <button class="icon-btn" id="loc-btn" title="Oppdater lokasjon" style="font-size:0.9em;padding:6px 10px;border:1px solid var(--border);border-radius:6px;background:var(--accent-soft);color:var(--text);transition:all 0.2s;display:flex;align-items:center;gap:4px;height:32px;">
+              <span style="font-size:0.85em;font-weight:500;">Oppdater lokasjon</span>
             </button>
             <style>
               #loc-btn {
@@ -1222,7 +1225,7 @@
                 <span style="font-size:0.95em;color:var(--muted);white-space:nowrap;">m</span>
               </div>
             </div>
-            <button class="icon-btn" id="loc-map-btn" title="Vis i kart" style="font-size:1.5em;padding:6px 10px;border:2px solid var(--accent);border-radius:8px;background:var(--accent-soft);color:var(--text);height:38px;min-width:46px;transition:all 0.2s;display:none;box-shadow:0 2px 8px rgba(59,130,246,0.10);">🗺️</button>
+            <button class="icon-btn" id="loc-map-btn" title="Åpne kart" style="font-size:1.5em;padding:6px 10px;border:2px solid var(--accent);border-radius:8px;background:var(--accent-soft);color:var(--text);height:38px;min-width:46px;transition:all 0.2s;display:none;box-shadow:0 2px 8px rgba(59,130,246,0.10);">🗺️</button>
           </div>
           <div class="row" style="margin-top:10px;">
             <!-- AO-lokasjoner custom dropdown (kun div) -->
@@ -1314,15 +1317,14 @@
           </div>
 
           <!-- Dato/tid-felt for etterregistreringsmodus (skjult som default) -->
-          <div class="row" id="datetime-fields" style="display:none;margin-top:12px;">
-            <label style="font-size:0.78rem;text-transform:uppercase;color:var(--muted);">Dato og tid</label>
+          <div class="row" id="datetime-fields" style="display:none;margin-top:20px;padding-top:8px;clear:both;">
+            <label style="font-size:0.78rem;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:8px;">Dato og tid</label>
             <div style="display:flex;gap:8px;align-items:center;">
-              <div style="flex:1;">
-                <input type="date" id="obs-date" style="width:100%;padding:7px 10px;border-radius:999px;border:1px solid rgba(148,163,184,0.45);background:radial-gradient(circle at top left,rgba(248,250,252,0.04),rgba(15,23,42,0.95));color:var(--text);font-size:16px;" />
-              </div>
-              <div style="flex:1;">
-                <input type="time" id="obs-time" placeholder="Valgfri" style="width:100%;padding:7px 10px;border-radius:999px;border:1px solid rgba(148,163,184,0.45);background:radial-gradient(circle at top left,rgba(248,250,252,0.04),rgba(15,23,42,0.95));color:var(--text);font-size:16px;" />
-              </div>
+              <input type="date" id="obs-date" style="flex:1;padding:7px 10px;border-radius:999px;border:1px solid rgba(148,163,184,0.45);background:radial-gradient(circle at top left,rgba(248,250,252,0.04),rgba(15,23,42,0.95));color:var(--text);font-size:16px;" />
+              <label style="font-size:0.8em;color:var(--muted);white-space:nowrap;">Fra:</label>
+              <input type="time" id="obs-time" placeholder="Valgfri" style="flex:1;padding:7px 10px;border-radius:999px;border:1px solid rgba(148,163,184,0.45);background:radial-gradient(circle at top left,rgba(248,250,252,0.04),rgba(15,23,42,0.95));color:var(--text);font-size:16px;" />
+              <label style="font-size:0.8em;color:var(--muted);white-space:nowrap;">Til:</label>
+              <input type="time" id="obs-time-to" placeholder="Valgfri" style="flex:1;padding:7px 10px;border-radius:999px;border:1px solid rgba(148,163,184,0.45);background:radial-gradient(circle at top left,rgba(248,250,252,0.04),rgba(15,23,42,0.95));color:var(--text);font-size:16px;" />
             </div>
           </div>
         </fieldset>
@@ -1405,7 +1407,7 @@
         navigator.serviceWorker.register('/sw.js').catch(() => {});
       }
     </script>
-    <footer class="footer-credit">Versjon <span id="version"></span>  |  © 2026 Kjetil Salomonsen</footer>
+    <footer class="footer-credit">Versjon <span id="version"></span>  |  <a href="/changelog.html" style="color:var(--accent);text-decoration:none;">Endringslogg</a>  |  © 2026 Kjetil Salomonsen</footer>
     <script type="module">
       import { VERSION } from './js/version.js';
       document.getElementById('version').textContent = VERSION;

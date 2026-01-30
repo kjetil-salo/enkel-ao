@@ -462,7 +462,8 @@ export function toCsv(observations) {
     cols[6] = dateStr;
     cols[7] = dateStr;
     cols[8] = timeStr;
-    cols[9] = tilTimeStr || timeStr;
+    // Kolonne 9: Bruk tilTimeStr hvis det finnes, ellers samme som fra-tid
+    cols[9] = tilTimeStr ? tilTimeStr : timeStr;
     cols[10] = count;
     cols[11] = age;
     cols[12] = gender;

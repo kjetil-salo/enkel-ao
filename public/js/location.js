@@ -239,11 +239,33 @@ export function initLocation(elements, onPositionUpdate, aoSizeMeters = 1000) {
     return;
   }
 
-  setLocationStatus(locDot, locText, 'idle', 'Trykk «Oppdater posisjon» før registrering.');
+  // Gjenopprett lagret status fra localStorage hvis tilgjengelig
+  try {
+    const savedStatus = localStorage.getItem('locationStatus');
+    if (savedStatus) {
+      const { mode, text } = JSON.parse(savedStatus);
+      // Gjenopprett status uten å oppdatere klokkeslett
+      if (locText) locText.textContent = text;
+      if (locDot) {
+        if (mode === 'ok') {
+          locDot.style.background = '#22c55e';
+        } else if (mode === 'error') {
+          locDot.style.background = '#ef4444';
+        } else {
+          locDot.style.background = '#6b7280';
+        }
+      }
+    } else {
+      setLocationStatus(locDot, locText, 'idle', 'Trykk «Oppdater lokasjon» før registrering.');
+    }
+  } catch (e) {
+    // Hvis localStorage feiler, bruk default
+    setLocationStatus(locDot, locText, 'idle', 'Trykk «Oppdater lokasjon» før registrering.');
+  }
 
   locBtn.addEventListener('click', () => {
     console.log('[loc-btn] Klikk registrert, starter geolokasjon');
-    setLocationStatus(locDot, locText, 'pending', 'Oppdaterer posisjon …');
+    setLocationStatus(locDot, locText, 'pending', 'Henter lokasjon …');
     locBtn.disabled = true;
 
     // Les radius direkte fra inputfeltet hvis det finnes
@@ -269,7 +291,7 @@ export function initLocation(elements, onPositionUpdate, aoSizeMeters = 1000) {
         const lonStr = lon.toFixed(5);
         const accStr = Math.round(accuracy);
 
-        setLocationStatus(locDot, locText, 'ok', 'Posisjon oppdatert');
+        setLocationStatus(locDot, locText, 'ok', 'Lokasjon hentet');
 
         if (locText) {
           locText.title = `${latStr}, ${lonStr} (±${accStr} m)`;
@@ -298,7 +320,7 @@ export function initLocation(elements, onPositionUpdate, aoSizeMeters = 1000) {
       },
       (err) => {
         console.warn('Feil ved geolokasjon', err);
-        setLocationStatus(locDot, locText, 'error', 'Fikk ikke tak i posisjon. Sjekk tillatelser og prøv igjen.');
+        setLocationStatus(locDot, locText, 'error', 'Kunne ikke hente lokasjon. Sjekk tillatelser og prøv igjen.');
 
         onPositionUpdate(null, []);
         if (locMapBtn) {

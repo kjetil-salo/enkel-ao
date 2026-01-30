@@ -163,15 +163,30 @@ export function setStatus(statusDot, statusText, mode, text, html) {
  * @param {string} text - Teksten som skal vises
  */
 export function setLocationStatus(locDot, locText, mode, text) {
+  let displayText = text;
+
   if (locText) {
-    locText.textContent = text;
+    // Legg til klokkeslett i parentes hvis ikke idle
+    if (mode !== 'idle') {
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString('nb-NO', { hour: '2-digit', minute: '2-digit' });
+      displayText = `${text} (kl ${timeStr})`;
+    }
+    locText.textContent = displayText;
     if (mode !== 'ok') {
       locText.removeAttribute('title');
     }
   }
-  
+
+  // Lagre status til localStorage for å bevare ved navigasjon
+  try {
+    localStorage.setItem('locationStatus', JSON.stringify({ mode, text: displayText }));
+  } catch (e) {
+    // Ignorer localStorage-feil
+  }
+
   if (!locDot) return;
-  
+
   if (mode === 'ok') {
     locDot.style.background = '#22c55e';
   } else if (mode === 'error') {

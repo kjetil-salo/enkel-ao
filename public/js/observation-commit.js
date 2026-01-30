@@ -43,6 +43,35 @@ function getObservationTimestamp() {
   return d.toISOString();
 }
 
+function getObservationTimestampTo() {
+  const isAfterMode = localStorage.getItem('afterRegistrationMode') === '1';
+
+  if (!isAfterMode) {
+    // Feltmodus: returner null (ingen "til"-tid)
+    return null;
+  }
+
+  const dateInput = document.getElementById('obs-date');
+  const timeInputTo = document.getElementById('obs-time-to');
+
+  // Hvis "til"-tid ikke er fylt ut, returner null
+  if (!timeInputTo || !timeInputTo.value || !dateInput || !dateInput.value) {
+    return null;
+  }
+
+  const dateStr = dateInput.value;
+  const timeStr = timeInputTo.value;
+
+  const combined = `${dateStr}T${timeStr}:00`;
+  const d = new Date(combined);
+
+  if (isNaN(d.getTime())) {
+    return null;
+  }
+
+  return d.toISOString();
+}
+
 function getActivityPillCount() {
   const stored = localStorage.getItem('activityPillCount');
   if (stored) {
@@ -92,7 +121,8 @@ export function commitObservation(state, dom, callbacks) {
   let age = dom.ageSelect.value || '';
   let gender = dom.genderSelect.value || '';
 
-  state.observations.unshift({
+  const tilKlokkeslett = getObservationTimestampTo();
+  const obs = {
     species: state.selectedSpecies,
     count: num,
     position: state.currentPosition,
@@ -102,7 +132,14 @@ export function commitObservation(state, dom, callbacks) {
     age,
     gender,
     coObservers: defaultCoObservers(),
-  });
+  };
+
+  // Legg til tilKlokkeslett hvis det finnes
+  if (tilKlokkeslett) {
+    obs.tilKlokkeslett = tilKlokkeslett;
+  }
+
+  state.observations.unshift(obs);
 
   callbacks.doRenderObservations();
   callbacks.saveState();

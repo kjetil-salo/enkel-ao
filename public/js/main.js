@@ -385,6 +385,8 @@ function updateModeUI() {
     const dd = String(today.getDate()).padStart(2, '0');
     if (obsDateInput) obsDateInput.value = `${yyyy}-${mm}-${dd}`;
     if (obsTimeInput) obsTimeInput.value = ''; // Ingen tid som default
+    const obsTimeToInput = document.getElementById('obs-time-to');
+    if (obsTimeToInput) obsTimeToInput.value = ''; // Clear "til"-tid
   } else {
     modePill.textContent = 'Felt';
     modePill.className = 'pill mode-pill field-mode';
