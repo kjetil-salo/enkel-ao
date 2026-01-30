@@ -150,7 +150,7 @@ def handle_ao_sites_search(lat, lon, size_m=600.0, ao_mobile_base_url='https://m
     )
 
     query_params = {
-        'maxSites': '2000',  # Høy grense for å få både offentlige og private lokaliteter
+        'maxSites': '1000',  # Maks tillatt av AO API (1-1000)
         'minX': f'{min_x:.6f}',
         'minY': f'{min_y:.6f}',
         'maxX': f'{max_x:.6f}',
