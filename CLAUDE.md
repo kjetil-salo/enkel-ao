@@ -53,8 +53,9 @@ The `Handler` class routes requests:
 - `/api/species?search=X` → proxies to artsobservasjoner.no (HTML scraping + JSON extraction)
 - `/api/reverse?lat=X&lon=Y` → proxies to Nominatim for reverse geocoding
 - `/api/ao-sites?lat=X&lon=Y&size=M` → fetches nearby observation locations from Artsobservasjoner
-  - **Private lokaliteter filtreres i backend** for å sikre at offentlige lokaliteter ikke skyves ut av maxSites-grensen
-  - Ber om maks 500 lokaliteter, filtrerer private, returnerer kun offentlige
+  - **Backend returnerer både private og offentlige** (maxSites=2000)
+  - **Frontend (map.js)**: Kun offentlige vises på kart (sparer CPU/minne, brukeren vet hvor egne er)
+  - **Frontend (location.js)**: Både offentlige og private i dropdown (offentlige sorteres først, maks 20)
 - `/api/logview` (POST) → logs page views to Supabase
 - `/stats?key=X` → displays analytics (key-protected)
 - `/health` → health check endpoint

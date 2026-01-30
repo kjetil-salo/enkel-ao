@@ -48,10 +48,10 @@ const bounds = L.latLngBounds([[userPosition.lat, userPosition.lon]]);
 let siteCount = 0;
 if (sites && Array.isArray(sites)) {
   sites.forEach(site => {
-    // Sjekk om site er privat (bruker samme logikk som location.js)
+    // Sjekk om site er privat - private vises kun i dropdown, ikke i kart
     const isPrivate = isPrivateSite(site);
     if (isPrivate) {
-      return; // Hopp over private lokaliteter
+      return; // Hopp over private i kartet (sparer CPU/minne, brukeren vet hvor egne lokaliteter er)
     }
 
     const lat = parseFloat(site.lat);
