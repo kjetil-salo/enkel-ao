@@ -166,8 +166,8 @@ export function setLocationStatus(locDot, locText, mode, text) {
   let displayText = text;
 
   if (locText) {
-    // Legg til klokkeslett i parentes hvis ikke idle
-    if (mode !== 'idle') {
+    // Legg til klokkeslett kun når ferdig (ok) eller feilet (error), ikke under lasting (pending)
+    if (mode === 'ok' || mode === 'error') {
       const now = new Date();
       const timeStr = now.toLocaleTimeString('nb-NO', { hour: '2-digit', minute: '2-digit' });
       displayText = `${text} (kl ${timeStr})`;
