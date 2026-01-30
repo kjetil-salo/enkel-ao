@@ -180,3 +180,84 @@ def test_ao_sites_default_size():
         assert 'maxX=' in called_urls[0]
     finally:
         src.api_handlers.urlopen = original_urlopen
+
+
+def test_ao_sites_filters_private(monkeypatch):
+    """Test at private lokaliteter filtreres bort i backend."""
+    # Mock response med både private og offentlige lokaliteter
+    fake_sites = [
+        {
+            'id': 1,
+            'name': 'Offentlig Sted 1',
+            'lat': 59.91,
+            'lon': 10.81,
+            'isPrivate': False,
+        },
+        {
+            'id': 2,
+            'name': 'Privat Sted 1',
+            'lat': 59.92,
+            'lon': 10.82,
+            'isPrivate': True,  # Skal filtreres bort
+        },
+        {
+            'id': 3,
+            'name': 'Offentlig Sted 2',
+            'lat': 59.93,
+            'lon': 10.83,
+            'isPrivate': False,
+        },
+        {
+            'id': 4,
+            'name': 'Privat Sted 2',
+            'lat': 59.94,
+            'lon': 10.84,
+            'IsPrivate': 'true',  # Alternativ format - skal også filtreres bort
+        },
+        {
+            'id': 5,
+            'name': 'Offentlig Sted 3',
+            'lat': 59.95,
+            'lon': 10.85,
+            # Ingen isPrivate-felt = offentlig
+        }
+    ]
+
+    class DummyResp:
+        def __init__(self, data):
+            self._data = data
+
+        def read(self):
+            return json.dumps(self._data).encode('utf-8')
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            pass
+
+    def fake_urlopen(req, timeout=10):
+        return DummyResp(fake_sites)
+
+    monkeypatch.setattr('src.api_handlers.urlopen', fake_urlopen)
+
+    port = 38010
+    srv = start_server(port)
+    time.sleep(0.05)
+
+    r = requests.get(f'http://127.0.0.1:{port}/api/ao-sites?lat=59.9&lon=10.7&size=1000')
+    assert r.status_code == 200
+    data = r.json()
+    assert 'sites' in data
+    sites = data['sites']
+
+    # Skal kun ha 3 offentlige lokaliteter (id 1, 3, 5)
+    assert len(sites) == 3
+    names = [s['name'] for s in sites]
+    assert 'Offentlig Sted 1' in names
+    assert 'Offentlig Sted 2' in names
+    assert 'Offentlig Sted 3' in names
+    assert 'Privat Sted 1' not in names
+    assert 'Privat Sted 2' not in names
+
+    srv.shutdown()
