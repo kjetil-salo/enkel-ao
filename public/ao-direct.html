@@ -1,0 +1,524 @@
+<!doctype html>
+<html lang="nb">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <title>AO Direct Import – Fugleobservasjoner</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #0f172a;
+        --card-bg: #111827;
+        --border: #1f2937;
+        --accent: #3b82f6;
+        --accent-soft: rgba(59, 130, 246, 0.15);
+        --text: #e5e7eb;
+        --muted: #9ca3af;
+        --green: #22c55e;
+        --red: #ef4444;
+        --orange: #f59e0b;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        background: radial-gradient(circle at top, #1f2937 0, #020617 55%);
+        color: var(--text);
+        padding: 16px;
+        line-height: 1.6;
+      }
+
+      .shell {
+        width: 100%;
+        max-width: 680px;
+        margin: 0 auto;
+        padding: 0 8px;
+      }
+
+      .card {
+        background: linear-gradient(145deg, rgba(15,23,42,0.96), rgba(15,23,42,0.92));
+        border-radius: 18px;
+        border: 1px solid rgba(148, 163, 184, 0.18);
+        box-shadow: 0 22px 65px rgba(15, 23, 42, 0.85), 0 0 0 1px rgba(15, 23, 42, 0.9);
+        padding: 20px;
+        backdrop-filter: blur(22px);
+        margin-bottom: 16px;
+      }
+
+      header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 20px;
+        gap: 12px;
+      }
+
+      .title {
+        font-size: 1.3rem;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .back-link {
+        color: var(--accent);
+        text-decoration: none;
+        font-size: 0.9rem;
+        padding: 6px 12px;
+        border-radius: 8px;
+        transition: background 0.2s;
+      }
+
+      .back-link:hover {
+        background: var(--accent-soft);
+      }
+
+      .warning {
+        background: rgba(239, 68, 68, 0.1);
+        border: 1px solid rgba(239, 68, 68, 0.3);
+        border-radius: 8px;
+        padding: 12px;
+        margin-bottom: 20px;
+        font-size: 0.9rem;
+        color: #fca5a5;
+      }
+
+      .obs-count {
+        font-size: 0.95rem;
+        color: var(--muted);
+        margin-bottom: 16px;
+      }
+
+      .obs-list {
+        list-style: none;
+        padding: 0;
+        margin: 0 0 20px 0;
+        max-height: 300px;
+        overflow-y: auto;
+      }
+
+      .obs-item {
+        padding: 10px;
+        margin-bottom: 8px;
+        background: rgba(30, 41, 59, 0.5);
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        font-size: 0.9rem;
+      }
+
+      .obs-species {
+        font-weight: 600;
+        color: var(--green);
+        margin-bottom: 4px;
+      }
+
+      .obs-details {
+        color: var(--muted);
+        font-size: 0.85rem;
+      }
+
+      .btn {
+        background: var(--accent);
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+        width: 100%;
+      }
+
+      .btn:hover:not(:disabled) {
+        background: #2563eb;
+        transform: translateY(-1px);
+      }
+
+      .btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      .btn-success {
+        background: var(--green);
+      }
+
+      .btn-success:hover:not(:disabled) {
+        background: #16a34a;
+      }
+
+      .status {
+        margin-top: 16px;
+        padding: 12px;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        display: none;
+      }
+
+      .status.success {
+        display: block;
+        background: rgba(34, 197, 94, 0.1);
+        border: 1px solid rgba(34, 197, 94, 0.3);
+        color: #86efac;
+      }
+
+      .status.error {
+        display: block;
+        background: rgba(239, 68, 68, 0.1);
+        border: 1px solid rgba(239, 68, 68, 0.3);
+        color: #fca5a5;
+      }
+
+      .status.loading {
+        display: block;
+        background: rgba(59, 130, 246, 0.1);
+        border: 1px solid rgba(59, 130, 246, 0.3);
+        color: #93c5fd;
+      }
+
+      .spinner {
+        display: inline-block;
+        width: 16px;
+        height: 16px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-top-color: white;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+        margin-right: 8px;
+        vertical-align: middle;
+      }
+
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+
+      /* Token config section */
+      .config-section {
+        margin-top: 32px;
+        padding-top: 20px;
+        border-top: 1px solid var(--border);
+      }
+
+      .config-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        cursor: pointer;
+        padding: 8px 0;
+      }
+
+      .config-header h3 {
+        font-size: 0.95rem;
+        color: var(--muted);
+        margin: 0;
+      }
+
+      .config-toggle {
+        color: var(--muted);
+        font-size: 0.8rem;
+        transition: transform 0.2s;
+      }
+
+      .config-toggle.open {
+        transform: rotate(180deg);
+      }
+
+      .config-content {
+        display: none;
+        margin-top: 16px;
+      }
+
+      .config-content.open {
+        display: block;
+      }
+
+      .token-field {
+        margin-bottom: 16px;
+      }
+
+      .token-field label {
+        display: block;
+        font-size: 0.85rem;
+        color: var(--muted);
+        margin-bottom: 6px;
+      }
+
+      .token-field input {
+        width: 100%;
+        padding: 10px 12px;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: rgba(30, 41, 59, 0.5);
+        color: var(--text);
+        font-size: 0.9rem;
+        font-family: monospace;
+      }
+
+      .token-field input:focus {
+        outline: none;
+        border-color: var(--accent);
+      }
+
+      .token-status {
+        font-size: 0.8rem;
+        margin-top: 12px;
+        padding: 8px;
+        border-radius: 6px;
+      }
+
+      .token-status.valid {
+        background: rgba(34, 197, 94, 0.1);
+        color: #86efac;
+      }
+
+      .token-status.invalid {
+        background: rgba(239, 68, 68, 0.1);
+        color: #fca5a5;
+      }
+
+      .token-status.warning {
+        background: rgba(245, 158, 11, 0.1);
+        color: #fcd34d;
+      }
+
+      .btn-small {
+        padding: 8px 16px;
+        font-size: 0.85rem;
+        width: auto;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <div class="card">
+        <header>
+          <h1 class="title">🚀 AO Direct</h1>
+          <a href="/" class="back-link">← Tilbake</a>
+        </header>
+
+        <div class="warning">
+          ⚠️ <strong>Hemmelig funksjon</strong> – Importerer og publiserer direkte til Artsobservasjoner.
+        </div>
+
+        <div class="obs-count" id="obs-count">
+          Ingen observasjoner å importere
+        </div>
+
+        <ul class="obs-list" id="obs-list"></ul>
+
+        <button class="btn btn-success" id="import-btn" disabled>
+          🚀 Importer og publiser til AO
+        </button>
+
+        <div class="status" id="status"></div>
+
+        <!-- Token configuration -->
+        <div class="config-section">
+          <div class="config-header" id="config-toggle">
+            <h3>🔑 Token-konfigurasjon</h3>
+            <span class="config-toggle" id="config-arrow">▼</span>
+          </div>
+          <div class="config-content" id="config-content">
+            <p style="font-size: 0.85rem; color: var(--muted); margin-bottom: 16px;">
+              Hent cookies fra Firefox DevTools → Network → ImportSighting → Cookie header.
+              Tokens lagres lokalt i nettleseren.
+            </p>
+
+            <div class="token-field">
+              <label for="login-token">logintoken</label>
+              <input type="text" id="login-token" placeholder="282144:443cdde8e30ed..." />
+            </div>
+
+            <div class="token-field">
+              <label for="auth-cookie">.ASPXAUTHNO</label>
+              <input type="text" id="auth-cookie" placeholder="4B554153280E76AC0B1B..." />
+            </div>
+
+            <div style="display: flex; gap: 8px;">
+              <button class="btn btn-small" id="save-tokens">💾 Lagre tokens</button>
+              <button class="btn btn-small" id="test-tokens" style="background: var(--orange);">🧪 Test</button>
+            </div>
+
+            <div class="token-status" id="token-status" style="display: none;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script type="module">
+      // Last observations fra localStorage
+      let observations = [];
+      try {
+        const stored = localStorage.getItem('fugleobservasjoner_v1');
+        if (stored) {
+          const payload = JSON.parse(stored);
+          observations = payload.observations || [];
+        }
+      } catch (e) {
+        console.error('Kunne ikke laste observasjoner:', e);
+      }
+
+      const obsList = document.getElementById('obs-list');
+      const obsCount = document.getElementById('obs-count');
+      const importBtn = document.getElementById('import-btn');
+      const statusEl = document.getElementById('status');
+
+      // Vis observasjoner
+      if (observations.length > 0) {
+        obsCount.textContent = `${observations.length} observasjon${observations.length !== 1 ? 'er' : ''} klar for import`;
+        importBtn.disabled = false;
+
+        observations.forEach(obs => {
+          const li = document.createElement('li');
+          li.className = 'obs-item';
+
+          const species = document.createElement('div');
+          species.className = 'obs-species';
+          const speciesName = (obs.species && obs.species.taxonName)
+            ? obs.species.taxonName
+            : (obs.species || 'Ukjent art');
+          species.textContent = speciesName;
+
+          const details = document.createElement('div');
+          details.className = 'obs-details';
+          const parts = [];
+          if (obs.placeName) parts.push(obs.placeName);
+          if (obs.count) parts.push(`${obs.count} ind`);
+          if (obs.activity) parts.push(obs.activity);
+          if (obs.timestamp) {
+            const d = new Date(obs.timestamp);
+            parts.push(d.toLocaleDateString('nb-NO'));
+          }
+          details.textContent = parts.join(' • ');
+
+          li.appendChild(species);
+          li.appendChild(details);
+          obsList.appendChild(li);
+        });
+      }
+
+      // Import-funksjon
+      importBtn.addEventListener('click', async () => {
+        // Hent tokens fra localStorage
+        const savedTokens = JSON.parse(localStorage.getItem('ao_tokens') || '{}');
+        if (!savedTokens.loginToken || !savedTokens.authCookie) {
+          statusEl.className = 'status error';
+          statusEl.textContent = '❌ Tokens mangler! Åpne Token-konfigurasjon og lagre tokens først.';
+          // Åpne config-seksjonen
+          configContent.classList.add('open');
+          configArrow.classList.add('open');
+          return;
+        }
+
+        importBtn.disabled = true;
+        statusEl.className = 'status loading';
+        statusEl.innerHTML = '<span class="spinner"></span> Importerer og publiserer til AO...';
+
+        try {
+          const response = await fetch('/api/ao-import', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              observations,
+              loginToken: savedTokens.loginToken,
+              authCookie: savedTokens.authCookie,
+            }),
+          });
+
+          const result = await response.json();
+
+          if (response.ok && result.success) {
+            const publishedText = result.published ? ' og publisert' : ' (publisering venter)';
+            statusEl.className = 'status success';
+            statusEl.innerHTML = `✅ ${result.count} observasjon${result.count !== 1 ? 'er' : ''} importert${publishedText}!`;
+
+            setTimeout(() => {
+              if (confirm('Import vellykket! Vil du tømme observasjonslisten?')) {
+                localStorage.removeItem('fugleobservasjoner_v1');
+                window.location.href = '/';
+              }
+            }, 1500);
+          } else {
+            throw new Error(result.error || 'Ukjent feil');
+          }
+        } catch (error) {
+          statusEl.className = 'status error';
+          statusEl.textContent = `❌ Feil: ${error.message}`;
+          importBtn.disabled = false;
+        }
+      });
+
+      // Token configuration
+      const configToggle = document.getElementById('config-toggle');
+      const configContent = document.getElementById('config-content');
+      const configArrow = document.getElementById('config-arrow');
+      const loginTokenInput = document.getElementById('login-token');
+      const authCookieInput = document.getElementById('auth-cookie');
+      const saveTokensBtn = document.getElementById('save-tokens');
+      const testTokensBtn = document.getElementById('test-tokens');
+      const tokenStatus = document.getElementById('token-status');
+
+      // Load saved tokens
+      const savedTokens = JSON.parse(localStorage.getItem('ao_tokens') || '{}');
+      if (savedTokens.loginToken) loginTokenInput.value = savedTokens.loginToken;
+      if (savedTokens.authCookie) authCookieInput.value = savedTokens.authCookie;
+
+      // Toggle config section
+      configToggle.addEventListener('click', () => {
+        configContent.classList.toggle('open');
+        configArrow.classList.toggle('open');
+      });
+
+      // Save tokens
+      saveTokensBtn.addEventListener('click', () => {
+        const tokens = {
+          loginToken: loginTokenInput.value.trim(),
+          authCookie: authCookieInput.value.trim(),
+        };
+        localStorage.setItem('ao_tokens', JSON.stringify(tokens));
+        tokenStatus.style.display = 'block';
+        tokenStatus.className = 'token-status valid';
+        tokenStatus.textContent = '✅ Tokens lagret lokalt';
+        setTimeout(() => { tokenStatus.style.display = 'none'; }, 3000);
+      });
+
+      // Test tokens (just validates format)
+      testTokensBtn.addEventListener('click', () => {
+        const loginToken = loginTokenInput.value.trim();
+        const authCookie = authCookieInput.value.trim();
+
+        tokenStatus.style.display = 'block';
+
+        if (!loginToken || !authCookie) {
+          tokenStatus.className = 'token-status invalid';
+          tokenStatus.textContent = '❌ Begge tokens må fylles ut';
+          return;
+        }
+
+        if (!loginToken.includes(':') || loginToken.length < 20) {
+          tokenStatus.className = 'token-status invalid';
+          tokenStatus.textContent = '❌ logintoken ser feil ut (forventet format: 123456:abc...)';
+          return;
+        }
+
+        if (authCookie.length < 50) {
+          tokenStatus.className = 'token-status invalid';
+          tokenStatus.textContent = '❌ .ASPXAUTHNO ser for kort ut';
+          return;
+        }
+
+        tokenStatus.className = 'token-status valid';
+        tokenStatus.textContent = '✅ Format OK! Klikk "Lagre tokens" for å aktivere.';
+      });
+    </script>
+  </body>
+</html>

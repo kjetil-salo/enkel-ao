@@ -995,15 +995,10 @@
       }
 
       @media (max-width: 480px) {
-        .advanced-row {
-          flex-direction: column;
-          gap: 6px;
-        }
-        
         .section-main {
           padding: 12px;
         }
-        
+
         .section-optional {
           padding: 10px;
         }
@@ -1411,6 +1406,27 @@
     <script type="module">
       import { VERSION } from './js/version.js';
       document.getElementById('version').textContent = VERSION;
+
+      // Easter egg: Trippelklikk på versjon → AO Direct
+      const versionEl = document.getElementById('version');
+      let clickCount = 0;
+      let clickTimer = null;
+
+      versionEl.addEventListener('click', () => {
+        clickCount++;
+        if (clickTimer) clearTimeout(clickTimer);
+
+        if (clickCount >= 3) {
+          clickCount = 0;
+          window.location.href = '/ao-direct.html';
+        } else {
+          // Reset etter 500ms uten klikk
+          clickTimer = setTimeout(() => { clickCount = 0; }, 500);
+        }
+      });
+
+      versionEl.style.cursor = 'default';
+      versionEl.style.userSelect = 'none';
     </script>
   </body>
 </html>

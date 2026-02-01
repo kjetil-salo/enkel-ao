@@ -20,6 +20,7 @@ from urllib.parse import urlparse, parse_qs
 from src.api_handlers import handle_species_search, handle_reverse_geocoding, handle_ao_sites_search
 from src.html_templates import generate_stats_login_page, generate_stats_page, generate_error_page
 from src.supabase_log import log_view_to_supabase
+from src.ao_import_curl import post_with_curl
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 PUBLIC_DIR = os.path.join(BASE_DIR, 'public')
@@ -34,15 +35,27 @@ _stats = {
 
 class Handler(SimpleHTTPRequestHandler):
     """HTTP request handler med API-routing."""
-    
+
+    def do_OPTIONS(self):
+        """Håndter CORS preflight requests."""
+        self.send_response(200)
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
+        self.end_headers()
+
     def do_POST(self):
         """Håndter POST-forespørsler."""
         parsed = urlparse(self.path)
-        
+
         if parsed.path == '/api/logview':
             self._handle_logview_post()
             return
-        
+
+        if parsed.path == '/api/ao-import':
+            self._handle_ao_import_post()
+            return
+
         # For alt annet, returner 404
         self.send_response(404)
         self.end_headers()
@@ -71,6 +84,44 @@ class Handler(SimpleHTTPRequestHandler):
             print(f"[Supabase] Feil ved logging: {e}")
         
         self._send_json({'ok': True})
+
+    def _handle_ao_import_post(self):
+        """Håndter direkte posting av observasjoner til AO (kun for eier)."""
+        import sys
+
+        # Les request body
+        try:
+            content_length = int(self.headers.get('Content-Length', 0))
+            body = self.rfile.read(content_length).decode('utf-8')
+            data = json.loads(body)
+            observations = data.get('observations', [])
+            login_token = data.get('loginToken')
+            auth_cookie = data.get('authCookie')
+
+            if not observations:
+                self._send_json({'error': 'Ingen observasjoner å importere'}, status=400)
+                return
+
+            if not login_token or not auth_cookie:
+                self._send_json({'error': 'Mangler loginToken eller authCookie'}, status=400)
+                return
+
+            print(f'[AO-IMPORT] Mottatt {len(observations)} observasjoner', file=sys.stderr)
+
+            # Post til AO med curl (tokens fra klient)
+            result = post_with_curl(observations, login_token, auth_cookie)
+
+            print(f'[AO-IMPORT] Suksess: {result}', file=sys.stderr)
+            self._send_json(result)
+
+        except ValueError as e:
+            # Valideringsfeil eller AO-feil
+            print(f'[AO-IMPORT] Feil: {e}', file=sys.stderr)
+            self._send_json({'error': str(e)}, status=400)
+        except Exception as e:
+            # Uventet feil
+            print(f'[AO-IMPORT] Uventet feil: {e}', file=sys.stderr)
+            self._send_json({'error': f'Server-feil: {str(e)}'}, status=500)
 
     def do_GET(self):
         """Håndter GET-forespørsler."""
@@ -276,6 +327,7 @@ class Handler(SimpleHTTPRequestHandler):
         self.send_response(status)
         self.send_header('Content-Type', 'application/json; charset=utf-8')
         self.send_header('Content-Length', str(len(payload)))
+        self.send_header('Access-Control-Allow-Origin', '*')
         self.end_headers()
         self.wfile.write(payload)
     
