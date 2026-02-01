@@ -1217,7 +1217,7 @@
                   style="width:84px;font-size:1em;padding:8px 12px;height:38px;border:2px solid var(--accent);border-radius:8px;background:var(--card-bg);color:var(--text);vertical-align:middle;"
                   title="Søkeradius i meter (100-3000m). Bestemmer hvor stort område du leter etter observasjonslokaliteter i."
                 />
-                <span style="font-size:0.95em;color:var(--muted);white-space:nowrap;">m</span>
+                <span id="unit-m" style="font-size:0.95em;color:var(--muted);white-space:nowrap;cursor:default;user-select:none;">m</span>
               </div>
             </div>
             <button class="icon-btn" id="loc-map-btn" title="Åpne kart" style="font-size:1.5em;padding:6px 10px;border:2px solid var(--accent);border-radius:8px;background:var(--accent-soft);color:var(--text);height:38px;min-width:46px;transition:all 0.2s;display:none;box-shadow:0 2px 8px rgba(59,130,246,0.10);">🗺️</button>
@@ -1407,12 +1407,13 @@
       import { VERSION } from './js/version.js';
       document.getElementById('version').textContent = VERSION;
 
-      // Easter egg: Trippelklikk på versjon → AO Direct
-      const versionEl = document.getElementById('version');
+      // Easter egg: Trippeltapp på "m" (etter avstand) → AO Direct
+      const unitM = document.getElementById('unit-m');
       let clickCount = 0;
       let clickTimer = null;
 
-      versionEl.addEventListener('click', () => {
+      unitM.addEventListener('click', (e) => {
+        e.preventDefault();
         clickCount++;
         if (clickTimer) clearTimeout(clickTimer);
 
@@ -1420,13 +1421,9 @@
           clickCount = 0;
           window.location.href = '/ao-direct.html';
         } else {
-          // Reset etter 500ms uten klikk
           clickTimer = setTimeout(() => { clickCount = 0; }, 500);
         }
       });
-
-      versionEl.style.cursor = 'default';
-      versionEl.style.userSelect = 'none';
     </script>
   </body>
 </html>
