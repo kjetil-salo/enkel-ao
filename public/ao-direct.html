@@ -328,9 +328,16 @@
             <span class="config-toggle" id="config-arrow">▼</span>
           </div>
           <div class="config-content" id="config-content">
-            <p style="font-size: 0.85rem; color: var(--muted); margin-bottom: 16px;">
-              Hent cookies fra Firefox DevTools → Network → ImportSighting → Cookie header.
-              Tokens lagres lokalt i nettleseren.
+            <p style="font-size: 0.85rem; color: var(--muted); margin-bottom: 12px;">
+              .ASPXAUTHNO utløper etter noen timer. Klikk knappen under, logg inn om nødvendig, og hent fersk cookie.
+            </p>
+            <a href="https://www.artsobservasjoner.no/ImportSighting" target="_blank"
+               style="display:inline-block;padding:8px 16px;background:var(--accent);color:white;border-radius:6px;text-decoration:none;font-size:0.9rem;margin-bottom:16px;">
+              🔗 Åpne AO ImportSighting
+            </a>
+            <p style="font-size: 0.8rem; color: var(--muted); margin-bottom: 16px;">
+              På PC: F12 → Network → refresh → Cookie header<br>
+              På mobil: Bruk delt utklippstavle fra PC
             </p>
 
             <div class="token-field">
@@ -452,7 +459,12 @@
           }
         } catch (error) {
           statusEl.className = 'status error';
-          statusEl.textContent = `❌ Feil: ${error.message}`;
+          // Bedre feilmelding for utløpt session
+          if (error.message.includes('CSRF') || error.message.includes('token')) {
+            statusEl.innerHTML = `❌ Session utløpt! <a href="https://www.artsobservasjoner.no/ImportSighting" target="_blank" style="color:#93c5fd;">Åpne AO</a>, logg inn, og hent ny .ASPXAUTHNO cookie.`;
+          } else {
+            statusEl.textContent = `❌ Feil: ${error.message}`;
+          }
           importBtn.disabled = false;
         }
       });
