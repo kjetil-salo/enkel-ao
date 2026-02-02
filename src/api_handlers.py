@@ -217,14 +217,17 @@ def handle_ao_sites_search(lat, lon, size_m=600.0, ao_mobile_base_url='https://m
             )
             with urlopen(geojson_req, timeout=10) as resp:
                 # Sjekk etter refreshed auth cookie
-                set_cookie_header = resp.headers.get('Set-Cookie', '')
-                if set_cookie_header and '.ASPXAUTHNO=' in set_cookie_header:
-                    # Parse ut ny .ASPXAUTHNO verdi
-                    import re
-                    match = re.search(r'\.ASPXAUTHNO=([^;]+)', set_cookie_header)
-                    if match:
-                        refreshed_auth_cookie = match.group(1)
-                        print(f'Fikk refreshed auth cookie fra GetSitesGeoJson')
+                try:
+                    set_cookie_header = resp.headers.get('Set-Cookie', '')
+                    if set_cookie_header and '.ASPXAUTHNO=' in set_cookie_header:
+                        # Parse ut ny .ASPXAUTHNO verdi
+                        import re
+                        match = re.search(r'\.ASPXAUTHNO=([^;]+)', set_cookie_header)
+                        if match:
+                            refreshed_auth_cookie = match.group(1)
+                            print(f'Fikk refreshed auth cookie fra GetSitesGeoJson')
+                except Exception as cookie_err:
+                    print(f'Feil ved parsing av Set-Cookie: {cookie_err}')
                 
                 content_encoding = resp.headers.get('Content-Encoding', '')
                 raw_body = resp.read()
@@ -298,13 +301,16 @@ def handle_ao_sites_search(lat, lon, size_m=600.0, ao_mobile_base_url='https://m
         with urlopen(req, timeout=10) as resp:
             # Sjekk etter refreshed auth cookie også her
             if not refreshed_auth_cookie:  # Kun hvis ikke allerede satt
-                set_cookie_header = resp.headers.get('Set-Cookie', '')
-                if set_cookie_header and '.ASPXAUTHNO=' in set_cookie_header:
-                    import re
-                    match = re.search(r'\.ASPXAUTHNO=([^;]+)', set_cookie_header)
-                    if match:
-                        refreshed_auth_cookie = match.group(1)
-                        print(f'Fikk refreshed auth cookie fra ByBoundingBox')
+                try:
+                    set_cookie_header = resp.headers.get('Set-Cookie', '')
+                    if set_cookie_header and '.ASPXAUTHNO=' in set_cookie_header:
+                        import re
+                        match = re.search(r'\.ASPXAUTHNO=([^;]+)', set_cookie_header)
+                        if match:
+                            refreshed_auth_cookie = match.group(1)
+                            print(f'Fikk refreshed auth cookie fra ByBoundingBox')
+                except Exception as cookie_err:
+                    print(f'Feil ved parsing av Set-Cookie: {cookie_err}')
             
             body = resp.read().decode('utf-8', errors='ignore')
         data = json.loads(body)
