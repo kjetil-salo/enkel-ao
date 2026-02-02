@@ -146,6 +146,10 @@ def fetch_csrf_token(login_token, auth_cookie, ao_base_url='https://www.artsobse
     """
     Hent CSRF token fra AO ImportSighting siden.
     Krever cookies for å få tilgang (må være logget inn).
+    
+    Returnerer dict med:
+    - csrf_token: CSRF token for POST
+    - auth_cookie: Eventuell fornyet .ASPXAUTHNO fra Set-Cookie, eller original
     """
     import_url = f'{ao_base_url}/ImportSighting'
 
@@ -164,10 +168,24 @@ def fetch_csrf_token(login_token, auth_cookie, ao_base_url='https://www.artsobse
         },
     )
 
+    # Hold styr på eventuell fornyet auth cookie
+    refreshed_auth = auth_cookie
+
     try:
         with urlopen(req, timeout=10) as resp:
             status = resp.getcode()
             print(f'[AO] CSRF fetch status: {status}')
+            
+            # Fang eventuelle Set-Cookie headers for å oppdatere auth cookie
+            set_cookie_headers = resp.headers.get_all('Set-Cookie') or []
+            for sc in set_cookie_headers:
+                # Søk etter .ASPXAUTHNO=...
+                m = re.search(r'\.ASPXAUTHNO=([^;]+)', sc)
+                if m:
+                    refreshed_auth = m.group(1)
+                    print(f'[AO] Fornyet .ASPXAUTHNO fra Set-Cookie: {refreshed_auth[:20]}...', file=sys.stderr)
+                    sys.stderr.flush()
+            
             html = resp.read().decode('utf-8', errors='ignore')
 
         # Søk etter __RequestVerificationToken i HTML
@@ -182,7 +200,7 @@ def fetch_csrf_token(login_token, auth_cookie, ao_base_url='https://www.artsobse
             token = match.group(1)
             print(f'[AO] Hentet CSRF token: {token[:20]}...', file=sys.stderr)
             sys.stderr.flush()
-            return token
+            return {'csrf_token': token, 'auth_cookie': refreshed_auth}
 
         # Alternativt format i cookie
         match = re.search(
@@ -190,7 +208,7 @@ def fetch_csrf_token(login_token, auth_cookie, ao_base_url='https://www.artsobse
             html
         )
         if match:
-            return match.group(1)
+            return {'csrf_token': match.group(1), 'auth_cookie': refreshed_auth}
 
         raise ValueError('Kunne ikke finne CSRF token i AO ImportSighting siden')
 
@@ -224,8 +242,11 @@ def post_to_ao(observations, ao_base_url='https://www.artsobservasjoner.no'):
             'AO_AUTH_COOKIE=".ASPXAUTHNO=6AFD6389..."'
         )
 
-    # Hent CSRF token (krever cookies)
-    csrf_token = fetch_csrf_token(login_token, auth_cookie, ao_base_url)
+    # Hent CSRF token (krever cookies) - returnerer dict med csrf_token og eventuell fornyet auth_cookie
+    csrf_result = fetch_csrf_token(login_token, auth_cookie, ao_base_url)
+    csrf_token = csrf_result['csrf_token']
+    # Bruk eventuell fornyet auth cookie fra Set-Cookie header
+    auth_cookie = csrf_result['auth_cookie']
 
     # Generer CSV
     csv_data = observations_to_csv(observations)

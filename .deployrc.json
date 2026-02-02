@@ -1,0 +1,8 @@
+{
+  "deploy": {
+    "script": "update-app.sh",
+    "default_environment": "staging",
+    "use_remote_build": true,
+    "notes": "Dette er en enkel config som peker på deploy-scriptet.\nMake-target 'deploy' bruker dette scriptet via ./update-app.sh ${ENVIRONMENT}."
+  }
+}

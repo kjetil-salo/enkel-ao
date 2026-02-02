@@ -82,9 +82,26 @@ export async function searchSpecies(term, includeSubtaxa = false) {
  * @returns {Promise<Array>} - Liste med lokaliteter
  */
 export async function fetchAoSites(lat, lon, sizeMeters = 1000) {
-  const url = `/api/ao-sites?lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}&size=${encodeURIComponent(sizeMeters)}`;
+  let url = `/api/ao-sites?lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}&size=${encodeURIComponent(sizeMeters)}`;
   
-  const resp = await fetch(url);
+  // Hent tokens fra localStorage og send som headers
+  const headers = {};
+  try {
+    const savedTokens = JSON.parse(localStorage.getItem('ao_tokens') || '{}');
+    if (savedTokens.userId) {
+      headers['X-AO-User-Id'] = savedTokens.userId;
+    }
+    if (savedTokens.loginToken) {
+      headers['X-AO-Login-Token'] = savedTokens.loginToken;
+    }
+    if (savedTokens.authCookie) {
+      headers['X-AO-Auth-Cookie'] = savedTokens.authCookie;
+    }
+  } catch (e) {
+    // Ignorer feil ved parsing
+  }
+  
+  const resp = await fetch(url, { headers });
   if (!resp.ok) {
     return [];
   }

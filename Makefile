@@ -60,3 +60,7 @@ static-load:
 
 clean: stop remove
 	@echo "Cleaned local container."
+
+deploy:
+	@echo "Running deploy script via update-app.sh (ENVIRONMENT=${ENVIRONMENT:-staging})"
+	./update-app.sh ${ENVIRONMENT:-staging}

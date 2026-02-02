@@ -144,6 +144,7 @@ export function setAoSiteSuggestions(sites, currentPosition, dropdown, aoSitesEl
     textSpan.style.flex = '1';
 
     let label = getSiteLabel(site) || site.name;
+    if (site.isMine) label = '⭐ ' + label;
     if (site.isSuper) label = '🏷️ ' + label;
     if (isPrivateSite(site)) label = '🔒 ' + label;
 

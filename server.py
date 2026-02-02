@@ -263,11 +263,16 @@ class Handler(SimpleHTTPRequestHandler):
         lon_raw = params.get('lon', [''])[0].strip()
         size_raw = params.get('size', ['600'])[0].strip()
         
+        # Hent bruker-auth fra headers (sendt fra frontend)
+        user_id = self.headers.get('X-AO-User-Id', '').strip() or None
+        login_token = self.headers.get('X-AO-Login-Token', '').strip() or None
+        auth_cookie = self.headers.get('X-AO-Auth-Cookie', '').strip() or None
+        
         ao_mobile_base = os.environ.get(
             'AO_MOBILE_URL', 'https://mobil.artsobservasjoner.no'
         )
         try:
-            sites = handle_ao_sites_search(lat_raw, lon_raw, size_raw, ao_mobile_base)
+            sites = handle_ao_sites_search(lat_raw, lon_raw, size_raw, ao_mobile_base, user_id, login_token, auth_cookie)
             self._send_json({'sites': sites})
         except ValueError as e:
             self._send_json({'error': str(e)}, status=400)

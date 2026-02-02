@@ -350,6 +350,14 @@
               <input type="text" id="auth-cookie" placeholder="4B554153280E76AC0B1B..." />
             </div>
 
+            <div class="token-field">
+              <label for="ao-user-id">Din bruker-ID (valgfritt)</label>
+              <input type="number" id="ao-user-id" placeholder="F.eks. 15969" />
+              <p style="font-size: 0.75rem; color: var(--muted); margin: 4px 0 0 0;">
+                Finner du på din profilside. Gjør at dine private lokasjoner vises øverst (⭐).
+              </p>
+            </div>
+
             <div style="display: flex; gap: 8px;">
               <button class="btn btn-small" id="save-tokens">💾 Lagre tokens</button>
               <button class="btn btn-small" id="test-tokens" style="background: var(--orange);">🧪 Test</button>
@@ -444,6 +452,14 @@
           const result = await response.json();
 
           if (response.ok && result.success) {
+            // Oppdater auth-token hvis AO sendte ny (sliding expiration)
+            if (result.refreshedAuthCookie) {
+              const tokens = JSON.parse(localStorage.getItem('ao_tokens') || '{}');
+              tokens.authCookie = result.refreshedAuthCookie;
+              localStorage.setItem('ao_tokens', JSON.stringify(tokens));
+              console.log('[AO] Auth-token fornyet automatisk');
+            }
+
             const publishedText = result.published ? ' og publisert' : ' (publisering venter)';
             statusEl.className = 'status success';
             statusEl.innerHTML = `✅ ${result.count} observasjon${result.count !== 1 ? 'er' : ''} importert${publishedText}!`;
@@ -475,6 +491,7 @@
       const configArrow = document.getElementById('config-arrow');
       const loginTokenInput = document.getElementById('login-token');
       const authCookieInput = document.getElementById('auth-cookie');
+      const aoUserIdInput = document.getElementById('ao-user-id');
       const saveTokensBtn = document.getElementById('save-tokens');
       const testTokensBtn = document.getElementById('test-tokens');
       const tokenStatus = document.getElementById('token-status');
@@ -483,6 +500,7 @@
       const savedTokens = JSON.parse(localStorage.getItem('ao_tokens') || '{}');
       if (savedTokens.loginToken) loginTokenInput.value = savedTokens.loginToken;
       if (savedTokens.authCookie) authCookieInput.value = savedTokens.authCookie;
+      if (savedTokens.userId) aoUserIdInput.value = savedTokens.userId;
 
       // Toggle config section
       configToggle.addEventListener('click', () => {
@@ -495,6 +513,7 @@
         const tokens = {
           loginToken: loginTokenInput.value.trim(),
           authCookie: authCookieInput.value.trim(),
+          userId: aoUserIdInput.value.trim(),
         };
         localStorage.setItem('ao_tokens', JSON.stringify(tokens));
         tokenStatus.style.display = 'block';

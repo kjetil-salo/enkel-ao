@@ -7,6 +7,11 @@
         },
         "pkill": true,
         "true": true,
-        "nohup": true
+        "nohup": true,
+        "pytest": true,
+        "/^python3 -m pytest -v && npm test --prefix tests/e2e_playwright \\|\\| true$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
     }
 }

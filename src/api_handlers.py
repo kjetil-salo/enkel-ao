@@ -7,6 +7,7 @@ Håndterer eksterne API-kall til Artsobservasjoner og Nominatim.
 import json
 import math
 import re
+import os
 from html import unescape
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
@@ -121,7 +122,7 @@ def handle_reverse_geocoding(lat, lon, nominatim_base_url):
         raise
 
 
-def handle_ao_sites_search(lat, lon, size_m=600.0, ao_mobile_base_url='https://mobil.artsobservasjoner.no'):
+def handle_ao_sites_search(lat, lon, size_m=600.0, ao_mobile_base_url='https://mobil.artsobservasjoner.no', user_id=None, login_token=None, auth_cookie=None):
     """Håndter søk etter AO-lokaliteter."""
     # Valider input
     try:
@@ -149,8 +150,108 @@ def handle_ao_sites_search(lat, lon, size_m=600.0, ao_mobile_base_url='https://m
         f'minX={min_x:.6f}, minY={min_y:.6f}, maxX={max_x:.6f}, maxY={max_y:.6f}'
     )
 
+    # Samler raw sites her
+    raw_sites = []
+    my_site_ids = set()  # Holder styr på ALLE brukerens site-IDer (ikke bare i bbox)
+
+    # --- KALL 1: Hent brukerens lokasjoner via GetSitesGeoJson ---
+    # Bruker samme bbox for å finne brukerens egne sites i området
+    ao_login = login_token or os.getenv('AO_LOGIN_TOKEN')
+    ao_auth = auth_cookie or os.getenv('AO_AUTH_COOKIE')
+    ao_user_id = user_id or os.getenv('AO_USER_ID')
+
+    if ao_login and ao_auth and ao_user_id:
+        try:
+            # Normaliser AO_AUTH_COOKIE verdi
+            auth_val = ao_auth
+            if auth_val.startswith('.ASPXAUTHNO='):
+                auth_val = auth_val.split('=', 1)[1]
+
+            # Konverter lat/lon til Web Mercator (EPSG:3857) for bbox
+            def lat_lon_to_mercator(lat, lon):
+                x = lon * 20037508.34 / 180
+                y = math.log(math.tan((90 + lat) * math.pi / 360)) / (math.pi / 180)
+                y = y * 20037508.34 / 180
+                return x, y
+
+            center_x, center_y = lat_lon_to_mercator(lat, lon)
+            # Bbox ca 200m rundt sentrum (tilpasset zoom 16) - bruk heltall
+            half_size = 100
+            bbox_str = f'{int(center_x - half_size)},{int(center_y - half_size)},{int(center_x + half_size)},{int(center_y + half_size)}'
+
+            # Cookie-streng - kun det nødvendige
+            cookies = f'AcceptCookies=1; .ASPXAUTHNO={auth_val}; logintoken={ao_login}'
+            
+            geojson_url = 'https://www.artsobservasjoner.no/Map/GetSitesGeoJson'
+            post_data = json.dumps({
+                'zoomLevel': 16,
+                'bbox': bbox_str,
+                'userId': int(ao_user_id),
+                'coordSyst': 0,
+                'speciesGroupId': '8',
+                'taxonId': None
+            }).encode('utf-8')
+
+            geojson_req = Request(
+                geojson_url,
+                data=post_data,
+                headers={
+                    'User-Agent': 'Mozilla/5.0',
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json; charset=UTF-8',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Origin': 'https://www.artsobservasjoner.no',
+                    'Referer': 'https://www.artsobservasjoner.no/SubmitSighting/Report',
+                    'Cookie': cookies,
+                },
+                method='POST'
+            )
+            with urlopen(geojson_req, timeout=10) as resp:
+                content_encoding = resp.headers.get('Content-Encoding', '')
+                raw_body = resp.read()
+                if content_encoding == 'gzip':
+                    import gzip
+                    body = gzip.decompress(raw_body).decode('utf-8', errors='ignore')
+                elif content_encoding == 'br':
+                    # Brotli-komprimering krever brotli-bibliotek
+                    try:
+                        import brotli
+                        body = brotli.decompress(raw_body).decode('utf-8', errors='ignore')
+                    except ImportError:
+                        body = raw_body.decode('utf-8', errors='ignore')
+                else:
+                    body = raw_body.decode('utf-8', errors='ignore')
+
+            geojson_data = json.loads(body) if body else None
+
+            # GetSitesGeoJson returnerer { points: { features: [...] }, polygons: {...} }
+            # Brukerens egne sites har isPrivate=true
+            if isinstance(geojson_data, dict):
+                # Sjekk points.features
+                points = geojson_data.get('points', {})
+                if isinstance(points, dict):
+                    for feature in points.get('features', []):
+                        props = feature.get('properties', {})
+                        if props.get('isPrivate'):
+                            site_id = props.get('siteId') or props.get('id') or feature.get('id')
+                            if site_id is not None:
+                                my_site_ids.add(int(site_id))
+                # Sjekk også polygons.features
+                polygons = geojson_data.get('polygons', {})
+                if isinstance(polygons, dict):
+                    for feature in polygons.get('features', []):
+                        props = feature.get('properties', {})
+                        if props.get('isPrivate'):
+                            site_id = props.get('siteId') or props.get('id') or feature.get('id')
+                            if site_id is not None:
+                                my_site_ids.add(int(site_id))
+        except Exception:
+            # Logging feil ved henting av brukerens egne lokasjoner - ikke kritisk
+            pass
+
+    # --- KALL 2: Hent offentlige lokasjoner (ByBoundingBox) ---
     query_params = {
-        'maxSites': '1000',  # Maks tillatt av AO API (1-1000)
+        'maxSites': '1000',
         'minX': f'{min_x:.6f}',
         'minY': f'{min_y:.6f}',
         'maxX': f'{max_x:.6f}',
@@ -179,13 +280,19 @@ def handle_ao_sites_search(lat, lon, size_m=600.0, ao_mobile_base_url='https://m
             body = resp.read().decode('utf-8', errors='ignore')
         data = json.loads(body)
 
-        # Normaliser datastruktur
+        # Normaliser datastruktur fra ByBoundingBox
         if isinstance(data, list):
-            raw_sites = data
+            public_sites = data
         elif isinstance(data, dict):
-            raw_sites = data.get('sites') or data.get('Sites') or []
+            public_sites = data.get('sites') or data.get('Sites') or []
         else:
-            raw_sites = []
+            public_sites = []
+
+        # Legg til alle sites fra ByBoundingBox
+        for item in public_sites or []:
+            if not isinstance(item, dict):
+                continue
+            raw_sites.append(item)
 
         # Prosesser steder
         sites = []
@@ -208,6 +315,13 @@ def handle_ao_sites_search(lat, lon, size_m=600.0, ao_mobile_base_url='https://m
                 site['name'] = name
             if site_id is not None:
                 site['id'] = site_id
+                # Sjekk om dette er en av mine lokasjoner (basert på GetMySites)
+                try:
+                    if int(site_id) in my_site_ids:
+                        site['isMine'] = True
+                except (ValueError, TypeError):
+                    pass
+
             if lat_val is not None:
                 site['lat'] = lat_val
             if lon_val is not None:
@@ -272,6 +386,26 @@ def handle_ao_sites_search(lat, lon, size_m=600.0, ao_mobile_base_url='https://m
         print(f'AO-sites svar: {len(sites)} lokaliteter returnert')
         if sites[:3]:
             print('AO-sites eksempelsteder:', [s.get('name') for s in sites[:3]])
+
+        # Merk bruker-eide lokasjoner hvis de er angitt i miljøvariabel
+        # MY_AO_SITE_IDS kan være en kommaseparert liste med site-id'er som eies av brukeren.
+        try:
+            my_ids_raw = os.getenv('MY_AO_SITE_IDS', '')
+            if my_ids_raw:
+                my_ids = set([int(x.strip()) for x in my_ids_raw.split(',') if x.strip()])
+                for s in sites:
+                    sid = s.get('id')
+                    if sid is not None and int(sid) in my_ids:
+                        s['isMine'] = True
+        except Exception:
+            # Ikke la parsing av denne configen knekke kall
+            pass
+
+        # Sorter slik at `isMine` (brukerens egne) kommer først, deretter resten uendret
+        try:
+            sites.sort(key=lambda s: (0 if s.get('isMine') else 1))
+        except Exception:
+            pass
 
         return sites
     except Exception as e:

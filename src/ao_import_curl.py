@@ -21,8 +21,12 @@ def fetch_csrf_tokens(login_token, auth_cookie):
     Hent BEGGE CSRF tokens:
     - cookie_token: Fra Set-Cookie header
     - form_token: Fra hidden input i HTML
-
+    
+    Returnerer også eventuell fornyet .ASPXAUTHNO fra Set-Cookie header.
     ASP.NET MVC krever at disse er forskjellige men matcher kryptografisk.
+    
+    Returns:
+        tuple: (form_token, cookie_token, refreshed_auth_cookie or None)
     """
     # Bruk curl med -c for å fange cookies og -D for headers
     result = subprocess.run(
@@ -40,6 +44,19 @@ def fetch_csrf_tokens(login_token, auth_cookie):
     )
 
     html = result.stdout
+    
+    # Sjekk Set-Cookie header for fornyet .ASPXAUTHNO
+    refreshed_auth = None
+    try:
+        with open('/tmp/ao_headers.txt', 'r') as f:
+            for line in f:
+                if 'Set-Cookie:' in line and '.ASPXAUTHNO=' in line:
+                    match = re.search(r'\.ASPXAUTHNO=([^;]+)', line)
+                    if match:
+                        refreshed_auth = match.group(1)
+                        print(f'[AO-CURL] Fornyet .ASPXAUTHNO: {refreshed_auth[:20]}...', file=sys.stderr)
+    except Exception as e:
+        print(f'[AO-CURL] Kunne ikke lese headers-fil: {e}', file=sys.stderr)
 
     # Hent form-token fra HTML
     match = re.search(r'name="__RequestVerificationToken"[^>]*value="([^"]+)"', html)
@@ -76,11 +93,20 @@ def fetch_csrf_tokens(login_token, auth_cookie):
     print(f'[AO-CURL] Form token: {form_token[:30]}...', file=sys.stderr)
     print(f'[AO-CURL] Cookie token: {cookie_token[:30]}...', file=sys.stderr)
 
-    return form_token, cookie_token
+    return form_token, cookie_token, refreshed_auth
 
 
 def post_with_curl(observations, login_token=None, auth_cookie=None):
-    """Post til AO med curl - med korrekt CSRF token-håndtering."""
+    """
+    Post til AO med curl - med korrekt CSRF token-håndtering.
+    
+    Returnerer dict med:
+    - success: bool
+    - message: str
+    - count: int
+    - published: bool
+    - refreshedAuthCookie: str eller None (fornyet .ASPXAUTHNO hvis AO sendte ny)
+    """
     # Bruk tokens fra parameter, eller fall tilbake til miljøvariabler
     login_token = login_token or os.getenv('AO_LOGIN_TOKEN')
     auth_cookie = auth_cookie or os.getenv('AO_AUTH_COOKIE')
@@ -88,8 +114,8 @@ def post_with_curl(observations, login_token=None, auth_cookie=None):
     if not login_token or not auth_cookie:
         raise ValueError('Mangler loginToken eller authCookie')
 
-    # Hent BEGGE CSRF tokens
-    form_token, cookie_token = fetch_csrf_tokens(login_token, auth_cookie)
+    # Hent BEGGE CSRF tokens + eventuell fornyet auth cookie
+    form_token, cookie_token, refreshed_auth = fetch_csrf_tokens(login_token, auth_cookie)
 
     csv_data = observations_to_csv(observations)
     print(f'[AO-CURL] CSV length: {len(csv_data)}', file=sys.stderr)
@@ -181,14 +207,16 @@ def post_with_curl(observations, login_token=None, auth_cookie=None):
             'success': True,
             'message': f'{len(observations)} observasjoner importert (men publisering feilet: {e})',
             'count': len(observations),
-            'published': False
+            'published': False,
+            'refreshedAuthCookie': refreshed_auth
         }
 
     return {
         'success': True,
         'message': f'{len(observations)} observasjoner importert og publisert',
         'count': len(observations),
-        'published': True
+        'published': True,
+        'refreshedAuthCookie': refreshed_auth
     }
 
 
