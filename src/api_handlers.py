@@ -203,18 +203,23 @@ def handle_ao_sites_search(lat, lon, size_m=600.0, ao_mobile_base_url='https://m
                 'taxonId': None
             }).encode('utf-8')
 
+            request_headers = {
+                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:147.0) Gecko/20100101 Firefox/147.0',
+                'Accept': 'application/json, text/javascript, */*; q=0.01',
+                'Accept-Language': 'nb-NO,nb;q=0.9,no;q=0.8,nn;q=0.7,en;q=0.6',
+                'Content-Type': 'application/json; charset=UTF-8',
+                'X-Requested-With': 'XMLHttpRequest',
+                'Origin': 'https://www.artsobservasjoner.no',
+                'Referer': 'https://www.artsobservasjoner.no/SubmitSighting/Report',
+                'Cookie': cookies,
+            }
+            print(f'[DEBUG] GetSitesGeoJson POST to {geojson_url}', flush=True)
+            print(f'[DEBUG] GetSitesGeoJson bbox: {bbox_str}', flush=True)
+            
             geojson_req = Request(
                 geojson_url,
                 data=post_data,
-                headers={
-                    'User-Agent': 'Mozilla/5.0',
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json; charset=UTF-8',
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'Origin': 'https://www.artsobservasjoner.no',
-                    'Referer': 'https://www.artsobservasjoner.no/SubmitSighting/Report',
-                    'Cookie': cookies,
-                },
+                headers=request_headers,
                 method='POST'
             )
             with urlopen(geojson_req, timeout=10) as resp:
