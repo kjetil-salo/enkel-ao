@@ -4,7 +4,7 @@
 #
 
 app = 'enkel-ao-staging'
-primary_region = 'lhr'
+primary_region = 'arn'  # Stockholm - nærmere Norge, kanskje AO aksepterer skandinaviske IP-er
 
 
 [build]
