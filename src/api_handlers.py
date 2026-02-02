@@ -154,9 +154,10 @@ def handle_ao_sites_search(lat, lon, size_m=600.0, ao_mobile_base_url='https://m
 
     print(
         f'[DEBUG] AO-sites forespørsel: lat={lat:.6f}, lon={lon:.6f}, size_m={size_m:.1f}, '
-        f'minX={min_x:.6f}, minY={min_y:.6f}, maxX={max_x:.6f}, maxY={max_y:.6f}'
+        f'minX={min_x:.6f}, minY={min_y:.6f}, maxX={max_x:.6f}, maxY={max_y:.6f}',
+        flush=True
     )
-    print(f'[DEBUG] AO-tokens mottatt: user_id={bool(user_id)}, login_token={bool(login_token)}, auth_cookie={bool(auth_cookie)}')
+    print(f'[DEBUG] AO-tokens mottatt: user_id={bool(user_id)}, login_token={bool(login_token)}, auth_cookie={bool(auth_cookie)}', flush=True)
 
     # Samler raw sites her
     raw_sites = []
@@ -168,7 +169,7 @@ def handle_ao_sites_search(lat, lon, size_m=600.0, ao_mobile_base_url='https://m
     ao_auth = auth_cookie or os.getenv('AO_AUTH_COOKIE')
     ao_user_id = user_id or os.getenv('AO_USER_ID')
 
-    print(f'[DEBUG] AO-tokens final: user_id={bool(ao_user_id)}, login_token={bool(ao_login)}, auth_cookie={bool(ao_auth)}')
+    print(f'[DEBUG] AO-tokens final: user_id={bool(ao_user_id)}, login_token={bool(ao_login)}, auth_cookie={bool(ao_auth)}', flush=True)
     
     if ao_login and ao_auth and ao_user_id:
         try:
