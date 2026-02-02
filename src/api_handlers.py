@@ -267,8 +267,11 @@ def handle_ao_sites_search(lat, lon, size_m=600.0, ao_mobile_base_url='https://m
                             site_id = props.get('siteId') or props.get('id') or feature.get('id')
                             if site_id is not None:
                                 my_site_ids.add(int(site_id))
-        except Exception:
+            
+            print(f'GetSitesGeoJson: fant {len(my_site_ids)} private site-IDs')
+        except Exception as geojs_err:
             # Logging feil ved henting av brukerens egne lokasjoner - ikke kritisk
+            print(f'Feil i GetSitesGeoJson: {geojs_err}')
             pass
 
     # --- KALL 2: Hent offentlige lokasjoner (ByBoundingBox) ---
