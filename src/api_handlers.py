@@ -218,6 +218,7 @@ def handle_ao_sites_search(lat, lon, size_m=600.0, ao_mobile_base_url='https://m
                 method='POST'
             )
             with urlopen(geojson_req, timeout=10) as resp:
+                print(f'[DEBUG] GetSitesGeoJson HTTP status: {resp.status}', flush=True)
                 # Sjekk etter refreshed auth cookie
                 try:
                     set_cookie_header = resp.headers.get('Set-Cookie', '')
@@ -246,8 +247,9 @@ def handle_ao_sites_search(lat, lon, size_m=600.0, ao_mobile_base_url='https://m
                 else:
                     body = raw_body.decode('utf-8', errors='ignore')
 
-            print(f'[DEBUG] GetSitesGeoJson response: {body[:200]}...')  # Print første 200 tegn
+            print(f'[DEBUG] GetSitesGeoJson response (500 tegn): {body[:500]}', flush=True)
             geojson_data = json.loads(body) if body else None
+            print(f'[DEBUG] GetSitesGeoJson parsed keys: {list(geojson_data.keys()) if isinstance(geojson_data, dict) else type(geojson_data)}', flush=True)
 
             # GetSitesGeoJson returnerer { points: { features: [...] }, polygons: {...} }
             # Brukerens egne sites har isPrivate=true
