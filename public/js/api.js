@@ -107,6 +107,19 @@ export async function fetchAoSites(lat, lon, sizeMeters = 1000) {
   }
   
   const data = await resp.json();
+  
+  // Håndter refreshed auth cookie hvis mottatt
+  if (data.refreshedAuthCookie) {
+    try {
+      const savedTokens = JSON.parse(localStorage.getItem('ao_tokens') || '{}');
+      savedTokens.authCookie = data.refreshedAuthCookie;
+      localStorage.setItem('ao_tokens', JSON.stringify(savedTokens));
+      console.log('Oppdaterte auth cookie fra AO');
+    } catch (e) {
+      console.warn('Kunne ikke lagre refreshed auth cookie:', e);
+    }
+  }
+  
   if (!data || !Array.isArray(data.sites)) {
     return [];
   }

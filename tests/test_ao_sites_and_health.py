@@ -60,6 +60,7 @@ def test_ao_sites_valid(monkeypatch):
     class DummyResp:
         def __init__(self, data):
             self._data = data
+            self.headers = {}  # Legg til headers attributt
 
         def read(self):
             return json.dumps(self._data).encode('utf-8')
@@ -159,6 +160,9 @@ def test_ao_sites_default_size():
     called_urls = []
 
     class DummyResp:
+        def __init__(self):
+            self.headers = {}  # Legg til headers attributt
+            
         def read(self):
             return b'[]'
         def __enter__(self):

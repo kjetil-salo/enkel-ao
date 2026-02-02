@@ -123,7 +123,11 @@ def handle_reverse_geocoding(lat, lon, nominatim_base_url):
 
 
 def handle_ao_sites_search(lat, lon, size_m=600.0, ao_mobile_base_url='https://mobil.artsobservasjoner.no', user_id=None, login_token=None, auth_cookie=None):
-    """Håndter søk etter AO-lokaliteter."""
+    """Håndter søk etter AO-lokaliteter.
+    
+    Returns:
+        tuple: (sites_list, refreshed_auth_cookie_or_None)
+    """
     # Valider input
     try:
         lat = float(lat)
@@ -131,6 +135,9 @@ def handle_ao_sites_search(lat, lon, size_m=600.0, ao_mobile_base_url='https://m
         size_m = float(size_m) if size_m else 600.0
     except ValueError:
         raise ValueError('Ugyldig lat/lon/size')
+        
+    # Variabel for å holde styr på refreshed tokens
+    refreshed_auth_cookie = None
 
     # Beregn geografisk boks
     half_m = max(size_m, 1.0) / 2.0
@@ -160,6 +167,8 @@ def handle_ao_sites_search(lat, lon, size_m=600.0, ao_mobile_base_url='https://m
     ao_auth = auth_cookie or os.getenv('AO_AUTH_COOKIE')
     ao_user_id = user_id or os.getenv('AO_USER_ID')
 
+    print(f'AO-tokens debug: user_id={bool(user_id)}, login_token={bool(login_token)}, auth_cookie={bool(auth_cookie)}')
+    
     if ao_login and ao_auth and ao_user_id:
         try:
             # Normaliser AO_AUTH_COOKIE verdi
@@ -207,6 +216,16 @@ def handle_ao_sites_search(lat, lon, size_m=600.0, ao_mobile_base_url='https://m
                 method='POST'
             )
             with urlopen(geojson_req, timeout=10) as resp:
+                # Sjekk etter refreshed auth cookie
+                set_cookie_header = resp.headers.get('Set-Cookie', '')
+                if set_cookie_header and '.ASPXAUTHNO=' in set_cookie_header:
+                    # Parse ut ny .ASPXAUTHNO verdi
+                    import re
+                    match = re.search(r'\.ASPXAUTHNO=([^;]+)', set_cookie_header)
+                    if match:
+                        refreshed_auth_cookie = match.group(1)
+                        print(f'Fikk refreshed auth cookie fra GetSitesGeoJson')
+                
                 content_encoding = resp.headers.get('Content-Encoding', '')
                 raw_body = resp.read()
                 if content_encoding == 'gzip':
@@ -277,6 +296,16 @@ def handle_ao_sites_search(lat, lon, size_m=600.0, ao_mobile_base_url='https://m
 
     try:
         with urlopen(req, timeout=10) as resp:
+            # Sjekk etter refreshed auth cookie også her
+            if not refreshed_auth_cookie:  # Kun hvis ikke allerede satt
+                set_cookie_header = resp.headers.get('Set-Cookie', '')
+                if set_cookie_header and '.ASPXAUTHNO=' in set_cookie_header:
+                    import re
+                    match = re.search(r'\.ASPXAUTHNO=([^;]+)', set_cookie_header)
+                    if match:
+                        refreshed_auth_cookie = match.group(1)
+                        print(f'Fikk refreshed auth cookie fra ByBoundingBox')
+            
             body = resp.read().decode('utf-8', errors='ignore')
         data = json.loads(body)
 
@@ -407,7 +436,7 @@ def handle_ao_sites_search(lat, lon, size_m=600.0, ao_mobile_base_url='https://m
         except Exception:
             pass
 
-        return sites
+        return sites, refreshed_auth_cookie
     except Exception as e:
         print('Feil ved henting av AO-lokaliteter:', repr(e))
         raise
