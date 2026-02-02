@@ -268,15 +268,18 @@ class Handler(SimpleHTTPRequestHandler):
         login_token = self.headers.get('X-AO-Login-Token', '').strip() or None
         auth_cookie = self.headers.get('X-AO-Auth-Cookie', '').strip() or None
         
+        print(f'[DEBUG] ao-sites mottok auth: user_id={user_id is not None}, login_token={login_token is not None}, auth_cookie={auth_cookie is not None}', flush=True)
+        
         ao_mobile_base = os.environ.get(
             'AO_MOBILE_URL', 'https://mobil.artsobservasjoner.no'
         )
         try:
             sites, refreshed_auth_cookie = handle_ao_sites_search(lat_raw, lon_raw, size_raw, ao_mobile_base, user_id, login_token, auth_cookie)
             response_data = {'sites': sites}
+            print(f'[DEBUG] ao-sites refresh resultat: refreshed_auth_cookie={refreshed_auth_cookie is not None}', flush=True)
             if refreshed_auth_cookie:
                 response_data['refreshedAuthCookie'] = refreshed_auth_cookie
-                print(f'Sender refreshed auth cookie tilbake til frontend')
+                print(f'[DEBUG] Sender refreshed auth cookie tilbake til frontend (første 20 tegn): {refreshed_auth_cookie[:20]}...', flush=True)
             self._send_json(response_data)
         except ValueError as e:
             self._send_json({'error': str(e)}, status=400)
