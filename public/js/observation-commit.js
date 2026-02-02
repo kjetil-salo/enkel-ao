@@ -9,12 +9,26 @@ import { showToast } from './ui.js';
  * Hent timestamp for observasjon basert på modus
  * @returns {string} ISO timestamp
  */
+/**
+ * Formater Date til lokal ISO-lignende streng (YYYY-MM-DDTHH:MM:SS)
+ * som bevarer lokal tid ved parsing
+ */
+function toLocalISOString(date) {
+  const yyyy = date.getFullYear();
+  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  const dd = String(date.getDate()).padStart(2, '0');
+  const hh = String(date.getHours()).padStart(2, '0');
+  const mi = String(date.getMinutes()).padStart(2, '0');
+  const ss = String(date.getSeconds()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}T${hh}:${mi}:${ss}`;
+}
+
 function getObservationTimestamp() {
   const isAfterMode = localStorage.getItem('afterRegistrationMode') === '1';
 
   if (!isAfterMode) {
-    // Feltmodus: bruk nå
-    return new Date().toISOString();
+    // Feltmodus: bruk nå (lokal tid)
+    return toLocalISOString(new Date());
   }
 
   // Etterregistreringsmodus: bruk valgt dato/tid
@@ -33,11 +47,11 @@ function getObservationTimestamp() {
   const d = new Date(combined);
 
   if (isNaN(d.getTime())) {
-    // Ugyldig dato - fallback til nå
-    return new Date().toISOString();
+    // Ugyldig dato - fallback til nå (lokal tid)
+    return toLocalISOString(new Date());
   }
 
-  return d.toISOString();
+  return toLocalISOString(d);
 }
 
 function getObservationTimestampTo() {

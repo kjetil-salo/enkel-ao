@@ -103,12 +103,12 @@ export function setAoSiteSuggestions(sites, currentPosition, dropdown, aoSitesEl
   });
   
   withDist.sort((a, b) => {
-    // Mine lokaliteter først (⭐)
-    if ((a.isMine ? 1 : 0) !== (b.isMine ? 1 : 0)) return (b.isMine ? 1 : 0) - (a.isMine ? 1 : 0);
-    // Superlokasjon deretter
+    // Superlokasjon først
     if ((a.isSuper ? 1 : 0) !== (b.isSuper ? 1 : 0)) return (b.isSuper ? 1 : 0) - (a.isSuper ? 1 : 0);
     // Offentlig før privat
     if (isPrivateSite(a) !== isPrivateSite(b)) return isPrivateSite(a) - isPrivateSite(b);
+    // Mine lokaliteter (⭐) først blant private
+    if ((a.isMine ? 1 : 0) !== (b.isMine ? 1 : 0)) return (b.isMine ? 1 : 0) - (a.isMine ? 1 : 0);
     // Nærmest først
     if (a._distance != null && b._distance != null) return a._distance - b._distance;
     return 0;

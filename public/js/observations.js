@@ -6,6 +6,20 @@ import { defaultCoObservers, loadMedobs } from './storage.js';
 import { showToast } from './ui.js';
 
 /**
+ * Formater Date til lokal ISO-lignende streng (YYYY-MM-DDTHH:MM:SS)
+ * som bevarer lokal tid ved parsing
+ */
+function toLocalISOString(date) {
+  const yyyy = date.getFullYear();
+  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  const dd = String(date.getDate()).padStart(2, '0');
+  const hh = String(date.getHours()).padStart(2, '0');
+  const mi = String(date.getMinutes()).padStart(2, '0');
+  const ss = String(date.getSeconds()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}T${hh}:${mi}:${ss}`;
+}
+
+/**
  * Render observasjoner i tabellvisning
  * @param {Array} observations - Liste med observasjoner
  * @param {HTMLElement} obsListEl - Container-element
@@ -139,7 +153,7 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
             } else {
               obs.count = 1;
             }
-            obs.tilKlokkeslett = new Date().toISOString();
+            obs.tilKlokkeslett = toLocalISOString(new Date());
             saveState();
             renderObservations(observations, obsListEl, buttons, saveState);
           });
@@ -156,7 +170,7 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
           e.stopPropagation();
           if (obs.count > 1) {
             obs.count--;
-            obs.tilKlokkeslett = new Date().toISOString();
+            obs.tilKlokkeslett = toLocalISOString(new Date());
             saveState();
             renderObservations(observations, obsListEl, buttons, saveState);
           }
@@ -188,7 +202,7 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
         plusBtn.addEventListener('click', (e) => {
           e.stopPropagation();
           obs.count++;
-          obs.tilKlokkeslett = new Date().toISOString();
+          obs.tilKlokkeslett = toLocalISOString(new Date());
           saveState();
           renderObservations(observations, obsListEl, buttons, saveState);
         });
@@ -205,7 +219,7 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
           plus10Btn.addEventListener('click', (e) => {
             e.stopPropagation();
             obs.count += 10;
-            obs.tilKlokkeslett = new Date().toISOString();
+            obs.tilKlokkeslett = toLocalISOString(new Date());
             saveState();
             renderObservations(observations, obsListEl, buttons, saveState);
           });
@@ -240,7 +254,7 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
             return;
           }
           obs.count = num;
-          obs.tilKlokkeslett = new Date().toISOString();
+          obs.tilKlokkeslett = toLocalISOString(new Date());
           saveState();
           renderObservations(observations, obsListEl, buttons, saveState);
         }
