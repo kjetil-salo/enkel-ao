@@ -202,8 +202,9 @@ def handle_ao_sites_search(lat, lon, size_m=600.0, ao_mobile_base_url='https://m
                 return x, y
 
             center_x, center_y = lat_lon_to_mercator(lat, lon)
-            # Bbox ca 200m rundt sentrum (tilpasset zoom 16) - bruk heltall
-            half_size = 100
+            # Bbox rundt sentrum - bruk samme radius som søket (size_m)
+            # size_m er i meter, og Web Mercator er også i meter, så vi kan bruke det direkte
+            half_size = max(size_m / 2, 100)  # Minimum 100m, ellers halve søkeradiusen
             bbox_str = f'{int(center_x - half_size)},{int(center_y - half_size)},{int(center_x + half_size)},{int(center_y + half_size)}'
 
             # Cookie-streng - inkluder CSRF token hvis vi har den
