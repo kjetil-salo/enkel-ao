@@ -217,61 +217,30 @@ def handle_ao_sites_search(lat, lon, size_m=600.0, ao_mobile_base_url='https://m
                 'bbox': bbox_str,
                 'userId': int(ao_user_id),
                 'coordSyst': 0,
-                'speciesGroupId': '8',
+                'speciesGroupId': '0',  # Alle artsgrupper, ikke bare fugler
                 'taxonId': None
-            }).encode('utf-8')
+            })
 
-            # Enklere headers - fungerte før debugging-endringene
-            request_headers = {
-                'User-Agent': 'Mozilla/5.0',
-                'Accept': 'application/json',
-                'Content-Type': 'application/json; charset=UTF-8',
-                'X-Requested-With': 'XMLHttpRequest',
-                'Origin': 'https://www.artsobservasjoner.no',
-                'Referer': 'https://www.artsobservasjoner.no/SubmitSighting/Report',
-                'Cookie': cookies,
-            }
             print(f'[DEBUG] GetSitesGeoJson POST to {geojson_url}', flush=True)
             print(f'[DEBUG] GetSitesGeoJson bbox: {bbox_str}', flush=True)
             
-            geojson_req = Request(
+            # Bruk curl subprocess (urllib gir tom respons, curl fungerer)
+            import subprocess
+            curl_result = subprocess.run([
+                'curl', '--compressed', '-s',
                 geojson_url,
-                data=post_data,
-                headers=request_headers,
-                method='POST'
-            )
-            with urlopen(geojson_req, timeout=10) as resp:
-                print(f'[DEBUG] GetSitesGeoJson HTTP status: {resp.status}', flush=True)
-                print(f'[DEBUG] GetSitesGeoJson Content-Type: {resp.headers.get("Content-Type", "N/A")}', flush=True)
-                # Sjekk etter refreshed auth cookie
-                try:
-                    set_cookie_header = resp.headers.get('Set-Cookie', '')
-                    if set_cookie_header and '.ASPXAUTHNO=' in set_cookie_header:
-                        # Parse ut ny .ASPXAUTHNO verdi
-                        import re
-                        match = re.search(r'\.ASPXAUTHNO=([^;]+)', set_cookie_header)
-                        if match:
-                            refreshed_auth_cookie = match.group(1)
-                            print(f'Fikk refreshed auth cookie fra GetSitesGeoJson')
-                except Exception as cookie_err:
-                    print(f'Feil ved parsing av Set-Cookie: {cookie_err}')
-                
-                content_encoding = resp.headers.get('Content-Encoding', '')
-                raw_body = resp.read()
-                print(f'[DEBUG] GetSitesGeoJson raw_body length: {len(raw_body)}, encoding: {content_encoding}', flush=True)
-                if content_encoding == 'gzip':
-                    import gzip
-                    body = gzip.decompress(raw_body).decode('utf-8', errors='ignore')
-                elif content_encoding == 'br':
-                    # Brotli-komprimering krever brotli-bibliotek
-                    try:
-                        import brotli
-                        body = brotli.decompress(raw_body).decode('utf-8', errors='ignore')
-                    except ImportError:
-                        body = raw_body.decode('utf-8', errors='ignore')
-                else:
-                    body = raw_body.decode('utf-8', errors='ignore')
+                '-X', 'POST',
+                '-H', 'User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:147.0) Gecko/20100101 Firefox/147.0',
+                '-H', 'Accept: */*',
+                '-H', 'Content-Type: application/json; charset=UTF-8',
+                '-H', 'X-Requested-With: XMLHttpRequest',
+                '-H', 'Origin: https://www.artsobservasjoner.no',
+                '-H', 'Referer: https://www.artsobservasjoner.no/SubmitSighting/Report',
+                '-H', f'Cookie: {cookies}',
+                '-d', post_data
+            ], capture_output=True, text=True, timeout=15)
             
+            body = curl_result.stdout
             print(f'[DEBUG] GetSitesGeoJson body length: {len(body)}, first 500: {repr(body[:500])}', flush=True)
             geojson_data = json.loads(body) if body else None
             print(f'[DEBUG] GetSitesGeoJson parsed keys: {list(geojson_data.keys()) if isinstance(geojson_data, dict) else type(geojson_data)}', flush=True)
