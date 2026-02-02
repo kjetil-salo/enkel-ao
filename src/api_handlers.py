@@ -169,7 +169,7 @@ def handle_ao_sites_search(lat, lon, size_m=600.0, ao_mobile_base_url='https://m
     ao_auth = auth_cookie or os.getenv('AO_AUTH_COOKIE')
     ao_user_id = user_id or os.getenv('AO_USER_ID')
 
-    print(f'[DEBUG] AO-tokens final: user_id={bool(ao_user_id)}, login_token={bool(ao_login)}, auth_cookie={bool(ao_auth)}', flush=True)
+    print(f'[DEBUG] AO-tokens final: user_id={ao_user_id}, login_token={ao_login[:20] if ao_login else None}..., auth_cookie={ao_auth[:30] if ao_auth else None}...', flush=True)
     
     if ao_login and ao_auth and ao_user_id:
         try:
