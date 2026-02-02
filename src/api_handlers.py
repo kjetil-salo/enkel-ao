@@ -225,9 +225,10 @@ def handle_ao_sites_search(lat, lon, size_m=600.0, ao_mobile_base_url='https://m
             print(f'[DEBUG] GetSitesGeoJson bbox: {bbox_str}', flush=True)
             
             # Bruk curl subprocess (urllib gir tom respons, curl fungerer)
+            # Legg til -i for å få response headers med
             import subprocess
             curl_result = subprocess.run([
-                'curl', '--compressed', '-s',
+                'curl', '--compressed', '-s', '-i',  # -i gir response headers
                 geojson_url,
                 '-X', 'POST',
                 '-H', 'User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:147.0) Gecko/20100101 Firefox/147.0',
@@ -240,7 +241,27 @@ def handle_ao_sites_search(lat, lon, size_m=600.0, ao_mobile_base_url='https://m
                 '-d', post_data
             ], capture_output=True, text=True, timeout=15)
             
-            body = curl_result.stdout
+            full_response = curl_result.stdout
+            # Split headers fra body (dobbel newline skiller)
+            if '\r\n\r\n' in full_response:
+                headers_part, body = full_response.split('\r\n\r\n', 1)
+            elif '\n\n' in full_response:
+                headers_part, body = full_response.split('\n\n', 1)
+            else:
+                headers_part, body = '', full_response
+            
+            # Parse Set-Cookie header for refreshed auth token
+            if not refreshed_auth_cookie and 'Set-Cookie:' in headers_part:
+                try:
+                    import re
+                    # Finn .ASPXAUTHNO cookie value
+                    cookie_match = re.search(r'Set-Cookie:.*\.ASPXAUTHNO=([^;\r\n]+)', headers_part, re.IGNORECASE)
+                    if cookie_match:
+                        refreshed_auth_cookie = cookie_match.group(1)
+                        print(f'[DEBUG] GetSitesGeoJson: Fant refreshed auth cookie', flush=True)
+                except Exception as cookie_err:
+                    print(f'[DEBUG] GetSitesGeoJson: Feil ved parsing av Set-Cookie: {cookie_err}', flush=True)
+            
             print(f'[DEBUG] GetSitesGeoJson body length: {len(body)}, first 500: {repr(body[:500])}', flush=True)
             geojson_data = json.loads(body) if body else None
             print(f'[DEBUG] GetSitesGeoJson parsed keys: {list(geojson_data.keys()) if isinstance(geojson_data, dict) else type(geojson_data)}', flush=True)
