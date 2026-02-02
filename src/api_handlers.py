@@ -12,6 +12,9 @@ from html import unescape
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
+# Import for å hente CSRF tokens
+from src.ao_import_curl import fetch_csrf_tokens
+
 
 def handle_species_search(search_term, dont_include_sub='true', ao_base_url='https://www.artsobservasjoner.no'):
     """Håndter søk etter arter via Artsobservasjoner.no."""
@@ -178,6 +181,19 @@ def handle_ao_sites_search(lat, lon, size_m=600.0, ao_mobile_base_url='https://m
             if auth_val.startswith('.ASPXAUTHNO='):
                 auth_val = auth_val.split('=', 1)[1]
 
+            # Hent CSRF token fra AO (samme strategi som ao_import)
+            try:
+                _, csrf_cookie_token, refreshed = fetch_csrf_tokens(ao_login, auth_val)
+                print(f'[DEBUG] GetSitesGeoJson: Hentet CSRF token: {csrf_cookie_token[:30] if csrf_cookie_token else None}...', flush=True)
+                # Bruk eventuell refreshed auth cookie
+                if refreshed:
+                    auth_val = refreshed
+                    refreshed_auth_cookie = refreshed
+                    print(f'[DEBUG] GetSitesGeoJson: Bruker refreshed auth cookie', flush=True)
+            except Exception as csrf_err:
+                print(f'[DEBUG] GetSitesGeoJson: Kunne ikke hente CSRF token: {csrf_err}', flush=True)
+                csrf_cookie_token = None
+
             # Konverter lat/lon til Web Mercator (EPSG:3857) for bbox
             def lat_lon_to_mercator(lat, lon):
                 x = lon * 20037508.34 / 180
@@ -190,8 +206,10 @@ def handle_ao_sites_search(lat, lon, size_m=600.0, ao_mobile_base_url='https://m
             half_size = 100
             bbox_str = f'{int(center_x - half_size)},{int(center_y - half_size)},{int(center_x + half_size)},{int(center_y + half_size)}'
 
-            # Cookie-streng - kun det nødvendige
+            # Cookie-streng - inkluder CSRF token hvis vi har den
             cookies = f'AcceptCookies=1; .ASPXAUTHNO={auth_val}; logintoken={ao_login}'
+            if csrf_cookie_token:
+                cookies += f'; __RequestVerificationToken={csrf_cookie_token}'
             
             geojson_url = 'https://www.artsobservasjoner.no/Map/GetSitesGeoJson'
             post_data = json.dumps({
