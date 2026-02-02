@@ -245,6 +245,7 @@ def handle_ao_sites_search(lat, lon, size_m=600.0, ao_mobile_base_url='https://m
                 else:
                     body = raw_body.decode('utf-8', errors='ignore')
 
+            print(f'[DEBUG] GetSitesGeoJson response: {body[:200]}...')  # Print første 200 tegn
             geojson_data = json.loads(body) if body else None
 
             # GetSitesGeoJson returnerer { points: { features: [...] }, polygons: {...} }
