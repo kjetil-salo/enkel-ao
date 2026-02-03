@@ -329,38 +329,35 @@
           </div>
           <div class="config-content" id="config-content">
             <p style="font-size: 0.85rem; color: var(--muted); margin-bottom: 12px;">
-              .ASPXAUTHNO utløper etter noen timer. Klikk knappen under, logg inn om nødvendig, og hent fersk cookie.
+              Logg inn på AO med «Husk meg» avkrysset, og kopier logintoken. Den varer i ca. 1 år.
             </p>
             <a href="https://www.artsobservasjoner.no/ImportSighting" target="_blank"
                style="display:inline-block;padding:8px 16px;background:var(--accent);color:white;border-radius:6px;text-decoration:none;font-size:0.9rem;margin-bottom:16px;">
               🔗 Åpne AO ImportSighting
             </a>
             <p style="font-size: 0.8rem; color: var(--muted); margin-bottom: 16px;">
-              På PC: F12 → Network → refresh → Cookie header<br>
-              På mobil: Bruk delt utklippstavle fra PC
+              På PC: F12 → Application → Cookies → kopier «logintoken»<br>
+              (Du trenger IKKE .ASPXAUTHNO - den hentes automatisk!)
             </p>
 
             <div class="token-field">
-              <label for="login-token">logintoken</label>
-              <input type="text" id="login-token" placeholder="282144:443cdde8e30ed..." />
-            </div>
 
-            <div class="token-field">
-              <label for="auth-cookie">.ASPXAUTHNO</label>
-              <input type="text" id="auth-cookie" placeholder="4B554153280E76AC0B1B..." />
+              <label for="login-token">logintoken (varer 1 år)</label>
+              <input type="text" id="login-token" placeholder="290628:1b468755c0676437..." />
             </div>
-
+            <div class="token-field" id="auth-cookie-field">
+              <label for="auth-cookie">.ASPXAUTHNO (auth cookie)</label>
+              <input type="text" id="auth-cookie" placeholder="Hentes automatisk fra logintoken" />
+            </div>
             <div class="token-field">
-              <label for="ao-user-id">Din bruker-ID (valgfritt)</label>
-              <input type="number" id="ao-user-id" placeholder="F.eks. 15969" />
-              <p style="font-size: 0.75rem; color: var(--muted); margin: 4px 0 0 0;">
-                Finner du på din profilside. Gjør at dine private lokasjoner vises øverst (⭐).
-              </p>
+              <label for="ao-user-id">Din bruker-ID</label>
+              <input type="number" id="ao-user-id" placeholder="Ekstraheres automatisk" />
             </div>
 
             <div style="display: flex; gap: 8px;">
-              <button class="btn btn-small" id="save-tokens">💾 Lagre tokens</button>
+              <button class="btn btn-small" id="save-tokens">💾 Lagre token</button>
               <button class="btn btn-small" id="test-tokens" style="background: var(--orange);">🧪 Test</button>
+              <button class="btn btn-small" id="show-advanced" style="background: transparent; border: 1px solid var(--border); font-size: 0.75rem;">⚙️</button>
             </div>
 
             <div class="token-status" id="token-status" style="display: none;"></div>
@@ -494,6 +491,8 @@
       const aoUserIdInput = document.getElementById('ao-user-id');
       const saveTokensBtn = document.getElementById('save-tokens');
       const testTokensBtn = document.getElementById('test-tokens');
+      const showAdvancedBtn = document.getElementById('show-advanced');
+      const authCookieField = document.getElementById('auth-cookie-field');
       const tokenStatus = document.getElementById('token-status');
 
       // Load saved tokens
@@ -508,47 +507,53 @@
         configArrow.classList.toggle('open');
       });
 
-      // Save tokens
+      // Show advanced options (for bakoverkompatibilitet)
+      if (showAdvancedBtn) {
+        showAdvancedBtn.addEventListener('click', () => {
+          authCookieField.style.display = authCookieField.style.display === 'none' ? 'block' : 'none';
+        });
+      }
+
+      // Save tokens - kun manuell userId
       saveTokensBtn.addEventListener('click', () => {
+        const loginToken = loginTokenInput.value.trim();
         const tokens = {
-          loginToken: loginTokenInput.value.trim(),
+          loginToken: loginToken,
           authCookie: authCookieInput.value.trim(),
           userId: aoUserIdInput.value.trim(),
         };
         localStorage.setItem('ao_tokens', JSON.stringify(tokens));
         tokenStatus.style.display = 'block';
         tokenStatus.className = 'token-status valid';
-        tokenStatus.textContent = '✅ Tokens lagret lokalt';
-        setTimeout(() => { tokenStatus.style.display = 'none'; }, 3000);
+        tokenStatus.textContent = tokens.userId
+          ? `✅ Token lagret for bruker ${tokens.userId}. Varer ca. 1 år!`
+          : '✅ Token lagret lokalt';
+        setTimeout(() => { tokenStatus.style.display = 'none'; }, 4000);
       });
 
-      // Test tokens (just validates format)
+      // Test tokens - nå kun loginToken
       testTokensBtn.addEventListener('click', () => {
         const loginToken = loginTokenInput.value.trim();
-        const authCookie = authCookieInput.value.trim();
 
         tokenStatus.style.display = 'block';
 
-        if (!loginToken || !authCookie) {
+        if (!loginToken) {
           tokenStatus.className = 'token-status invalid';
-          tokenStatus.textContent = '❌ Begge tokens må fylles ut';
+          tokenStatus.textContent = '❌ logintoken må fylles ut';
           return;
         }
 
         if (!loginToken.includes(':') || loginToken.length < 20) {
           tokenStatus.className = 'token-status invalid';
-          tokenStatus.textContent = '❌ logintoken ser feil ut (forventet format: 123456:abc...)';
+          tokenStatus.textContent = '❌ logintoken ser feil ut (forventet format: 290628:abc123...)';
           return;
         }
 
-        if (authCookie.length < 50) {
-          tokenStatus.className = 'token-status invalid';
-          tokenStatus.textContent = '❌ .ASPXAUTHNO ser for kort ut';
-          return;
-        }
-
+        // Ekstraher og vis userId
+        const userId = loginToken.split(':')[0];
+        
         tokenStatus.className = 'token-status valid';
-        tokenStatus.textContent = '✅ Format OK! Klikk "Lagre tokens" for å aktivere.';
+        tokenStatus.textContent = `✅ Format OK! Bruker-ID: ${userId}. Klikk "Lagre token" for å aktivere.`;
       });
     </script>
   </body>

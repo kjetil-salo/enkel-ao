@@ -2,13 +2,47 @@
 
 Dokumentasjon av API-endepunkter funnet på `mobil.artsobservasjoner.no`.
 
-**Dato:** 2026-01-21
+**Dato:** 2026-01-21  
+**Oppdatert:** 2026-02-02
 
 ## Oversikt
 
 Mobilversjonen av Artsobservasjoner er en Angular SPA som kommuniserer med et Core API på `/core/`-stien. API-et krever spesifikke headers for å fungere.
 
-## Teknisk stack (frontend)
+### Viktig bakgrunn: To separate systemer
+
+Artsobservasjoner.no består av **to helt separate systemer** med forskjellig teknologi:
+
+| System | URL | Teknologi | Alder/Status |
+|--------|-----|-----------|--------------|
+| **Desktop/Hovedside** | `www.artsobservasjoner.no` | ASP.NET MVC 5.2 på IIS 10.0 | Eldre, primært system |
+| **Mobilversjon** | `mobil.artsobservasjoner.no` | ASP.NET Core på IIS 10.0 + Angular SPA | Nyere, halvhjertet implementering |
+
+**Viktige observasjoner:**
+- Mobilversjonen ble sannsynligvis laget lenge etter desktop-versjonen som et separat prosjekt
+- De to systemene deler autentisering (`.ASPXAUTHNO` cookies fungerer på begge)
+- Desktop-versjonen har flere funksjoner og er "kilden til sannhet"
+- Mobilversjonen mangler Swagger-dokumentasjon (404 på `/core/swagger/`)
+- Mobilversjonens API returnerer `application/problem+json` for feil (ASP.NET Core-stil)
+
+### Response headers som avslører teknologi
+
+**www.artsobservasjoner.no (desktop):**
+```http
+x-aspnetmvc-version: 5.2
+x-aspnet-version: 4.0.30319
+x-powered-by: ASP.NET
+server: Microsoft-IIS/10.0
+```
+
+**mobil.artsobservasjoner.no:**
+```http
+server: Microsoft-IIS/10.0
+x-powered-by: ASP.NET
+content-type: application/problem+json; charset=utf-8  (for feil)
+```
+
+## Teknisk stack (frontend - mobil)
 
 | Komponent | Teknologi |
 |-----------|-----------|
@@ -50,13 +84,46 @@ Referer: https://mobil.artsobservasjoner.no/contribute/submit-sightings
 
 **Respons-felter (per site):**
 
-- `id` / `Id` / `siteId` - Lokalitets-ID
-- `name` / `Name` / `siteName` - Navn
-- `lat` / `latitude` - Breddegrad
-- `lon` / `longitude` - Lengdegrad
-- `parentSiteId` / `parentId` - Foreldre-ID (for underlokaliteter)
-- `isSuper` / `isSuperSite` - Om dette er en superlokasjon
-- `siteType` / `type` - Type lokalitet
+- `id` - Lokalitets-ID (int)
+- `name` - Navn på lokaliteten
+- `presentationName` - Fullt navn inkl. kommune/fylke
+- `latitude` / `longitude` - Koordinater
+- `isPrivate` - **Se viktig merknad under!**
+- `accuracy` - Nøyaktighet i meter
+- `municipalityName` - Kommune
+- `countyName` - Fylke
+- `parentSiteId` - Foreldre-ID (for underlokaliteter, null for toppnivå)
+- `isPolygon` - Om lokaliteten er definert som polygon
+- `polygonCoordinates` - Array av koordinatpar hvis polygon
+
+### Viktig om `isPrivate`-feltet
+
+`isPrivate: true` betyr **IKKE** at lokaliteten tilhører innlogget bruker!
+
+| `isPrivate` | Betydning |
+|-------------|-----------|
+| `true` | Lokaliteten ble opprettet av en bruker (personlig lokalitet) |
+| `false` | Offentlig/delt lokalitet (f.eks. naturreservater, kjente fuglelokaliteter) |
+
+**For å identifisere brukerens egne lokaliteter** må man bruke desktop-API-et (`GetSitesGeoJson`) med autentisering. Se [ao-token-autentisering.md](ao-token-autentisering.md).
+
+**Eksempel-respons:**
+```json
+{
+  "id": 253660,
+  "name": "Indre Hordvik",
+  "presentationName": "Indre Hordvik, Bergen, Ve",
+  "longitude": 5.31568188,
+  "latitude": 60.51590884,
+  "isPrivate": true,
+  "accuracy": 61,
+  "municipalityName": "Bergen",
+  "countyName": "Vestland",
+  "parentSiteId": null,
+  "isPolygon": true,
+  "polygonCoordinates": [[5.316, 60.516], ...]
+}
+```
 
 **Eksempel:**
 

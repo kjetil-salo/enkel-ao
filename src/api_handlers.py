@@ -8,12 +8,132 @@ import json
 import math
 import re
 import os
+import subprocess
+import time
 from html import unescape
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
 # Import for å hente CSRF tokens
 from src.ao_import_curl import fetch_csrf_tokens
+
+
+
+# Cache for auth cookies (logintoken -> (auth_cookie, timestamp))
+_auth_cache = {}
+_AUTH_CACHE_TTL = 300  # 5 minutter
+
+# Sliding expiration cache for AO auth cookie (bruker-id -> (cookie, last_refresh_ts))
+_ao_cookie_refresh_cache = {}
+_AO_COOKIE_REFRESH_INTERVAL = 600  # 10 minutter
+
+def refresh_ao_cookie_if_needed(auth_cookie: str, user_id: str) -> str:
+    """
+    Sørger for at .ASPXAUTHNO holdes i live ved å treffe en AO-side hvis det er >10 min siden sist.
+    Returnerer evt. ny auth-cookie hvis sliding expiration trigges, ellers None.
+    """
+    global _ao_cookie_refresh_cache
+    now = time.time()
+    cache_key = f'{user_id}:{auth_cookie[:16]}'
+    last_entry = _ao_cookie_refresh_cache.get(cache_key)
+    if last_entry and now - last_entry[1] < _AO_COOKIE_REFRESH_INTERVAL:
+        print(f'[AO-COOKIE-REFRESH] Skipper refresh: sist oppdatert for {int(now - last_entry[1])} sekunder siden.', flush=True)
+        return None
+    # Treff AO-side for sliding expiration
+    probe_url = 'https://www.artsobservasjoner.no/Observations'
+    print(f'[AO-COOKIE-REFRESH] Prober AO-side for sliding expiration: {probe_url}', flush=True)
+    try:
+        result = subprocess.run([
+            'curl', '-i', '-s',
+            probe_url,
+            '-H', f'Cookie: .ASPXAUTHNO={auth_cookie}',
+            '-H', 'User-Agent: Mozilla/5.0 (compatible; Fugleobservasjoner/1.0)'
+        ], capture_output=True, text=True, timeout=10)
+        found_set_cookie = False
+        for line in result.stdout.split('\n'):
+            if 'set-cookie' in line.lower():
+                print(f'[AO-COOKIE-REFRESH] Set-Cookie header funnet: {line.strip()}', flush=True)
+            if '.ASPXAUTHNO=' in line and 'set-cookie' in line.lower():
+                found_set_cookie = True
+                match = re.search(r'\.ASPXAUTHNO=([^;\s]+)', line, re.IGNORECASE)
+                if match:
+                    refreshed = match.group(1)
+                    _ao_cookie_refresh_cache[cache_key] = (refreshed, now)
+                    print(f'\n######################### TOKEN FORNYET #########################', flush=True)
+                    print(f'[AO-COOKIE-REFRESH] Sliding expiration: fikk ny auth-cookie: {refreshed[:20]}...', flush=True)
+                    print(f'###############################################################\n', flush=True)
+                    return refreshed
+        if not found_set_cookie:
+            print(f'[AO-COOKIE-REFRESH] Ingen Set-Cookie header med .ASPXAUTHNO funnet i responsen.', flush=True)
+        # Ingen ny cookie, men oppdater timestamp for sliding expiration
+        _ao_cookie_refresh_cache[cache_key] = (auth_cookie, now)
+        print(f'[AO-COOKIE-REFRESH] Sliding expiration: ingen ny cookie, men refresh-tid oppdatert', flush=True)
+        return None
+    except Exception as e:
+        print(f'[AO-COOKIE-REFRESH] Feil ved sliding expiration refresh: {e}', flush=True)
+        return None
+
+
+def get_fresh_auth_cookie(logintoken: str) -> tuple:
+    """
+    Hent fersk .ASPXAUTHNO og userId fra logintoken.
+    
+    Bruker AOs automatiske re-autentisering: når man sender kun logintoken
+    til en beskyttet side, returnerer AO en ny .ASPXAUTHNO i Set-Cookie.
+    
+    Args:
+        logintoken: Komplett logintoken, f.eks. "290628:abc123..."
+        
+    Returns:
+        tuple: (auth_cookie, user_id) - f.eks. ('.ASPXAUTHNO=abc...', '290628')
+        
+    Raises:
+        ValueError: Hvis logintoken er ugyldig eller utløpt
+    """
+    if not logintoken or ':' not in logintoken:
+        raise ValueError('Ugyldig logintoken format (forventet userId:hash)')
+    
+    # Sjekk cache først
+    if logintoken in _auth_cache:
+        cached_auth, cached_ts = _auth_cache[logintoken]
+        if time.time() - cached_ts < _AUTH_CACHE_TTL:
+            user_id = logintoken.split(':')[0]
+            print(f'[AUTH] Bruker cached auth cookie for user {user_id}', flush=True)
+            return (cached_auth, user_id)
+    
+    # userId er første del av logintoken (før kolon)
+    user_id = logintoken.split(':')[0]
+    
+    print(f'[AUTH] Henter fersk .ASPXAUTHNO for user {user_id}...', flush=True)
+    
+    # Send request til /LogOn med kun logintoken - følg redirects
+    result = subprocess.run([
+        'curl', '-i', '-s', '-L',
+        'https://www.artsobservasjoner.no/LogOn',
+        '-H', f'Cookie: logintoken={logintoken}; logintoken_ssl=1',
+        '-H', 'User-Agent: Fugleobservasjoner/1.0 (https://enkel-ao.fly.dev)'
+    ], capture_output=True, text=True, timeout=15)
+    
+    # Parse Set-Cookie for .ASPXAUTHNO
+    auth_cookie = None
+    for line in result.stdout.split('\n'):
+        if '.ASPXAUTHNO=' in line.lower() and 'set-cookie' in line.lower():
+            match = re.search(r'\.ASPXAUTHNO=([^;\s]+)', line, re.IGNORECASE)
+            if match:
+                auth_cookie = f'.ASPXAUTHNO={match.group(1)}'
+                break
+    
+    if not auth_cookie:
+        # Prøv å finne feilen
+        if 'LogOn' in result.stdout and 'UserName' in result.stdout:
+            raise ValueError('logintoken er utløpt - vennligst logg inn på nytt')
+        raise ValueError('Kunne ikke hente .ASPXAUTHNO fra logintoken')
+    
+    # Lagre i cache
+    _auth_cache[logintoken] = (auth_cookie, time.time())
+    
+    print(f'[AUTH] Hentet fersk auth cookie for user {user_id}', flush=True)
+    return (auth_cookie, user_id)
 
 
 def handle_species_search(search_term, dont_include_sub='true', ao_base_url='https://www.artsobservasjoner.no'):
@@ -141,6 +261,14 @@ def handle_ao_sites_search(lat, lon, size_m=600.0, ao_mobile_base_url='https://m
         
     # Variabel for å holde styr på refreshed tokens
     refreshed_auth_cookie = None
+    # Sliding expiration: prøv å holde auth_cookie i live hvis mulig
+    ao_user_id = user_id or (login_token.split(':')[0] if login_token and ':' in login_token else None)
+    ao_auth = auth_cookie or os.getenv('AO_AUTH_COOKIE')
+    if ao_auth and ao_user_id:
+        refreshed = refresh_ao_cookie_if_needed(ao_auth, ao_user_id)
+        if refreshed:
+            ao_auth = refreshed
+            refreshed_auth_cookie = refreshed
 
     # Beregn geografisk boks
     half_m = max(size_m, 1.0) / 2.0
@@ -169,8 +297,18 @@ def handle_ao_sites_search(lat, lon, size_m=600.0, ao_mobile_base_url='https://m
     # --- KALL 1: Hent brukerens lokasjoner via GetSitesGeoJson ---
     # Bruker samme bbox for å finne brukerens egne sites i området
     ao_login = login_token or os.getenv('AO_LOGIN_TOKEN')
-    ao_auth = auth_cookie or os.getenv('AO_AUTH_COOKIE')
-    ao_user_id = user_id or os.getenv('AO_USER_ID')
+    # (ao_auth og ao_user_id er allerede satt over)
+    # NY: Hvis vi har loginToken men mangler auth_cookie, hent den automatisk
+    if ao_login and not ao_auth:
+        try:
+            fresh_auth, extracted_user_id = get_fresh_auth_cookie(ao_login)
+            ao_auth = fresh_auth
+            if not ao_user_id:
+                ao_user_id = extracted_user_id
+            print(f'[DEBUG] Hentet fersk auth cookie automatisk for user {ao_user_id}', flush=True)
+        except ValueError as e:
+            print(f'[DEBUG] Kunne ikke hente auth cookie: {e}', flush=True)
+            ao_auth = None
 
     print(f'[DEBUG] AO-tokens final: user_id={ao_user_id}, login_token={ao_login[:20] if ao_login else None}..., auth_cookie={ao_auth[:30] if ao_auth else None}...', flush=True)
     
@@ -193,6 +331,10 @@ def handle_ao_sites_search(lat, lon, size_m=600.0, ao_mobile_base_url='https://m
             except Exception as csrf_err:
                 print(f'[DEBUG] GetSitesGeoJson: Kunne ikke hente CSRF token: {csrf_err}', flush=True)
                 csrf_cookie_token = None
+
+            # Fallback: Hvis AO svarer med auth-feil, prøv sliding expiration refresh én gang
+            # (NB: AO returnerer ikke alltid tydelig feilkode, så dette må evt. utvides)
+            # Kan utvides med ekstra logikk hvis behov
 
             # Konverter lat/lon til Web Mercator (EPSG:3857) for bbox
             def lat_lon_to_mercator(lat, lon):

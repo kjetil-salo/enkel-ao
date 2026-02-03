@@ -264,9 +264,17 @@ class Handler(SimpleHTTPRequestHandler):
         size_raw = params.get('size', ['600'])[0].strip()
         
         # Hent bruker-auth fra headers (sendt fra frontend)
-        user_id = self.headers.get('X-AO-User-Id', '').strip() or None
+        # Ny enkel måte: kun loginToken trengs (userId ekstraheres, authCookie hentes automatisk)
         login_token = self.headers.get('X-AO-Login-Token', '').strip() or None
+        
+        # Bakoverkompatibilitet: godta fortsatt separate verdier
+        user_id = self.headers.get('X-AO-User-Id', '').strip() or None
         auth_cookie = self.headers.get('X-AO-Auth-Cookie', '').strip() or None
+        
+        # Hvis vi har loginToken men ikke user_id, ekstraher fra loginToken
+        if login_token and not user_id and ':' in login_token:
+            user_id = login_token.split(':')[0]
+            print(f'[DEBUG] Ekstraherte user_id={user_id} fra loginToken', flush=True)
         
         print(f'[DEBUG] ao-sites mottok auth: user_id={user_id is not None}, login_token={login_token is not None}, auth_cookie={auth_cookie is not None}', flush=True)
         
