@@ -11,6 +11,7 @@ if (!mapData) {
 
 const data = JSON.parse(mapData);
 const { userPosition, sites } = data;
+console.log('mapData sites-array:', sites);
 
 if (!userPosition || !userPosition.lat || !userPosition.lon) {
   document.body.innerHTML = '<div style="padding: 20px; color: white;">Ugyldig posisjon. <a href="/" style="color: #3b82f6;">Gå tilbake</a></div>';
@@ -47,39 +48,65 @@ const bounds = L.latLngBounds([[userPosition.lat, userPosition.lon]]);
 // Filtrer og legg til AO-lokaliteter
 let siteCount = 0;
 if (sites && Array.isArray(sites)) {
+  // Logging: vis alle sites med isMine=true
+  const mineSites = sites.filter(s => s.isMine);
+  if (mineSites.length > 0) {
+    console.log('Mine lokasjoner (isMine=true):', mineSites.map(s => ({ name: s.name, id: s.id, lat: s.lat, lon: s.lon })));
+  } else {
+    console.log('Ingen egne lokasjoner (isMine=true) funnet i sites-array.');
+  }
+
   sites.forEach(site => {
-    // Sjekk om site er privat - private vises kun i dropdown, ikke i kart
+    // Sjekk om site er privat
     const isPrivate = isPrivateSite(site);
-    if (isPrivate) {
-      return; // Hopp over private i kartet (sparer CPU/minne, brukeren vet hvor egne lokaliteter er)
+    // Private lokasjoner vises på kartet hvis de er mine
+    if (isPrivate && !site.isMine) {
+      return; // Hopp over private som ikke er mine
     }
 
     const lat = parseFloat(site.lat);
     const lon = parseFloat(site.lon);
-
     if (isNaN(lat) || isNaN(lon)) {
       return;
     }
 
-    // Velg farge basert på om det er superlokasjon
-    const iconUrl = site.isSuper
-      ? 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-orange.png'
-      : 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png';
-
-    const marker = L.marker([lat, lon], {
-      icon: L.icon({
-        iconUrl: iconUrl,
-        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
-        iconSize: [25, 41],
-        iconAnchor: [12, 41],
-        popupAnchor: [1, -34],
-        shadowSize: [41, 41]
-      })
-    }).addTo(map);
+    // Marker-type: superlokasjon (oransje), egen (gul), offentlig (grønn)
+    let marker;
+    if (site.isMine) {
+      marker = L.marker([lat, lon], {
+        icon: L.icon({
+          iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-yellow.png',
+          shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+          iconSize: [25, 41],
+          iconAnchor: [12, 41],
+          popupAnchor: [1, -34],
+          shadowSize: [41, 41]
+        })
+      });
+    } else {
+      let iconUrl;
+      if (site.isSuper) {
+        iconUrl = 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-orange.png';
+      } else {
+        iconUrl = 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png';
+      }
+      marker = L.marker([lat, lon], {
+        icon: L.icon({
+          iconUrl: iconUrl,
+          shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+          iconSize: [25, 41],
+          iconAnchor: [12, 41],
+          popupAnchor: [1, -34],
+          shadowSize: [41, 41]
+        })
+      });
+    }
+    marker.addTo(map);
 
     // Navn for visning
     const siteName = site.name || 'Ukjent lokalitet';
-    const displayName = site.isSuper ? `🏷️ ${siteName}` : siteName;
+    let displayName = site.isSuper ? `🏷️ ${siteName}` : siteName;
+    if (site.isMine) displayName = `★ ${siteName}`;
 
     // Beregn avstand
     const distance = haversine(userPosition.lat, userPosition.lon, lat, lon);
@@ -103,7 +130,7 @@ if (sites && Array.isArray(sites)) {
     marker.bindTooltip(tooltipText, {
       permanent: true,
       direction: 'top',
-      className: 'site-label',
+      className: site.isMine ? 'site-label mine-label' : 'site-label',
       offset: [0, -35]
     });
 
