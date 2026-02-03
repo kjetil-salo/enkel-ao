@@ -321,46 +321,73 @@
 
         <div class="status" id="status"></div>
 
-        <!-- Token configuration -->
+        <!-- Login / Token configuration -->
         <div class="config-section">
           <div class="config-header" id="config-toggle">
-            <h3>🔑 Token-konfigurasjon</h3>
-            <span class="config-toggle" id="config-arrow">▼</span>
+            <h3>🔑 AO-innlogging</h3>
+            <span class="config-toggle open" id="config-arrow">▼</span>
           </div>
-          <div class="config-content" id="config-content">
-            <p style="font-size: 0.85rem; color: var(--muted); margin-bottom: 12px;">
-              Logg inn på AO med «Husk meg» avkrysset, og kopier logintoken. Den varer i ca. 1 år.
-            </p>
-            <a href="https://www.artsobservasjoner.no/ImportSighting" target="_blank"
-               style="display:inline-block;padding:8px 16px;background:var(--accent);color:white;border-radius:6px;text-decoration:none;font-size:0.9rem;margin-bottom:16px;">
-              🔗 Åpne AO ImportSighting
-            </a>
-            <p style="font-size: 0.8rem; color: var(--muted); margin-bottom: 16px;">
-              På PC: F12 → Application → Cookies → kopier «logintoken»<br>
-              (Du trenger IKKE .ASPXAUTHNO - den hentes automatisk!)
-            </p>
+          <div class="config-content open" id="config-content">
+            <!-- Login form -->
+            <div id="login-form-section">
+              <p style="font-size: 0.85rem; color: var(--muted); margin-bottom: 12px;">
+                Logg inn med ditt AO-brukernavn og passord. Sesjonen fornyes automatisk.
+              </p>
 
-            <div class="token-field">
+              <div class="token-field">
+                <label for="ao-username">Brukernavn</label>
+                <input type="text" id="ao-username" placeholder="ditt_brukernavn" autocomplete="username" />
+              </div>
+              <div class="token-field">
+                <label for="ao-password">Passord</label>
+                <div style="position: relative;">
+                  <input type="password" id="ao-password" placeholder="••••••••" autocomplete="current-password" style="padding-right: 40px;" />
+                  <button type="button" id="toggle-password" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--muted); font-size: 1.1rem; padding: 4px;">👁</button>
+                </div>
+              </div>
+              <div class="token-field">
+                <label for="ao-map-user-id">Bruker-ID for kart (valgfritt, kan være annen bruker)</label>
+                <input type="number" id="ao-map-user-id" placeholder="F.eks. 290628" />
+              </div>
 
-              <label for="login-token">logintoken (varer 1 år)</label>
-              <input type="text" id="login-token" placeholder="290628:1b468755c0676437..." />
-            </div>
-            <div class="token-field" id="auth-cookie-field">
-              <label for="auth-cookie">.ASPXAUTHNO (auth cookie)</label>
-              <input type="text" id="auth-cookie" placeholder="Hentes automatisk fra logintoken" />
-            </div>
-            <div class="token-field">
-              <label for="ao-user-id">Din bruker-ID</label>
-              <input type="number" id="ao-user-id" placeholder="Ekstraheres automatisk" />
-            </div>
+              <button class="btn" id="login-btn" style="margin-bottom: 12px;">🔐 Logg inn</button>
 
-            <div style="display: flex; gap: 8px;">
-              <button class="btn btn-small" id="save-tokens">💾 Lagre token</button>
-              <button class="btn btn-small" id="test-tokens" style="background: var(--orange);">🧪 Test</button>
-              <button class="btn btn-small" id="show-advanced" style="background: transparent; border: 1px solid var(--border); font-size: 0.75rem;">⚙️</button>
+              <p style="font-size: 0.75rem; color: var(--muted); margin-top: 8px;">
+                <a href="#" id="show-manual-tokens" style="color: var(--accent);">Manuell token-konfigurasjon →</a>
+              </p>
             </div>
 
+            <!-- Manual token section (hidden by default) -->
+            <div id="manual-token-section" style="display: none;">
+              <p style="font-size: 0.85rem; color: var(--muted); margin-bottom: 12px;">
+                Alternativt: Kopier tokens manuelt fra nettleseren.
+              </p>
+              <div class="token-field">
+                <label for="login-token">logintoken (varer 1 år)</label>
+                <input type="text" id="login-token" placeholder="290628:1b468755c0676437..." />
+              </div>
+              <div class="token-field" id="auth-cookie-field">
+                <label for="auth-cookie">.ASPXAUTHNO (auth cookie)</label>
+                <input type="text" id="auth-cookie" placeholder="Hentes automatisk fra logintoken" />
+              </div>
+              <div class="token-field">
+                <label for="ao-user-id">Din bruker-ID</label>
+                <input type="number" id="ao-user-id" placeholder="Ekstraheres automatisk" />
+              </div>
+
+              <div style="display: flex; gap: 8px;">
+                <button class="btn btn-small" id="save-tokens">💾 Lagre token</button>
+                <button class="btn btn-small" id="test-tokens" style="background: var(--orange);">🧪 Test</button>
+              </div>
+
+              <p style="font-size: 0.75rem; color: var(--muted); margin-top: 12px;">
+                <a href="#" id="hide-manual-tokens" style="color: var(--accent);">← Tilbake til innlogging</a>
+              </p>
+            </div>
+
+            <!-- Status display -->
             <div class="token-status" id="token-status" style="display: none;"></div>
+
           </div>
         </div>
       </div>
@@ -491,15 +518,41 @@
       const aoUserIdInput = document.getElementById('ao-user-id');
       const saveTokensBtn = document.getElementById('save-tokens');
       const testTokensBtn = document.getElementById('test-tokens');
-      const showAdvancedBtn = document.getElementById('show-advanced');
-      const authCookieField = document.getElementById('auth-cookie-field');
       const tokenStatus = document.getElementById('token-status');
 
-      // Load saved tokens
+      // New login elements
+      const loginFormSection = document.getElementById('login-form-section');
+      const manualTokenSection = document.getElementById('manual-token-section');
+      const showManualTokens = document.getElementById('show-manual-tokens');
+      const hideManualTokens = document.getElementById('hide-manual-tokens');
+      const loginBtn = document.getElementById('login-btn');
+      const aoUsernameInput = document.getElementById('ao-username');
+      const aoPasswordInput = document.getElementById('ao-password');
+      const aoMapUserIdInput = document.getElementById('ao-map-user-id');
+      const togglePasswordBtn = document.getElementById('toggle-password');
+
+      // Toggle password visibility
+      togglePasswordBtn.addEventListener('click', () => {
+        if (aoPasswordInput.type === 'password') {
+          aoPasswordInput.type = 'text';
+          togglePasswordBtn.textContent = '🙈';
+        } else {
+          aoPasswordInput.type = 'password';
+          togglePasswordBtn.textContent = '👁';
+        }
+      });
+
+
+      // Load saved tokens into manual fields
       const savedTokens = JSON.parse(localStorage.getItem('ao_tokens') || '{}');
       if (savedTokens.loginToken) loginTokenInput.value = savedTokens.loginToken;
       if (savedTokens.authCookie) authCookieInput.value = savedTokens.authCookie;
       if (savedTokens.userId) aoUserIdInput.value = savedTokens.userId;
+      if (savedTokens.mapUserId) aoMapUserIdInput.value = savedTokens.mapUserId;
+
+      // Load saved username
+      const savedUsername = localStorage.getItem('ao_username');
+      if (savedUsername) aoUsernameInput.value = savedUsername;
 
       // Toggle config section
       configToggle.addEventListener('click', () => {
@@ -507,14 +560,91 @@
         configArrow.classList.toggle('open');
       });
 
-      // Show advanced options (for bakoverkompatibilitet)
-      if (showAdvancedBtn) {
-        showAdvancedBtn.addEventListener('click', () => {
-          authCookieField.style.display = authCookieField.style.display === 'none' ? 'block' : 'none';
-        });
-      }
+      // Toggle manual token section
+      showManualTokens.addEventListener('click', (e) => {
+        e.preventDefault();
+        loginFormSection.style.display = 'none';
+        manualTokenSection.style.display = 'block';
+      });
 
-      // Save tokens - kun manuell userId
+      hideManualTokens.addEventListener('click', (e) => {
+        e.preventDefault();
+        loginFormSection.style.display = 'block';
+        manualTokenSection.style.display = 'none';
+      });
+
+      // Login button handler
+      loginBtn.addEventListener('click', async () => {
+        const username = aoUsernameInput.value.trim();
+        const password = aoPasswordInput.value.trim();
+        const mapUserId = aoMapUserIdInput.value.trim();
+
+        if (!username || !password) {
+          tokenStatus.style.display = 'block';
+          tokenStatus.className = 'token-status invalid';
+          tokenStatus.textContent = '❌ Fyll inn brukernavn og passord';
+          return;
+        }
+
+        loginBtn.disabled = true;
+        loginBtn.innerHTML = '<span class="spinner"></span> Logger inn...';
+        tokenStatus.style.display = 'block';
+        tokenStatus.className = 'token-status warning';
+        tokenStatus.textContent = '⏳ Logger inn på Artsobservasjoner...';
+
+        try {
+          const response = await fetch('/api/ao-login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password })
+          });
+
+          // Sjekk om responsen er ok før parsing
+          const text = await response.text();
+          let result;
+          try {
+            result = JSON.parse(text);
+          } catch (parseErr) {
+            throw new Error(`Server-feil: ${text.substring(0, 100) || 'Tom respons'}`);
+          }
+
+          if (response.ok && result.success) {
+            // Save tokens - bruk mapUserId hvis spesifisert, ellers login userId
+            const tokens = {
+              loginToken: result.loginToken,
+              authCookie: result.authCookie,
+              userId: mapUserId || result.userId,
+              mapUserId: mapUserId || ''
+            };
+            localStorage.setItem('ao_tokens', JSON.stringify(tokens));
+
+            // Lagre brukernavn for neste gang
+            localStorage.setItem('ao_username', username);
+
+            // Update manual fields too
+            loginTokenInput.value = result.loginToken;
+            authCookieInput.value = result.authCookie;
+            aoUserIdInput.value = mapUserId || result.userId;
+
+            // Clear password from input
+            aoPasswordInput.value = '';
+
+            tokenStatus.className = 'token-status valid';
+            const userInfo = mapUserId ? `bruker ${result.userId} (kart: ${mapUserId})` : `bruker ${result.userId}`;
+            tokenStatus.textContent = `✅ Innlogget som ${userInfo}!`;
+          } else {
+            throw new Error(result.error || 'Innlogging feilet');
+          }
+        } catch (error) {
+          tokenStatus.className = 'token-status invalid';
+          tokenStatus.textContent = `❌ ${error.message}`;
+        } finally {
+          loginBtn.disabled = false;
+          loginBtn.innerHTML = '🔐 Logg inn';
+        }
+      });
+
+      // Save tokens manually
       saveTokensBtn.addEventListener('click', () => {
         const loginToken = loginTokenInput.value.trim();
         const tokens = {
@@ -531,7 +661,7 @@
         setTimeout(() => { tokenStatus.style.display = 'none'; }, 4000);
       });
 
-      // Test tokens - nå kun loginToken
+      // Test tokens manually
       testTokensBtn.addEventListener('click', () => {
         const loginToken = loginTokenInput.value.trim();
 
@@ -551,7 +681,7 @@
 
         // Ekstraher og vis userId
         const userId = loginToken.split(':')[0];
-        
+
         tokenStatus.className = 'token-status valid';
         tokenStatus.textContent = `✅ Format OK! Bruker-ID: ${userId}. Klikk "Lagre token" for å aktivere.`;
       });

@@ -17,7 +17,7 @@ import threading
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse, parse_qs
 
-from src.api_handlers import handle_species_search, handle_reverse_geocoding, handle_ao_sites_search
+from src.api_handlers import handle_species_search, handle_reverse_geocoding, handle_ao_sites_search, login_to_ao
 from src.html_templates import generate_stats_login_page, generate_stats_page, generate_error_page
 from src.supabase_log import log_view_to_supabase
 from src.ao_import_curl import post_with_curl
@@ -54,6 +54,10 @@ class Handler(SimpleHTTPRequestHandler):
 
         if parsed.path == '/api/ao-import':
             self._handle_ao_import_post()
+            return
+
+        if parsed.path == '/api/ao-login':
+            self._handle_ao_login_post()
             return
 
         # For alt annet, returner 404
@@ -121,6 +125,42 @@ class Handler(SimpleHTTPRequestHandler):
         except Exception as e:
             # Uventet feil
             print(f'[AO-IMPORT] Uventet feil: {e}', file=sys.stderr)
+            self._send_json({'error': f'Server-feil: {str(e)}'}, status=500)
+
+    def _handle_ao_login_post(self):
+        """Håndter innlogging til AO med brukernavn/passord."""
+        import sys
+
+        try:
+            content_length = int(self.headers.get('Content-Length', 0))
+            body = self.rfile.read(content_length).decode('utf-8')
+            data = json.loads(body)
+
+            username = data.get('username', '').strip()
+            password = data.get('password', '').strip()
+
+            if not username or not password:
+                self._send_json({'error': 'Brukernavn og passord er påkrevd'}, status=400)
+                return
+
+            print(f'[AO-LOGIN] Innloggingsforsøk for bruker: {username}', file=sys.stderr)
+
+            # Logg inn via api_handlers
+            result = login_to_ao(username, password)
+
+            print(f'[AO-LOGIN] Vellykket for user_id={result.get("userId")}', file=sys.stderr)
+            self._send_json({
+                'success': True,
+                'authCookie': result['authCookie'],
+                'loginToken': result['loginToken'],
+                'userId': result['userId']
+            })
+
+        except ValueError as e:
+            print(f'[AO-LOGIN] Feil: {e}', file=sys.stderr)
+            self._send_json({'error': str(e)}, status=401)
+        except Exception as e:
+            print(f'[AO-LOGIN] Uventet feil: {e}', file=sys.stderr)
             self._send_json({'error': f'Server-feil: {str(e)}'}, status=500)
 
     def do_GET(self):

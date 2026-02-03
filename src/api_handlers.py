@@ -23,11 +23,14 @@ from src.ao_import_curl import fetch_csrf_tokens
 _auth_cache = {}
 _AUTH_CACHE_TTL = 300  # 5 minutter
 
+# Cache for credentials (for auto-relogin)
+_credentials_cache = {}  # user_id -> (username, password)
+
 # Sliding expiration cache for AO auth cookie (bruker-id -> (cookie, last_refresh_ts))
 _ao_cookie_refresh_cache = {}
 _AO_COOKIE_REFRESH_INTERVAL = 600  # 10 minutter
 
-def refresh_ao_cookie_if_needed(auth_cookie: str, user_id: str) -> str:
+def refresh_ao_cookie_if_needed(auth_cookie: str, user_id: str, logintoken: str = None) -> str:
     """
     Sørger for at .ASPXAUTHNO holdes i live ved å treffe en AO-side hvis det er >10 min siden sist.
     Returnerer evt. ny auth-cookie hvis sliding expiration trigges, ellers None.
@@ -43,10 +46,14 @@ def refresh_ao_cookie_if_needed(auth_cookie: str, user_id: str) -> str:
     probe_url = 'https://www.artsobservasjoner.no/Observations'
     print(f'[AO-COOKIE-REFRESH] Prober AO-side for sliding expiration: {probe_url}', flush=True)
     try:
+        # Bygg cookie-header med både .ASPXAUTHNO og logintoken hvis tilgjengelig
+        cookie_header = f'.ASPXAUTHNO={auth_cookie}'
+        if logintoken:
+            cookie_header += f'; logintoken={logintoken}; logintoken_ssl=1'
         result = subprocess.run([
             'curl', '-i', '-s',
             probe_url,
-            '-H', f'Cookie: .ASPXAUTHNO={auth_cookie}',
+            '-H', f'Cookie: {cookie_header}',
             '-H', 'User-Agent: Mozilla/5.0 (compatible; Fugleobservasjoner/1.0)'
         ], capture_output=True, text=True, timeout=10)
         found_set_cookie = False
@@ -134,6 +141,159 @@ def get_fresh_auth_cookie(logintoken: str) -> tuple:
     
     print(f'[AUTH] Hentet fersk auth cookie for user {user_id}', flush=True)
     return (auth_cookie, user_id)
+
+
+def login_to_ao(username: str, password: str) -> dict:
+    """
+    Logger inn på Artsobservasjoner med brukernavn/passord.
+
+    Returnerer dict med:
+    - authCookie: .ASPXAUTHNO cookie-verdi
+    - loginToken: logintoken for "husk meg" (varer 1 år)
+    - userId: bruker-ID
+
+    Raises:
+        ValueError: Ved ugyldig brukernavn/passord eller andre feil
+    """
+    print(f'[AO-LOGIN] Starter innlogging for bruker: {username}', flush=True)
+
+    # Steg 1: Hent login-siden for CSRF-token
+    result = subprocess.run([
+        'curl', '-s', '-c', '/tmp/ao_login_cookies.txt', '-D', '/tmp/ao_login_headers.txt',
+        'https://www.artsobservasjoner.no/LogOn',
+        '-H', 'User-Agent: Mozilla/5.0 (compatible; Fugleobservasjoner/1.0)'
+    ], capture_output=True, text=True, timeout=15)
+
+    login_html = result.stdout
+
+    # Ekstraher __RequestVerificationToken fra HTML-form
+    token_match = re.search(
+        r'name="__RequestVerificationToken"[^>]*value="([^"]*)"',
+        login_html
+    )
+    if not token_match:
+        raise ValueError('Kunne ikke hente CSRF-token fra login-side')
+
+    form_token = token_match.group(1)
+
+    # Les cookie-token fra headers
+    with open('/tmp/ao_login_headers.txt', 'r') as f:
+        headers_content = f.read()
+
+    cookie_token_match = re.search(
+        r'__RequestVerificationToken=([^;\s\r\n]+)',
+        headers_content
+    )
+    cookie_token = cookie_token_match.group(1) if cookie_token_match else ''
+
+    print(f'[AO-LOGIN] Hentet CSRF-tokens, sender innlogging...', flush=True)
+
+    # Steg 2: POST login med credentials
+    post_data = (
+        f'__RequestVerificationToken={form_token}'
+        f'&AuthenticationViewModel.UserName={username}'
+        f'&AuthenticationViewModel.Password={password}'
+        f'&AuthenticationViewModel.RememberMe=true'
+    )
+
+    result = subprocess.run([
+        'curl', '-s', '-D', '/tmp/ao_auth_headers.txt',
+        '-X', 'POST', 'https://www.artsobservasjoner.no/LogOn',
+        '-H', 'Content-Type: application/x-www-form-urlencoded',
+        '-H', f'Cookie: __RequestVerificationToken={cookie_token}',
+        '-H', 'User-Agent: Mozilla/5.0 (compatible; Fugleobservasjoner/1.0)',
+        '-d', post_data
+    ], capture_output=True, text=True, timeout=15)
+
+    # Les response headers
+    with open('/tmp/ao_auth_headers.txt', 'r') as f:
+        auth_headers = f.read()
+
+    # Sjekk for redirect til MyPages (vellykket login)
+    if 'Location: ' not in auth_headers and 'location: ' not in auth_headers.lower():
+        # Ingen redirect - sjekk om det er feilmelding
+        if 'Feil brukernavn' in result.stdout or 'Feil passord' in result.stdout:
+            raise ValueError('Feil brukernavn eller passord')
+        raise ValueError('Innlogging feilet - ingen redirect mottatt')
+
+    # Parse cookies fra response
+    auth_cookie = None
+    login_token = None
+    user_id = None
+
+    for line in auth_headers.split('\n'):
+        line_lower = line.lower()
+        if '.aspxauthno=' in line_lower and 'set-cookie' in line_lower:
+            match = re.search(r'\.ASPXAUTHNO=([^;\s]+)', line, re.IGNORECASE)
+            if match:
+                auth_cookie = match.group(1)
+        elif 'logintoken=' in line_lower and 'set-cookie' in line_lower:
+            match = re.search(r'logintoken=([^;\s]+)', line, re.IGNORECASE)
+            if match:
+                login_token = match.group(1)
+                # Ekstraher userId fra logintoken (før kolon)
+                if ':' in login_token:
+                    user_id = login_token.split(':')[0]
+
+    if not auth_cookie:
+        raise ValueError('Innlogging feilet - ingen auth cookie mottatt')
+
+    if not login_token:
+        raise ValueError('Innlogging feilet - ingen logintoken mottatt (husk å krysse av "Husk meg")')
+
+    # Lagre credentials for auto-relogin
+    if user_id:
+        _credentials_cache[user_id] = (username, password)
+        print(f'[AO-LOGIN] Lagret credentials for auto-relogin (user_id={user_id})', flush=True)
+
+    print(f'[AO-LOGIN] Innlogging vellykket! user_id={user_id}, auth_cookie={auth_cookie[:20]}...', flush=True)
+
+    return {
+        'authCookie': auth_cookie,
+        'loginToken': login_token,
+        'userId': user_id
+    }
+
+
+def auto_relogin_if_needed(user_id: str, auth_cookie: str) -> str:
+    """
+    Sjekker om auth_cookie er utløpt og logger automatisk inn på nytt.
+
+    Args:
+        user_id: Bruker-ID
+        auth_cookie: Nåværende .ASPXAUTHNO cookie
+
+    Returns:
+        Ny auth_cookie hvis relogin var nødvendig, ellers None
+    """
+    # Sjekk om vi har lagrede credentials
+    if user_id not in _credentials_cache:
+        print(f'[AUTO-RELOGIN] Ingen lagrede credentials for user_id={user_id}', flush=True)
+        return None
+
+    # Test om nåværende cookie fungerer
+    probe_result = subprocess.run([
+        'curl', '-s', '-o', '/dev/null', '-w', '%{http_code}',
+        'https://www.artsobservasjoner.no/User/MyPages',
+        '-H', f'Cookie: .ASPXAUTHNO={auth_cookie}',
+        '-H', 'User-Agent: Mozilla/5.0 (compatible; Fugleobservasjoner/1.0)'
+    ], capture_output=True, text=True, timeout=10)
+
+    # Hvis vi får 200, er cookien fortsatt gyldig
+    if probe_result.stdout.strip() == '200':
+        return None
+
+    print(f'[AUTO-RELOGIN] Cookie utløpt for user_id={user_id}, logger inn på nytt...', flush=True)
+
+    # Hent credentials og logg inn på nytt
+    username, password = _credentials_cache[user_id]
+    try:
+        result = login_to_ao(username, password)
+        print(f'[AUTO-RELOGIN] Vellykket! Ny auth_cookie hentet.', flush=True)
+        return result['authCookie']
+    except Exception as e:
+        print(f'[AUTO-RELOGIN] Feilet: {e}', flush=True)
+        return None
 
 
 def handle_species_search(search_term, dont_include_sub='true', ao_base_url='https://www.artsobservasjoner.no'):
@@ -265,7 +425,7 @@ def handle_ao_sites_search(lat, lon, size_m=600.0, ao_mobile_base_url='https://m
     ao_user_id = user_id or (login_token.split(':')[0] if login_token and ':' in login_token else None)
     ao_auth = auth_cookie or os.getenv('AO_AUTH_COOKIE')
     if ao_auth and ao_user_id:
-        refreshed = refresh_ao_cookie_if_needed(ao_auth, ao_user_id)
+        refreshed = refresh_ao_cookie_if_needed(ao_auth, ao_user_id, login_token)
         if refreshed:
             ao_auth = refreshed
             refreshed_auth_cookie = refreshed
@@ -528,9 +688,6 @@ def handle_ao_sites_search(lat, lon, size_m=600.0, ao_mobile_base_url='https://m
             if lon_val is not None:
                 site['lon'] = lon_val
             # Oppdag om dette er en "superlokasjon" eller har en parent-id.
-            # Artsobservasjoner kan bruke flere ulike feltnavn/typer, så vi
-            # sjekker flere varianter og normaliserer til booleansk
-            # `isSuper` og eventuelt `parentId`.
             try:
                 # Sjekk eksplisitte flagg (bool eller strings)
                 for k in ('isSuper', 'isSuperSite', 'IsSuper', 'IsSuperSite', 'is_super'):
@@ -561,6 +718,15 @@ def handle_ao_sites_search(lat, lon, size_m=600.0, ao_mobile_base_url='https://m
                 # Ikke la parsing av ekstra felt knekke hele kall
                 pass
             sites.append(site)
+
+        # Logging: vis alle site-IDs som har isMine=True
+        mine_sites = [s for s in sites if s.get('isMine')]
+        if mine_sites:
+            print(f'[AO-SITES] Lokasjoner med isMine=True:')
+            for s in mine_sites:
+                print(f'  - Navn: {s.get("name")}, ID: {s.get("id")}, Lat: {s.get("lat")}, Lon: {s.get("lon")}')
+        else:
+            print('[AO-SITES] Ingen lokasjoner med isMine=True i sites-array.')
 
         # Etter at vi har samlet alle sites, utled om noen er "superlokasjoner"
         # ved å se etter parent-referanser. Hvis et item A har parentSiteId = B,
