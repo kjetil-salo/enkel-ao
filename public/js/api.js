@@ -75,17 +75,68 @@ export async function searchSpecies(term, includeSubtaxa = false) {
 }
 
 /**
+ * Auto-relogin med lagrede credentials
+ * @returns {Promise<boolean>} - true hvis relogin var vellykket
+ */
+async function tryAutoRelogin() {
+  const username = localStorage.getItem('ao_username');
+  const password = localStorage.getItem('ao_password');
+
+  if (!username || !password) {
+    console.log('[Auto-relogin] Ingen lagrede credentials');
+    return false;
+  }
+
+  console.log('[Auto-relogin] Prøver å logge inn på nytt...');
+
+  try {
+    const response = await fetch('/api/ao-login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
+
+    if (!response.ok) {
+      console.warn('[Auto-relogin] Innlogging feilet:', response.status);
+      return false;
+    }
+
+    const result = await response.json();
+
+    if (result.success) {
+      // Oppdater tokens i localStorage
+      const savedTokens = JSON.parse(localStorage.getItem('ao_tokens') || '{}');
+      savedTokens.loginToken = result.loginToken;
+      savedTokens.authCookie = result.authCookie;
+      // Behold eksisterende userId/mapUserId hvis satt
+      if (!savedTokens.userId) {
+        savedTokens.userId = result.userId;
+      }
+      localStorage.setItem('ao_tokens', JSON.stringify(savedTokens));
+      console.log('[Auto-relogin] Vellykket! Nye tokens lagret.');
+      return true;
+    }
+  } catch (e) {
+    console.warn('[Auto-relogin] Feil:', e);
+  }
+
+  return false;
+}
+
+/**
  * Hent AO-lokaliteter nær posisjon
  * @param {number} lat - Breddegrad
  * @param {number} lon - Lengdegrad
  * @param {number} sizeMeters - Radius i meter
+ * @param {boolean} isRetry - Om dette er et retry etter auto-relogin
  * @returns {Promise<Array>} - Liste med lokaliteter
  */
-export async function fetchAoSites(lat, lon, sizeMeters = 1000) {
+export async function fetchAoSites(lat, lon, sizeMeters = 1000, isRetry = false) {
   let url = `/api/ao-sites?lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}&size=${encodeURIComponent(sizeMeters)}`;
-  
+
   // Hent tokens fra localStorage og send som headers
   const headers = {};
+  let hadTokens = false;
   try {
     const savedTokens = JSON.parse(localStorage.getItem('ao_tokens') || '{}');
     if (savedTokens.userId) {
@@ -93,6 +144,7 @@ export async function fetchAoSites(lat, lon, sizeMeters = 1000) {
     }
     if (savedTokens.loginToken) {
       headers['X-AO-Login-Token'] = savedTokens.loginToken;
+      hadTokens = true;
     }
     if (savedTokens.authCookie) {
       headers['X-AO-Auth-Cookie'] = savedTokens.authCookie;
@@ -100,30 +152,45 @@ export async function fetchAoSites(lat, lon, sizeMeters = 1000) {
   } catch (e) {
     // Ignorer feil ved parsing
   }
-  
+
   const resp = await fetch(url, { headers });
   if (!resp.ok) {
     return [];
   }
-  
+
   const data = await resp.json();
-  
+
   // Håndter refreshed auth cookie hvis mottatt
   if (data.refreshedAuthCookie) {
     try {
       const savedTokens = JSON.parse(localStorage.getItem('ao_tokens') || '{}');
       savedTokens.authCookie = data.refreshedAuthCookie;
       localStorage.setItem('ao_tokens', JSON.stringify(savedTokens));
-      console.log('Oppdaterte auth cookie fra AO');
+      console.log('[AO] Oppdaterte auth cookie fra sliding expiration');
     } catch (e) {
-      console.warn('Kunne ikke lagre refreshed auth cookie:', e);
+      console.warn('[AO] Kunne ikke lagre refreshed auth cookie:', e);
     }
   }
-  
+
+  // Sjekk om vi hadde tokens men ikke fikk noen private sites (kan indikere utløpt token)
+  // Kun prøv auto-relogin hvis vi ikke allerede har prøvd
+  if (!isRetry && hadTokens && data.sites) {
+    const hasPrivateSites = data.sites.some(s => s.isMine);
+    if (!hasPrivateSites && !data.refreshedAuthCookie) {
+      // Mulig utløpt token - prøv auto-relogin
+      console.log('[AO] Ingen private sites funnet, prøver auto-relogin...');
+      const reloginOk = await tryAutoRelogin();
+      if (reloginOk) {
+        // Prøv på nytt med nye tokens
+        return fetchAoSites(lat, lon, sizeMeters, true);
+      }
+    }
+  }
+
   if (!data || !Array.isArray(data.sites)) {
     return [];
   }
-  
+
   return data.sites.filter(s => s && typeof s.name === 'string' && s.name.trim());
 }
 

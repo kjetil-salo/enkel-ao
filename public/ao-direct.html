@@ -550,9 +550,11 @@
       if (savedTokens.userId) aoUserIdInput.value = savedTokens.userId;
       if (savedTokens.mapUserId) aoMapUserIdInput.value = savedTokens.mapUserId;
 
-      // Load saved username
+      // Load saved credentials
       const savedUsername = localStorage.getItem('ao_username');
+      const savedPassword = localStorage.getItem('ao_password');
       if (savedUsername) aoUsernameInput.value = savedUsername;
+      if (savedPassword) aoPasswordInput.value = savedPassword;
 
       // Toggle config section
       configToggle.addEventListener('click', () => {
@@ -618,8 +620,9 @@
             };
             localStorage.setItem('ao_tokens', JSON.stringify(tokens));
 
-            // Lagre brukernavn for neste gang
+            // Lagre credentials for auto-relogin
             localStorage.setItem('ao_username', username);
+            localStorage.setItem('ao_password', password);
 
             // Update manual fields too
             loginTokenInput.value = result.loginToken;
