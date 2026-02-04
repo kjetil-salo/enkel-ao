@@ -363,7 +363,7 @@
                 Alternativt: Kopier tokens manuelt fra nettleseren.
               </p>
               <div class="token-field">
-                <label for="login-token">logintoken (varer 1 år)</label>
+                <label for="login-token">logintoken (session-cookie)</label>
                 <input type="text" id="login-token" placeholder="290628:1b468755c0676437..." />
               </div>
               <div class="token-field" id="auth-cookie-field">
@@ -378,6 +378,7 @@
               <div style="display: flex; gap: 8px;">
                 <button class="btn btn-small" id="save-tokens">💾 Lagre token</button>
                 <button class="btn btn-small" id="test-tokens" style="background: var(--orange);">🧪 Test</button>
+                <button class="btn btn-small" id="refresh-session" style="background: var(--green);">🔄 Refresh session</button>
               </div>
 
               <p style="font-size: 0.75rem; color: var(--muted); margin-top: 12px;">
@@ -659,7 +660,7 @@
         tokenStatus.style.display = 'block';
         tokenStatus.className = 'token-status valid';
         tokenStatus.textContent = tokens.userId
-          ? `✅ Token lagret for bruker ${tokens.userId}. Varer ca. 1 år!`
+          ? `✅ Token lagret for bruker ${tokens.userId}`
           : '✅ Token lagret lokalt';
         setTimeout(() => { tokenStatus.style.display = 'none'; }, 4000);
       });
@@ -688,6 +689,45 @@
         tokenStatus.className = 'token-status valid';
         tokenStatus.textContent = `✅ Format OK! Bruker-ID: ${userId}. Klikk "Lagre token" for å aktivere.`;
       });
+
+      // Refresh session button
+      const refreshSessionBtn = document.getElementById('refresh-session');
+      if (refreshSessionBtn) {
+        refreshSessionBtn.addEventListener('click', async () => {
+          const loginToken = loginTokenInput.value.trim();
+          const authCookie = authCookieInput.value.trim();
+          const userId = aoUserIdInput.value.trim();
+          tokenStatus.style.display = 'block';
+          tokenStatus.className = 'token-status warning';
+          tokenStatus.textContent = '⏳ Prøver å fornye session...';
+          try {
+            const response = await fetch('/api/ao-refresh', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ loginToken, authCookie, userId })
+            });
+            const result = await response.json();
+            if (result.refreshedAuthCookie) {
+              authCookieInput.value = result.refreshedAuthCookie;
+              // Oppdater localStorage også
+              const tokens = JSON.parse(localStorage.getItem('ao_tokens') || '{}');
+              tokens.authCookie = result.refreshedAuthCookie;
+              localStorage.setItem('ao_tokens', JSON.stringify(tokens));
+              tokenStatus.className = 'token-status valid';
+              tokenStatus.textContent = '✅ Session fornyet! Ny .ASPXAUTHNO mottatt.';
+            } else if (result.error) {
+              tokenStatus.className = 'token-status invalid';
+              tokenStatus.textContent = '❌ ' + result.error;
+            } else {
+              tokenStatus.className = 'token-status warning';
+              tokenStatus.textContent = 'ℹ️ Ingen ny session, men eksisterende token fortsatt gyldig.';
+            }
+          } catch (e) {
+            tokenStatus.className = 'token-status invalid';
+            tokenStatus.textContent = '❌ Feil ved session refresh: ' + (e.message || e);
+          }
+        });
+      }
     </script>
   </body>
 </html>

@@ -10,8 +10,8 @@ Vi har nå implementert innlogging via brukernavn/passord som gir oss:
 ### Ny flyt
 1. Bruker oppgir brukernavn + passord på ao-direct.html
 2. Backend (`/api/ao-login`) logger inn mot AO og returnerer:
-   - `.ASPXAUTHNO` (auth cookie)
-   - `loginToken` (1 år)
+   - `.ASPXAUTHNO` (auth cookie, session-scope)
+   - `loginToken` (session-scope, kun for "husk meg")
    - `userId`
 3. Tokens lagres i localStorage
 4. Ved API-kall som krever auth, brukes tokens automatisk
@@ -53,17 +53,17 @@ Vi har nå implementert innlogging via brukernavn/passord som gir oss:
 - Logger om private site-IDs faktisk hentes (viser at token er gyldig).
 
 ### Begrensninger og erfaringer
-- Automatisk fornyelse (sliding expiration) fungerer **kun** for gyldige sessions. Hvis `.ASPXAUTHNO` er utløpt, hjelper det ikke å sende logintoken – AO gir ikke ny session, kun redirect til /LogOn.
-- Bruker må selv lime inn userId (ingen automatisk overskriving).
+- Sliding expiration fungerer **kun** for gyldige sessions. Hvis `.ASPXAUTHNO` er utløpt, hjelper det ikke å sende logintoken + logintoken_ssl – AO gir ikke ny session.
+- **logintoken kan IKKE konverteres til .ASPXAUTHNO programmatisk** – selv med logintoken_ssl=1.
 - Frontend og backend håndterer oppdatering av tokens i localStorage automatisk når ny cookie mottas.
-- logintoken og .ASPXAUTHNO er ikke lesbare eller base64-dekodet – de er kun “nøkler” mot AO.
-- Langvarig sesjon (1 år) er ikke mulig – AO krever ny innlogging etter utløp. logintoken gir kun "husk meg"-funksjon for manuell login, ikke API-fornyelse.
+- logintoken og .ASPXAUTHNO er ikke lesbare eller base64-dekodet – de er kun "nøkler" mot AO.
+- **Langvarig sesjon er NÅ mulig** via brukernavn/passord auto-relogin (implementert 2026-02-03).
 
 ## Oppsummert
-- Vi har implementert robust sliding expiration med tydelig logging og automatisk oppdatering av cookie.
-- Vi kan ikke lese ut data fra token – kun AO kan validere og utstede gyldig .ASPXAUTHNO.
-- Løsningen er så robust som AO tillater: så lenge brukeren er aktiv og cookien ikke er utløpt, vil fornyelse skje automatisk.
-- Når cookien er utløpt, må bruker logge inn på nytt og lime inn ny token.
+- Vi har implementert **brukernavn/passord auto-relogin** som gir langvarig sesjon uten manuell token-kopiering.
+- Sliding expiration fungerer kun for gyldige sessions – logintoken alene kan ikke fornye utløpt session.
+- Når cookien er utløpt, logger appen automatisk inn på nytt med lagrede credentials.
+- Manuell token-kopi er fortsatt tilgjengelig som backup-løsning.
 
 # AO Token-autentisering og refresh
 
@@ -79,9 +79,11 @@ Artsobservasjoner.no bruker ASP.NET Forms Authentication med sliding expiration 
 - **Funksjon:** Hovedautentisering for API-kall
 - **Refresh:** AO sender ny cookie i `Set-Cookie`-header når token nærmer seg utløp
 
-### 2. `logintoken` 
-- **Levetid:** Lengre enn auth cookie (timer/dager)
-- **Funksjon:** Brukes sammen med auth cookie for å identifisere bruker
+### 2. `logintoken`
+- **Levetid:** Session-scope (forsvinner når nettleser lukkes helt)
+- **Expires-header:** Settes til ~1 år frem i tid, MEN dette er misvisende
+- **Funksjon:** Kun "Husk meg" – pre-fyller brukernavn ved neste manuelle innlogging
+- **Viktig:** Kan IKKE brukes til å gjenopprette `.ASPXAUTHNO` programmatisk
 - **Lagring:** localStorage som `ao_tokens.loginToken`
 
 ### 3. `userId`
@@ -205,9 +207,9 @@ GetSitesGeoJson: fant 4 private site-IDs
 
 ### Tokens utløper for raskt
 
-- Forventet oppførsel: `.ASPXAUTHNO` utløper etter ~15 min inaktivitet
-- Løsning: Bruker må logge inn på nytt på ao-direct.html
-- Fremtidig forbedring: Implementere aktiv token-refresh ved API-kall
+- Forventet oppførsel: `.ASPXAUTHNO` utløper etter ~15-30 min inaktivitet
+- **Løsning (implementert):** Auto-relogin med lagrede credentials
+- Fallback: Bruker kan manuelt logge inn på nytt på ao-direct.html
 
 ## API-endepunkter
 
@@ -244,59 +246,113 @@ Oppnå en sesjon som varer 1 år – slik at bruker bare trenger å logge inn é
 
 ### ❌ Konklusjon (testet 2026-02-02 og 2026-02-03)
 
-**logintoken kan IKKE brukes til å fornye eller gjenopprette .ASPXAUTHNO programmatisk.**
+**logintoken + logintoken_ssl kan IKKE brukes til å fornye eller gjenopprette .ASPXAUTHNO programmatisk.**
 
 Etter grundig testing fant vi at:
 
 1. **logintoken er KUN for "Remember Me"** – den pre-fyller brukernavn ved neste **manuelle** innlogging (via /LogOn)
 2. **.ASPXAUTHNO er den faktiske auth-cookien** – kreves for API-tilgang
 3. **Ingen automatisk utveksling** – det finnes ingen endpoint som konverterer logintoken → .ASPXAUTHNO
-4. **Probing med logintoken (også sammen med .ASPXAUTHNO) gir aldri ny session etter utløp.** Kun eksplisitt POST til /LogOn (manuelt eller med skjema) gir ny session.
+4. **Probing med logintoken + logintoken_ssl (også sammen med ugyldig .ASPXAUTHNO) gir aldri ny session etter utløp.** Kun eksplisitt POST til /LogOn (med brukernavn/passord) gir ny session.
+5. **Sliding expiration returnerer ny .ASPXAUTHNO KUN når eksisterende cookie er gyldig** – ikke når den er utløpt eller mangler.
 
 #### Testbevis
 
 ```bash
-# Test 1: Forsiden med bare logintoken
+# Test 1: Forsiden med bare logintoken + logintoken_ssl
 curl -s "https://www.artsobservasjoner.no/" \
   -H "Cookie: logintoken=290628:1b468755...; logintoken_ssl=1" \
   | grep -o "Logg inn\|Logg ut"
 # Resultat: "Logg inn" (IKKE innlogget)
 
-# Test 2: Beskyttet side med bare logintoken
+# Test 2: Beskyttet side med bare logintoken + logintoken_ssl
 curl -i -s -L "https://www.artsobservasjoner.no/SubmitSighting/Report" \
-  -H "Cookie: logintoken=290628:1b468755...; logintoken_ssl=1" \
+  -H "Cookie: logintoken=290745:...; logintoken_ssl=1" \
+  | grep "set-cookie.*ASPXAUTH"
+# Resultat: INGEN .ASPXAUTHNO returnert, kun redirect til /LogOn
+
+# Test 3: Dagens observasjoner med bare logintoken + logintoken_ssl
+curl -s "https://www.artsobservasjoner.no/TodaysSightings/..." \
+  -H "Cookie: AcceptCookies=1; logintoken=290745:...; logintoken_ssl=1" \
+  | grep -o "Logg inn\|Logg ut"
+# Resultat: "Logg inn" (IKKE innlogget)
+
+# Test 4: Probing med ugyldig .ASPXAUTHNO + logintoken
+curl -i -s -L "https://www.artsobservasjoner.no/TodaysSightings/..." \
+  -H "Cookie: .ASPXAUTHNO=GAMMEL_UGYLDIG_VERDI; logintoken=290745:...; logintoken_ssl=1" \
   | grep "set-cookie.*ASPXAUTH"
 # Resultat: INGEN .ASPXAUTHNO returnert
 
-# Test 3: Sletting av .ASPXAUTHNO i nettleser
-# → Bruker ble umiddelbart logget ut
-# → Refresh ga IKKE automatisk ny .ASPXAUTHNO fra logintoken
-
-# Test 4: Probing med både .ASPXAUTHNO (utløpt) og logintoken
-curl -i -s -L "https://www.artsobservasjoner.no/Observations" \
-  -H "Cookie: .ASPXAUTHNO=UTLØPTVERDI; logintoken=290628:1b468755...; logintoken_ssl=1" \
+# Test 5: Sliding expiration MED gyldig .ASPXAUTHNO (fungerer!)
+curl -i -s "https://www.artsobservasjoner.no/TodaysSightings/..." \
+  -H "Cookie: logintoken=290745:...; logintoken_ssl=1; .ASPXAUTHNO=GYLDIG_VERDI" \
   | grep "set-cookie.*ASPXAUTH"
-# Resultat: INGEN .ASPXAUTHNO returnert, kun redirect til /LogOn
+# Resultat: NY .ASPXAUTHNO returnert (sliding expiration fungerer)
 ```
+
+#### Observasjon fra ekstern testing
+
+En ekstern tester rapporterte at han fikk ny .ASPXAUTHNO med kun logintoken + logintoken_ssl.
+Vår hypotese er at dette skyldes **server-side session caching**:
+- ASP.NET kan beholde session-state på serveren etter at cookie er slettet client-side
+- Hvis logintoken matcher en nylig aktiv (men ikke garbage-collected) server-session, kan AO returnere ny .ASPXAUTHNO
+- Dette er et "race condition"-vindu og er **upålitelig** for produksjonsbruk
+
+**Konklusjon:** logintoken alene gir ikke pålitelig session-fornyelse. Brukernavn/passord auto-relogin er den eneste robuste løsningen.
 
 ### Hvorfor "1-års innlogging" i nettleser?
 
-Moderne nettlesere (Safari, Firefox, Chrome) har **session restore** som 
-gjenoppretter sesjons-cookies når nettleseren åpnes igjen. Dette gir 
-*illusjonen* av langvarig innlogging, men det er IKKE token-basert.
+Det ser ut som AO gir 1-års innlogging, men dette er en **illusjon** skapt av to mekanismer:
+
+#### De to cookiene
+
+| Cookie | Expires-header | Faktisk scope | Funksjon |
+|--------|----------------|---------------|----------|
+| `.ASPXAUTHNO` | Session | Session | Faktisk autentisering |
+| `logintoken` | ~1 år | Session* | "Husk meg" (pre-fyller brukernavn) |
+
+*`logintoken` har `Expires` satt til ~1 år, men oppfører seg som session-cookie i praksis.
+
+#### Nettleserens session restore
+
+Moderne nettlesere (Safari, Firefox, Chrome) har **session restore** som gjenoppretter
+sesjons-cookies når nettleseren åpnes igjen (selv uten `Expires`-header). Dette betyr:
+
+1. Bruker logger inn → mottar `.ASPXAUTHNO` (session) + `logintoken`
+2. Bruker "lukker" nettleseren (men ikke helt – tabs gjenopprettes ved neste start)
+3. Nettleser session restore → `.ASPXAUTHNO` er fortsatt der
+4. Bruker er fortsatt innlogget → *illusjon* av langvarig sesjon
+
+#### Når illusjonen brytes
+
+- **Tving-lukking av nettleser** (kill process) → session-cookies forsvinner
+- **Privat/inkognito-modus** → ingen session restore
+- **Sletting av cookies** → må logge inn på nytt
+- **Server-side timeout** → `.ASPXAUTHNO` invalideres selv om cookie finnes
+
+#### Testet hypotese (forkastet)
+
+Vi testet om `logintoken` kunne brukes til automatisk session-fornyelse på `/LogOn`:
+- Sendte `logintoken` + `logintoken_ssl` til beskyttede sider → **ingen ny `.ASPXAUTHNO`**
+- Sendte ugyldig `.ASPXAUTHNO` + `logintoken` → **ingen ny session**
+- Konklusjon: `logintoken` gir kun pre-fylt brukernavn, ikke automatisk innlogging
 
 ### Faktisk arkitektur
 
 ```
-Bruker logger inn på AO → Mottar .ASPXAUTHNO (session) + logintoken (1 år)
+Bruker logger inn på AO → Mottar .ASPXAUTHNO (session) + logintoken (session*)
                                     ↓
-                        .ASPXAUTHNO = faktisk auth
-                        logintoken = "husk meg" for neste login
+                        .ASPXAUTHNO = faktisk auth (sliding expiration ~30 min)
+                        logintoken = "husk meg" (pre-fyller brukernavn ved neste login)
                                     ↓
-                        Nettleser session restore → beholder .ASPXAUTHNO
+                        Nettleser session restore → beholder begge cookies
                                     ↓
-                        Lukke nettleser helt → mister .ASPXAUTHNO
+                        Sliding expiration → .ASPXAUTHNO fornyes ved aktivitet
+                                    ↓
+                        Lukke nettleser HELT → mister session-cookies
                         (med mindre session restore er aktivert)
+
+* logintoken har Expires ~1 år, men dette er kun for "husk meg"-funksjon
 ```
 
 ### Konsekvenser for appen
@@ -308,13 +364,14 @@ Bruker logger inn på AO → Mottar .ASPXAUTHNO (session) + logintoken (1 år)
 | Manuell .ASPXAUTHNO-kopi | ✅ Fortsatt mulig (backup) |
 | Sliding expiration (~30 min) | ✅ Fungerer, men kun for gyldig session |
 
-### Anbefalt UX
+### Anbefalt UX (oppdatert 2026-02-03)
 
-Siden automatisk token-refresh etter utløp ikke er mulig, bør vi:
+Med brukernavn/passord auto-relogin har vi nå en robust løsning:
 
-1. **Tydelig kommunisere** at tokens utløper etter ~30 min inaktivitet, og at kun manuell innliming av ny .ASPXAUTHNO gir ny session
-2. **Forenkle kopiering** av .ASPXAUTHNO fra nettleser
-3. **Vurdere OIDC** på mobil.artsobservasjoner.no som alternativ (støtter refresh_token)
+1. **Engangs-innlogging:** Bruker oppgir brukernavn/passord på ao-direct.html
+2. **Automatisk fornyelse:** Når session utløper, logger appen automatisk inn på nytt
+3. **Fallback:** Manuell token-kopi er fortsatt tilgjengelig som backup
+4. **Fremtidig:** OIDC på mobil.artsobservasjoner.no kan vurderes (støtter refresh_token)
 
 ### logintoken-format (for referanse)
 
@@ -323,9 +380,12 @@ Siden automatisk token-refresh etter utløp ikke er mulig, bør vi:
 Eksempel: 290628:1b468755c0676437272dbd42a0456cd1ca3d122915e6620d976720148f35a87c
 ```
 
-- `userId` (før kolon): Bruker-ID i AO-systemet  
+- `userId` (før kolon): Bruker-ID i AO-systemet
 - `hash` (etter kolon): 64 tegn hex = 256-bit token
-- **Funksjon:** Kun for "husk meg" ved manuell innlogging
+- **Expires-header:** ~1 år (men dette er misvisende – cookien oppfører seg som session)
+- **Faktisk scope:** Session (forsvinner ved full nettleserlukking)
+- **Funksjon:** Kun for "husk meg" – pre-fyller brukernavn ved neste manuelle innlogging
+- **Kan IKKE:** Gjenopprette `.ASPXAUTHNO` automatisk eller programmatisk
 
 ---
 
