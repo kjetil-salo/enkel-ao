@@ -315,6 +315,10 @@
 
         <ul class="obs-list" id="obs-list"></ul>
 
+        <button class="btn" id="check-login-btn" style="margin-bottom: 12px; background: var(--orange);">
+          🔍 Sjekk innlogging
+        </button>
+
         <button class="btn btn-success" id="import-btn" disabled>
           🚀 Importer og publiser til AO
         </button>
@@ -410,6 +414,7 @@
       const obsList = document.getElementById('obs-list');
       const obsCount = document.getElementById('obs-count');
       const importBtn = document.getElementById('import-btn');
+      const checkLoginBtn = document.getElementById('check-login-btn');
       const statusEl = document.getElementById('status');
 
       // Vis observasjoner
@@ -445,6 +450,65 @@
           obsList.appendChild(li);
         });
       }
+
+      // Sjekk innlogging-funksjon
+      checkLoginBtn.addEventListener('click', async () => {
+        const savedTokens = JSON.parse(localStorage.getItem('ao_tokens') || '{}');
+
+        if (!savedTokens.loginToken || !savedTokens.authCookie) {
+          statusEl.className = 'status error';
+          statusEl.textContent = '❌ Tokens mangler! Logg inn først.';
+          configContent.classList.add('open');
+          configArrow.classList.add('open');
+          return;
+        }
+
+        checkLoginBtn.disabled = true;
+        checkLoginBtn.innerHTML = '<span class="spinner"></span> Sjekker...';
+        statusEl.className = 'status loading';
+        statusEl.innerHTML = '<span class="spinner"></span> Sjekker innloggingsstatus...';
+
+        try {
+          const response = await fetch('/api/ao-check-login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              loginToken: savedTokens.loginToken,
+              authCookie: savedTokens.authCookie,
+            }),
+          });
+
+          const result = await response.json();
+
+          if (result.loggedIn) {
+            statusEl.className = 'status success';
+            statusEl.textContent = '✅ Du er innlogget på AO!';
+          } else {
+            statusEl.className = 'status error';
+            statusEl.innerHTML = `❌ Ikke innlogget. ${result.error || 'Token kan være utløpt'}. <a href="#" id="try-relogin" style="color:#93c5fd;">Prøv ny innlogging</a>`;
+
+            // Legg til event listener for re-login link
+            setTimeout(() => {
+              const reloginLink = document.getElementById('try-relogin');
+              if (reloginLink) {
+                reloginLink.addEventListener('click', (e) => {
+                  e.preventDefault();
+                  configContent.classList.add('open');
+                  configArrow.classList.add('open');
+                  loginFormSection.style.display = 'block';
+                  manualTokenSection.style.display = 'none';
+                });
+              }
+            }, 100);
+          }
+        } catch (error) {
+          statusEl.className = 'status error';
+          statusEl.textContent = `❌ Feil ved sjekk: ${error.message}`;
+        } finally {
+          checkLoginBtn.disabled = false;
+          checkLoginBtn.textContent = '🔍 Sjekk innlogging';
+        }
+      });
 
       // Import-funksjon
       importBtn.addEventListener('click', async () => {
@@ -485,9 +549,54 @@
               console.log('[AO] Auth-token fornyet automatisk');
             }
 
+            // Sjekk om det var valideringsfeil
+            if (!result.published && result.validationErrors && result.validationErrors.length > 0) {
+              statusEl.className = 'status error';
+
+              // Vis importert vs submitted hvis tilgjengelig
+              let statusLine = '';
+              if (result.total && result.submitted !== undefined) {
+                statusLine = `<div style="font-weight: 600; margin-bottom: 12px;">📊 Status: ${result.total} totalt, ${result.submitted} godkjent, ${result.errorCount} med feil</div>`;
+              } else if (result.errorCount) {
+                statusLine = `<div style="font-weight: 600; margin-bottom: 12px;">⚠️ ${result.errorCount} observasjon${result.errorCount !== 1 ? 'er' : ''} har valideringsfeil</div>`;
+              }
+
+              let errorHtml = `⚠️ ${result.count} observasjon${result.count !== 1 ? 'er' : ''} importert til AO, men <strong>ikke publisert</strong> pga valideringsfeil:<br><br>`;
+              errorHtml += statusLine;
+              errorHtml += '<div style="margin: 8px 0; text-align: left;">';
+              result.validationErrors.forEach(err => {
+                if (err.startsWith('**') && err.endsWith('**')) {
+                  // Artsnavn-overskrift
+                  const name = err.slice(2, -2);
+                  errorHtml += `<div style="font-weight:600; margin-top:10px; color:#fca5a5;">🐦 ${name}</div>`;
+                } else {
+                  // Feil-detalj
+                  errorHtml += `<div style="margin: 2px 0 2px 16px; font-size:0.9em;">• ${err}</div>`;
+                }
+              });
+              errorHtml += '</div>';
+              errorHtml += '<br><small>Observasjonene er lastet opp til AO, men må rettes før publisering.<br>';
+              errorHtml += 'Gå til <a href="https://www.artsobservasjoner.no/ReviewSighting" target="_blank" style="color:#93c5fd;">Kontrollér funn</a> for å se og rette feilene.</small>';
+              statusEl.innerHTML = errorHtml;
+              importBtn.disabled = false;
+              return;
+            }
+
+            // Vellykket publisering
             const publishedText = result.published ? ' og publisert' : ' (publisering venter)';
             statusEl.className = 'status success';
-            statusEl.innerHTML = `✅ ${result.count} observasjon${result.count !== 1 ? 'er' : ''} importert${publishedText}!`;
+            let successHtml = `✅ ${result.count} observasjon${result.count !== 1 ? 'er' : ''} importert${publishedText}!`;
+
+            // Vis advarsler hvis de finnes
+            if (result.warnings && result.warnings.length > 0) {
+              successHtml += '<br><br><small style="color: var(--orange);">⚠️ Advarsler:<br>';
+              result.warnings.forEach(warn => {
+                successHtml += `• ${warn}<br>`;
+              });
+              successHtml += '</small>';
+            }
+
+            statusEl.innerHTML = successHtml;
 
             setTimeout(() => {
               if (confirm('Import vellykket! Vil du tømme observasjonslisten?')) {

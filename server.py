@@ -17,7 +17,7 @@ import threading
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse, parse_qs
 
-from src.api_handlers import handle_species_search, handle_reverse_geocoding, handle_ao_sites_search, login_to_ao
+from src.api_handlers import handle_species_search, handle_reverse_geocoding, handle_ao_sites_search, login_to_ao, refresh_ao_cookie_if_needed
 from src.html_templates import generate_stats_login_page, generate_stats_page, generate_error_page
 from src.supabase_log import log_view_to_supabase
 from src.ao_import_curl import post_with_curl
@@ -32,6 +32,7 @@ _stats = {
     'per_ip': {},
     'per_ua': {},
 }
+
 
 class Handler(SimpleHTTPRequestHandler):
     """HTTP request handler med API-routing."""
@@ -58,6 +59,14 @@ class Handler(SimpleHTTPRequestHandler):
 
         if parsed.path == '/api/ao-login':
             self._handle_ao_login_post()
+            return
+
+        if parsed.path == '/api/ao-refresh':
+            self._handle_ao_refresh_post()
+            return
+
+        if parsed.path == '/api/ao-check-login':
+            self._handle_ao_check_login_post()
             return
 
         # For alt annet, returner 404
@@ -162,6 +171,156 @@ class Handler(SimpleHTTPRequestHandler):
         except Exception as e:
             print(f'[AO-LOGIN] Uventet feil: {e}', file=sys.stderr)
             self._send_json({'error': f'Server-feil: {str(e)}'}, status=500)
+
+    def _handle_ao_refresh_post(self):
+        """Håndter refresh av AO session token."""
+        import sys
+        import subprocess
+        import re
+
+        try:
+            content_length = int(self.headers.get('Content-Length', 0))
+            body = self.rfile.read(content_length).decode('utf-8')
+            data = json.loads(body)
+
+            login_token = data.get('loginToken', '').strip()
+            auth_cookie = data.get('authCookie', '').strip()
+            user_id = data.get('userId', '').strip()
+
+            print(f'[AO-REFRESH] === Session Refresh Request ===', file=sys.stderr)
+            print(f'[AO-REFRESH] Input tokens:', file=sys.stderr)
+            print(f'[AO-REFRESH]   loginToken: {login_token[:30] if login_token else "None"}...', file=sys.stderr)
+            print(f'[AO-REFRESH]   authCookie: {auth_cookie[:30] if auth_cookie else "None"}...', file=sys.stderr)
+            print(f'[AO-REFRESH]   userId: {user_id}', file=sys.stderr)
+
+            if not login_token:
+                self._send_json({'error': 'loginToken er påkrevd'}, status=400)
+                return
+
+            # Bygg cookie-header
+            cookie_parts = [f'logintoken={login_token}', 'logintoken_ssl=1']
+            if auth_cookie:
+                # Fjern eventuelt ".ASPXAUTHNO=" prefix
+                auth_val = auth_cookie
+                if auth_val.startswith('.ASPXAUTHNO='):
+                    auth_val = auth_val.split('=', 1)[1]
+                cookie_parts.append(f'.ASPXAUTHNO={auth_val}')
+
+            cookie_header = '; '.join(cookie_parts)
+
+            # Prøv å refreshe ved å treffe en beskyttet AO-side
+            probe_url = 'https://www.artsobservasjoner.no/Observations'
+            print(f'[AO-REFRESH] Prober: {probe_url}', file=sys.stderr)
+
+            result = subprocess.run([
+                'curl', '-i', '-s', '-L',
+                probe_url,
+                '-H', f'Cookie: {cookie_header}',
+                '-H', 'User-Agent: Mozilla/5.0 (compatible; Fugleobservasjoner/1.0)'
+            ], capture_output=True, text=True, timeout=15)
+
+            # Parse response for Set-Cookie headers
+            refreshed_auth = None
+            refreshed_login_token = None
+
+            print(f'[AO-REFRESH] Response headers (Set-Cookie):', file=sys.stderr)
+            for line in result.stdout.split('\n'):
+                if 'set-cookie' in line.lower():
+                    print(f'[AO-REFRESH]   {line.strip()}', file=sys.stderr)
+
+                    if '.ASPXAUTHNO=' in line:
+                        match = re.search(r'\.ASPXAUTHNO=([^;\s]+)', line, re.IGNORECASE)
+                        if match:
+                            refreshed_auth = match.group(1)
+
+                    if 'logintoken=' in line.lower() and 'logintoken_ssl' not in line.lower():
+                        match = re.search(r'logintoken=([^;\s]+)', line, re.IGNORECASE)
+                        if match:
+                            refreshed_login_token = match.group(1)
+
+            print(f'[AO-REFRESH] === Refresh Result ===', file=sys.stderr)
+            print(f'[AO-REFRESH]   New authCookie: {refreshed_auth[:30] if refreshed_auth else "None"}...', file=sys.stderr)
+            print(f'[AO-REFRESH]   New loginToken: {refreshed_login_token[:30] if refreshed_login_token else "None (unchanged)"}...', file=sys.stderr)
+
+            response = {}
+            if refreshed_auth:
+                response['refreshedAuthCookie'] = refreshed_auth
+            if refreshed_login_token:
+                response['refreshedLoginToken'] = refreshed_login_token
+
+            if not response:
+                # Sjekk om vi ble redirectet til login (token utløpt)
+                if '/LogOn' in result.stdout or 'LogOn' in result.stdout:
+                    print(f'[AO-REFRESH] Token utløpt - redirect til LogOn', file=sys.stderr)
+                    response['error'] = 'Token utløpt - krever ny innlogging'
+                else:
+                    response['message'] = 'Ingen ny token mottatt, eksisterende kan fortsatt være gyldig'
+
+            self._send_json(response)
+
+        except Exception as e:
+            print(f'[AO-REFRESH] Feil: {e}', file=sys.stderr)
+            self._send_json({'error': str(e)}, status=500)
+
+    def _handle_ao_check_login_post(self):
+        """Sjekk om brukeren er innlogget på AO."""
+        import sys
+        import subprocess
+
+        try:
+            content_length = int(self.headers.get('Content-Length', 0))
+            body = self.rfile.read(content_length).decode('utf-8')
+            data = json.loads(body)
+
+            login_token = data.get('loginToken', '').strip()
+            auth_cookie = data.get('authCookie', '').strip()
+
+            print(f'[AO-CHECK] Sjekker innloggingsstatus', file=sys.stderr)
+
+            if not login_token or not auth_cookie:
+                self._send_json({'loggedIn': False, 'error': 'Mangler tokens'}, status=200)
+                return
+
+            # Bygg cookie-header
+            cookie_parts = [f'logintoken={login_token}', 'logintoken_ssl=1']
+            auth_val = auth_cookie
+            if auth_val.startswith('.ASPXAUTHNO='):
+                auth_val = auth_val.split('=', 1)[1]
+            cookie_parts.append(f'.ASPXAUTHNO={auth_val}')
+            cookie_header = '; '.join(cookie_parts)
+
+            # Prøv å hente en beskyttet side
+            probe_url = 'https://www.artsobservasjoner.no/Observations'
+            result = subprocess.run([
+                'curl', '-s', '-L', '-w', '\n%{http_code}',
+                probe_url,
+                '-H', f'Cookie: {cookie_header}',
+                '-H', 'User-Agent: Mozilla/5.0 (compatible; Fugleobservasjoner/1.0)'
+            ], capture_output=True, text=True, timeout=15)
+
+            lines = result.stdout.strip().split('\n')
+            status = lines[-1] if lines else '000'
+            html = '\n'.join(lines[:-1]) if len(lines) > 1 else ''
+
+            print(f'[AO-CHECK] HTTP Status: {status}', file=sys.stderr)
+
+            # Sjekk om vi ble redirectet til login
+            if '/LogOn' in html or 'id="logOnForm"' in html:
+                print(f'[AO-CHECK] Ikke innlogget - redirect til LogOn', file=sys.stderr)
+                self._send_json({'loggedIn': False, 'error': 'Token utløpt'}, status=200)
+                return
+
+            # Hvis vi kom hit og status er 200, er vi sannsynligvis innlogget
+            if status == '200':
+                print(f'[AO-CHECK] Innlogget OK', file=sys.stderr)
+                self._send_json({'loggedIn': True}, status=200)
+            else:
+                print(f'[AO-CHECK] Ukjent status: {status}', file=sys.stderr)
+                self._send_json({'loggedIn': False, 'error': f'HTTP {status}'}, status=200)
+
+        except Exception as e:
+            print(f'[AO-CHECK] Feil: {e}', file=sys.stderr)
+            self._send_json({'loggedIn': False, 'error': str(e)}, status=500)
 
     def do_GET(self):
         """Håndter GET-forespørsler."""

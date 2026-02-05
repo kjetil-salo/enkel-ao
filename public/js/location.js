@@ -116,7 +116,7 @@ export function setAoSiteSuggestions(sites, currentPosition, dropdown, aoSitesEl
 
   // Maks 20 elementer
   const visibleSites = withDist.filter(s => s && typeof s.name === 'string' && s.name.trim()).slice(0, 20);
-  console.log('AO visibleSites:', visibleSites);
+
   
   if (!visibleSites.length) {
     dropdown.style.display = 'none';
