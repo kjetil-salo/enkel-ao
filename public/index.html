@@ -1152,7 +1152,7 @@
       <div class="card">
         <header>
           <div class="title">
-            <span>🦆 Enkel-AO</span>
+            <span id="app-title" style="cursor:default;user-select:none;">🦆 Enkel-AO</span>
             <span class="pill mode-pill" id="mode-pill" style="cursor:pointer;" title="Klikk for å bytte modus">Felt</span>
           </div>
           <div style="display: flex; align-items: center; gap: 8px;">
@@ -1407,22 +1407,37 @@
       import { VERSION } from './js/version.js';
       document.getElementById('version').textContent = VERSION;
 
-      // Easter egg: Trippeltapp på "m" (etter avstand) → AO Direct
-      const unitM = document.getElementById('unit-m');
-      let clickCount = 0;
-      let clickTimer = null;
+      // Long-press på "Enkel-AO" overskriften → AO Direct
+      const appTitle = document.getElementById('app-title');
+      let longPressTimer = null;
 
-      unitM.addEventListener('click', (e) => {
-        e.preventDefault();
-        clickCount++;
-        if (clickTimer) clearTimeout(clickTimer);
-
-        if (clickCount >= 3) {
-          clickCount = 0;
+      appTitle.addEventListener('touchstart', (e) => {
+        longPressTimer = setTimeout(() => {
           window.location.href = '/ao-direct.html';
-        } else {
-          clickTimer = setTimeout(() => { clickCount = 0; }, 500);
-        }
+        }, 800);
+      });
+
+      appTitle.addEventListener('touchend', () => {
+        if (longPressTimer) clearTimeout(longPressTimer);
+      });
+
+      appTitle.addEventListener('touchcancel', () => {
+        if (longPressTimer) clearTimeout(longPressTimer);
+      });
+
+      // Desktop: mousedown/mouseup for long-press
+      appTitle.addEventListener('mousedown', (e) => {
+        longPressTimer = setTimeout(() => {
+          window.location.href = '/ao-direct.html';
+        }, 800);
+      });
+
+      appTitle.addEventListener('mouseup', () => {
+        if (longPressTimer) clearTimeout(longPressTimer);
+      });
+
+      appTitle.addEventListener('mouseleave', () => {
+        if (longPressTimer) clearTimeout(longPressTimer);
       });
     </script>
   </body>
