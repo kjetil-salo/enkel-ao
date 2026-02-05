@@ -620,31 +620,68 @@
         });
       }
 
+      // Auto-innlogging før import
+      async function ensureFreshLogin() {
+        const username = localStorage.getItem('ao_username');
+        const password = localStorage.getItem('ao_password');
+        if (!username || !password) return null;
+
+        statusEl.className = 'status loading';
+        statusEl.innerHTML = '<span class="spinner"></span> Logger inn på AO...';
+
+        const resp = await fetch('/api/ao-login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password }),
+        });
+        const result = await resp.json();
+        if (!resp.ok || !result.success) {
+          throw new Error(result.error || 'Auto-innlogging feilet');
+        }
+
+        // Oppdater lagrede tokens
+        const tokens = JSON.parse(localStorage.getItem('ao_tokens') || '{}');
+        tokens.loginToken = result.loginToken;
+        tokens.authCookie = result.authCookie;
+        tokens.userId = tokens.mapUserId || result.userId;
+        localStorage.setItem('ao_tokens', JSON.stringify(tokens));
+
+        return tokens;
+      }
+
       // Import-funksjon
       importBtn.addEventListener('click', async () => {
-        // Hent tokens fra localStorage
+        // Sjekk at vi har credentials eller tokens
+        const hasCredentials = localStorage.getItem('ao_username') && localStorage.getItem('ao_password');
         const savedTokens = JSON.parse(localStorage.getItem('ao_tokens') || '{}');
-        if (!savedTokens.loginToken || !savedTokens.authCookie) {
+
+        if (!hasCredentials && (!savedTokens.loginToken || !savedTokens.authCookie)) {
           statusEl.className = 'status error';
-          statusEl.textContent = '❌ Tokens mangler! Åpne Token-konfigurasjon og lagre tokens først.';
-          // Åpne config-seksjonen
+          statusEl.textContent = '❌ Logg inn først!';
           configContent.classList.add('open');
           configArrow.classList.add('open');
           return;
         }
 
         importBtn.disabled = true;
-        statusEl.className = 'status loading';
-        statusEl.innerHTML = '<span class="spinner"></span> Importerer og publiserer til AO...';
 
         try {
+          // Alltid logg inn på nytt hvis vi har credentials
+          let tokens = savedTokens;
+          if (hasCredentials) {
+            tokens = await ensureFreshLogin();
+          }
+
+          statusEl.className = 'status loading';
+          statusEl.innerHTML = '<span class="spinner"></span> Importerer og publiserer til AO...';
+
           const response = await fetch('/api/ao-import', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               observations,
-              loginToken: savedTokens.loginToken,
-              authCookie: savedTokens.authCookie,
+              loginToken: tokens.loginToken,
+              authCookie: tokens.authCookie,
               areaId: selectedArea ? String(selectedArea.id) : '',
             }),
           });
@@ -652,12 +689,10 @@
           const result = await response.json();
 
           if (response.ok && result.success) {
-            // Oppdater auth-token hvis AO sendte ny (sliding expiration)
             if (result.refreshedAuthCookie) {
-              const tokens = JSON.parse(localStorage.getItem('ao_tokens') || '{}');
-              tokens.authCookie = result.refreshedAuthCookie;
-              localStorage.setItem('ao_tokens', JSON.stringify(tokens));
-              console.log('[AO] Auth-token fornyet automatisk');
+              const t = JSON.parse(localStorage.getItem('ao_tokens') || '{}');
+              t.authCookie = result.refreshedAuthCookie;
+              localStorage.setItem('ao_tokens', JSON.stringify(t));
             }
 
             const publishedText = result.published ? ' og publisert' : ' (publisering venter)';
@@ -675,12 +710,7 @@
           }
         } catch (error) {
           statusEl.className = 'status error';
-          // Bedre feilmelding for utløpt session
-          if (error.message.includes('CSRF') || error.message.includes('token')) {
-            statusEl.innerHTML = `❌ Session utløpt! <a href="https://www.artsobservasjoner.no/ImportSighting" target="_blank" style="color:#93c5fd;">Åpne AO</a>, logg inn, og hent ny .ASPXAUTHNO cookie.`;
-          } else {
-            statusEl.textContent = `❌ Feil: ${error.message}`;
-          }
+          statusEl.textContent = `❌ Feil: ${error.message}`;
           importBtn.disabled = false;
         }
       });
