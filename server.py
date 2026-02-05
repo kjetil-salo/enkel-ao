@@ -65,10 +65,6 @@ class Handler(SimpleHTTPRequestHandler):
             self._handle_ao_refresh_post()
             return
 
-        if parsed.path == '/api/ao-check-login':
-            self._handle_ao_check_login_post()
-            return
-
         # For alt annet, returner 404
         self.send_response(404)
         self.end_headers()
@@ -110,6 +106,7 @@ class Handler(SimpleHTTPRequestHandler):
             observations = data.get('observations', [])
             login_token = data.get('loginToken')
             auth_cookie = data.get('authCookie')
+            area_id = data.get('areaId', '')
 
             if not observations:
                 self._send_json({'error': 'Ingen observasjoner å importere'}, status=400)
@@ -119,10 +116,10 @@ class Handler(SimpleHTTPRequestHandler):
                 self._send_json({'error': 'Mangler loginToken eller authCookie'}, status=400)
                 return
 
-            print(f'[AO-IMPORT] Mottatt {len(observations)} observasjoner', file=sys.stderr)
+            print(f'[AO-IMPORT] Mottatt {len(observations)} observasjoner, area={area_id}', file=sys.stderr)
 
             # Post til AO med curl (tokens fra klient)
-            result = post_with_curl(observations, login_token, auth_cookie)
+            result = post_with_curl(observations, login_token, auth_cookie, area_id=area_id)
 
             print(f'[AO-IMPORT] Suksess: {result}', file=sys.stderr)
             self._send_json(result)
@@ -262,66 +259,6 @@ class Handler(SimpleHTTPRequestHandler):
             print(f'[AO-REFRESH] Feil: {e}', file=sys.stderr)
             self._send_json({'error': str(e)}, status=500)
 
-    def _handle_ao_check_login_post(self):
-        """Sjekk om brukeren er innlogget på AO."""
-        import sys
-        import subprocess
-
-        try:
-            content_length = int(self.headers.get('Content-Length', 0))
-            body = self.rfile.read(content_length).decode('utf-8')
-            data = json.loads(body)
-
-            login_token = data.get('loginToken', '').strip()
-            auth_cookie = data.get('authCookie', '').strip()
-
-            print(f'[AO-CHECK] Sjekker innloggingsstatus', file=sys.stderr)
-
-            if not login_token or not auth_cookie:
-                self._send_json({'loggedIn': False, 'error': 'Mangler tokens'}, status=200)
-                return
-
-            # Bygg cookie-header
-            cookie_parts = [f'logintoken={login_token}', 'logintoken_ssl=1']
-            auth_val = auth_cookie
-            if auth_val.startswith('.ASPXAUTHNO='):
-                auth_val = auth_val.split('=', 1)[1]
-            cookie_parts.append(f'.ASPXAUTHNO={auth_val}')
-            cookie_header = '; '.join(cookie_parts)
-
-            # Prøv å hente en beskyttet side
-            probe_url = 'https://www.artsobservasjoner.no/Observations'
-            result = subprocess.run([
-                'curl', '-s', '-L', '-w', '\n%{http_code}',
-                probe_url,
-                '-H', f'Cookie: {cookie_header}',
-                '-H', 'User-Agent: Mozilla/5.0 (compatible; Fugleobservasjoner/1.0)'
-            ], capture_output=True, text=True, timeout=15)
-
-            lines = result.stdout.strip().split('\n')
-            status = lines[-1] if lines else '000'
-            html = '\n'.join(lines[:-1]) if len(lines) > 1 else ''
-
-            print(f'[AO-CHECK] HTTP Status: {status}', file=sys.stderr)
-
-            # Sjekk om vi ble redirectet til login
-            if '/LogOn' in html or 'id="logOnForm"' in html:
-                print(f'[AO-CHECK] Ikke innlogget - redirect til LogOn', file=sys.stderr)
-                self._send_json({'loggedIn': False, 'error': 'Token utløpt'}, status=200)
-                return
-
-            # Hvis vi kom hit og status er 200, er vi sannsynligvis innlogget
-            if status == '200':
-                print(f'[AO-CHECK] Innlogget OK', file=sys.stderr)
-                self._send_json({'loggedIn': True}, status=200)
-            else:
-                print(f'[AO-CHECK] Ukjent status: {status}', file=sys.stderr)
-                self._send_json({'loggedIn': False, 'error': f'HTTP {status}'}, status=200)
-
-        except Exception as e:
-            print(f'[AO-CHECK] Feil: {e}', file=sys.stderr)
-            self._send_json({'loggedIn': False, 'error': str(e)}, status=500)
-
     def do_GET(self):
         """Håndter GET-forespørsler."""
         import sys
@@ -345,6 +282,8 @@ class Handler(SimpleHTTPRequestHandler):
                 self._handle_reverse_api(parsed)
             elif parsed.path == '/api/ao-sites':
                 self._handle_ao_sites_api(parsed)
+            elif parsed.path == '/api/ao-areas':
+                self._handle_ao_areas_api(parsed)
             else:
                 self._handle_static_files(parsed)
         except Exception as e:
@@ -494,6 +433,33 @@ class Handler(SimpleHTTPRequestHandler):
             # Ikke la dette knekke klienten – returner bare tom liste
             self._send_json({'sites': []})
     
+    def _handle_ao_areas_api(self, parsed):
+        """Proxy for AO område-søk (politiske grenser). Åpent API med access-key."""
+        import sys
+        import subprocess
+
+        params = parse_qs(parsed.query)
+        search = params.get('search', [''])[0].strip()
+        if not search or len(search) < 2:
+            self._send_json([])
+            return
+
+        ao_url = f'https://www.artsobservasjoner.no/Api/Areas/politicalboundary/{search}/'
+        try:
+            result = subprocess.run(
+                [
+                    'curl', '-s', ao_url,
+                    '-H', 'access-key: 20a2d12937024a7391c10871d35bcc3a',
+                    '-H', 'X-Requested-With: XMLHttpRequest',
+                ],
+                capture_output=True, text=True, timeout=10
+            )
+            data = json.loads(result.stdout)
+            self._send_json(data)
+        except Exception as e:
+            print(f'[AO-AREAS] Feil: {e}', file=sys.stderr)
+            self._send_json([])
+
     def _handle_static_files(self, parsed):
         """Håndter statiske filer."""
         if parsed.path == '/':

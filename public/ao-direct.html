@@ -295,6 +295,94 @@
         font-size: 0.85rem;
         width: auto;
       }
+
+      /* Area autocomplete */
+      .area-field {
+        margin-bottom: 16px;
+      }
+
+      .area-field label {
+        display: block;
+        font-size: 0.9rem;
+        color: var(--muted);
+        margin-bottom: 6px;
+      }
+
+      .area-input-wrapper {
+        position: relative;
+      }
+
+      .area-input-wrapper input {
+        width: 100%;
+        padding: 10px 12px;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: rgba(30, 41, 59, 0.5);
+        color: var(--text);
+        font-size: 16px;
+      }
+
+      .area-input-wrapper input:focus {
+        outline: none;
+        border-color: var(--accent);
+      }
+
+      .area-suggestions {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        margin-top: 4px;
+        max-height: 200px;
+        overflow-y: auto;
+        z-index: 10;
+        display: none;
+      }
+
+      .area-suggestions.open {
+        display: block;
+      }
+
+      .area-suggestion {
+        padding: 10px 12px;
+        cursor: pointer;
+        font-size: 0.9rem;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .area-suggestion:last-child {
+        border-bottom: none;
+      }
+
+      .area-suggestion:hover {
+        background: var(--accent-soft);
+      }
+
+      .area-selected {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: var(--accent-soft);
+        border: 1px solid var(--accent);
+        border-radius: 6px;
+        padding: 6px 10px;
+        font-size: 0.85rem;
+        margin-top: 6px;
+      }
+
+      .area-selected .area-remove {
+        cursor: pointer;
+        color: var(--muted);
+        font-size: 1rem;
+        line-height: 1;
+      }
+
+      .area-selected .area-remove:hover {
+        color: var(--red);
+      }
     </style>
   </head>
   <body>
@@ -315,9 +403,14 @@
 
         <ul class="obs-list" id="obs-list"></ul>
 
-        <button class="btn" id="check-login-btn" style="margin-bottom: 12px; background: var(--orange);">
-          🔍 Sjekk innlogging
-        </button>
+        <div class="area-field">
+          <label for="area-input">Prioriter lokaliteter i området:</label>
+          <div class="area-input-wrapper">
+            <input type="text" id="area-input" placeholder="Søk kommune/fylke..." autocomplete="off" />
+            <div class="area-suggestions" id="area-suggestions"></div>
+          </div>
+          <div id="area-selected-container"></div>
+        </div>
 
         <button class="btn btn-success" id="import-btn" disabled>
           🚀 Importer og publiser til AO
@@ -367,7 +460,7 @@
                 Alternativt: Kopier tokens manuelt fra nettleseren.
               </p>
               <div class="token-field">
-                <label for="login-token">logintoken (session-cookie)</label>
+                <label for="login-token">logintoken (varer 1 år)</label>
                 <input type="text" id="login-token" placeholder="290628:1b468755c0676437..." />
               </div>
               <div class="token-field" id="auth-cookie-field">
@@ -414,8 +507,84 @@
       const obsList = document.getElementById('obs-list');
       const obsCount = document.getElementById('obs-count');
       const importBtn = document.getElementById('import-btn');
-      const checkLoginBtn = document.getElementById('check-login-btn');
       const statusEl = document.getElementById('status');
+
+      // --- Area autocomplete ---
+      const areaInput = document.getElementById('area-input');
+      const areaSuggestions = document.getElementById('area-suggestions');
+      const areaSelectedContainer = document.getElementById('area-selected-container');
+      let selectedArea = null;
+      let areaDebounce = null;
+
+      function renderSelectedArea() {
+        areaSelectedContainer.innerHTML = '';
+        if (!selectedArea) return;
+        const tag = document.createElement('div');
+        tag.className = 'area-selected';
+        tag.innerHTML = `<span>${selectedArea.name}</span><span class="area-remove">&times;</span>`;
+        tag.querySelector('.area-remove').addEventListener('click', () => {
+          selectedArea = null;
+          localStorage.removeItem('ao_area');
+          areaSelectedContainer.innerHTML = '';
+        });
+        areaSelectedContainer.appendChild(tag);
+      }
+
+      function renderSuggestions(items) {
+        areaSuggestions.innerHTML = '';
+        if (!items || items.length === 0) {
+          areaSuggestions.classList.remove('open');
+          return;
+        }
+        items.forEach(item => {
+          const div = document.createElement('div');
+          div.className = 'area-suggestion';
+          const areaType = item.AreaDataSetName ? ` (${item.AreaDataSetName})` : '';
+          div.textContent = (item.Name || item.name || JSON.stringify(item)) + areaType;
+          div.addEventListener('click', () => {
+            selectedArea = { id: item.Id || item.id, name: item.Name || item.name };
+            localStorage.setItem('ao_area', JSON.stringify(selectedArea));
+            areaInput.value = '';
+            areaSuggestions.classList.remove('open');
+            renderSelectedArea();
+          });
+          areaSuggestions.appendChild(div);
+        });
+        areaSuggestions.classList.add('open');
+      }
+
+      async function fetchAreas(query) {
+        try {
+          const resp = await fetch(`/api/ao-areas?search=${encodeURIComponent(query)}`);
+          const data = await resp.json();
+          renderSuggestions(Array.isArray(data) ? data : data.Data || []);
+        } catch (e) {
+          console.warn('Feil ved area-søk:', e);
+        }
+      }
+
+      // Last lagret area fra localStorage
+      const savedArea = JSON.parse(localStorage.getItem('ao_area') || 'null');
+      if (savedArea) {
+        selectedArea = savedArea;
+        renderSelectedArea();
+      }
+
+      areaInput.addEventListener('input', () => {
+        clearTimeout(areaDebounce);
+        const q = areaInput.value.trim();
+        if (q.length < 2) {
+          areaSuggestions.classList.remove('open');
+          return;
+        }
+        areaDebounce = setTimeout(() => fetchAreas(q), 300);
+      });
+
+      document.addEventListener('click', (e) => {
+        if (!e.target.closest('.area-input-wrapper')) {
+          areaSuggestions.classList.remove('open');
+        }
+      });
 
       // Vis observasjoner
       if (observations.length > 0) {
@@ -451,65 +620,6 @@
         });
       }
 
-      // Sjekk innlogging-funksjon
-      checkLoginBtn.addEventListener('click', async () => {
-        const savedTokens = JSON.parse(localStorage.getItem('ao_tokens') || '{}');
-
-        if (!savedTokens.loginToken || !savedTokens.authCookie) {
-          statusEl.className = 'status error';
-          statusEl.textContent = '❌ Tokens mangler! Logg inn først.';
-          configContent.classList.add('open');
-          configArrow.classList.add('open');
-          return;
-        }
-
-        checkLoginBtn.disabled = true;
-        checkLoginBtn.innerHTML = '<span class="spinner"></span> Sjekker...';
-        statusEl.className = 'status loading';
-        statusEl.innerHTML = '<span class="spinner"></span> Sjekker innloggingsstatus...';
-
-        try {
-          const response = await fetch('/api/ao-check-login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              loginToken: savedTokens.loginToken,
-              authCookie: savedTokens.authCookie,
-            }),
-          });
-
-          const result = await response.json();
-
-          if (result.loggedIn) {
-            statusEl.className = 'status success';
-            statusEl.textContent = '✅ Du er innlogget på AO!';
-          } else {
-            statusEl.className = 'status error';
-            statusEl.innerHTML = `❌ Ikke innlogget. ${result.error || 'Token kan være utløpt'}. <a href="#" id="try-relogin" style="color:#93c5fd;">Prøv ny innlogging</a>`;
-
-            // Legg til event listener for re-login link
-            setTimeout(() => {
-              const reloginLink = document.getElementById('try-relogin');
-              if (reloginLink) {
-                reloginLink.addEventListener('click', (e) => {
-                  e.preventDefault();
-                  configContent.classList.add('open');
-                  configArrow.classList.add('open');
-                  loginFormSection.style.display = 'block';
-                  manualTokenSection.style.display = 'none';
-                });
-              }
-            }, 100);
-          }
-        } catch (error) {
-          statusEl.className = 'status error';
-          statusEl.textContent = `❌ Feil ved sjekk: ${error.message}`;
-        } finally {
-          checkLoginBtn.disabled = false;
-          checkLoginBtn.textContent = '🔍 Sjekk innlogging';
-        }
-      });
-
       // Import-funksjon
       importBtn.addEventListener('click', async () => {
         // Hent tokens fra localStorage
@@ -535,6 +645,7 @@
               observations,
               loginToken: savedTokens.loginToken,
               authCookie: savedTokens.authCookie,
+              areaId: selectedArea ? String(selectedArea.id) : '',
             }),
           });
 
@@ -549,54 +660,9 @@
               console.log('[AO] Auth-token fornyet automatisk');
             }
 
-            // Sjekk om det var valideringsfeil
-            if (!result.published && result.validationErrors && result.validationErrors.length > 0) {
-              statusEl.className = 'status error';
-
-              // Vis importert vs submitted hvis tilgjengelig
-              let statusLine = '';
-              if (result.total && result.submitted !== undefined) {
-                statusLine = `<div style="font-weight: 600; margin-bottom: 12px;">📊 Status: ${result.total} totalt, ${result.submitted} godkjent, ${result.errorCount} med feil</div>`;
-              } else if (result.errorCount) {
-                statusLine = `<div style="font-weight: 600; margin-bottom: 12px;">⚠️ ${result.errorCount} observasjon${result.errorCount !== 1 ? 'er' : ''} har valideringsfeil</div>`;
-              }
-
-              let errorHtml = `⚠️ ${result.count} observasjon${result.count !== 1 ? 'er' : ''} importert til AO, men <strong>ikke publisert</strong> pga valideringsfeil:<br><br>`;
-              errorHtml += statusLine;
-              errorHtml += '<div style="margin: 8px 0; text-align: left;">';
-              result.validationErrors.forEach(err => {
-                if (err.startsWith('**') && err.endsWith('**')) {
-                  // Artsnavn-overskrift
-                  const name = err.slice(2, -2);
-                  errorHtml += `<div style="font-weight:600; margin-top:10px; color:#fca5a5;">🐦 ${name}</div>`;
-                } else {
-                  // Feil-detalj
-                  errorHtml += `<div style="margin: 2px 0 2px 16px; font-size:0.9em;">• ${err}</div>`;
-                }
-              });
-              errorHtml += '</div>';
-              errorHtml += '<br><small>Observasjonene er lastet opp til AO, men må rettes før publisering.<br>';
-              errorHtml += 'Gå til <a href="https://www.artsobservasjoner.no/ReviewSighting" target="_blank" style="color:#93c5fd;">Kontrollér funn</a> for å se og rette feilene.</small>';
-              statusEl.innerHTML = errorHtml;
-              importBtn.disabled = false;
-              return;
-            }
-
-            // Vellykket publisering
             const publishedText = result.published ? ' og publisert' : ' (publisering venter)';
             statusEl.className = 'status success';
-            let successHtml = `✅ ${result.count} observasjon${result.count !== 1 ? 'er' : ''} importert${publishedText}!`;
-
-            // Vis advarsler hvis de finnes
-            if (result.warnings && result.warnings.length > 0) {
-              successHtml += '<br><br><small style="color: var(--orange);">⚠️ Advarsler:<br>';
-              result.warnings.forEach(warn => {
-                successHtml += `• ${warn}<br>`;
-              });
-              successHtml += '</small>';
-            }
-
-            statusEl.innerHTML = successHtml;
+            statusEl.innerHTML = `✅ ${result.count} observasjon${result.count !== 1 ? 'er' : ''} importert${publishedText}!`;
 
             setTimeout(() => {
               if (confirm('Import vellykket! Vil du tømme observasjonslisten?')) {
@@ -769,7 +835,7 @@
         tokenStatus.style.display = 'block';
         tokenStatus.className = 'token-status valid';
         tokenStatus.textContent = tokens.userId
-          ? `✅ Token lagret for bruker ${tokens.userId}`
+          ? `✅ Token lagret for bruker ${tokens.userId}. Varer ca. 1 år!`
           : '✅ Token lagret lokalt';
         setTimeout(() => { tokenStatus.style.display = 'none'; }, 4000);
       });
