@@ -91,7 +91,7 @@ def test_activities_json_has_correct_values():
         '24': 'Overflygende',
         '25': 'Næringssøkende',
         '32': 'Trekkende',
-        '52': 'Sang/spill'
+        '26': 'Sang/spill, ikke hekking'
     }
 
     for value, label in expected.items():
