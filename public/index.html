@@ -895,7 +895,18 @@
       }
 
       @media (max-width: 480px) {
-        .export-row { padding-top: 8px; margin-top: 10px; }
+        .export-row {
+          padding-top: 8px;
+          margin-top: 10px;
+          flex-direction: column;
+        }
+        .export-row .btn {
+          width: 100%;
+          justify-content: center;
+          padding: 12px 16px;
+          font-size: 0.9rem;
+          min-height: 44px;
+        }
       }
 
       .btn {
