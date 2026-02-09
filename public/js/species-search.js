@@ -93,7 +93,7 @@ export function chooseItem(index, state, dom, callbacks) {
   }, 200);
 
   dom.countInput.disabled = false;
-  dom.countInput.value = '';
+  dom.countInput.value = '1';
   dom.countInput.focus();
   dom.countInput.classList.remove('focus-flash');
   void dom.countInput.offsetWidth;

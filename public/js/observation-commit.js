@@ -151,7 +151,7 @@ export function commitObservation(state, dom, callbacks) {
 
   // Behold selectedSpecies for å tillate umiddelbar ny registrering med nytt antall
   // Nullstilles først når bruker begynner å skrive nytt søk
-  dom.countInput.value = '';
+  dom.countInput.value = '1';
   dom.countInput.disabled = false; // Hold aktivert så bruker kan endre antall
 
   // Lagre sist valgt aktivitet for gjenbruk
