@@ -95,6 +95,7 @@ export function chooseItem(index, state, dom, callbacks) {
   dom.countInput.disabled = false;
   dom.countInput.value = '1';
   dom.countInput.focus();
+  dom.countInput.select();
   dom.countInput.classList.remove('focus-flash');
   void dom.countInput.offsetWidth;
   dom.countInput.classList.add('focus-flash');
