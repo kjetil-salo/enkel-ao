@@ -94,11 +94,23 @@ export function chooseItem(index, state, dom, callbacks) {
 
   dom.countInput.disabled = false;
   dom.countInput.value = '1';
+  dom.countInput.dataset.isDefault = '1';
   dom.countInput.focus();
-  dom.countInput.select();
   dom.countInput.classList.remove('focus-flash');
   void dom.countInput.offsetWidth;
   dom.countInput.classList.add('focus-flash');
+
+  // Første siffer erstatter default-verdien
+  dom.countInput.addEventListener('keydown', function defaultHandler(e) {
+    if (dom.countInput.dataset.isDefault && e.key >= '0' && e.key <= '9') {
+      dom.countInput.value = '';
+      delete dom.countInput.dataset.isDefault;
+      dom.countInput.removeEventListener('keydown', defaultHandler);
+    } else if (e.key === 'Enter' || e.key === 'Tab' || e.key === 'Backspace') {
+      delete dom.countInput.dataset.isDefault;
+      dom.countInput.removeEventListener('keydown', defaultHandler);
+    }
+  });
 
   dom.countInput.addEventListener('keydown', function handler(e) {
     if ((e.key === 'Enter' || e.key === 'Tab') && dom.countInput.value.trim()) {
