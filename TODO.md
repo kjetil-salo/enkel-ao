@@ -24,3 +24,15 @@
 - Sjekk om eksisterende tester dekker alle scenarier etter nyere endringer
 - Vurder om nye tester trengs for: AO-import, aktivitetspills, visuell layout, curl-baserte API-kall
 - Identifiser eventuelle hull i test-coverage
+
+## 5. Omfattende analyse av brukervennlighet
+- Fokus på reell brukervennlighet for målgruppen: fuglekikkere i felt med mobil
+- WCAG er IKKE relevant – dette er en privat app for folk med normalt syn (fuglekikking krever godt syn)
+- Vurder:
+  - Er flyten fra lokasjon → art → antall → registrer rask og intuitiv?
+  - Fungerer det godt med kalde/våte fingre og hansker?
+  - Er knapper og touch-targets store nok i felt?
+  - Er informasjonshierarkiet tydelig – ser man det viktigste først?
+  - Er det unødvendige steg eller klikk som kan fjernes?
+  - Fungerer appen godt i sterkt sollys (kontrast)?
+  - Er feilmeldinger og feedback tydelige nok i stressede situasjoner (fuglen flyr snart!)?
