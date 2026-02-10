@@ -136,4 +136,7 @@ AO_URL=http://localhost:8080 AO_MOBILE_URL=http://localhost:8080 python3 server.
 - **Production deploy**: `update-app.sh production` kjører automatisk `python3 -m pytest --maxfail=3` først. Deploy avbrytes hvis tester feiler.
 
 ### Versjonering
-- Ved ny versjon (git tag): Oppdater alltid `VERSION` i `public/js/version.js` (brukes av index.html og help.html footers)
+Ved ny versjon (git tag), gjør alltid følgende:
+1. Oppdater `VERSION` i `public/js/version.js` (brukes av index.html og help.html footers)
+2. Oppdater `public/changelog.html` med kort beskrivelse av hva som er nytt
+3. Oppdater relevant dokumentasjon i `docs/` hvis funksjonalitet er endret
