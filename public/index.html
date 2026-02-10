@@ -582,12 +582,51 @@
         background: radial-gradient(circle at top left, rgba(15, 23, 42, 0.96), rgba(15, 23, 42, 0.9));
       }
 
+      /* Tydelig skille før observasjonslisten på mobil */
+      @media (max-width: 767px) {
+        .tablet-list-column .section {
+          margin-top: 32px;
+        }
+
+        .tablet-list-column .section-title {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 10px;
+          font-size: 0.95rem;
+          font-weight: 700;
+          letter-spacing: 0.15em;
+          color: var(--text);
+          padding: 10px 0;
+          margin-bottom: 8px;
+          border-top: 2px solid rgba(148, 163, 184, 0.3);
+          border-bottom: 2px solid rgba(148, 163, 184, 0.3);
+        }
+      }
+
       .section-title {
         font-size: 0.72rem;
         text-transform: uppercase;
         letter-spacing: 0.12em;
         color: var(--muted);
         margin-bottom: 4px;
+      }
+
+      .obs-title-owl {
+        height: 28px;
+        width: auto;
+        opacity: 0.85;
+        display: none;
+      }
+
+      .obs-title-owl-right {
+        transform: scaleX(-1);
+      }
+
+      @media (max-width: 767px) {
+        .obs-title-owl {
+          display: inline-block;
+        }
       }
 
       .section-main {
@@ -1389,7 +1428,7 @@
 
         <div class="tablet-list-column">
         <div class="section">
-          <div class="section-title">Observasjoner</div>
+          <div class="section-title"><img src="/public/img/ugle-logo.png" alt="" class="obs-title-owl obs-title-owl-left"><span>Observasjoner</span><img src="/public/img/ugle-logo.png" alt="" class="obs-title-owl obs-title-owl-right"></div>
           <div class="obs-list" id="obs-list"></div>
           <div class="export-row" style="max-width:calc(100% - 16px);padding-right:12px;">
             <button class="btn" id="clear-btn" disabled style="margin-right:16px;">
