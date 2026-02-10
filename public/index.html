@@ -174,14 +174,26 @@
   background: #22c55e;
   color: #ffffff;
   font-size: 1em;
-  padding: 0 18px;
-  min-width: 56px;
+  padding: 0 6px;
+  width: 32px;
   height: 32px;
   box-sizing: border-box;
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
+  /* Større touch-target uten å endre visuell størrelse */
+  position: relative;
+  margin: 0 8px;
+}
+
+.activity-submit-btn::after {
+  content: '';
+  position: absolute;
+  top: -8px;
+  right: -12px;
+  bottom: -8px;
+  left: -12px;
 }
 
 .activity-pills {
