@@ -1242,15 +1242,23 @@
 
         <fieldset class="section-main section-lokasjon">
           <legend>① Lokasjon</legend>
-          <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;min-height:20px;">
-            <span class="loc-dot" id="loc-dot" style="width:10px;height:10px;"></span>
-            <span id="loc-text" style="font-size:0.85em;color:var(--muted);line-height:1.3;"></span>
+          <div style="display:flex;align-items:center;gap:5px;margin-bottom:6px;min-height:16px;">
+            <span class="loc-dot" id="loc-dot" style="width:8px;height:8px;"></span>
+            <span id="loc-text" style="font-size:0.75em;color:var(--muted);line-height:1.2;"></span>
           </div>
           <div class="row" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-height:0;">
             <button class="icon-btn" id="loc-btn" title="Oppdater lokasjon" style="font-size:0.9em;padding:6px 10px;border:1px solid var(--border);border-radius:6px;background:var(--accent-soft);color:var(--text);transition:all 0.2s;display:flex;align-items:center;gap:4px;height:32px;">
               <span style="font-size:0.85em;font-weight:500;">Oppdater lokasjon</span>
             </button>
             <style>
+              /* Skjul spinner-piler på søkeradius (Mac/webkit) */
+              #ao-size::-webkit-inner-spin-button,
+              #ao-size::-webkit-outer-spin-button {
+                -webkit-appearance: none;
+                margin: 0;
+              }
+              #ao-size { -moz-appearance: textfield; }
+
               #loc-btn {
                 border: 2px solid var(--accent) !important;
                 border-radius: 8px !important;
@@ -1269,17 +1277,14 @@
                 .row[style] { flex-wrap: nowrap !important; }
                 #loc-btn { padding: 4px 6px !important; font-size: 0.82em !important; }
                 #loc-btn span { display: inline-block !important; font-size: 0.72em !important; }
-                /* Reduce label/input sizes */
-                label[for="ao-size"] { font-size: 0.72em !important; }
-                #ao-size { width: 64px !important; font-size: 0.85em !important; padding: 6px 8px !important; height: 30px !important; }
+                /* Reduce input sizes */
+                #ao-size { width: 52px !important; font-size: 0.85em !important; padding: 6px 4px !important; height: 30px !important; }
                 .loc-dot { width:8px !important; height:8px !important; margin-right:6px !important; }
                 /* Tweak other nearby elements */
                 .row .icon-btn { height:30px !important; }
               }
             </style>
-            <div style="display:flex;align-items:center;gap:4px;">
-              <div style="display:flex;align-items:center;gap:6px;">
-                <label for="ao-size" style="font-size:0.85em;color:var(--muted);white-space:nowrap;align-self:center;padding-top:4px;text-transform:none;">Søkeradius:</label>
+            <div style="display:flex;align-items:center;gap:3px;">
                 <input
                   type="number"
                   id="ao-size"
@@ -1287,11 +1292,10 @@
                   max="3000"
                   step="50"
                   value="1000"
-                  style="width:84px;font-size:1em;padding:8px 12px;height:38px;border:2px solid var(--accent);border-radius:8px;background:var(--card-bg);color:var(--text);vertical-align:middle;"
-                  title="Søkeradius i meter (100-3000m). Bestemmer hvor stort område du leter etter observasjonslokaliteter i."
+                  style="width:60px;font-size:1em;padding:8px 6px;height:38px;border:2px solid var(--accent);border-radius:8px;background:var(--card-bg);color:var(--text);text-align:center;"
+                  title="Søkeradius i meter (100-3000m)"
                 />
-                <span id="unit-m" style="font-size:0.95em;color:var(--muted);white-space:nowrap;cursor:default;user-select:none;">m</span>
-              </div>
+                <span id="unit-m" style="font-size:0.85em;color:var(--muted);cursor:default;user-select:none;">m</span>
             </div>
             <button class="icon-btn" id="loc-map-btn" title="Åpne kart" style="font-size:1.5em;padding:6px 10px;border:2px solid var(--accent);border-radius:8px;background:var(--accent-soft);color:var(--text);height:38px;min-width:46px;transition:all 0.2s;display:none;box-shadow:0 2px 8px rgba(59,130,246,0.10);">🗺️</button>
           </div>
