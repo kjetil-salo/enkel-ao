@@ -278,7 +278,7 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
       const activityTd = document.createElement('td');
       activityTd.textContent = obs.activity || '';
       activityTd.style.fontSize = '0.85em';
-      activityTd.style.color = '#9ca3af'; // Tonet ned, men WCAG AA-kompatibel
+      activityTd.style.color = '#b0b8c1';
       tr.appendChild(activityTd);
 
       const detailsTd = document.createElement('td');
