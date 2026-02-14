@@ -20,7 +20,7 @@ from urllib.parse import urlparse, parse_qs
 from src.api_handlers import handle_species_search, handle_reverse_geocoding, handle_ao_sites_search, login_to_ao, refresh_ao_cookie_if_needed
 from src.html_templates import generate_stats_login_page, generate_stats_page, generate_error_page
 from src.supabase_log import log_view_to_supabase
-from src.ao_import_curl import post_with_curl
+from src.ao_import_httpx import post_with_curl
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 PUBLIC_DIR = os.path.join(BASE_DIR, 'public')

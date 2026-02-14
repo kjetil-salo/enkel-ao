@@ -72,7 +72,7 @@ I en nettleser varer sesjonen lenge fordi:
 - Tokensene utløp derfor etter ~10-15 minutter uten aktivitet
 
 **Løsning (implementert):**
-- `ao_import_curl.py` fanger nå opp `Set-Cookie` header med fornyet `.ASPXAUTHNO`
+- `ao_import_httpx.py` fanger nå opp `Set-Cookie` header med fornyet `.ASPXAUTHNO`
 - Serveren returnerer `refreshedAuthCookie` i JSON-respons
 - Frontend oppdaterer automatisk localStorage med fornyet token
 

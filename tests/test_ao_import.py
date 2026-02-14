@@ -1,5 +1,5 @@
 """
-Tester for AO-import funksjonalitet (CSV-generering og curl-basert import).
+Tester for AO-import funksjonalitet (CSV-generering og httpx-basert import).
 """
 
 import json
@@ -8,17 +8,18 @@ import sys
 import threading
 import time
 from http.server import HTTPServer
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, Mock
 
 import pytest
 import requests
+import httpx
 
 # Ensure repo root is importable
 REPO_ROOT = os.path.dirname(os.path.dirname(__file__))
 sys.path.insert(0, REPO_ROOT)
 
 from src.ao_import import observations_to_csv
-from src.ao_import_curl import fetch_csrf_tokens, post_with_curl, publish_all
+from src.ao_import_httpx import fetch_csrf_tokens, post_with_curl, publish_all
 from server import Handler
 
 
@@ -156,44 +157,27 @@ def test_observations_to_csv_time_omitted_when_midnight():
 # Del 2: CSRF Token Parsing
 # ============================================================================
 
-def test_fetch_csrf_tokens_success(monkeypatch, tmp_path):
+def test_fetch_csrf_tokens_success(monkeypatch):
     """Test vellykket CSRF token-henting."""
-    # Mock subprocess.run
-    def fake_run(args, **kwargs):
-        # Skriv mock headers
-        headers_file = tmp_path / 'ao_headers.txt'
-        headers_file.write_text(
-            'HTTP/1.1 200 OK\r\n'
-            'Set-Cookie: __RequestVerificationToken=COOKIE123; path=/\r\n'
-            'Set-Cookie: .ASPXAUTHNO=REFRESHED456; path=/; HttpOnly\r\n'
-            '\r\n'
-        )
+    # Mock httpx response
+    mock_response = Mock()
+    mock_response.text = '<input name="__RequestVerificationToken" value="FORM789" />'
+    mock_response.status_code = 200
+    mock_response.cookies = httpx.Cookies()
+    mock_response.cookies.set('__RequestVerificationToken', 'COOKIE123')
+    mock_response.cookies.set('.ASPXAUTHNO', 'REFRESHED456')
 
-        # Skriv mock cookies (Netscape format)
-        cookies_file = tmp_path / 'ao_cookies.txt'
-        cookies_file.write_text(
-            '# Netscape HTTP Cookie File\n'
-            'artsobservasjoner.no\tFALSE\t/\tTRUE\t0\t__RequestVerificationToken\tCOOKIE123\n'
-        )
+    def mock_raise_for_status():
+        pass
+    mock_response.raise_for_status = mock_raise_for_status
 
-        # Return HTML med form token
-        html = '<input name="__RequestVerificationToken" value="FORM789" />'
-        return MockSubprocessResult(stdout=html)
+    # Mock httpx.Client
+    mock_client = Mock()
+    mock_client.__enter__ = Mock(return_value=mock_client)
+    mock_client.__exit__ = Mock(return_value=None)
+    mock_client.get = Mock(return_value=mock_response)
 
-    # Patch subprocess.run og /tmp file paths
-    monkeypatch.setattr('subprocess.run', fake_run)
-
-    # Patch file open til å bruke tmp_path
-    original_open = open
-
-    def fake_open(path, *args, **kwargs):
-        if '/tmp/ao_headers.txt' in str(path):
-            return original_open(tmp_path / 'ao_headers.txt', *args, **kwargs)
-        elif '/tmp/ao_cookies.txt' in str(path):
-            return original_open(tmp_path / 'ao_cookies.txt', *args, **kwargs)
-        return original_open(path, *args, **kwargs)
-
-    monkeypatch.setattr('builtins.open', fake_open)
+    monkeypatch.setattr('httpx.Client', lambda: mock_client)
 
     # Test
     form_token, cookie_token, refreshed_auth = fetch_csrf_tokens('LOGIN123', 'AUTH456')
@@ -203,32 +187,26 @@ def test_fetch_csrf_tokens_success(monkeypatch, tmp_path):
     assert refreshed_auth == 'REFRESHED456'
 
 
-def test_fetch_csrf_tokens_httponly_cookie(monkeypatch, tmp_path):
-    """Test parsing av HttpOnly cookies (prefix #HttpOnly_)."""
-    def fake_run(args, **kwargs):
-        headers_file = tmp_path / 'ao_headers.txt'
-        headers_file.write_text('HTTP/1.1 200 OK\r\n\r\n')
+def test_fetch_csrf_tokens_httponly_cookie(monkeypatch):
+    """Test parsing av HttpOnly cookies (httpx håndterer dette automatisk)."""
+    # Mock httpx response med HttpOnly cookie
+    mock_response = Mock()
+    mock_response.text = '<input name="__RequestVerificationToken" value="FORMTOKEN" />'
+    mock_response.status_code = 200
+    mock_response.cookies = httpx.Cookies()
+    mock_response.cookies.set('__RequestVerificationToken', 'HTTPONLY789')  # httpx håndterer HttpOnly automatisk
 
-        # HttpOnly cookie med prefix
-        cookies_file = tmp_path / 'ao_cookies.txt'
-        cookies_file.write_text(
-            '#HttpOnly_artsobservasjoner.no\tFALSE\t/\tTRUE\t0\t__RequestVerificationToken\tHTTPONLY789\n'
-        )
+    def mock_raise_for_status():
+        pass
+    mock_response.raise_for_status = mock_raise_for_status
 
-        html = '<input name="__RequestVerificationToken" value="FORMTOKEN" />'
-        return MockSubprocessResult(stdout=html)
+    # Mock httpx.Client
+    mock_client = Mock()
+    mock_client.__enter__ = Mock(return_value=mock_client)
+    mock_client.__exit__ = Mock(return_value=None)
+    mock_client.get = Mock(return_value=mock_response)
 
-    monkeypatch.setattr('subprocess.run', fake_run)
-
-    original_open = open
-
-    def fake_open(path, *args, **kwargs):
-        if '/tmp/' in str(path):
-            filename = os.path.basename(path)
-            return original_open(tmp_path / filename, *args, **kwargs)
-        return original_open(path, *args, **kwargs)
-
-    monkeypatch.setattr('builtins.open', fake_open)
+    monkeypatch.setattr('httpx.Client', lambda: mock_client)
 
     form_token, cookie_token, refreshed_auth = fetch_csrf_tokens('LOGIN', 'AUTH')
 
@@ -240,37 +218,34 @@ def test_fetch_csrf_tokens_httponly_cookie(monkeypatch, tmp_path):
 # Del 3: post_with_curl Integration
 # ============================================================================
 
-def test_post_with_curl_success(monkeypatch, tmp_path):
-    """Test vellykket post til AO med curl."""
+def test_post_with_curl_success(monkeypatch):
+    """Test vellykket post til AO med httpx."""
     # Mock fetch_csrf_tokens
     def fake_fetch_csrf(login_token, auth_cookie):
         return ('FORM123', 'COOKIE456', 'REFRESHED789')
 
-    monkeypatch.setattr('src.ao_import_curl.fetch_csrf_tokens', fake_fetch_csrf)
+    monkeypatch.setattr('src.ao_import_httpx.fetch_csrf_tokens', fake_fetch_csrf)
 
-    # Mock subprocess.run for POST
-    post_called = []
+    # Mock httpx.Client for POST
+    mock_response = Mock()
+    mock_response.text = '<html><body>Import vellykket</body></html>'
+    mock_response.status_code = 200
 
-    def fake_run(args, **kwargs):
-        # Sjekk om dette er POST-kallet
-        if 'ParseObservations' in str(args):
-            post_called.append(True)
-            # Returner success-HTML med status 200
-            html = '<html><body>Import vellykket</body></html>\n200'
-            return MockSubprocessResult(stdout=html)
-        # Ellers returner default
-        return MockSubprocessResult(stdout='')
+    mock_client = Mock()
+    mock_client.__enter__ = Mock(return_value=mock_client)
+    mock_client.__exit__ = Mock(return_value=None)
+    mock_client.post = Mock(return_value=mock_response)
 
-    monkeypatch.setattr('subprocess.run', fake_run)
+    monkeypatch.setattr('httpx.Client', lambda: mock_client)
 
     # Mock time.sleep
     monkeypatch.setattr('time.sleep', lambda x: None)
 
     # Mock publish_all
     def fake_publish(login_token, auth_cookie):
-        return {'status': '200'}
+        return {'status': 200}
 
-    monkeypatch.setattr('src.ao_import_curl.publish_all', fake_publish)
+    monkeypatch.setattr('src.ao_import_httpx.publish_all', fake_publish)
 
     # Mock file writes
     write_calls = []
@@ -305,61 +280,67 @@ def test_post_with_curl_success(monkeypatch, tmp_path):
     assert result['count'] == 1
     assert result['published'] is True
     assert result['refreshedAuthCookie'] == 'REFRESHED789'
-    assert len(post_called) > 0
+    assert mock_client.post.called
 
 
 # ============================================================================
 # Del 4: publish_all Flow
 # ============================================================================
 
-def test_publish_all_success(monkeypatch, tmp_path):
+def test_publish_all_success(monkeypatch):
     """Test vellykket publisering."""
     call_count = [0]
 
-    def fake_run(args, **kwargs):
+    def mock_client_factory():
         call_count[0] += 1
+
+        mock_client = Mock()
+        mock_client.__enter__ = Mock(return_value=mock_client)
+        mock_client.__exit__ = Mock(return_value=None)
 
         # Første kall: GET ReviewSighting
         if call_count[0] == 1:
-            headers_file = tmp_path / 'ao_review_headers.txt'
-            headers_file.write_text('HTTP/1.1 200 OK\r\n\r\n')
+            mock_get_response = Mock()
+            mock_get_response.text = '<input name="__RequestVerificationToken" value="REVIEWFORM" />'
+            mock_get_response.status_code = 200
+            mock_get_response.cookies = httpx.Cookies()
+            mock_get_response.cookies.set('__RequestVerificationToken', 'REVIEWCOOKIE')
 
-            cookies_file = tmp_path / 'ao_review_cookies.txt'
-            cookies_file.write_text(
-                'artsobservasjoner.no\tFALSE\t/\tTRUE\t0\t__RequestVerificationToken\tREVIEWCOOKIE\n'
-            )
+            def mock_raise_for_status():
+                pass
+            mock_get_response.raise_for_status = mock_raise_for_status
 
-            html = '<input name="__RequestVerificationToken" value="REVIEWFORM" />'
-            return MockSubprocessResult(stdout=html)
+            mock_client.get = Mock(return_value=mock_get_response)
+            return mock_client
 
         # Andre kall: POST PublishAll
         else:
-            html = '<html>Success</html>\n200'
-            return MockSubprocessResult(stdout=html)
+            mock_post_response = Mock()
+            mock_post_response.text = '<html>Success</html>'
+            mock_post_response.status_code = 200
 
-    monkeypatch.setattr('subprocess.run', fake_run)
+            mock_client.post = Mock(return_value=mock_post_response)
+            return mock_client
+
+    monkeypatch.setattr('httpx.Client', mock_client_factory)
 
     # Mock file open
     original_open = open
 
     def fake_open(path, *args, **kwargs):
-        if '/tmp/' in str(path):
-            filename = os.path.basename(path)
-            if 'w' in args:
-                # Mock write
-                class FakeFile:
-                    def write(self, content):
-                        pass
+        if '/tmp/' in str(path) and 'w' in args:
+            # Mock write
+            class FakeFile:
+                def write(self, content):
+                    pass
 
-                    def __enter__(self):
-                        return self
+                def __enter__(self):
+                    return self
 
-                    def __exit__(self, *args):
-                        pass
+                def __exit__(self, *args):
+                    pass
 
-                return FakeFile()
-            else:
-                return original_open(tmp_path / filename, *args, **kwargs)
+            return FakeFile()
         return original_open(path, *args, **kwargs)
 
     monkeypatch.setattr('builtins.open', fake_open)
@@ -367,7 +348,7 @@ def test_publish_all_success(monkeypatch, tmp_path):
     # Test
     result = publish_all('LOGIN123', 'AUTH456')
 
-    assert result['status'] == '200'
+    assert result['status'] == 200  # int, ikke string
     assert call_count[0] == 2  # GET + POST
 
 

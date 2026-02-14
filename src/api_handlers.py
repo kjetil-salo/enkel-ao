@@ -15,7 +15,7 @@ from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
 # Import for å hente CSRF tokens
-from src.ao_import_curl import fetch_csrf_tokens
+from src.ao_import_httpx import fetch_csrf_tokens
 
 
 

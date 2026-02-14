@@ -5,11 +5,11 @@ MERK: Dette er en personlig funksjon for eieren av appen.
 Krever hardkodede cookies som miljøvariabler.
 
 STRUKTUR:
-- observations_to_csv() - AKTIV: Brukes av ao_import_curl.py (testet)
+- observations_to_csv() - AKTIV: Brukes av ao_import_httpx.py (testet)
 - fetch_csrf_token()    - DEPRECATED: Legacy urllib-kode (ikke testet)
 - post_to_ao()          - DEPRECATED: Legacy urllib-kode (ikke testet)
 
-Aktiv kode finnes i ao_import_curl.py (curl-basert, 80% test coverage).
+Aktiv kode finnes i ao_import_httpx.py (httpx-basert, 80% test coverage).
 """
 
 import json
@@ -235,9 +235,9 @@ def fetch_csrf_token(login_token, auth_cookie, ao_base_url='https://www.artsobse
 
 def post_to_ao(observations, ao_base_url='https://www.artsobservasjoner.no'):
     """
-    DEPRECATED: Bruk ao_import_curl.post_with_curl() i stedet.
+    DEPRECATED: Bruk ao_import_httpx.post_with_curl() i stedet.
 
-    Legacy urllib-basert implementasjon. Ny curl-basert kode finnes i ao_import_curl.py.
+    Legacy urllib-basert implementasjon. Ny httpx-basert kode finnes i ao_import_httpx.py.
     Denne funksjonen er ikke lenger i bruk og mangler test-coverage.
 
     Post observasjoner direkte til AO ved å kalle curl.
