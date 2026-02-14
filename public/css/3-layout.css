@@ -1,0 +1,114 @@
+/**
+ * Layout
+ *
+ * Struktur: .shell, .card, grid/flex containers.
+ */
+
+.shell {
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  padding: 0 var(--space-sm);
+}
+
+@media (min-width: 600px) and (min-height: 600px) {
+  .shell {
+    max-width: 800px;
+    padding: 0 var(--space-xl);
+    margin: 0 auto;
+  }
+}
+
+.card {
+  /* Glassmorphism kort med bleed-to-edge på mobil */
+  background: linear-gradient(145deg, rgba(15,23,42,0.96), rgba(15,23,42,0.92));
+  border-radius: var(--radius-md);
+  border: var(--border-width) solid var(--border-color);
+  box-shadow:
+    var(--shadow-md),
+    0 0 0 1px rgba(15, 23, 42, 0.9);
+  padding: var(--space-sm);
+  margin: 0 calc(var(--space-sm) * -1); /* Bleed til viewport-kanter */
+  overflow: visible;
+  backdrop-filter: blur(14px);
+}
+
+@media (min-width: 600px) and (min-height: 600px) {
+  .card {
+    margin: 0;
+  }
+}
+
+/* === Header === */
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-sm);
+}
+
+.title {
+  font-size: var(--font-md);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-tight);
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.subtitle {
+  font-size: 0.8rem;
+  color: var(--color-muted);
+  margin-bottom: 10px;
+}
+
+/* === Status Row === */
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  background: var(--color-success);
+  box-shadow: var(--shadow-glow-success);
+}
+
+.status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 10px;
+  font-size: var(--font-xs);
+  color: var(--color-muted);
+}
+
+.status-left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+/* === Observation List === */
+#observations {
+  margin-top: var(--space-md);
+}
+
+.obs-row {
+  padding: var(--space-sm);
+  margin-bottom: var(--space-xs);
+  border-radius: var(--radius-sm);
+  background: rgba(15, 23, 42, 0.5);
+  border: var(--border-width) solid var(--border-color);
+  transition: background var(--transition-fast);
+}
+
+.obs-row:hover {
+  background: rgba(15, 23, 42, 0.8);
+}
+
+/* === Export Row === */
+.export-row {
+  display: flex;
+  justify-content: flex-start;
+  gap: var(--space-sm);
+  padding-right: 18px;
+}

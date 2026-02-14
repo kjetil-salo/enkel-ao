@@ -1,0 +1,49 @@
+/**
+ * Base Styles
+ *
+ * Reset + grunnleggende HTML-element styling.
+ * Ingen klasser her - kun element-selectorer.
+ */
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: radial-gradient(circle at top, #1f2937 0, #020617 55%);
+  color: var(--color-text);
+  padding: var(--space-sm) 0 0 0;
+  line-height: 1.6;
+}
+
+/* === Form Elements === */
+/* KRITISK: 16px minimum for å unngå iOS zoom */
+input,
+select,
+textarea {
+  font-size: 16px;
+}
+
+label {
+  display: block;
+  font-size: var(--font-sm);
+  text-transform: uppercase;
+  letter-spacing: var(--letter-spacing-wide);
+  color: var(--color-muted);
+  margin-bottom: var(--space-sm);
+  cursor: pointer;
+}
+
+/* === Links === */
+a {
+  color: var(--color-accent);
+  text-decoration: none;
+  transition: opacity var(--transition-fast);
+}
+
+a:hover {
+  opacity: 0.8;
+}

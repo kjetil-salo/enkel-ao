@@ -1,0 +1,108 @@
+/**
+ * Animations
+ *
+ * Alle @keyframes animasjoner samlet her.
+ */
+
+/* ============================================================================
+   FLASH ANIMATIONS
+   ========================================================================= */
+
+@keyframes flash-pulse-subtle {
+  0% {
+    opacity: 1;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.4);
+  }
+  50% {
+    opacity: 0.9;
+    box-shadow: 0 0 0 6px rgba(59, 130, 246, 0.2);
+  }
+  100% {
+    opacity: 1;
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+  }
+}
+
+@keyframes flash-pulse-strong {
+  0% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7);
+  }
+  50% {
+    box-shadow: 0 0 0 12px rgba(59, 130, 246, 0.3);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+  }
+}
+
+@keyframes focus-flash {
+  0% {
+    box-shadow: 0 0 0 6px #b3e6ff, 0 0 0 0 #60a5fa;
+  }
+  60% {
+    box-shadow: 0 0 0 12px #60a5fa, 0 0 0 0 #b3e6ff;
+  }
+  100% {
+    box-shadow: 0 0 0 0 #b3e6ff, 0 0 0 0 #60a5fa;
+  }
+}
+
+@keyframes chosen-flash {
+  0% {
+    box-shadow: 0 0 0 1.5px #d0f1ff, 0 0 0 0 #bae6fd;
+  }
+  60% {
+    box-shadow: 0 0 0 4px #bae6fd, 0 0 0 0 #d0f1ff;
+  }
+  100% {
+    box-shadow: 0 0 0 0 #d0f1ff, 0 0 0 0 #bae6fd;
+  }
+}
+
+/* ============================================================================
+   FIELD HIGHLIGHTING (Feltmodus pulse)
+   ========================================================================= */
+
+@keyframes field-pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+/* ============================================================================
+   TOAST / POPUP ANIMATIONS
+   ========================================================================= */
+
+@keyframes toast-pop {
+  0% {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.02);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* ============================================================================
+   LOADING ANIMATIONS
+   ========================================================================= */
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+}

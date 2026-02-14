@@ -1,0 +1,1217 @@
+/**
+ * Page-Specific Styles
+ *
+ * Index.html-spesifikk CSS som ikke passer i andre moduler.
+ * TODO: Refaktorer dette til mer modulære komponenter over tid.
+ */
+
+      :root {
+        color-scheme: light dark;
+        --bg: #0f172a;
+        --card-bg: #111827;
+        --border: #1f2937;
+        --accent: #3b82f6;
+        --accent-soft: rgba(59, 130, 246, 0.15);
+        --text: #e5e7eb;
+        --muted: #b0b8c1;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        background: radial-gradient(circle at top, #1f2937 0, #020617 55%);
+        color: var(--text);
+        padding: 6px 0 0 0;
+      }
+
+      .shell {
+        width: 100%;
+        max-width: 100%;
+        margin: 0;
+        padding: 0 6px;
+      }
+
+      @media (min-width: 600px) and (min-height: 600px) {
+        .shell {
+          max-width: 800px;
+          padding: 0 24px;
+          margin: 0 auto;
+        }
+      }
+
+      .card {
+        /* Let the dark card visually reach the sides by using negative gutters */
+        background: linear-gradient(145deg, rgba(15,23,42,0.96), rgba(15,23,42,0.92));
+        border-radius: 10px;
+        border: 1px solid rgba(148, 163, 184, 0.12);
+        box-shadow:
+          0 12px 28px rgba(15, 23, 42, 0.72),
+          0 0 0 1px rgba(15, 23, 42, 0.9);
+        padding: 6px 6px 6px 6px;
+        margin: 0 -6px; /* bleed to the viewport edges */
+        overflow: visible;
+        backdrop-filter: blur(14px);
+      }
+
+      /* On larger screens, don't bleed the card to the edges; keep it centered */
+      @media (min-width: 600px) and (min-height: 600px) {
+        .card { margin: 0; }
+      }
+
+      header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        margin-bottom: 8px;
+      }
+
+      .title {
+        font-size: 1.05rem;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .pill {
+        font-size: 0.7rem;
+        padding: 3px 8px;
+        border-radius: 999px;
+        border: 1px solid rgba(148, 163, 184, 0.35);
+        color: var(--muted);
+        background: radial-gradient(circle at top left, rgba(248, 250, 252, 0.06), rgba(15, 23, 42, 0.7));
+      }
+
+      .mode-pill {
+        margin-left: 8px;
+        font-weight: 600;
+        transition: all 0.2s;
+        user-select: none;
+      }
+
+      .mode-pill.field-mode {
+        background: rgba(34, 197, 94, 0.2);
+        border-color: #22c55e;
+        color: #4ade80;
+      }
+
+      .mode-pill.after-mode {
+        background: rgba(239, 68, 68, 0.2);
+        border-color: #ef4444;
+        color: #fca5a5;
+      }
+
+      .mode-pill:hover {
+        transform: scale(1.05);
+        opacity: 0.8;
+      }
+
+      .subtitle {
+        font-size: 0.8rem;
+        color: var(--muted);
+        margin-bottom: 10px;
+      }
+
+      label {
+        display: block;
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.11em;
+        color: var(--muted);
+        margin-bottom: 6px;
+        cursor: pointer;
+      }
+
+      .input-wrap {
+        position: relative;
+      }
+
+      input[type="text"] {
+        width: 100%;
+        padding: 7px 34px 7px 28px;
+        border-radius: 999px;
+        border: 1px solid rgba(148, 163, 184, 0.45);
+        background: radial-gradient(circle at top left, rgba(248, 250, 252, 0.06), rgba(15, 23, 42, 0.95));
+        color: var(--text);
+        font-size: 0.9rem;
+        outline: none;
+        -webkit-appearance: none;
+        appearance: none;
+      }
+
+      input[type="text"], input[type="number"], select, button {
+  font-size: 16px !important;
+}
+
+.activity-input-row {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.activity-input-row select {
+  flex: 1;
+  min-width: 0;
+  width: auto;
+}
+
+.activity-submit-btn {
+  border-radius: 999px;
+  border: 1px solid rgba(22, 163, 74, 1);
+  background: #22c55e;
+  color: #ffffff;
+  font-size: 1em;
+  padding: 0 6px;
+  width: 32px;
+  height: 32px;
+  box-sizing: border-box;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Større touch-target uten å endre visuell størrelse */
+  position: relative;
+  margin: 0 8px;
+}
+
+.activity-submit-btn::after {
+  content: '';
+  position: absolute;
+  top: -8px;
+  right: -12px;
+  bottom: -8px;
+  left: -12px;
+}
+
+.activity-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-bottom: 4px;
+  margin-top: 6px;
+}
+
+/* Sikre at pills alltid er klikkbare uansett hva som ligger over */
+.activity-pill {
+  position: relative;
+  z-index: 100;
+  pointer-events: auto !important;
+}
+
+.activity-pill {
+  font-size: 0.75em;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1.5px solid rgba(255, 255, 255, 0.5);
+  background: var(--card-bg);
+  color: var(--text);
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.activity-pill:hover {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.activity-pill.selected {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--text);
+}
+
+.activity-pill.last-used {
+  border-color: #22c55e;
+  background: rgba(34, 197, 94, 0.15);
+  color: #4ade80;
+}
+
+.activity-search-wrap {
+  position: relative;
+  margin-bottom: 6px;
+}
+
+.activity-search-wrap input {
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--card-bg);
+  color: var(--text);
+  font-size: 16px;
+}
+
+.activity-search-results {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  max-height: 200px;
+  overflow-y: auto;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  z-index: 100;
+  display: none;
+}
+
+.activity-search-results.visible {
+  display: block;
+}
+
+.activity-search-item {
+  padding: 8px 12px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--border);
+}
+
+.activity-search-item:last-child {
+  border-bottom: none;
+}
+
+.activity-search-item:hover,
+.activity-search-item.active {
+  background: var(--accent-soft);
+}
+
+/* Flash-animasjoner for visuell feedback */
+
+/* Subtil flash for toast og andre elementer */
+@keyframes flash-pulse-subtle {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(59, 130, 246, 0);
+  }
+}
+
+/* Kraftig flash for antall-felt og viktige elementer */
+@keyframes flash-pulse-strong {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 1);
+    border-color: #22c55e;
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 0 0 12px rgba(34, 197, 94, 0);
+    border-color: #22c55e;
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
+  }
+}
+
+/* Toast pop-animasjon - kun scale og opacity */
+@keyframes toast-pop {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.8);
+    box-shadow: 0 4px 24px rgba(0,0,0,0.18), 0 0 0 0px rgba(34, 197, 94, 0.9);
+  }
+  50% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.1);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.25), 0 0 0 16px rgba(34, 197, 94, 0);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+    box-shadow: 0 4px 24px rgba(0,0,0,0.18), 0 0 0 0px rgba(34, 197, 94, 0);
+  }
+}
+
+/* Standard flash - subtil */
+.focus-flash {
+  animation: flash-pulse-subtle 0.6s ease-out !important;
+}
+
+/* Antall-felt får kraftig flash */
+#count.focus-flash {
+  animation: flash-pulse-strong 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+}
+
+/* Toast base styling - kun posisjonering */
+.toast-base {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 9999;
+}
+
+/* Toast show animasjon - bruker scale istedenfor transform */
+.toast-base.toast-show {
+  animation: toast-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+}
+
+/* Dempet seksjon (progressiv flyt) */
+.dimmed {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+      input[type="text"]::placeholder {
+        color: rgba(148, 163, 184, 0.75);
+      }
+
+      input[type="text"]:focus {
+        border-color: rgba(59, 130, 246, 0.9);
+        box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.6), 0 0 0 8px rgba(59, 130, 246, 0.15);
+      }
+
+      /* Progressiv fremheving - basis for alle aktive felt */
+      .field-highlight {
+        border: 2px solid var(--accent) !important;
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.12), rgba(15, 23, 42, 0.95)) !important;
+        box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
+      }
+
+      /* Pulsering kun for art-feltet - bruker outline for å unngå konflikt med :focus box-shadow */
+      @keyframes field-pulse {
+        0%, 100% {
+          outline: 3px solid rgba(59, 130, 246, 0.4);
+          outline-offset: 0px;
+        }
+        50% {
+          outline: 5px solid rgba(59, 130, 246, 0.8);
+          outline-offset: 3px;
+        }
+      }
+
+      #search.field-highlight {
+        animation: field-pulse 1.5s ease-in-out infinite;
+        outline: 3px solid rgba(59, 130, 246, 0.4);
+      }
+
+      .field-highlight::placeholder {
+        color: rgba(59, 130, 246, 0.7) !important;
+        font-weight: 500;
+      }
+
+      /* Art-feltet - alltid litt større */
+      #search {
+        font-size: 1.25rem !important;
+        padding: 8px 34px 8px 32px;
+      }
+
+      /* Antall-feltet når aktivt - beholder normal bredde */
+      #count.field-highlight {
+        /* Fjernet width override - bruker container-bredden (80px) */
+      }
+
+      /* Aktivitet-select når aktiv */
+      #activity.field-highlight {
+        border: 2px solid var(--accent) !important;
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.12), rgba(15, 23, 42, 0.95)) !important;
+        box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15) !important;
+      }
+
+      /* Submit-knapp når aktiv */
+      #activity-submit.field-highlight {
+        border: 2px solid #22c55e !important;
+        box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.25) !important;
+        transform: scale(1.05);
+      }
+
+      /* Valgt art i søkefeltet */
+      input[type="text"].species-selected {
+        border-color: rgba(34, 197, 94, 0.9);
+        background: radial-gradient(circle at top left, rgba(34, 197, 94, 0.15), rgba(15, 23, 42, 0.95));
+        color: #4ade80;
+        font-weight: 500;
+      }
+
+      .search-icon {
+        position: absolute;
+        left: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 1.05rem;
+        color: rgba(148, 163, 184, 0.9);
+        pointer-events: none;
+      }
+
+      .status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 999px;
+        background: #22c55e;
+        box-shadow: 0 0 0 6px rgba(34, 197, 94, 0.16);
+      }
+
+      .status-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: 10px;
+        font-size: 0.72rem;
+        color: var(--muted);
+      }
+
+      .status-left {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .results {
+        margin-top: 6px;
+        max-height: 260px;
+        overflow-y: auto;
+        padding: 2px 0 0;
+        pointer-events: none; /* La klikk gå gjennom til elementer under */
+      }
+
+      .result-item {
+        padding: 6px 10px;
+        border-radius: 6px;
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+        cursor: pointer;
+        border: 1px solid transparent;
+        pointer-events: auto; /* Resultat-elementer ER klikkbare */
+        transition: background 120ms ease, border-color 120ms ease;
+      }
+
+      .result-item:hover,
+      .result-item[aria-selected="true"] {
+        background: radial-gradient(circle at left, var(--accent-soft), rgba(15, 23, 42, 0.98));
+        border-color: rgba(59, 130, 246, 0.6);
+      }
+
+      .result-name-row {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+      }
+
+      .result-name {
+        font-size: 1.08rem;
+        font-weight: 500;
+      }
+
+      .result-taxon-id {
+        font-size: 0.7rem;
+        color: var(--muted);
+      }
+
+      
+
+      .result-sci {
+        font-size: 0.75rem;
+        color: var(--muted);
+      }
+
+      .result-empty {
+        font-size: 0.78rem;
+        color: var(--muted);
+        padding: 8px 2px 4px;
+      }
+
+      .result-empty a {
+        pointer-events: auto;
+      }
+
+      .badge {
+        font-size: 0.7rem;
+        padding: 1px 7px;
+        border-radius: 999px;
+        border: 1px solid rgba(148, 163, 184, 0.4);
+        color: var(--muted);
+      }
+
+      .site-pill {
+        display: inline-block;
+        margin-left: 4px;
+        margin-top: 2px;
+        padding: 1px 7px;
+        border-radius: 999px;
+        border: 1px solid rgba(148, 163, 184, 0.45);
+        background: radial-gradient(circle at top left, rgba(248, 250, 252, 0.06), rgba(15, 23, 42, 0.9));
+        color: var(--text);
+        font-size: 0.72rem;
+        cursor: pointer;
+      }
+
+      .site-pill-private {
+        opacity: 0.5;
+        cursor: pointer;
+        background: rgba(148, 163, 184, 0.12);
+        border-color: rgba(148, 163, 184, 0.25);
+        color: var(--muted);
+        transition: all 0.2s;
+      }
+
+      .site-pill-private:hover {
+        opacity: 0.7;
+        background: rgba(148, 163, 184, 0.18);
+        border-color: rgba(148, 163, 184, 0.35);
+      }
+
+      .loc-row {
+        margin-top: 6px;
+        font-size: 0.72rem;
+        color: var(--muted);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .loc-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 999px;
+        background: #6b7280;
+      }
+
+      .section {
+        margin-top: 14px;
+        padding: 10px 8px;
+        border-radius: 14px;
+        border: 1px solid rgba(15, 23, 42, 0.9);
+        background: radial-gradient(circle at top left, rgba(15, 23, 42, 0.96), rgba(15, 23, 42, 0.9));
+      }
+
+      /* Tydelig skille før observasjonslisten på mobil */
+      @media (max-width: 767px) {
+        .tablet-list-column .section {
+          margin-top: 32px;
+        }
+
+        .tablet-list-column .section-title {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 10px;
+          font-size: 0.95rem;
+          font-weight: 700;
+          letter-spacing: 0.15em;
+          color: var(--text);
+          padding: 10px 0;
+          margin-bottom: 8px;
+          border-top: 2px solid rgba(148, 163, 184, 0.3);
+          border-bottom: 2px solid rgba(148, 163, 184, 0.3);
+        }
+      }
+
+      .section-title {
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        color: var(--muted);
+        margin-bottom: 4px;
+      }
+
+      .obs-title-owl {
+        height: 28px;
+        width: auto;
+        opacity: 0.85;
+        display: none;
+      }
+
+      .obs-title-owl-right {
+        transform: scaleX(-1);
+      }
+
+      @media (max-width: 767px) {
+        .obs-title-owl {
+          display: inline-block;
+        }
+      }
+
+      .section-main {
+        border-radius: 12px;
+        padding: 18px;
+        margin-bottom: 16px;
+      }
+
+      /* Lokasjon: Blå tema */
+      .section-lokasjon {
+        background: rgba(59, 130, 246, 0.08);
+        border: 2px solid rgba(59, 130, 246, 0.3);
+        box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15);
+      }
+
+      /* Observasjon: Grønn tema */
+      .section-observasjon {
+        background: rgba(34, 197, 94, 0.08);
+        border: 2px solid rgba(34, 197, 94, 0.3);
+        box-shadow: 0 2px 8px rgba(34, 197, 94, 0.15);
+      }
+
+        fieldset.section-main {
+          margin: 0;
+          margin-bottom: 16px;
+          max-width: 100%;
+          margin: 0;
+        }
+
+      fieldset.section-main legend {
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: var(--text);
+        font-weight: 600;
+        padding: 0 8px;
+        margin-left: -4px;
+      }
+
+      .section-optional {
+        background: rgba(15, 23, 42, 0.15);
+        border: 1px solid rgba(148, 163, 184, 0.2);
+        border-radius: 8px;
+        padding: 12px;
+        opacity: 0.85;
+        margin: 0;
+        margin-bottom: 16px;
+      }
+
+      .section-optional legend {
+        font-size: 0.75rem;
+        color: var(--muted);
+        font-weight: 400;
+        padding: 0 6px;
+      }
+
+
+      .row {
+        margin-top: 12px;
+      }
+
+      .row-inline {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+
+      select {
+        width: 100%;
+        padding: 7px 10px;
+        border-radius: 999px;
+        border: 1px solid rgba(148, 163, 184, 0.45);
+        background: radial-gradient(circle at top left, rgba(248, 250, 252, 0.04), rgba(15, 23, 42, 0.95));
+        color: var(--text);
+        font-size: 0.9rem;
+        outline: none;
+        -webkit-appearance: none;
+        appearance: none;
+      }
+
+      /* Dropdown styling:
+         - Bruk CSS-variabler så dropdown kan følge appens theme.
+         - Sett konservativ fallback (lys bakgrunn + mørk tekst) for plattformer
+           som ellers kan gi lav kontrast (Windows/Chromium quirks).
+         - Når siden bruker mørkt tema (variablene over), brukes mørk bakgrunn
+           og lys tekst automatisk.
+      */
+      :root {
+        --option-bg: #ffffff; /* fallback for light systems */
+        --option-color: #111111; /* fallback tekstfarge */
+      }
+
+      select option,
+      select optgroup {
+        color: var(--option-color, #111111);
+        background-color: var(--option-bg, #ffffff);
+      }
+
+      /* Når fargevariablene er satt (dark theme i :root), sett option-variabler
+         til å følge temaet. Disse variablene kan overstyres sentralt i :root. */
+      /* I denne appen er --card-bg og --text definert over og representerer
+         mørk bakgrunn og lys tekst, så vi setter option-variablene her. */
+      :root {
+        --option-bg: var(--card-bg);
+        --option-color: var(--text);
+      }
+
+      /* Appearance hint for more consistent rendering across engines */
+      select {
+        -webkit-appearance: menulist-button;
+        appearance: menulist-button;
+      }
+
+      select:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+      }
+
+      select:focus {
+        border-color: rgba(59, 130, 246, 0.9);
+        box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.6), 0 0 0 8px rgba(59, 130, 246, 0.15);
+      }
+
+      input[type="number"] {
+        width: 110px;
+        padding: 7px 10px;
+        border-radius: 999px;
+        border: 1px solid rgba(148, 163, 184, 0.45);
+        background: radial-gradient(circle at top left, rgba(248, 250, 252, 0.04), rgba(15, 23, 42, 0.95));
+        color: var(--text);
+        font-size: 0.9rem;
+        outline: none;
+        -webkit-appearance: none;
+        appearance: none;
+      }
+
+      input[type="number"]:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+      }
+
+      input[type="number"]:focus {
+        border-color: rgba(59, 130, 246, 0.9);
+        box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.6), 0 0 0 8px rgba(59, 130, 246, 0.15);
+      }
+
+      .obs-list {
+        margin-top: 12px;
+        border-top: 1px solid rgba(15, 23, 42, 0.8);
+        padding-top: 8px;
+        font-size: 0.8rem;
+      }
+
+      .obs-group {
+        margin-bottom: 8px;
+      }
+
+      .obs-group-title {
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.09em;
+        color: var(--muted);
+        margin-bottom: 3px;
+        border-top: 3px solid rgba(59, 130, 246, 0.4);
+        background: rgba(30, 41, 59, 0.6);
+        padding-top: 10px !important;
+        padding-bottom: 6px !important;
+      }
+
+
+      .obs-table {
+        /* Let the table extend a bit beyond the section padding so content uses full width */
+        width: calc(100% + 24px);
+        margin-left: -12px;
+        border-collapse: collapse;
+        margin-bottom: 4px;
+      }
+
+      
+
+      .obs-table th,
+      .obs-table td {
+        padding: 6px 8px;
+        text-align: left;
+        font-size: 0.78rem;
+        border-bottom: 1px solid rgba(15, 23, 42, 0.6);
+      }
+
+      .obs-table th {
+        color: var(--muted);
+        font-weight: 500;
+      }
+
+      .obs-table th:last-child,
+      .obs-table td:last-child {
+        width: 56px;
+        text-align: center;
+        padding-left: 6px;
+        padding-right: 12px;
+      }
+
+      /* Make the first column (Art) expand, shrink the middle columns */
+      .obs-table th:first-child,
+      .obs-table td:first-child { width: 40%; }
+      .obs-table th:nth-child(2),
+      .obs-table td:nth-child(2) { width: 28%; min-width: 150px; }
+      .obs-table th:nth-child(3),
+      .obs-table td:nth-child(3) { width: 18%; }
+      .obs-table th:nth-last-child(2),
+      .obs-table td:nth-last-child(2) {
+        width: 8%;
+        font-size: 0.75em;
+      }
+
+      @media (max-width: 480px) {
+        .obs-table th:nth-last-child(2),
+        .obs-table td:nth-last-child(2) {
+          width: 60px;
+          font-size: 0.7em;
+        }
+        .obs-table th, .obs-table td { padding: 4px 6px; }
+        .obs-table th:last-child,
+        .obs-table td:last-child {
+          padding-right: 10px;
+        }
+      }
+
+      /* Pluss/minus-knapper for antall i observasjonslisten */
+      .count-btn {
+        transition: all 0.15s ease;
+      }
+
+      .count-btn:hover {
+        background: var(--accent) !important;
+        color: white !important;
+        transform: scale(1.1);
+      }
+
+      .count-btn:active {
+        background: #2563eb !important;
+        transform: scale(0.95);
+      }
+
+      .delete-obs-btn {
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        font-size: 1rem;
+        padding: 2px 4px;
+        opacity: 0.6;
+        transition: opacity 0.2s;
+      }
+
+      .delete-obs-btn:hover {
+        opacity: 1;
+      }
+
+      .edit-obs-btn {
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        font-size: 1rem;
+        padding: 2px 4px;
+        opacity: 0.8;
+        transition: opacity 0.2s;
+        vertical-align: middle;
+      }
+
+      .edit-obs-btn:hover {
+        opacity: 1;
+      }
+
+      .obs-table td.action-td {
+        white-space: nowrap;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+      }
+
+      .footer-credit {
+        margin-top: 16px;
+        text-align: center;
+        font-size: 0.7rem;
+        color: var(--muted);
+        opacity: 0.6;
+      }
+
+      .obs-meta {
+        color: var(--muted);
+      }
+
+      .export-row {
+        margin-top: 8px;
+        display: flex;
+        justify-content: flex-end;
+        flex-wrap: wrap;
+        gap: 8px;
+        min-width: 0;
+        overflow-x: auto;
+      }
+
+      /* Visual separator above the export buttons to clearly separate
+         the species/observations list from the action buttons. */
+      .export-row {
+        border-top: 1px solid rgba(148,163,184,0.08);
+        padding-top: 10px;
+        margin-top: 14px;
+      }
+
+      @media (max-width: 480px) {
+        .export-row {
+          padding-top: 8px;
+          margin-top: 10px;
+          flex-direction: column;
+        }
+        .export-row .btn {
+          width: 100%;
+          justify-content: center;
+          padding: 12px 16px;
+          font-size: 0.9rem;
+          min-height: 44px;
+        }
+      }
+
+      .btn {
+        border-radius: 999px;
+        border: 1px solid rgba(148, 163, 184, 0.55);
+        background: radial-gradient(circle at top left, rgba(248, 250, 252, 0.08), rgba(15, 23, 42, 0.96));
+        color: var(--text);
+        font-size: 0.78rem;
+        padding: 5px 12px;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .btn:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+      }
+
+      .btn span {
+        font-size: 0.85em;
+      }
+
+      .btn-success {
+        border-color: rgba(34, 197, 94, 0.9);
+        box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.7), 0 0 0 8px rgba(34, 197, 94, 0.2);
+      }
+
+      .icon-btn {
+        border: none;
+        background: transparent;
+        color: var(--muted);
+        cursor: pointer;
+        padding: 0 4px;
+        font-size: 0.9rem;
+      }
+
+      .icon-btn:disabled {
+        opacity: 0.4;
+        cursor: default;
+      }
+
+      #loc-btn:hover {
+        background: var(--accent) !important;
+        color: white !important;
+        border-color: var(--accent) !important;
+          box-shadow: 0 4px 16px rgba(59,130,246,0.18);
+          transform: translateY(-1px) scale(1.04);
+      }
+
+      #loc-map-btn:hover {
+        background: var(--accent) !important;
+        color: white !important;
+        border-color: var(--accent) !important;
+      }
+
+      .activity-submit-btn {
+        border-radius: 999px;
+        border: 1px solid rgba(22, 163, 74, 1);
+        background: #22c55e;
+        color: #ffffff;
+        font-size: 1em;
+        padding: 0 8px;
+        width: 32px;
+        height: 32px;
+        box-sizing: border-box;
+        margin-left: 4px;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .advanced-row {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+
+      .advanced-field {
+        flex: 1;
+        min-width: 140px;
+      }
+
+      .advanced-field label {
+        font-size: 0.8rem;
+        color: var(--muted);
+        opacity: 0.8;
+      }
+
+      .advanced-field select {
+        font-size: 0.85rem;
+        padding: 5px 6px;
+        opacity: 0.9;
+        border-color: rgba(148, 163, 184, 0.25);
+      }
+
+      @media (max-width: 480px) {
+        .section-main {
+          padding: 12px;
+        }
+
+        .section-optional {
+          padding: 10px;
+        }
+      }
+
+      .kbd-hint {
+        display: none;
+      }
+
+      @media (min-width: 600px) and (min-height: 600px) {
+        .kbd-hint {
+          display: inline-flex;
+          gap: 4px;
+          align-items: center;
+          font-size: 0.7rem;
+          color: var(--muted);
+        }
+
+        .kbd-key {
+          border-radius: 6px;
+          border: 1px solid rgba(148, 163, 184, 0.4);
+          padding: 1px 5px;
+          font-size: 0.7rem;
+        }
+      }
+
+      /* ===== To-kolonner layout (iPad, Mac, PC) ===== */
+      @media (min-width: 768px) and (min-height: 600px) {
+        .shell {
+          max-width: 100%;
+          padding: 0 12px;
+        }
+
+        .card {
+          margin: 0;
+          padding: 8px;
+        }
+
+        .tablet-layout {
+          display: grid;
+          grid-template-columns: 2fr 3fr;
+          gap: 12px;
+          align-items: start;
+        }
+
+        .tablet-input-column {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+
+        .tablet-list-column {
+          position: sticky;
+          top: 8px;
+          max-height: calc(100vh - 60px);
+          overflow-y: auto;
+        }
+
+        .tablet-list-column .section {
+          margin-top: 0;
+          padding-top: 0;
+        }
+
+        /* Kompakt padding på tablet */
+        .section-main {
+          padding: 10px;
+          margin-bottom: 0;
+        }
+
+        .section-optional {
+          padding: 8px;
+        }
+
+        .section-title {
+          margin-bottom: 2px;
+        }
+
+        .tablet-list-column .section-title {
+          display: none;
+        }
+
+        .row {
+          margin-top: 6px;
+        }
+
+        /* Kompakte aktivitetspiller på tablet - én rad */
+        .activity-pills {
+          gap: 4px;
+          margin-top: 4px;
+          margin-bottom: 2px;
+          flex-wrap: wrap;
+        }
+
+        .activity-pill {
+          padding: 4px 6px;
+          margin: 0;
+          min-height: 28px;
+          min-width: unset;
+          font-size: 0.8em;
+        }
+
+        header {
+          margin-bottom: 4px;
+        }
+
+        .obs-table th,
+        .obs-table td {
+          padding: 4px 8px;
+          font-size: 0.9rem;
+        }
+
+        .obs-group-title {
+          padding: 12px 8px 8px 8px;
+          margin-bottom: 0;
+        }
+
+        /* Bedre plass for observasjonslisten */
+        .obs-list {
+          max-height: none;
+          margin-top: 0;
+        }
+
+        /* Bredere input-felt */
+        input[type="number"] {
+          width: 130px;
+        }
+
+        /* Gjør observasjonstabellen lettere å lese */
+        .obs-table {
+          width: 100%;
+          margin-left: 0;
+        }
+
+        .obs-table th:first-child,
+        .obs-table td:first-child { width: 35%; }
+        .obs-table th:nth-child(2),
+        .obs-table td:nth-child(2) { width: 22%; }
+        .obs-table th:nth-child(3),
+        .obs-table td:nth-child(3) { width: 25%; }
+
+        /* Eksport-knapper i full bredde */
+        .export-row {
+          flex-direction: column;
+          gap: 8px;
+        }
+
+        .export-row .btn {
+          width: 100%;
+          justify-content: center;
+        }
+      }
+
