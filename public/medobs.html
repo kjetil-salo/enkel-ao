@@ -43,6 +43,9 @@
           <tbody></tbody>
         </table>
         <div style="margin-top:12px;text-align:right;display:flex;gap:8px;justify-content:flex-end;">
+          <button type="button" id="apply-to-all-btn" class="btn">
+            Legg til på alle observasjoner
+          </button>
         </div>
       </div>
 
@@ -133,6 +136,194 @@
       function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"})[c]); }
 
       // Reset button intentionally removed to avoid accidental mass-deletion.
+
+      /**
+       * Vis toast-melding øverst på siden med undo-funksjonalitet
+       * @param {number} count - Antall oppdaterte observasjoner
+       * @param {Function} onUndo - Callback for undo-knapp
+       */
+      function showUndoToast(count, onUndo) {
+        let toast = document.getElementById('medobs-toast');
+        if (!toast) {
+          toast = document.createElement('div');
+          toast.id = 'medobs-toast';
+          toast.style.cssText = `
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-20px);
+            background: rgba(34,34,34,0.97);
+            color: #fff;
+            font-size: 1.1em;
+            padding: 12px 20px;
+            border-radius: 10px;
+            border: 2px solid #22c55e;
+            z-index: 9999;
+            opacity: 0;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+          `;
+          document.body.appendChild(toast);
+        }
+
+        // Sett innhold
+        toast.innerHTML = '';
+        const textSpan = document.createElement('span');
+        textSpan.textContent = `${count} observasjon${count !== 1 ? 'er' : ''} oppdatert`;
+        toast.appendChild(textSpan);
+
+        // Legg til undo-knapp
+        const undoBtn = document.createElement('button');
+        undoBtn.textContent = 'Angre';
+        undoBtn.style.cssText = `
+          background: rgba(255,255,255,0.2);
+          border: 1px solid rgba(255,255,255,0.3);
+          color: #fff;
+          padding: 4px 12px;
+          border-radius: 6px;
+          cursor: pointer;
+          font-size: 0.9em;
+          font-weight: 600;
+          transition: all 0.15s;
+        `;
+        undoBtn.addEventListener('click', () => {
+          onUndo();
+          toast.style.opacity = '0';
+          toast.style.transform = 'translateX(-50%) translateY(-20px)';
+        });
+        toast.appendChild(undoBtn);
+
+        // Vis toast
+        requestAnimationFrame(() => {
+          toast.style.opacity = '1';
+          toast.style.transform = 'translateX(-50%) translateY(0)';
+        });
+
+        // Auto-skjul etter 5 sekunder
+        setTimeout(() => {
+          toast.style.opacity = '0';
+          toast.style.transform = 'translateX(-50%) translateY(-20px)';
+        }, 5000);
+      }
+
+      /**
+       * Legg til aktive medobservatører på alle eksisterende observasjoner
+       */
+      function applyToAllObservations() {
+        try {
+          // Last aktive medobservatører
+          const medobsList = load();
+          const activeObservers = medobsList
+            .filter(m => m.active && m.name.trim() !== '')
+            .map(m => m.name.trim());
+
+          // Valider at vi har aktive medobservatører
+          if (activeObservers.length === 0) {
+            alert('Ingen aktive medobservatører valgt. Huk av for minst én medobservatør i listen.');
+            return;
+          }
+
+          // Last observasjoner fra localStorage
+          const obsKey = 'fugleobservasjoner_v1';
+          const raw = localStorage.getItem(obsKey);
+          if (!raw) {
+            alert('Ingen observasjoner funnet.');
+            return;
+          }
+
+          const payload = JSON.parse(raw);
+          const observations = payload.observations || [];
+
+          if (observations.length === 0) {
+            alert('Ingen observasjoner funnet.');
+            return;
+          }
+
+          // Vis bekreftelsesdialog
+          const observerList = activeObservers.join(', ');
+          const confirmMsg = `Legg til følgende medobservatører på alle ${observations.length} observasjon${observations.length !== 1 ? 'er' : ''}?\n\n${observerList}`;
+          const ok = window.confirm(confirmMsg);
+          if (!ok) return;
+
+          // Lag backup av alle observasjoner (deep copy av coObservers)
+          const backup = observations.map(obs => ({
+            ...obs,
+            coObservers: obs.coObservers ? [...obs.coObservers] : []
+          }));
+
+          // Opprett ny coObservers array (alltid 10 elementer)
+          const newCoObservers = [];
+          for (let i = 0; i < 10; i++) {
+            newCoObservers[i] = activeObservers[i] || '';
+          }
+
+          // Oppdater alle observasjoner
+          observations.forEach(obs => {
+            obs.coObservers = [...newCoObservers];
+          });
+
+          // Lagre tilbake til localStorage
+          payload.observations = observations;
+          localStorage.setItem(obsKey, JSON.stringify(payload));
+
+          // Vis suksessmelding på knapp
+          const btn = document.getElementById('apply-to-all-btn');
+          if (btn) {
+            const originalText = btn.textContent;
+            btn.style.background = '#22c55e';
+            btn.textContent = `Oppdatert ${observations.length} observasjon${observations.length !== 1 ? 'er' : ''}!`;
+            btn.disabled = true;
+
+            // Tilbakestill knapp etter 3 sekunder
+            setTimeout(() => {
+              btn.textContent = originalText;
+              btn.style.background = '#3b82f6';
+              btn.disabled = false;
+            }, 3000);
+          }
+
+          // Vis undo-toast
+          showUndoToast(observations.length, () => {
+            try {
+              // Gjenopprett backup
+              const restorePayload = { version: 1, observations: backup };
+              localStorage.setItem(obsKey, JSON.stringify(restorePayload));
+
+              // Visuell feedback på knapp
+              const btn = document.getElementById('apply-to-all-btn');
+              if (btn) {
+                const originalText = 'Legg til på alle observasjoner';
+                btn.style.background = '#3b82f6';
+                btn.textContent = 'Angret!';
+                btn.disabled = true;
+
+                setTimeout(() => {
+                  btn.textContent = originalText;
+                  btn.disabled = false;
+                }, 1500);
+              }
+            } catch (err) {
+              console.error('Feil ved undo:', err);
+              alert('Feil ved undo: ' + err.message);
+            }
+          });
+
+        } catch (err) {
+          console.error('Feil ved masseoppdatering:', err);
+          alert('Feil ved masseoppdatering: ' + err.message);
+        }
+      }
+
+      // Event listener på knapp
+      document.addEventListener('DOMContentLoaded', () => {
+        const btn = document.getElementById('apply-to-all-btn');
+        if (btn) {
+          btn.addEventListener('click', applyToAllObservations);
+        }
+      });
 
       render();
     </script>
