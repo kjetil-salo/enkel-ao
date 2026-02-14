@@ -8,11 +8,12 @@ import json
 import math
 import re
 import os
-import subprocess
 import time
 from html import unescape
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
+
+import httpx
 
 # Import for å hente CSRF tokens
 from src.ao_import_httpx import fetch_csrf_tokens
@@ -46,36 +47,38 @@ def refresh_ao_cookie_if_needed(auth_cookie: str, user_id: str, logintoken: str 
     probe_url = 'https://www.artsobservasjoner.no/Observations'
     print(f'[AO-COOKIE-REFRESH] Prober AO-side for sliding expiration: {probe_url}', flush=True)
     try:
-        # Bygg cookie-header med både .ASPXAUTHNO og logintoken hvis tilgjengelig
-        cookie_header = f'.ASPXAUTHNO={auth_cookie}'
+        # Bygg cookies med både .ASPXAUTHNO og logintoken hvis tilgjengelig
+        cookies = {'.ASPXAUTHNO': auth_cookie}
         if logintoken:
-            cookie_header += f'; logintoken={logintoken}; logintoken_ssl=1'
-        result = subprocess.run([
-            'curl', '-i', '-s',
-            probe_url,
-            '-H', f'Cookie: {cookie_header}',
-            '-H', 'User-Agent: Mozilla/5.0 (compatible; Fugleobservasjoner/1.0)'
-        ], capture_output=True, text=True, timeout=10)
-        found_set_cookie = False
-        for line in result.stdout.split('\n'):
-            if 'set-cookie' in line.lower():
-                print(f'[AO-COOKIE-REFRESH] Set-Cookie header funnet: {line.strip()}', flush=True)
-            if '.ASPXAUTHNO=' in line and 'set-cookie' in line.lower():
+            cookies['logintoken'] = logintoken
+            cookies['logintoken_ssl'] = '1'
+
+        with httpx.Client() as client:
+            response = client.get(
+                probe_url,
+                headers={'User-Agent': 'Mozilla/5.0 (compatible; Fugleobservasjoner/1.0)'},
+                cookies=cookies,
+                timeout=10,
+                follow_redirects=True
+            )
+            response.raise_for_status()
+
+            found_set_cookie = False
+            if '.ASPXAUTHNO' in response.cookies:
                 found_set_cookie = True
-                match = re.search(r'\.ASPXAUTHNO=([^;\s]+)', line, re.IGNORECASE)
-                if match:
-                    refreshed = match.group(1)
-                    _ao_cookie_refresh_cache[cache_key] = (refreshed, now)
-                    print(f'\n######################### TOKEN FORNYET #########################', flush=True)
-                    print(f'[AO-COOKIE-REFRESH] Sliding expiration: fikk ny auth-cookie: {refreshed[:20]}...', flush=True)
-                    print(f'###############################################################\n', flush=True)
-                    return refreshed
-        if not found_set_cookie:
-            print(f'[AO-COOKIE-REFRESH] Ingen Set-Cookie header med .ASPXAUTHNO funnet i responsen.', flush=True)
-        # Ingen ny cookie, men oppdater timestamp for sliding expiration
-        _ao_cookie_refresh_cache[cache_key] = (auth_cookie, now)
-        print(f'[AO-COOKIE-REFRESH] Sliding expiration: ingen ny cookie, men refresh-tid oppdatert', flush=True)
-        return None
+                refreshed = response.cookies['.ASPXAUTHNO']
+                _ao_cookie_refresh_cache[cache_key] = (refreshed, now)
+                print(f'\n######################### TOKEN FORNYET #########################', flush=True)
+                print(f'[AO-COOKIE-REFRESH] Sliding expiration: fikk ny auth-cookie: {refreshed[:20]}...', flush=True)
+                print(f'###############################################################\n', flush=True)
+                return refreshed
+
+            if not found_set_cookie:
+                print(f'[AO-COOKIE-REFRESH] Ingen Set-Cookie header med .ASPXAUTHNO funnet i responsen.', flush=True)
+            # Ingen ny cookie, men oppdater timestamp for sliding expiration
+            _ao_cookie_refresh_cache[cache_key] = (auth_cookie, now)
+            print(f'[AO-COOKIE-REFRESH] Sliding expiration: ingen ny cookie, men refresh-tid oppdatert', flush=True)
+            return None
     except Exception as e:
         print(f'[AO-COOKIE-REFRESH] Feil ved sliding expiration refresh: {e}', flush=True)
         return None
@@ -84,22 +87,22 @@ def refresh_ao_cookie_if_needed(auth_cookie: str, user_id: str, logintoken: str 
 def get_fresh_auth_cookie(logintoken: str) -> tuple:
     """
     Hent fersk .ASPXAUTHNO og userId fra logintoken.
-    
+
     Bruker AOs automatiske re-autentisering: når man sender kun logintoken
     til en beskyttet side, returnerer AO en ny .ASPXAUTHNO i Set-Cookie.
-    
+
     Args:
         logintoken: Komplett logintoken, f.eks. "290628:abc123..."
-        
+
     Returns:
         tuple: (auth_cookie, user_id) - f.eks. ('.ASPXAUTHNO=abc...', '290628')
-        
+
     Raises:
         ValueError: Hvis logintoken er ugyldig eller utløpt
     """
     if not logintoken or ':' not in logintoken:
         raise ValueError('Ugyldig logintoken format (forventet userId:hash)')
-    
+
     # Sjekk cache først
     if logintoken in _auth_cache:
         cached_auth, cached_ts = _auth_cache[logintoken]
@@ -107,40 +110,39 @@ def get_fresh_auth_cookie(logintoken: str) -> tuple:
             user_id = logintoken.split(':')[0]
             print(f'[AUTH] Bruker cached auth cookie for user {user_id}', flush=True)
             return (cached_auth, user_id)
-    
+
     # userId er første del av logintoken (før kolon)
     user_id = logintoken.split(':')[0]
-    
+
     print(f'[AUTH] Henter fersk .ASPXAUTHNO for user {user_id}...', flush=True)
-    
+
     # Send request til /LogOn med kun logintoken - følg redirects
-    result = subprocess.run([
-        'curl', '-i', '-s', '-L',
-        'https://www.artsobservasjoner.no/LogOn',
-        '-H', f'Cookie: logintoken={logintoken}; logintoken_ssl=1',
-        '-H', 'User-Agent: Fugleobservasjoner/1.0 (https://enkel-ao.fly.dev)'
-    ], capture_output=True, text=True, timeout=15)
-    
-    # Parse Set-Cookie for .ASPXAUTHNO
-    auth_cookie = None
-    for line in result.stdout.split('\n'):
-        if '.ASPXAUTHNO=' in line.lower() and 'set-cookie' in line.lower():
-            match = re.search(r'\.ASPXAUTHNO=([^;\s]+)', line, re.IGNORECASE)
-            if match:
-                auth_cookie = f'.ASPXAUTHNO={match.group(1)}'
-                break
-    
-    if not auth_cookie:
-        # Prøv å finne feilen
-        if 'LogOn' in result.stdout and 'UserName' in result.stdout:
-            raise ValueError('logintoken er utløpt - vennligst logg inn på nytt')
-        raise ValueError('Kunne ikke hente .ASPXAUTHNO fra logintoken')
-    
-    # Lagre i cache
-    _auth_cache[logintoken] = (auth_cookie, time.time())
-    
-    print(f'[AUTH] Hentet fersk auth cookie for user {user_id}', flush=True)
-    return (auth_cookie, user_id)
+    with httpx.Client() as client:
+        response = client.get(
+            'https://www.artsobservasjoner.no/LogOn',
+            headers={'User-Agent': 'Fugleobservasjoner/1.0 (https://enkel-ao.fly.dev)'},
+            cookies={'logintoken': logintoken, 'logintoken_ssl': '1'},
+            timeout=15,
+            follow_redirects=True
+        )
+        response.raise_for_status()
+
+        # Parse Set-Cookie for .ASPXAUTHNO
+        auth_cookie = None
+        if '.ASPXAUTHNO' in response.cookies:
+            auth_cookie = f'.ASPXAUTHNO={response.cookies[".ASPXAUTHNO"]}'
+
+        if not auth_cookie:
+            # Prøv å finne feilen
+            if 'LogOn' in response.text and 'UserName' in response.text:
+                raise ValueError('logintoken er utløpt - vennligst logg inn på nytt')
+            raise ValueError('Kunne ikke hente .ASPXAUTHNO fra logintoken')
+
+        # Lagre i cache
+        _auth_cache[logintoken] = (auth_cookie, time.time())
+
+        print(f'[AUTH] Hentet fersk auth cookie for user {user_id}', flush=True)
+        return (auth_cookie, user_id)
 
 
 def login_to_ao(username: str, password: str) -> dict:
@@ -158,101 +160,90 @@ def login_to_ao(username: str, password: str) -> dict:
     print(f'[AO-LOGIN] Starter innlogging for bruker: {username}', flush=True)
 
     # Steg 1: Hent login-siden for CSRF-token
-    result = subprocess.run([
-        'curl', '-s', '-c', '/tmp/ao_login_cookies.txt', '-D', '/tmp/ao_login_headers.txt',
-        'https://www.artsobservasjoner.no/LogOn',
-        '-H', 'User-Agent: Mozilla/5.0 (compatible; Fugleobservasjoner/1.0)'
-    ], capture_output=True, text=True, timeout=15)
+    with httpx.Client() as client:
+        response = client.get(
+            'https://www.artsobservasjoner.no/LogOn',
+            headers={'User-Agent': 'Mozilla/5.0 (compatible; Fugleobservasjoner/1.0)'},
+            timeout=15,
+            follow_redirects=True
+        )
+        response.raise_for_status()
+        login_html = response.text
 
-    login_html = result.stdout
+        # Ekstraher __RequestVerificationToken fra HTML-form
+        token_match = re.search(
+            r'name="__RequestVerificationToken"[^>]*value="([^"]*)"',
+            login_html
+        )
+        if not token_match:
+            raise ValueError('Kunne ikke hente CSRF-token fra login-side')
 
-    # Ekstraher __RequestVerificationToken fra HTML-form
-    token_match = re.search(
-        r'name="__RequestVerificationToken"[^>]*value="([^"]*)"',
-        login_html
-    )
-    if not token_match:
-        raise ValueError('Kunne ikke hente CSRF-token fra login-side')
+        form_token = token_match.group(1)
 
-    form_token = token_match.group(1)
+        # Hent cookie-token fra response cookies
+        cookie_token = response.cookies.get('__RequestVerificationToken', '')
 
-    # Les cookie-token fra headers
-    with open('/tmp/ao_login_headers.txt', 'r') as f:
-        headers_content = f.read()
+        print(f'[AO-LOGIN] Hentet CSRF-tokens, sender innlogging...', flush=True)
 
-    cookie_token_match = re.search(
-        r'__RequestVerificationToken=([^;\s\r\n]+)',
-        headers_content
-    )
-    cookie_token = cookie_token_match.group(1) if cookie_token_match else ''
+        # Steg 2: POST login med credentials
+        post_data = {
+            '__RequestVerificationToken': form_token,
+            'AuthenticationViewModel.UserName': username,
+            'AuthenticationViewModel.Password': password,
+            'AuthenticationViewModel.RememberMe': 'true'
+        }
 
-    print(f'[AO-LOGIN] Hentet CSRF-tokens, sender innlogging...', flush=True)
+        auth_response = client.post(
+            'https://www.artsobservasjoner.no/LogOn',
+            headers={
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'User-Agent': 'Mozilla/5.0 (compatible; Fugleobservasjoner/1.0)'
+            },
+            cookies={'__RequestVerificationToken': cookie_token},
+            data=post_data,
+            timeout=15,
+            follow_redirects=False  # Ikke følg redirect automatisk, vi må sjekke det
+        )
 
-    # Steg 2: POST login med credentials
-    post_data = (
-        f'__RequestVerificationToken={form_token}'
-        f'&AuthenticationViewModel.UserName={username}'
-        f'&AuthenticationViewModel.Password={password}'
-        f'&AuthenticationViewModel.RememberMe=true'
-    )
+        # Sjekk for redirect til MyPages (vellykket login)
+        if auth_response.status_code not in (302, 303):
+            # Ingen redirect - sjekk om det er feilmelding
+            if 'Feil brukernavn' in auth_response.text or 'Feil passord' in auth_response.text:
+                raise ValueError('Feil brukernavn eller passord')
+            raise ValueError('Innlogging feilet - ingen redirect mottatt')
 
-    result = subprocess.run([
-        'curl', '-s', '-D', '/tmp/ao_auth_headers.txt',
-        '-X', 'POST', 'https://www.artsobservasjoner.no/LogOn',
-        '-H', 'Content-Type: application/x-www-form-urlencoded',
-        '-H', f'Cookie: __RequestVerificationToken={cookie_token}',
-        '-H', 'User-Agent: Mozilla/5.0 (compatible; Fugleobservasjoner/1.0)',
-        '-d', post_data
-    ], capture_output=True, text=True, timeout=15)
+        # Parse cookies fra response
+        auth_cookie = None
+        login_token = None
+        user_id = None
 
-    # Les response headers
-    with open('/tmp/ao_auth_headers.txt', 'r') as f:
-        auth_headers = f.read()
+        if '.ASPXAUTHNO' in auth_response.cookies:
+            auth_cookie = auth_response.cookies['.ASPXAUTHNO']
 
-    # Sjekk for redirect til MyPages (vellykket login)
-    if 'Location: ' not in auth_headers and 'location: ' not in auth_headers.lower():
-        # Ingen redirect - sjekk om det er feilmelding
-        if 'Feil brukernavn' in result.stdout or 'Feil passord' in result.stdout:
-            raise ValueError('Feil brukernavn eller passord')
-        raise ValueError('Innlogging feilet - ingen redirect mottatt')
+        if 'logintoken' in auth_response.cookies:
+            login_token = auth_response.cookies['logintoken']
+            # Ekstraher userId fra logintoken (før kolon)
+            if ':' in login_token:
+                user_id = login_token.split(':')[0]
 
-    # Parse cookies fra response
-    auth_cookie = None
-    login_token = None
-    user_id = None
+        if not auth_cookie:
+            raise ValueError('Innlogging feilet - ingen auth cookie mottatt')
 
-    for line in auth_headers.split('\n'):
-        line_lower = line.lower()
-        if '.aspxauthno=' in line_lower and 'set-cookie' in line_lower:
-            match = re.search(r'\.ASPXAUTHNO=([^;\s]+)', line, re.IGNORECASE)
-            if match:
-                auth_cookie = match.group(1)
-        elif 'logintoken=' in line_lower and 'set-cookie' in line_lower:
-            match = re.search(r'logintoken=([^;\s]+)', line, re.IGNORECASE)
-            if match:
-                login_token = match.group(1)
-                # Ekstraher userId fra logintoken (før kolon)
-                if ':' in login_token:
-                    user_id = login_token.split(':')[0]
+        if not login_token:
+            raise ValueError('Innlogging feilet - ingen logintoken mottatt (husk å krysse av "Husk meg")')
 
-    if not auth_cookie:
-        raise ValueError('Innlogging feilet - ingen auth cookie mottatt')
+        # Lagre credentials for auto-relogin
+        if user_id:
+            _credentials_cache[user_id] = (username, password)
+            print(f'[AO-LOGIN] Lagret credentials for auto-relogin (user_id={user_id})', flush=True)
 
-    if not login_token:
-        raise ValueError('Innlogging feilet - ingen logintoken mottatt (husk å krysse av "Husk meg")')
+        print(f'[AO-LOGIN] Innlogging vellykket! user_id={user_id}, auth_cookie={auth_cookie[:20]}...', flush=True)
 
-    # Lagre credentials for auto-relogin
-    if user_id:
-        _credentials_cache[user_id] = (username, password)
-        print(f'[AO-LOGIN] Lagret credentials for auto-relogin (user_id={user_id})', flush=True)
-
-    print(f'[AO-LOGIN] Innlogging vellykket! user_id={user_id}, auth_cookie={auth_cookie[:20]}...', flush=True)
-
-    return {
-        'authCookie': auth_cookie,
-        'loginToken': login_token,
-        'userId': user_id
-    }
+        return {
+            'authCookie': auth_cookie,
+            'loginToken': login_token,
+            'userId': user_id
+        }
 
 
 def auto_relogin_if_needed(user_id: str, auth_cookie: str) -> str:
@@ -272,16 +263,20 @@ def auto_relogin_if_needed(user_id: str, auth_cookie: str) -> str:
         return None
 
     # Test om nåværende cookie fungerer
-    probe_result = subprocess.run([
-        'curl', '-s', '-o', '/dev/null', '-w', '%{http_code}',
-        'https://www.artsobservasjoner.no/User/MyPages',
-        '-H', f'Cookie: .ASPXAUTHNO={auth_cookie}',
-        '-H', 'User-Agent: Mozilla/5.0 (compatible; Fugleobservasjoner/1.0)'
-    ], capture_output=True, text=True, timeout=10)
-
-    # Hvis vi får 200, er cookien fortsatt gyldig
-    if probe_result.stdout.strip() == '200':
-        return None
+    try:
+        with httpx.Client() as client:
+            response = client.get(
+                'https://www.artsobservasjoner.no/User/MyPages',
+                headers={'User-Agent': 'Mozilla/5.0 (compatible; Fugleobservasjoner/1.0)'},
+                cookies={'.ASPXAUTHNO': auth_cookie},
+                timeout=10,
+                follow_redirects=False
+            )
+            # Hvis vi får 200, er cookien fortsatt gyldig
+            if response.status_code == 200:
+                return None
+    except Exception:
+        pass  # Cookie er sannsynligvis ugyldig, fortsett med relogin
 
     print(f'[AUTO-RELOGIN] Cookie utløpt for user_id={user_id}, logger inn på nytt...', flush=True)
 
@@ -509,64 +504,55 @@ def handle_ao_sites_search(lat, lon, size_m=600.0, ao_mobile_base_url='https://m
             half_size = max(size_m / 2, 100)  # Minimum 100m, ellers halve søkeradiusen
             bbox_str = f'{int(center_x - half_size)},{int(center_y - half_size)},{int(center_x + half_size)},{int(center_y + half_size)}'
 
-            # Cookie-streng - inkluder CSRF token hvis vi har den
-            cookies = f'AcceptCookies=1; .ASPXAUTHNO={auth_val}; logintoken={ao_login}'
+            # Cookie dict - inkluder CSRF token hvis vi har den
+            cookies_dict = {
+                'AcceptCookies': '1',
+                '.ASPXAUTHNO': auth_val,
+                'logintoken': ao_login
+            }
             if csrf_cookie_token:
-                cookies += f'; __RequestVerificationToken={csrf_cookie_token}'
-            
+                cookies_dict['__RequestVerificationToken'] = csrf_cookie_token
+
             geojson_url = 'https://www.artsobservasjoner.no/Map/GetSitesGeoJson'
-            post_data = json.dumps({
+            post_data = {
                 'zoomLevel': 16,
                 'bbox': bbox_str,
                 'userId': int(ao_user_id),
                 'coordSyst': 0,
                 'speciesGroupId': '0',  # Alle artsgrupper, ikke bare fugler
                 'taxonId': None
-            })
+            }
 
             print(f'[DEBUG] GetSitesGeoJson POST to {geojson_url}', flush=True)
             print(f'[DEBUG] GetSitesGeoJson bbox: {bbox_str}', flush=True)
-            
-            # Bruk curl subprocess (urllib gir tom respons, curl fungerer)
-            # Legg til -i for å få response headers med
-            import subprocess
-            curl_result = subprocess.run([
-                'curl', '--compressed', '-s', '-i',  # -i gir response headers
-                geojson_url,
-                '-X', 'POST',
-                '-H', 'User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:147.0) Gecko/20100101 Firefox/147.0',
-                '-H', 'Accept: */*',
-                '-H', 'Content-Type: application/json; charset=UTF-8',
-                '-H', 'X-Requested-With: XMLHttpRequest',
-                '-H', 'Origin: https://www.artsobservasjoner.no',
-                '-H', 'Referer: https://www.artsobservasjoner.no/SubmitSighting/Report',
-                '-H', f'Cookie: {cookies}',
-                '-d', post_data
-            ], capture_output=True, text=True, timeout=15)
-            
-            full_response = curl_result.stdout
-            # Split headers fra body (dobbel newline skiller)
-            if '\r\n\r\n' in full_response:
-                headers_part, body = full_response.split('\r\n\r\n', 1)
-            elif '\n\n' in full_response:
-                headers_part, body = full_response.split('\n\n', 1)
-            else:
-                headers_part, body = '', full_response
-            
-            # Parse Set-Cookie header for refreshed auth token
-            if not refreshed_auth_cookie and 'Set-Cookie:' in headers_part:
-                try:
-                    import re
-                    # Finn .ASPXAUTHNO cookie value
-                    cookie_match = re.search(r'Set-Cookie:.*\.ASPXAUTHNO=([^;\r\n]+)', headers_part, re.IGNORECASE)
-                    if cookie_match:
-                        refreshed_auth_cookie = cookie_match.group(1)
-                        print(f'[DEBUG] GetSitesGeoJson: Fant refreshed auth cookie', flush=True)
-                except Exception as cookie_err:
-                    print(f'[DEBUG] GetSitesGeoJson: Feil ved parsing av Set-Cookie: {cookie_err}', flush=True)
-            
-            print(f'[DEBUG] GetSitesGeoJson body length: {len(body)}, first 500: {repr(body[:500])}', flush=True)
-            geojson_data = json.loads(body) if body else None
+
+            # Bruk httpx for POST-kall
+            with httpx.Client() as client:
+                response = client.post(
+                    geojson_url,
+                    headers={
+                        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:147.0) Gecko/20100101 Firefox/147.0',
+                        'Accept': '*/*',
+                        'Content-Type': 'application/json; charset=UTF-8',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Origin': 'https://www.artsobservasjoner.no',
+                        'Referer': 'https://www.artsobservasjoner.no/SubmitSighting/Report'
+                    },
+                    cookies=cookies_dict,
+                    json=post_data,
+                    timeout=15,
+                    follow_redirects=True
+                )
+                response.raise_for_status()
+
+                # Parse Set-Cookie header for refreshed auth token
+                if not refreshed_auth_cookie and '.ASPXAUTHNO' in response.cookies:
+                    refreshed_auth_cookie = response.cookies['.ASPXAUTHNO']
+                    print(f'[DEBUG] GetSitesGeoJson: Fant refreshed auth cookie', flush=True)
+
+                body = response.text
+                print(f'[DEBUG] GetSitesGeoJson body length: {len(body)}, first 500: {repr(body[:500])}', flush=True)
+                geojson_data = response.json() if body else None
             print(f'[DEBUG] GetSitesGeoJson parsed keys: {list(geojson_data.keys()) if isinstance(geojson_data, dict) else type(geojson_data)}', flush=True)
 
             # GetSitesGeoJson returnerer { points: { features: [...] }, polygons: {...} }
