@@ -164,6 +164,19 @@
 
         <div class="version">
           <div class="version-header">
+            <span class="version-number">v1.19.2</span>
+            <span class="version-date">14. februar 2026</span>
+          </div>
+          <div class="section-title">Kritisk feilretting</div>
+          <ul class="changes">
+            <li>HOTFIX: Fullfør httpx-migrering - "Refresh session" og område-søk brukte fortsatt curl</li>
+            <li>Fikser feilmelding: "[Errno 2] No such file or directory: 'curl'" i produksjon</li>
+            <li>Alle HTTP-kall bruker nå konsekvent httpx (ingen curl-avhengighet)</li>
+          </ul>
+        </div>
+
+        <div class="version">
+          <div class="version-header">
             <span class="version-number">v1.19.1</span>
             <span class="version-date">14. februar 2026</span>
           </div>
