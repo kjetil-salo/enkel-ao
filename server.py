@@ -172,8 +172,7 @@ class Handler(SimpleHTTPRequestHandler):
     def _handle_ao_refresh_post(self):
         """Håndter refresh av AO session token."""
         import sys
-        import subprocess
-        import re
+        import httpx
 
         try:
             content_length = int(self.headers.get('Content-Length', 0))
@@ -194,66 +193,63 @@ class Handler(SimpleHTTPRequestHandler):
                 self._send_json({'error': 'loginToken er påkrevd'}, status=400)
                 return
 
-            # Bygg cookie-header
-            cookie_parts = [f'logintoken={login_token}', 'logintoken_ssl=1']
-            if auth_cookie:
-                # Fjern eventuelt ".ASPXAUTHNO=" prefix
-                auth_val = auth_cookie
-                if auth_val.startswith('.ASPXAUTHNO='):
-                    auth_val = auth_val.split('=', 1)[1]
-                cookie_parts.append(f'.ASPXAUTHNO={auth_val}')
+            # Normaliser auth cookie
+            auth_val = auth_cookie
+            if auth_val and auth_val.startswith('.ASPXAUTHNO='):
+                auth_val = auth_val.split('=', 1)[1]
 
-            cookie_header = '; '.join(cookie_parts)
+            # Bygg cookies dict for httpx
+            cookies = {'logintoken': login_token, 'logintoken_ssl': '1'}
+            if auth_val:
+                cookies['.ASPXAUTHNO'] = auth_val
 
             # Prøv å refreshe ved å treffe en beskyttet AO-side
             probe_url = 'https://www.artsobservasjoner.no/Observations'
             print(f'[AO-REFRESH] Prober: {probe_url}', file=sys.stderr)
 
-            result = subprocess.run([
-                'curl', '-i', '-s', '-L',
-                probe_url,
-                '-H', f'Cookie: {cookie_header}',
-                '-H', 'User-Agent: Mozilla/5.0 (compatible; Fugleobservasjoner/1.0)'
-            ], capture_output=True, text=True, timeout=15)
+            with httpx.Client() as client:
+                response = client.get(
+                    probe_url,
+                    headers={'User-Agent': 'Mozilla/5.0 (compatible; Fugleobservasjoner/1.0)'},
+                    cookies=cookies,
+                    timeout=15,
+                    follow_redirects=True
+                )
 
-            # Parse response for Set-Cookie headers
+            # Parse response for refreshed cookies
             refreshed_auth = None
             refreshed_login_token = None
 
-            print(f'[AO-REFRESH] Response headers (Set-Cookie):', file=sys.stderr)
-            for line in result.stdout.split('\n'):
-                if 'set-cookie' in line.lower():
-                    print(f'[AO-REFRESH]   {line.strip()}', file=sys.stderr)
+            print(f'[AO-REFRESH] Response status: {response.status_code}', file=sys.stderr)
+            print(f'[AO-REFRESH] Response cookies:', file=sys.stderr)
 
-                    if '.ASPXAUTHNO=' in line:
-                        match = re.search(r'\.ASPXAUTHNO=([^;\s]+)', line, re.IGNORECASE)
-                        if match:
-                            refreshed_auth = match.group(1)
+            if '.ASPXAUTHNO' in response.cookies:
+                refreshed_auth = response.cookies['.ASPXAUTHNO']
+                print(f'[AO-REFRESH]   New authCookie: {refreshed_auth[:30]}...', file=sys.stderr)
 
-                    if 'logintoken=' in line.lower() and 'logintoken_ssl' not in line.lower():
-                        match = re.search(r'logintoken=([^;\s]+)', line, re.IGNORECASE)
-                        if match:
-                            refreshed_login_token = match.group(1)
+            if 'logintoken' in response.cookies:
+                refreshed_login_token = response.cookies['logintoken']
+                print(f'[AO-REFRESH]   New loginToken: {refreshed_login_token[:30]}...', file=sys.stderr)
 
             print(f'[AO-REFRESH] === Refresh Result ===', file=sys.stderr)
             print(f'[AO-REFRESH]   New authCookie: {refreshed_auth[:30] if refreshed_auth else "None"}...', file=sys.stderr)
             print(f'[AO-REFRESH]   New loginToken: {refreshed_login_token[:30] if refreshed_login_token else "None (unchanged)"}...', file=sys.stderr)
 
-            response = {}
+            result = {}
             if refreshed_auth:
-                response['refreshedAuthCookie'] = refreshed_auth
+                result['refreshedAuthCookie'] = refreshed_auth
             if refreshed_login_token:
-                response['refreshedLoginToken'] = refreshed_login_token
+                result['refreshedLoginToken'] = refreshed_login_token
 
-            if not response:
+            if not result:
                 # Sjekk om vi ble redirectet til login (token utløpt)
-                if '/LogOn' in result.stdout or 'LogOn' in result.stdout:
+                if '/LogOn' in str(response.url) or response.status_code == 302:
                     print(f'[AO-REFRESH] Token utløpt - redirect til LogOn', file=sys.stderr)
-                    response['error'] = 'Token utløpt - krever ny innlogging'
+                    result['error'] = 'Token utløpt - krever ny innlogging'
                 else:
-                    response['message'] = 'Ingen ny token mottatt, eksisterende kan fortsatt være gyldig'
+                    result['message'] = 'Ingen ny token mottatt, eksisterende kan fortsatt være gyldig'
 
-            self._send_json(response)
+            self._send_json(result)
 
         except Exception as e:
             print(f'[AO-REFRESH] Feil: {e}', file=sys.stderr)
@@ -436,7 +432,7 @@ class Handler(SimpleHTTPRequestHandler):
     def _handle_ao_areas_api(self, parsed):
         """Proxy for AO område-søk (politiske grenser). Åpent API med access-key."""
         import sys
-        import subprocess
+        import httpx
 
         params = parse_qs(parsed.query)
         search = params.get('search', [''])[0].strip()
@@ -446,15 +442,17 @@ class Handler(SimpleHTTPRequestHandler):
 
         ao_url = f'https://www.artsobservasjoner.no/Api/Areas/politicalboundary/{search}/'
         try:
-            result = subprocess.run(
-                [
-                    'curl', '-s', ao_url,
-                    '-H', 'access-key: 20a2d12937024a7391c10871d35bcc3a',
-                    '-H', 'X-Requested-With: XMLHttpRequest',
-                ],
-                capture_output=True, text=True, timeout=10
-            )
-            data = json.loads(result.stdout)
+            with httpx.Client() as client:
+                response = client.get(
+                    ao_url,
+                    headers={
+                        'access-key': '20a2d12937024a7391c10871d35bcc3a',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    timeout=10
+                )
+                response.raise_for_status()
+                data = response.json()
             self._send_json(data)
         except Exception as e:
             print(f'[AO-AREAS] Feil: {e}', file=sys.stderr)
