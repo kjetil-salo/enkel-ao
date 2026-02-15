@@ -369,6 +369,11 @@ function updateModeUI() {
   const obsDateInput = document.getElementById('obs-date');
   const obsTimeInput = document.getElementById('obs-time');
 
+  // GPS-relaterte rader
+  const locStatusRow = document.getElementById('loc-status-row');
+  const gpsControlsRow = document.getElementById('gps-controls-row');
+  const aoSitesDropdown = document.getElementById('ao-sites-dropdown');
+
   if (!modePill || !datetimeFields) return;
 
   const isAfterMode = localStorage.getItem('afterRegistrationMode') === '1';
@@ -377,6 +382,11 @@ function updateModeUI() {
     modePill.textContent = 'Etterregistrering';
     modePill.className = 'pill mode-pill after-mode';
     datetimeFields.style.display = 'block';
+
+    // Skjul GPS-relaterte rader
+    if (locStatusRow) locStatusRow.style.display = 'none';
+    if (gpsControlsRow) gpsControlsRow.style.display = 'none';
+    if (aoSitesDropdown) aoSitesDropdown.style.display = 'none';
 
     // Sett dagens dato som default
     const today = new Date();
@@ -391,6 +401,11 @@ function updateModeUI() {
     modePill.textContent = 'Felt';
     modePill.className = 'pill mode-pill field-mode';
     datetimeFields.style.display = 'none';
+
+    // Vis GPS-relaterte rader
+    if (locStatusRow) locStatusRow.style.display = 'flex';
+    if (gpsControlsRow) gpsControlsRow.style.display = 'flex';
+    // aoSitesDropdown styres av egen logikk
   }
 }
 
