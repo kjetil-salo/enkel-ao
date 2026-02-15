@@ -163,7 +163,8 @@ export function setAoSiteSuggestions(sites, currentPosition, dropdown, aoSitesEl
 
     const selectSite = () => {
       const name = getSiteLabel(site) || site.name;
-      setCurrentPlace(name);
+      const siteId = site.id || null;
+      setCurrentPlace(name, siteId);
       if (placeInput) {
         placeInput.value = name;
         placeInput.dataset.autofilled = 'true';

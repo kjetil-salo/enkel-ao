@@ -424,7 +424,8 @@ export function toCsv(observations) {
 
   for (const obs of observations) {
     const name = ((obs.species && obs.species.taxonName) || '').replace(/[;\t]/g, ',');
-    const place = (obs.placeName || '').replace(/[;\t]/g, ',');
+    // Bruk lokalitets-ID hvis tilgjengelig, ellers navn (unngår tvetydighet ved import)
+    const place = (obs.placeId || obs.placeName || '').toString().replace(/[;\t]/g, ',');
     const count = obs.count != null ? String(obs.count) : '';
     const activity = (obs.activity || '').replace(/[;\t]/g, ',');
     const age = (obs.age || '').replace(/[;\t]/g, ',');

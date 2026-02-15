@@ -131,6 +131,7 @@ export function commitObservation(state, dom, callbacks) {
     position: state.currentPosition,
     activity,
     placeName: place,
+    placeId: state.currentPlaceId || null,
     timestamp: getObservationTimestamp(),
     age,
     gender,

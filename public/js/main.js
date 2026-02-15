@@ -28,6 +28,7 @@ const appState = {
   observations: [],
   currentPosition: null,
   currentPlaceName: '',
+  currentPlaceId: null,
   currentAoSites: [],
   currentAoSizeMeters: 1000,
   _callbacks: null, // settes i init()
@@ -117,8 +118,9 @@ function commitFromActivity() {
 function handlePositionUpdate(position, sites) {
   appState.currentPosition = position;
 
-  function setCurrentPlaceAndUpdate(name) {
+  function setCurrentPlaceAndUpdate(name, siteId = null) {
     appState.currentPlaceName = name;
+    appState.currentPlaceId = siteId;
     if (dom.placeInput) {
       dom.placeInput.value = name;
       dom.placeInput.dataset.autofilled = 'true';
@@ -153,6 +155,7 @@ function setupEventListeners() {
   if (dom.placeInput) {
     dom.placeInput.addEventListener('input', () => {
       appState.currentPlaceName = dom.placeInput.value;
+      appState.currentPlaceId = null; // Nullstill ID når brukeren skriver manuelt
       dom.placeInput.dataset.autofilled = 'false';
       updateSectionStates(appState, dom);
     });
