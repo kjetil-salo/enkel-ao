@@ -70,38 +70,48 @@ if (sites && Array.isArray(sites)) {
       return;
     }
 
-    // Marker-type: superlokasjon (oransje), egen (gul), offentlig (grønn)
-    let marker;
+    // Bestem farger basert på type
+    let markerColor, polygonColor;
     if (site.isMine) {
-      marker = L.marker([lat, lon], {
-        icon: L.icon({
-          iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-yellow.png',
-          shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
-          iconSize: [25, 41],
-          iconAnchor: [12, 41],
-          popupAnchor: [1, -34],
-          shadowSize: [41, 41]
-        })
-      });
+      markerColor = 'yellow';
+      polygonColor = '#eab308';  // Gul
+    } else if (site.isSuper) {
+      markerColor = 'orange';
+      polygonColor = '#f97316';  // Oransje
     } else {
-      let iconUrl;
-      if (site.isSuper) {
-        iconUrl = 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-orange.png';
-      } else {
-        iconUrl = 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png';
-      }
-      marker = L.marker([lat, lon], {
-        icon: L.icon({
-          iconUrl: iconUrl,
-          shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
-          iconSize: [25, 41],
-          iconAnchor: [12, 41],
-          popupAnchor: [1, -34],
-          shadowSize: [41, 41]
-        })
-      });
+      markerColor = 'green';
+      polygonColor = '#22c55e';  // Grønn
     }
-    marker.addTo(map);
+
+    // Tegn polygon hvis det er en polygon-lokalitet
+    if (site.raw && site.raw.isPolygon && site.raw.polygonCoordinates) {
+      const coords = site.raw.polygonCoordinates;
+      if (coords && coords.length > 0) {
+        // ByBoundingBox returnerer [lon, lat], Leaflet trenger [lat, lon] - må bytte om
+        const leafletCoords = coords.map(coord => [coord[1], coord[0]]);
+
+        L.polygon(leafletCoords, {
+          color: polygonColor,
+          weight: 2,
+          opacity: 0.8,
+          fillColor: polygonColor,
+          fillOpacity: 0.15
+        }).addTo(map);
+      }
+    }
+
+    // Marker i senter (alltid, uavhengig av om det er polygon)
+    const markerIconUrl = `https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-${markerColor}.png`;
+    const marker = L.marker([lat, lon], {
+      icon: L.icon({
+        iconUrl: markerIconUrl,
+        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+        iconSize: [25, 41],
+        iconAnchor: [12, 41],
+        popupAnchor: [1, -34],
+        shadowSize: [41, 41]
+      })
+    }).addTo(map);
 
     // Navn for visning
     const siteName = site.name || 'Ukjent lokalitet';

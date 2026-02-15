@@ -466,7 +466,7 @@ def handle_ao_sites_search(lat, lon, size_m=600.0, ao_mobile_base_url='https://m
             ao_auth = None
 
     print(f'[DEBUG] AO-tokens final: user_id={ao_user_id}, login_token={ao_login[:20] if ao_login else None}..., auth_cookie={ao_auth[:30] if ao_auth else None}...', flush=True)
-    
+
     if ao_login and ao_auth and ao_user_id:
         try:
             # Normaliser AO_AUTH_COOKIE verdi
@@ -563,20 +563,21 @@ def handle_ao_sites_search(lat, lon, size_m=600.0, ao_mobile_base_url='https://m
                 if isinstance(points, dict):
                     for feature in points.get('features', []):
                         props = feature.get('properties', {})
-                        if props.get('isPrivate'):
-                            site_id = props.get('siteId') or props.get('id') or feature.get('id')
-                            if site_id is not None:
-                                my_site_ids.add(int(site_id))
+                        site_id = props.get('siteId') or props.get('id') or feature.get('id')
+
+                        if props.get('isPrivate') and site_id is not None:
+                            my_site_ids.add(int(site_id))
+
                 # Sjekk også polygons.features
                 polygons = geojson_data.get('polygons', {})
                 if isinstance(polygons, dict):
                     for feature in polygons.get('features', []):
                         props = feature.get('properties', {})
-                        if props.get('isPrivate'):
-                            site_id = props.get('siteId') or props.get('id') or feature.get('id')
-                            if site_id is not None:
-                                my_site_ids.add(int(site_id))
-            
+                        site_id = props.get('siteId') or props.get('id') or feature.get('id')
+
+                        if props.get('isPrivate') and site_id is not None:
+                            my_site_ids.add(int(site_id))
+
             print(f'GetSitesGeoJson: fant {len(my_site_ids)} private site-IDs')
         except Exception as geojs_err:
             # Logging feil ved henting av brukerens egne lokasjoner - ikke kritisk
@@ -673,6 +674,7 @@ def handle_ao_sites_search(lat, lon, size_m=600.0, ao_mobile_base_url='https://m
                 site['lat'] = lat_val
             if lon_val is not None:
                 site['lon'] = lon_val
+
             # Oppdag om dette er en "superlokasjon" eller har en parent-id.
             try:
                 # Sjekk eksplisitte flagg (bool eller strings)
