@@ -469,24 +469,27 @@ class Handler(SimpleHTTPRequestHandler):
         term = params.get('term', [''])[0].strip()
         login_token = params.get('loginToken', [''])[0].strip()
         auth_cookie = params.get('authCookie', [''])[0].strip()
+        user_id = params.get('userId', [''])[0].strip()
 
         if not term or len(term) < 2:
-            self._send_json([])
+            self._send_json({'results': [], 'refreshed_auth_cookie': None})
             return
 
-        print(f'[AO-AUTOCOMPLETE] Søk: term={term}, autentisert={bool(login_token and auth_cookie)}', file=sys.stderr)
+        print(f'[AO-AUTOCOMPLETE] Søk: term={term}, autentisert={bool(login_token and auth_cookie)}, user_id={user_id}', file=sys.stderr)
 
         try:
-            # Kall autocomplete med eller uten autentisering
-            results = fetch_ao_autocomplete(
+            # Kall autocomplete med auto-relogin support
+            data = fetch_ao_autocomplete(
                 term=term,
                 login_token=login_token if login_token else None,
-                auth_cookie=auth_cookie if auth_cookie else None
+                auth_cookie=auth_cookie if auth_cookie else None,
+                user_id=user_id if user_id else None
             )
-            self._send_json(results)
+            # data er nå {'results': [...], 'refreshed_auth_cookie': ...}
+            self._send_json(data)
         except Exception as e:
             print(f'[AO-AUTOCOMPLETE] Feil: {e}', file=sys.stderr)
-            self._send_json([])
+            self._send_json({'results': [], 'refreshed_auth_cookie': None})
 
     def _handle_static_files(self, parsed):
         """Håndter statiske filer."""

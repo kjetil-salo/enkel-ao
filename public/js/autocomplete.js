@@ -51,16 +51,27 @@ export function initAutocomplete(placeInput, onSelect) {
       const tokens = JSON.parse(localStorage.getItem('ao_tokens') || '{}');
       const loginToken = tokens.loginToken || '';
       const authCookie = tokens.authCookie || '';
+      const userId = tokens.userId || '';
 
       const params = new URLSearchParams({
         term: term,
         ...(loginToken && { loginToken }),
-        ...(authCookie && { authCookie })
+        ...(authCookie && { authCookie }),
+        ...(userId && { userId })
       });
 
       const response = await fetch(`/api/ao-autocomplete?${params}`);
-      const results = await response.json();
+      const data = await response.json();
 
+      // Håndter auto-relogin: oppdater auth cookie hvis den ble fornyet
+      if (data.refreshed_auth_cookie) {
+        const tokens = JSON.parse(localStorage.getItem('ao_tokens') || '{}');
+        tokens.authCookie = data.refreshed_auth_cookie;
+        localStorage.setItem('ao_tokens', JSON.stringify(tokens));
+        console.log('[AUTOCOMPLETE] Auth cookie fornyet automatisk');
+      }
+
+      const results = data.results || [];
       currentResults = results;
       renderResults(results);
     } catch (error) {

@@ -19,7 +19,7 @@ import httpx
 from src.ao_import_httpx import fetch_csrf_tokens
 
 
-def fetch_ao_autocomplete(term: str, login_token: str = None, auth_cookie: str = None) -> list:
+def fetch_ao_autocomplete(term: str, login_token: str = None, auth_cookie: str = None, user_id: str = None) -> dict:
     """
     Hent autocomplete-forslag for lokaliteter fra AO.
 
@@ -27,12 +27,31 @@ def fetch_ao_autocomplete(term: str, login_token: str = None, auth_cookie: str =
         term: Søketekst (minimum 2-3 tegn)
         login_token: Optional logintoken cookie (for å inkludere private lokaliteter)
         auth_cookie: Optional .ASPXAUTHNO cookie (for å inkludere private lokaliteter)
+        user_id: Optional bruker-ID (for auto-relogin)
 
     Returns:
-        Liste med autocomplete-resultater inkl. fargekoder
+        Dict med 'results' (liste) og 'refreshed_auth_cookie' (str eller None)
     """
     if not term or len(term) < 2:
-        return []
+        return {'results': [], 'refreshed_auth_cookie': None}
+
+    refreshed_auth_cookie = None
+
+    # STEG 1: Prøv sliding expiration FØRST (raskere, sender ikke credentials)
+    if user_id and auth_cookie and login_token:
+        refreshed = refresh_ao_cookie_if_needed(auth_cookie, user_id, login_token)
+        if refreshed:
+            auth_cookie = refreshed
+            refreshed_auth_cookie = refreshed
+            print(f'[AO-AUTOCOMPLETE] Sliding expiration vellykket')
+
+    # STEG 2: Kun hvis sliding feilet - prøv auto-relogin (sender brukernavn/passord)
+    if not refreshed_auth_cookie and user_id and auth_cookie:
+        new_cookie = auto_relogin_if_needed(user_id, auth_cookie)
+        if new_cookie:
+            auth_cookie = new_cookie
+            refreshed_auth_cookie = new_cookie
+            print(f'[AO-AUTOCOMPLETE] Auto-relogin vellykket (fallback)')
 
     base_url = os.getenv('AO_URL', 'https://www.artsobservasjoner.no')
     params = {
@@ -66,12 +85,13 @@ def fetch_ao_autocomplete(term: str, login_token: str = None, auth_cookie: str =
             content_type = response.headers.get('content-type', '')
             if 'application/json' not in content_type:
                 print(f'[AO-AUTOCOMPLETE] Ikke-JSON respons. Første 500 tegn: {response.text[:500]}')
-                return []
+                return {'results': [], 'refreshed_auth_cookie': refreshed_auth_cookie}
 
-            return response.json()
+            results = response.json()
+            return {'results': results, 'refreshed_auth_cookie': refreshed_auth_cookie}
     except Exception as e:
         print(f'[AO-AUTOCOMPLETE] Feil ved henting: {e}')
-        return []
+        return {'results': [], 'refreshed_auth_cookie': refreshed_auth_cookie}
 
 
 
@@ -84,7 +104,7 @@ _credentials_cache = {}  # user_id -> (username, password)
 
 # Sliding expiration cache for AO auth cookie (bruker-id -> (cookie, last_refresh_ts))
 _ao_cookie_refresh_cache = {}
-_AO_COOKIE_REFRESH_INTERVAL = 600  # 10 minutter
+_AO_COOKIE_REFRESH_INTERVAL = 180  # 3 minutter (aggressiv refresh for å unngå utløp)
 
 def refresh_ao_cookie_if_needed(auth_cookie: str, user_id: str, logintoken: str = None) -> str:
     """
@@ -471,10 +491,19 @@ def handle_ao_sites_search(lat, lon, size_m=600.0, ao_mobile_base_url='https://m
         
     # Variabel for å holde styr på refreshed tokens
     refreshed_auth_cookie = None
-    # Sliding expiration: prøv å holde auth_cookie i live hvis mulig
     ao_user_id = user_id or (login_token.split(':')[0] if login_token and ':' in login_token else None)
     ao_auth = auth_cookie or os.getenv('AO_AUTH_COOKIE')
+
+    # STEG 1: Prøv auto-relogin hvis token er utløpt
     if ao_auth and ao_user_id:
+        new_cookie = auto_relogin_if_needed(ao_user_id, ao_auth)
+        if new_cookie:
+            ao_auth = new_cookie
+            refreshed_auth_cookie = new_cookie
+            print(f'[AO-SITES] Auto-relogin vellykket, bruker ny auth_cookie')
+
+    # STEG 2: Sliding expiration - prøv å holde auth_cookie i live hvis mulig
+    if ao_auth and ao_user_id and not refreshed_auth_cookie:
         refreshed = refresh_ao_cookie_if_needed(ao_auth, ao_user_id, login_token)
         if refreshed:
             ao_auth = refreshed
