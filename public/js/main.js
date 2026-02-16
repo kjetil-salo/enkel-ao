@@ -4,10 +4,10 @@
  */
 
 // Eksisterende moduler
-import { logPageView, loadActivities } from './api.js';
+import { logPageView, loadActivities, fetchAoSites } from './api.js';
 import { loadObservations, saveObservations, loadAoSearchRadius, saveAoSearchRadius } from './storage.js';
 import { setStatus, setLocationStatus } from './ui.js';
-import { setAoSiteSuggestions, initLocation, openMap, openMapPage } from './location.js';
+import { setAoSiteSuggestions, initLocation, openMap, openMapPage, updateCreateSiteBtnVisibility, initCreateSite } from './location.js';
 import { renderObservations } from './observations.js';
 
 // Nye moduler
@@ -143,6 +143,7 @@ function handlePositionUpdate(position, sites) {
   );
   updateSectionStates(appState, dom);
   updateMapBtnVisibility();
+  updateCreateSiteBtnVisibility(appState.currentPosition);
 }
 
 // ============================================================
@@ -346,6 +347,20 @@ async function init() {
     { locBtn: dom.locBtn, locMapBtn: dom.locMapBtn, locDot: dom.locDot, locText: dom.locText },
     handlePositionUpdate,
     appState.currentAoSizeMeters
+  );
+
+  // Initialiser opprett-lokasjon-funksjonalitet
+  initCreateSite(
+    () => appState.currentPosition,
+    () => appState.currentPlaceName,
+    () => {
+      // Re-hent AO-sites etter opprettelse
+      if (appState.currentPosition) {
+        fetchAoSites(appState.currentPosition.lat, appState.currentPosition.lon, appState.currentAoSizeMeters)
+          .then(sites => handlePositionUpdate(appState.currentPosition, sites))
+          .catch(() => {});
+      }
+    }
   );
 
   doRenderObservations();

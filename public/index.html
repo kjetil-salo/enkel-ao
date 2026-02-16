@@ -86,6 +86,7 @@
                 <span id="unit-m" style="font-size:0.85em;color:var(--muted);cursor:default;user-select:none;">m</span>
             </div>
             <button class="icon-btn" id="loc-map-btn" title="Åpne kart" style="font-size:1.5em;padding:6px 10px;border:2px solid var(--accent);border-radius:8px;background:var(--accent-soft);color:var(--text);height:38px;min-width:46px;transition:all 0.2s;display:none;box-shadow:0 2px 8px rgba(59,130,246,0.10);">🗺️</button>
+            <button class="icon-btn" id="create-site-btn" title="Opprett ny AO-lokasjon" style="font-size:1.3em;padding:6px 10px;border:2px solid var(--accent);border-radius:8px;background:var(--accent-soft);color:var(--text);height:38px;min-width:46px;transition:all 0.2s;display:none;box-shadow:0 2px 8px rgba(59,130,246,0.10);">➕</button>
           </div>
           <div class="row" style="margin-top:10px;">
             <!-- AO-lokasjoner custom dropdown (kun div) -->
@@ -305,6 +306,27 @@
         if (longPressTimer) clearTimeout(longPressTimer);
       });
     </script>
+
+    <!-- Modal: Opprett ny AO-lokasjon -->
+    <div id="create-site-modal" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,0.5);align-items:center;justify-content:center;">
+      <div style="background:var(--card-bg);border-radius:12px;padding:20px;max-width:340px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,0.3);">
+        <h3 style="margin:0 0 16px 0;font-size:1.1em;">Opprett ny AO-lokasjon</h3>
+        <label for="create-site-name" style="font-size:0.85em;color:var(--muted);">Lokalitetsnavn</label>
+        <input type="text" id="create-site-name" style="width:100%;padding:8px;margin:4px 0 12px 0;border:1px solid var(--border);border-radius:6px;font-size:16px;background:var(--card-bg);color:var(--text);box-sizing:border-box;" />
+        <label for="create-site-accuracy" style="font-size:0.85em;color:var(--muted);">Nøyaktighet</label>
+        <select id="create-site-accuracy" style="width:100%;padding:8px;margin:4px 0 16px 0;border:1px solid var(--border);border-radius:6px;font-size:16px;background:var(--card-bg);color:var(--text);">
+          <option value="25">25 m</option>
+          <option value="50" selected>50 m</option>
+          <option value="100">100 m</option>
+          <option value="500">500 m</option>
+        </select>
+        <div id="create-site-status" style="display:none;padding:8px;margin-bottom:12px;border-radius:6px;font-size:0.85em;"></div>
+        <div style="display:flex;gap:8px;justify-content:flex-end;">
+          <button id="create-site-cancel" style="padding:8px 16px;border:1px solid var(--border);border-radius:6px;background:transparent;color:var(--text);cursor:pointer;font-size:0.9em;">Avbryt</button>
+          <button id="create-site-submit" style="padding:8px 16px;border:none;border-radius:6px;background:var(--accent);color:white;cursor:pointer;font-size:0.9em;font-weight:500;">Opprett</button>
+        </div>
+      </div>
+    </div>
   </body>
 </html>
 

@@ -65,6 +65,10 @@ class Handler(SimpleHTTPRequestHandler):
             self._handle_ao_refresh_post()
             return
 
+        if parsed.path == '/api/ao-create-site':
+            self._handle_ao_create_site_post()
+            return
+
         # For alt annet, returner 404
         self.send_response(404)
         self.end_headers()
@@ -254,6 +258,53 @@ class Handler(SimpleHTTPRequestHandler):
         except Exception as e:
             print(f'[AO-REFRESH] Feil: {e}', file=sys.stderr)
             self._send_json({'error': str(e)}, status=500)
+
+    def _handle_ao_create_site_post(self):
+        """Håndter opprettelse av ny AO-lokasjon."""
+        import sys
+        from src.ao_create_site import create_ao_site
+
+        try:
+            content_length = int(self.headers.get('Content-Length', 0))
+            body = self.rfile.read(content_length).decode('utf-8')
+            data = json.loads(body)
+
+            name = data.get('name', '').strip()
+            lat = data.get('lat')
+            lon = data.get('lon')
+            accuracy = data.get('accuracy', 50)
+            login_token = data.get('loginToken', '').strip()
+            auth_cookie = data.get('authCookie', '').strip()
+
+            if not name:
+                self._send_json({'error': 'Navn er påkrevd'}, status=400)
+                return
+
+            if lat is None or lon is None:
+                self._send_json({'error': 'Koordinater er påkrevd'}, status=400)
+                return
+
+            if not login_token or not auth_cookie:
+                self._send_json({'error': 'Mangler loginToken eller authCookie'}, status=401)
+                return
+
+            lat = float(lat)
+            lon = float(lon)
+            accuracy = int(accuracy)
+
+            print(f'[AO-CREATE-SITE] Oppretter "{name}" ved {lat}, {lon} (±{accuracy}m)', file=sys.stderr)
+
+            result = create_ao_site(name, lat, lon, accuracy, login_token, auth_cookie)
+
+            print(f'[AO-CREATE-SITE] Resultat: {result}', file=sys.stderr)
+            self._send_json(result)
+
+        except (ValueError, TypeError) as e:
+            print(f'[AO-CREATE-SITE] Valideringsfeil: {e}', file=sys.stderr)
+            self._send_json({'error': str(e)}, status=400)
+        except Exception as e:
+            print(f'[AO-CREATE-SITE] Uventet feil: {e}', file=sys.stderr)
+            self._send_json({'error': f'Server-feil: {str(e)}'}, status=500)
 
     def do_GET(self):
         """Håndter GET-forespørsler."""

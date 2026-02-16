@@ -3,7 +3,7 @@
  */
 
 
-import { fetchAoSites } from './api.js';
+import { fetchAoSites, createAoSite } from './api.js';
 import { setLocationStatus, haversine } from './ui.js';
 
 
@@ -408,6 +408,112 @@ export function openMapPage(userPosition, sites) {
  * @param {Object} toPos - Til-posisjon {lat, lon}
  * @param {string} locationName - Navn på destinasjonen
  */
+/**
+ * Sjekk om bruker er innlogget på AO
+ * @returns {boolean}
+ */
+export function isAoLoggedIn() {
+  try {
+    const tokens = JSON.parse(localStorage.getItem('ao_tokens') || '{}');
+    return !!(tokens.loginToken && tokens.authCookie);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Oppdater synlighet av opprett-lokasjon-knappen
+ * @param {Object} currentPosition - Nåværende posisjon {lat, lon}
+ */
+export function updateCreateSiteBtnVisibility(currentPosition) {
+  const btn = document.getElementById('create-site-btn');
+  if (!btn) return;
+
+  const hasPosition = currentPosition && typeof currentPosition.lat === 'number';
+  const loggedIn = isAoLoggedIn();
+
+  btn.style.display = (hasPosition && loggedIn) ? '' : 'none';
+}
+
+/**
+ * Initialiser opprett-lokasjon-funksjonalitet
+ * @param {Function} getPosition - Funksjon som returnerer nåværende posisjon
+ * @param {Function} getPlaceName - Funksjon som returnerer nåværende stedsnavn
+ * @param {Function} onSiteCreated - Callback etter vellykket opprettelse
+ */
+export function initCreateSite(getPosition, getPlaceName, onSiteCreated) {
+  const btn = document.getElementById('create-site-btn');
+  const modal = document.getElementById('create-site-modal');
+  const nameInput = document.getElementById('create-site-name');
+  const accuracySelect = document.getElementById('create-site-accuracy');
+  const submitBtn = document.getElementById('create-site-submit');
+  const cancelBtn = document.getElementById('create-site-cancel');
+  const statusEl = document.getElementById('create-site-status');
+
+  if (!btn || !modal) return;
+
+  function openModal() {
+    nameInput.value = getPlaceName() || '';
+    statusEl.style.display = 'none';
+    submitBtn.disabled = false;
+    modal.style.display = 'flex';
+  }
+
+  function closeModal() {
+    modal.style.display = 'none';
+  }
+
+  function showStatus(msg, isError) {
+    statusEl.textContent = msg;
+    statusEl.style.display = 'block';
+    statusEl.style.background = isError ? 'rgba(239,68,68,0.15)' : 'rgba(34,197,94,0.15)';
+    statusEl.style.color = isError ? '#ef4444' : '#22c55e';
+  }
+
+  btn.addEventListener('click', openModal);
+  cancelBtn.addEventListener('click', closeModal);
+
+  // Lukk ved klikk på bakgrunn
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) closeModal();
+  });
+
+  submitBtn.addEventListener('click', async () => {
+    const name = nameInput.value.trim();
+    if (!name) {
+      showStatus('Skriv inn et lokalitetsnavn', true);
+      return;
+    }
+
+    const pos = getPosition();
+    if (!pos || !pos.lat || !pos.lon) {
+      showStatus('Ingen GPS-posisjon tilgjengelig', true);
+      return;
+    }
+
+    submitBtn.disabled = true;
+    showStatus('Oppretter lokasjon...', false);
+
+    try {
+      const result = await createAoSite(name, pos.lat, pos.lon, parseInt(accuracySelect.value));
+
+      if (result.success) {
+        showStatus(result.message || 'Lokasjon opprettet!', false);
+        setTimeout(() => {
+          closeModal();
+          if (onSiteCreated) onSiteCreated();
+        }, 1500);
+      } else {
+        showStatus(result.message || result.error || 'Ukjent feil', true);
+        submitBtn.disabled = false;
+      }
+    } catch (e) {
+      showStatus('Nettverksfeil: ' + e.message, true);
+      submitBtn.disabled = false;
+    }
+  });
+}
+
 export function openMapWithTwoPoints(fromPos, toPos, locationName = 'Lokalitet') {
   if (!fromPos || !toPos) {
     console.warn('openMapWithTwoPoints: Mangler posisjon(er)');

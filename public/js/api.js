@@ -213,6 +213,40 @@ export async function fetchAoSites(lat, lon, sizeMeters = 1000, isRetry = false)
 }
 
 /**
+ * Opprett ny AO-lokasjon
+ * @param {string} name - Navn på lokasjon
+ * @param {number} lat - Breddegrad
+ * @param {number} lon - Lengdegrad
+ * @param {number} accuracy - Nøyaktighet i meter
+ * @returns {Promise<Object>} - {success, siteId, message}
+ */
+export async function createAoSite(name, lat, lon, accuracy) {
+  const savedTokens = JSON.parse(localStorage.getItem('ao_tokens') || '{}');
+  const loginToken = savedTokens.loginToken;
+  const authCookie = savedTokens.authCookie;
+
+  if (!loginToken || !authCookie) {
+    return { success: false, message: 'Ikke innlogget på AO' };
+  }
+
+  const resp = await fetch('/api/ao-create-site', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, lat, lon, accuracy, loginToken, authCookie }),
+  });
+
+  const data = await resp.json();
+
+  // Oppdater refreshed auth cookie
+  if (data.refreshedAuthCookie) {
+    savedTokens.authCookie = data.refreshedAuthCookie;
+    localStorage.setItem('ao_tokens', JSON.stringify(savedTokens));
+  }
+
+  return data;
+}
+
+/**
  * Logg sidevisning til server
  */
 export function logPageView() {
