@@ -167,6 +167,11 @@ export async function fetchAoSites(lat, lon, sizeMeters = 1000, isRetry = false)
       savedTokens.authCookie = data.refreshedAuthCookie;
       localStorage.setItem('ao_tokens', JSON.stringify(savedTokens));
       console.log('[AO] Oppdaterte auth cookie fra sliding expiration');
+
+      // Dispatch custom event for å notifisere ao-direct.html
+      window.dispatchEvent(new CustomEvent('ao_tokens_updated', {
+        detail: { source: 'ao-sites', tokens: savedTokens }
+      }));
     } catch (e) {
       console.warn('[AO] Kunne ikke lagre refreshed auth cookie:', e);
     }

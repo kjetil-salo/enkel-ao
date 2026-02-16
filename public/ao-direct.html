@@ -746,11 +746,40 @@
 
 
       // Load saved tokens into manual fields
-      const savedTokens = JSON.parse(localStorage.getItem('ao_tokens') || '{}');
-      if (savedTokens.loginToken) loginTokenInput.value = savedTokens.loginToken;
-      if (savedTokens.authCookie) authCookieInput.value = savedTokens.authCookie;
-      if (savedTokens.userId) aoUserIdInput.value = savedTokens.userId;
-      if (savedTokens.mapUserId) aoMapUserIdInput.value = savedTokens.mapUserId;
+      function loadTokensIntoFields() {
+        const savedTokens = JSON.parse(localStorage.getItem('ao_tokens') || '{}');
+        if (savedTokens.loginToken) loginTokenInput.value = savedTokens.loginToken;
+        if (savedTokens.authCookie) authCookieInput.value = savedTokens.authCookie;
+        if (savedTokens.userId) aoUserIdInput.value = savedTokens.userId;
+        if (savedTokens.mapUserId) aoMapUserIdInput.value = savedTokens.mapUserId;
+      }
+      loadTokensIntoFields();
+
+      // Auto-oppdater token-felt når localStorage endres
+      function handleTokenUpdate(source) {
+        console.log(`[AO-DIRECT] Token oppdatert fra ${source}, oppdaterer felt...`);
+        loadTokensIntoFields();
+
+        // Vis notifikasjon til bruker
+        if (tokenStatus) {
+          tokenStatus.style.display = 'block';
+          tokenStatus.className = 'token-status valid';
+          tokenStatus.textContent = '✅ Token automatisk oppdatert!';
+          setTimeout(() => { tokenStatus.style.display = 'none'; }, 3000);
+        }
+      }
+
+      // Lytt på endringer fra andre tabs/windows
+      window.addEventListener('storage', (e) => {
+        if (e.key === 'ao_tokens' && e.newValue) {
+          handleTokenUpdate('annen tab');
+        }
+      });
+
+      // Lytt på endringer fra samme side (autocomplete, ao-sites, etc.)
+      window.addEventListener('ao_tokens_updated', (e) => {
+        handleTokenUpdate(e.detail?.source || 'ukjent');
+      });
 
       // Load saved credentials
       const savedUsername = localStorage.getItem('ao_username');

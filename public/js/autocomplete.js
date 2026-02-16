@@ -69,6 +69,11 @@ export function initAutocomplete(placeInput, onSelect) {
         tokens.authCookie = data.refreshed_auth_cookie;
         localStorage.setItem('ao_tokens', JSON.stringify(tokens));
         console.log('[AUTOCOMPLETE] Auth cookie fornyet automatisk');
+
+        // Dispatch custom event for å notifisere ao-direct.html (samme tab)
+        window.dispatchEvent(new CustomEvent('ao_tokens_updated', {
+          detail: { source: 'autocomplete', tokens }
+        }));
       }
 
       const results = data.results || [];

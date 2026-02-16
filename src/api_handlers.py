@@ -45,9 +45,9 @@ def fetch_ao_autocomplete(term: str, login_token: str = None, auth_cookie: str =
             refreshed_auth_cookie = refreshed
             print(f'[AO-AUTOCOMPLETE] Sliding expiration vellykket')
 
-    # STEG 2: Kun hvis sliding feilet - prøv auto-relogin (sender brukernavn/passord)
+    # STEG 2: Kun hvis sliding feilet - prøv auto-relogin (logintoken først, credentials som fallback)
     if not refreshed_auth_cookie and user_id and auth_cookie:
-        new_cookie = auto_relogin_if_needed(user_id, auth_cookie)
+        new_cookie = auto_relogin_if_needed(user_id, auth_cookie, login_token)
         if new_cookie:
             auth_cookie = new_cookie
             refreshed_auth_cookie = new_cookie
@@ -321,22 +321,81 @@ def login_to_ao(username: str, password: str) -> dict:
         }
 
 
-def auto_relogin_if_needed(user_id: str, auth_cookie: str) -> str:
+def refresh_with_logintoken(login_token: str, user_id: str) -> str:
     """
-    Sjekker om auth_cookie er utløpt og logger automatisk inn på nytt.
+    Fornyer .ASPXAUTHNO ved å bruke logintoken via MyPages.
+    AO redirecter automatisk til /LogOn hvis session er utløpt.
+
+    Pattern:
+      GET /MyPages (med logintoken) → follow_redirects=True
+        ├─ 200: session OK, ingen refresh nødvendig
+        └─ 302→/LogOn: logintoken sendes videre → ny .ASPXAUTHNO
+
+    Dette er bedre enn auto-relogin fordi det IKKE sender brukernavn/passord.
+
+    Args:
+        login_token: LoginToken cookie (format: "userId:hash")
+        user_id: Bruker-ID
+
+    Returns:
+        Ny .ASPXAUTHNO cookie hvis vellykket, ellers None
+    """
+    if not login_token:
+        print(f'[LOGINTOKEN-REFRESH] Ingen logintoken tilgjengelig', flush=True)
+        return None
+
+    print(f'[LOGINTOKEN-REFRESH] Prøver å fornye session med logintoken...', flush=True)
+
+    try:
+        with httpx.Client() as client:
+            # GET /MyPages med logintoken
+            # Hvis session utløpt → AO redirecter til /LogOn → logintoken sendes videre → ny session
+            response = client.get(
+                'https://www.artsobservasjoner.no/User/MyPages',
+                headers={'User-Agent': 'Mozilla/5.0 (compatible; Fugleobservasjoner/1.0)'},
+                cookies={
+                    'logintoken': login_token,
+                    'logintoken_ssl': '1',
+                    'AcceptCookies': '1'
+                },
+                timeout=10,
+                follow_redirects=True  # Følg redirect til /LogOn automatisk
+            )
+
+            # Sjekk om vi fikk ny .ASPXAUTHNO (enten fra MyPages eller LogOn)
+            new_auth = response.cookies.get('.ASPXAUTHNO')
+            if new_auth:
+                # Sjekk om vi ble redirected til LogOn (indikerer session ble fornyet)
+                if '/LogOn' in str(response.url):
+                    print(f'[LOGINTOKEN-REFRESH] ✅ Session fornyet via /LogOn redirect (UTEN credentials)', flush=True)
+                else:
+                    print(f'[LOGINTOKEN-REFRESH] ✅ Session fortsatt gyldig, fikk bekreftet .ASPXAUTHNO', flush=True)
+                return new_auth
+            else:
+                print(f'[LOGINTOKEN-REFRESH] ❌ Ingen .ASPXAUTHNO mottatt (logintoken ugyldig?)', flush=True)
+                return None
+
+    except Exception as e:
+        print(f'[LOGINTOKEN-REFRESH] Feil: {e}', flush=True)
+        return None
+
+
+def auto_relogin_if_needed(user_id: str, auth_cookie: str, login_token: str = None) -> str:
+    """
+    Sjekker om auth_cookie er utløpt og fornyer session.
+
+    Prioritet:
+    1. Prøv logintoken-refresh FØRST (sender ikke credentials)
+    2. Fallback til full relogin med brukernavn/passord
 
     Args:
         user_id: Bruker-ID
         auth_cookie: Nåværende .ASPXAUTHNO cookie
+        login_token: Optional logintoken for refresh
 
     Returns:
         Ny auth_cookie hvis relogin var nødvendig, ellers None
     """
-    # Sjekk om vi har lagrede credentials
-    if user_id not in _credentials_cache:
-        print(f'[AUTO-RELOGIN] Ingen lagrede credentials for user_id={user_id}', flush=True)
-        return None
-
     # Test om nåværende cookie fungerer
     try:
         with httpx.Client() as client:
@@ -353,13 +412,24 @@ def auto_relogin_if_needed(user_id: str, auth_cookie: str) -> str:
     except Exception:
         pass  # Cookie er sannsynligvis ugyldig, fortsett med relogin
 
-    print(f'[AUTO-RELOGIN] Cookie utløpt for user_id={user_id}, logger inn på nytt...', flush=True)
+    print(f'[AUTO-RELOGIN] Cookie utløpt for user_id={user_id}', flush=True)
 
-    # Hent credentials og logg inn på nytt
+    # STEG 1: Prøv logintoken-refresh (INGEN credentials)
+    if login_token:
+        new_cookie = refresh_with_logintoken(login_token, user_id)
+        if new_cookie:
+            return new_cookie
+        print(f'[AUTO-RELOGIN] Logintoken-refresh feilet, prøver full relogin...', flush=True)
+
+    # STEG 2: Fallback til full relogin med credentials
+    if user_id not in _credentials_cache:
+        print(f'[AUTO-RELOGIN] Ingen lagrede credentials for user_id={user_id}', flush=True)
+        return None
+
     username, password = _credentials_cache[user_id]
     try:
         result = login_to_ao(username, password)
-        print(f'[AUTO-RELOGIN] Vellykket! Ny auth_cookie hentet.', flush=True)
+        print(f'[AUTO-RELOGIN] Vellykket (full relogin med credentials)', flush=True)
         return result['authCookie']
     except Exception as e:
         print(f'[AUTO-RELOGIN] Feilet: {e}', flush=True)
@@ -496,7 +566,7 @@ def handle_ao_sites_search(lat, lon, size_m=600.0, ao_mobile_base_url='https://m
 
     # STEG 1: Prøv auto-relogin hvis token er utløpt
     if ao_auth and ao_user_id:
-        new_cookie = auto_relogin_if_needed(ao_user_id, ao_auth)
+        new_cookie = auto_relogin_if_needed(ao_user_id, ao_auth, login_token)
         if new_cookie:
             ao_auth = new_cookie
             refreshed_auth_cookie = new_cookie
