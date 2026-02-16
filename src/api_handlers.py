@@ -345,6 +345,7 @@ def refresh_with_logintoken(login_token: str, user_id: str) -> str:
         return None
 
     print(f'[LOGINTOKEN-REFRESH] Prøver å fornye session med logintoken...', flush=True)
+    print(f'[LOGINTOKEN-REFRESH] LoginToken: {login_token[:20]}... (user_id={user_id})', flush=True)
 
     try:
         with httpx.Client() as client:
@@ -362,6 +363,15 @@ def refresh_with_logintoken(login_token: str, user_id: str) -> str:
                 follow_redirects=True  # Følg redirect til /LogOn automatisk
             )
 
+            # DEBUG: Logg response-detaljer
+            print(f'[LOGINTOKEN-REFRESH] Response status: {response.status_code}', flush=True)
+            print(f'[LOGINTOKEN-REFRESH] Final URL: {response.url}', flush=True)
+            print(f'[LOGINTOKEN-REFRESH] Cookies i response: {list(response.cookies.keys())}', flush=True)
+
+            # Lagre response body for debugging
+            body_preview = response.text[:500] if response.text else '(tom)'
+            print(f'[LOGINTOKEN-REFRESH] Body preview: {body_preview}', flush=True)
+
             # Sjekk om vi fikk ny .ASPXAUTHNO (enten fra MyPages eller LogOn)
             new_auth = response.cookies.get('.ASPXAUTHNO')
             if new_auth:
@@ -373,6 +383,16 @@ def refresh_with_logintoken(login_token: str, user_id: str) -> str:
                 return new_auth
             else:
                 print(f'[LOGINTOKEN-REFRESH] ❌ Ingen .ASPXAUTHNO mottatt (logintoken ugyldig?)', flush=True)
+                # Lagre full response til fil for videre analyse
+                try:
+                    import os
+                    debug_dir = '/tmp'
+                    debug_file = os.path.join(debug_dir, 'logintoken_refresh_response.html')
+                    with open(debug_file, 'w', encoding='utf-8') as f:
+                        f.write(response.text)
+                    print(f'[LOGINTOKEN-REFRESH] Full response lagret til {debug_file}', flush=True)
+                except Exception as e:
+                    print(f'[LOGINTOKEN-REFRESH] Kunne ikke lagre debug-fil: {e}', flush=True)
                 return None
 
     except Exception as e:
@@ -384,33 +404,45 @@ def auto_relogin_if_needed(user_id: str, auth_cookie: str, login_token: str = No
     """
     Sjekker om auth_cookie er utløpt og fornyer session.
 
-    Prioritet:
-    1. Prøv logintoken-refresh FØRST (sender ikke credentials)
-    2. Fallback til full relogin med brukernavn/passord
+    Strategi:
+    1. Test cookie med logintoken → AO fornyer automatisk hvis logintoken gyldig
+    2. Fallback til logintoken-refresh hvis test feiler
+    3. Siste utvei: full relogin med brukernavn/passord
 
     Args:
         user_id: Bruker-ID
         auth_cookie: Nåværende .ASPXAUTHNO cookie
-        login_token: Optional logintoken for refresh
+        login_token: Optional logintoken for auto-refresh
 
     Returns:
         Ny auth_cookie hvis relogin var nødvendig, ellers None
     """
-    # Test om nåværende cookie fungerer
+    # Test om nåværende cookie fungerer (med logintoken hvis tilgjengelig)
     try:
+        cookies = {'.ASPXAUTHNO': auth_cookie}
+        if login_token:
+            cookies['logintoken'] = login_token
+            cookies['logintoken_ssl'] = '1'
+
         with httpx.Client() as client:
             response = client.get(
                 'https://www.artsobservasjoner.no/User/MyPages',
                 headers={'User-Agent': 'Mozilla/5.0 (compatible; Fugleobservasjoner/1.0)'},
-                cookies={'.ASPXAUTHNO': auth_cookie},
+                cookies=cookies,
                 timeout=10,
-                follow_redirects=False
+                follow_redirects=True  # Følg redirects for å fange logintoken-refresh
             )
-            # Hvis vi får 200, er cookien fortsatt gyldig
+            # Hvis vi får 200 og ny cookie, har AO fornyet den automatisk
             if response.status_code == 200:
-                return None
-    except Exception:
-        pass  # Cookie er sannsynligvis ugyldig, fortsett med relogin
+                new_auth = response.cookies.get('.ASPXAUTHNO')
+                if new_auth and new_auth != auth_cookie:
+                    print(f'[AUTO-RELOGIN] ✅ Cookie fornyet automatisk via logintoken (user_id={user_id})', flush=True)
+                    return new_auth
+                elif response.status_code == 200:
+                    # Cookie fortsatt gyldig, ingen refresh nødvendig
+                    return None
+    except Exception as e:
+        print(f'[AUTO-RELOGIN] Feil ved cookie-test: {e}', flush=True)
 
     print(f'[AUTO-RELOGIN] Cookie utløpt for user_id={user_id}', flush=True)
 
@@ -547,9 +579,9 @@ def handle_reverse_geocoding(lat, lon, nominatim_base_url):
 
 def handle_ao_sites_search(lat, lon, size_m=600.0, ao_mobile_base_url='https://mobil.artsobservasjoner.no', user_id=None, login_token=None, auth_cookie=None):
     """Håndter søk etter AO-lokaliteter.
-    
+
     Returns:
-        tuple: (sites_list, refreshed_auth_cookie_or_None)
+        tuple: (sites_list, refreshed_auth_cookie_or_None, auth_failed_bool)
     """
     # Valider input
     try:
@@ -559,8 +591,9 @@ def handle_ao_sites_search(lat, lon, size_m=600.0, ao_mobile_base_url='https://m
     except ValueError:
         raise ValueError('Ugyldig lat/lon/size')
         
-    # Variabel for å holde styr på refreshed tokens
+    # Variabel for å holde styr på refreshed tokens og auth-status
     refreshed_auth_cookie = None
+    auth_failed = False  # True hvis GetSitesGeoJson feiler pga ugyldig auth
     ao_user_id = user_id or (login_token.split(':')[0] if login_token and ':' in login_token else None)
     ao_auth = auth_cookie or os.getenv('AO_AUTH_COOKIE')
 
@@ -706,7 +739,14 @@ def handle_ao_sites_search(lat, lon, size_m=600.0, ao_mobile_base_url='https://m
 
                 body = response.text
                 print(f'[DEBUG] GetSitesGeoJson body length: {len(body)}, first 500: {repr(body[:500])}', flush=True)
-                geojson_data = response.json() if body else None
+
+                # Sjekk om vi fikk HTML i stedet for JSON (auth-feil)
+                if body.strip().startswith('<!DOCTYPE') or body.strip().startswith('<html'):
+                    print(f'[DEBUG] GetSitesGeoJson: Fikk HTML i stedet for JSON - auth ugyldig, skipper private sites', flush=True)
+                    auth_failed = True  # Marker at auth feilet
+                    geojson_data = None
+                else:
+                    geojson_data = response.json() if body else None
             print(f'[DEBUG] GetSitesGeoJson parsed keys: {list(geojson_data.keys()) if isinstance(geojson_data, dict) else type(geojson_data)}', flush=True)
 
             # GetSitesGeoJson returnerer { points: { features: [...] }, polygons: {...} }
@@ -735,7 +775,8 @@ def handle_ao_sites_search(lat, lon, size_m=600.0, ao_mobile_base_url='https://m
             print(f'GetSitesGeoJson: fant {len(my_site_ids)} private site-IDs')
         except Exception as geojs_err:
             # Logging feil ved henting av brukerens egne lokasjoner - ikke kritisk
-            print(f'Feil i GetSitesGeoJson: {geojs_err}')
+            print(f'[DEBUG] GetSitesGeoJson feilet: {geojs_err}')
+            # Hvis auth er ugyldig, fortsett med kun offentlige sites
             pass
 
     # --- KALL 2: Hent offentlige lokasjoner (ByBoundingBox) ---
@@ -916,7 +957,7 @@ def handle_ao_sites_search(lat, lon, size_m=600.0, ao_mobile_base_url='https://m
         except Exception:
             pass
 
-        return sites, refreshed_auth_cookie
+        return sites, refreshed_auth_cookie, auth_failed
     except Exception as e:
         print('Feil ved henting av AO-lokaliteter:', repr(e))
         raise

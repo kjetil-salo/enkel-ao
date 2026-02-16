@@ -177,13 +177,26 @@ export async function fetchAoSites(lat, lon, sizeMeters = 1000, isRetry = false)
     }
   }
 
-  // Sjekk om vi hadde tokens men ikke fikk noen private sites (kan indikere utløpt token)
-  // Kun prøv auto-relogin hvis vi ikke allerede har prøvd
-  if (!isRetry && hadTokens && data.sites) {
+  // Håndter authRequired fra backend (ugyldig/utløpt auth)
+  if (!isRetry && data.authRequired) {
+    console.log('[AO] Backend indikerer ugyldig auth, prøver auto-relogin...');
+    const reloginOk = await tryAutoRelogin();
+    if (reloginOk) {
+      // Prøv på nytt med nye tokens
+      console.log('[AO] Auto-relogin vellykket, prøver ao-sites på nytt...');
+      return fetchAoSites(lat, lon, sizeMeters, true);
+    } else {
+      console.log('[AO] Auto-relogin feilet - bruker må logge inn manuelt');
+    }
+  }
+
+  // Fallback: Sjekk om vi hadde tokens men ikke fikk noen private sites (kan indikere utløpt token)
+  // Kun prøv auto-relogin hvis vi ikke allerede har prøvd OG backend ikke allerede indikerte auth-feil
+  if (!isRetry && !data.authRequired && hadTokens && data.sites) {
     const hasPrivateSites = data.sites.some(s => s.isMine);
     if (!hasPrivateSites && !data.refreshedAuthCookie) {
       // Mulig utløpt token - prøv auto-relogin
-      console.log('[AO] Ingen private sites funnet, prøver auto-relogin...');
+      console.log('[AO] Ingen private sites funnet (fallback), prøver auto-relogin...');
       const reloginOk = await tryAutoRelogin();
       if (reloginOk) {
         // Prøv på nytt med nye tokens

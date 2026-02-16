@@ -177,7 +177,7 @@ def test_ao_sites_default_size():
     src.api_handlers.urlopen = mock_urlopen
 
     try:
-        result = handle_ao_sites_search(59.9, 10.7)
+        sites, refreshed_auth, auth_failed = handle_ao_sites_search(59.9, 10.7)
         assert len(called_urls) == 1
         # Default size er 600 meter
         assert 'minX=' in called_urls[0]

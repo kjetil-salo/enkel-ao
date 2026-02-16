@@ -418,12 +418,15 @@ class Handler(SimpleHTTPRequestHandler):
             'AO_MOBILE_URL', 'https://mobil.artsobservasjoner.no'
         )
         try:
-            sites, refreshed_auth_cookie = handle_ao_sites_search(lat_raw, lon_raw, size_raw, ao_mobile_base, user_id, login_token, auth_cookie)
+            sites, refreshed_auth_cookie, auth_failed = handle_ao_sites_search(lat_raw, lon_raw, size_raw, ao_mobile_base, user_id, login_token, auth_cookie)
             response_data = {'sites': sites}
-            print(f'[DEBUG] ao-sites refresh resultat: refreshed_auth_cookie={refreshed_auth_cookie is not None}', flush=True)
+            print(f'[DEBUG] ao-sites refresh resultat: refreshed_auth_cookie={refreshed_auth_cookie is not None}, auth_failed={auth_failed}', flush=True)
             if refreshed_auth_cookie:
                 response_data['refreshedAuthCookie'] = refreshed_auth_cookie
                 print(f'[DEBUG] Sender refreshed auth cookie tilbake til frontend (første 20 tegn): {refreshed_auth_cookie[:20]}...', flush=True)
+            if auth_failed:
+                response_data['authRequired'] = True
+                print(f'[DEBUG] Auth feilet - sender authRequired=true til frontend', flush=True)
             self._send_json(response_data)
         except ValueError as e:
             self._send_json({'error': str(e)}, status=400)

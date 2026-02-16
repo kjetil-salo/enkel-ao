@@ -38,6 +38,23 @@ export function initAutocomplete(placeInput, onSelect) {
   placeInput.parentElement.appendChild(dropdown);
 
   /**
+   * Vis loading-indikator i dropdown
+   */
+  function showLoading() {
+    dropdown.innerHTML = `
+      <div style="
+        padding: 16px;
+        text-align: center;
+        color: var(--muted);
+        font-size: 0.9em;
+      ">
+        🔍 Søker etter lokaliteter...
+      </div>
+    `;
+    dropdown.style.display = 'block';
+  }
+
+  /**
    * Hent autocomplete-resultater fra backend
    */
   async function fetchAutocomplete(term) {
@@ -45,6 +62,9 @@ export function initAutocomplete(placeInput, onSelect) {
       dropdown.style.display = 'none';
       return;
     }
+
+    // Vis loading-indikator
+    showLoading();
 
     try {
       // Sjekk om bruker er innlogget (for private lokaliteter)
