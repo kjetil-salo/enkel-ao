@@ -119,7 +119,7 @@ def refresh_ao_cookie_if_needed(auth_cookie: str, user_id: str, logintoken: str 
         print(f'[AO-COOKIE-REFRESH] Skipper refresh: sist oppdatert for {int(now - last_entry[1])} sekunder siden.', flush=True)
         return None
     # Treff AO-side for sliding expiration
-    probe_url = 'https://www.artsobservasjoner.no/Observations'
+    probe_url = 'https://www.artsobservasjoner.no/User/MyPages'
     print(f'[AO-COOKIE-REFRESH] Prober AO-side for sliding expiration: {probe_url}', flush=True)
     try:
         # Bygg cookies med både .ASPXAUTHNO og logintoken hvis tilgjengelig
