@@ -104,7 +104,7 @@ _credentials_cache = {}  # user_id -> (username, password)
 
 # Sliding expiration cache for AO auth cookie (bruker-id -> (cookie, last_refresh_ts))
 _ao_cookie_refresh_cache = {}
-_AO_COOKIE_REFRESH_INTERVAL = 180  # 3 minutter (aggressiv refresh for å unngå utløp)
+_AO_COOKIE_REFRESH_INTERVAL = 300  # 5 minutter (balanse mellom overhead og token-friskhet)
 
 def refresh_ao_cookie_if_needed(auth_cookie: str, user_id: str, logintoken: str = None) -> str:
     """
