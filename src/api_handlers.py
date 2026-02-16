@@ -19,6 +19,61 @@ import httpx
 from src.ao_import_httpx import fetch_csrf_tokens
 
 
+def fetch_ao_autocomplete(term: str, login_token: str = None, auth_cookie: str = None) -> list:
+    """
+    Hent autocomplete-forslag for lokaliteter fra AO.
+
+    Args:
+        term: Søketekst (minimum 2-3 tegn)
+        login_token: Optional logintoken cookie (for å inkludere private lokaliteter)
+        auth_cookie: Optional .ASPXAUTHNO cookie (for å inkludere private lokaliteter)
+
+    Returns:
+        Liste med autocomplete-resultater inkl. fargekoder
+    """
+    if not term or len(term) < 2:
+        return []
+
+    base_url = os.getenv('AO_URL', 'https://www.artsobservasjoner.no')
+    params = {
+        'speciesGroupId': '8',  # Fugler
+        'term': term,
+        'searchSitesAlsoByExternalId': 'False'
+    }
+
+    url = f'{base_url}/Map/FindSitesByNameForAutocomplete?{urlencode(params)}'
+
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (compatible; Fugleobservasjoner-Autocomplete/1.0)',
+        'Accept': '*/*',
+        'X-Requested-With': 'XMLHttpRequest',
+        'Referer': f'{base_url}/SubmitSighting/Report'
+    }
+
+    # Legg til cookies hvis tilgjengelig (for private lokaliteter)
+    if login_token and auth_cookie:
+        headers['Cookie'] = f'logintoken={login_token}; .ASPXAUTHNO={auth_cookie}; AcceptCookies=1'
+
+    try:
+        with httpx.Client(timeout=10.0) as client:
+            response = client.get(url, headers=headers, follow_redirects=True)
+            response.raise_for_status()
+
+            # Debug: Logg response
+            print(f'[AO-AUTOCOMPLETE] Status: {response.status_code}, Content-Type: {response.headers.get("content-type")}')
+
+            # Sjekk om responsen er JSON
+            content_type = response.headers.get('content-type', '')
+            if 'application/json' not in content_type:
+                print(f'[AO-AUTOCOMPLETE] Ikke-JSON respons. Første 500 tegn: {response.text[:500]}')
+                return []
+
+            return response.json()
+    except Exception as e:
+        print(f'[AO-AUTOCOMPLETE] Feil ved henting: {e}')
+        return []
+
+
 
 # Cache for auth cookies (logintoken -> (auth_cookie, timestamp))
 _auth_cache = {}

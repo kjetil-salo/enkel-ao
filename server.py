@@ -280,6 +280,8 @@ class Handler(SimpleHTTPRequestHandler):
                 self._handle_ao_sites_api(parsed)
             elif parsed.path == '/api/ao-areas':
                 self._handle_ao_areas_api(parsed)
+            elif parsed.path == '/api/ao-autocomplete':
+                self._handle_ao_autocomplete_api(parsed)
             else:
                 self._handle_static_files(parsed)
         except Exception as e:
@@ -456,6 +458,34 @@ class Handler(SimpleHTTPRequestHandler):
             self._send_json(data)
         except Exception as e:
             print(f'[AO-AREAS] Feil: {e}', file=sys.stderr)
+            self._send_json([])
+
+    def _handle_ao_autocomplete_api(self, parsed):
+        """Proxy for AO autocomplete-søk på lokaliteter."""
+        import sys
+        from src.api_handlers import fetch_ao_autocomplete
+
+        params = parse_qs(parsed.query)
+        term = params.get('term', [''])[0].strip()
+        login_token = params.get('loginToken', [''])[0].strip()
+        auth_cookie = params.get('authCookie', [''])[0].strip()
+
+        if not term or len(term) < 2:
+            self._send_json([])
+            return
+
+        print(f'[AO-AUTOCOMPLETE] Søk: term={term}, autentisert={bool(login_token and auth_cookie)}', file=sys.stderr)
+
+        try:
+            # Kall autocomplete med eller uten autentisering
+            results = fetch_ao_autocomplete(
+                term=term,
+                login_token=login_token if login_token else None,
+                auth_cookie=auth_cookie if auth_cookie else None
+            )
+            self._send_json(results)
+        except Exception as e:
+            print(f'[AO-AUTOCOMPLETE] Feil: {e}', file=sys.stderr)
             self._send_json([])
 
     def _handle_static_files(self, parsed):

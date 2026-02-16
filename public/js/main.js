@@ -15,6 +15,7 @@ import { updateSectionStates, pulseSearchFieldAndFocus } from './form-state.js';
 import { fetchResults, renderResults, chooseItem, updateSubtaxaCheckboxState } from './species-search.js';
 import { commitObservation, renderActivityPills } from './observation-commit.js';
 import { handleExport, handleCopy, handleCopyAndOpen, handleClear } from './export-operations.js';
+import { initAutocomplete } from './autocomplete.js';
 
 // ============================================================
 // Applikasjonstilstand
@@ -33,6 +34,9 @@ const appState = {
   currentAoSizeMeters: 1000,
   _callbacks: null, // settes i init()
 };
+
+// Autocomplete cleanup-funksjon (kun aktivt i etterregistreringsmodus)
+let autocompleteCleanup = null;
 
 // ============================================================
 // DOM-elementreferanser
@@ -391,6 +395,16 @@ function updateModeUI() {
     if (gpsControlsRow) gpsControlsRow.style.display = 'none';
     if (aoSitesDropdown) aoSitesDropdown.style.display = 'none';
 
+    // Aktiver autocomplete på stedsnavn-felt
+    if (dom.placeInput && !autocompleteCleanup) {
+      autocompleteCleanup = initAutocomplete(dom.placeInput, (name, id) => {
+        appState.currentPlaceName = name;
+        appState.currentPlaceId = id;
+        dom.placeInput.dataset.autofilled = 'true';
+        updateSectionStates(appState, dom);
+      });
+    }
+
     // Sett dagens dato som default
     const today = new Date();
     const yyyy = today.getFullYear();
@@ -404,6 +418,12 @@ function updateModeUI() {
     modePill.textContent = 'Felt';
     modePill.className = 'pill mode-pill field-mode';
     datetimeFields.style.display = 'none';
+
+    // Deaktiver autocomplete
+    if (autocompleteCleanup) {
+      autocompleteCleanup();
+      autocompleteCleanup = null;
+    }
 
     // Vis GPS-relaterte rader
     if (locStatusRow) locStatusRow.style.display = 'flex';

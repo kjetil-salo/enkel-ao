@@ -1,0 +1,241 @@
+/**
+ * Autocomplete-modul for stedsnavn i etterregistreringsmodus
+ */
+
+/**
+ * Initialiser autocomplete på stedsnavn-felt
+ * KUN aktivt i etterregistreringsmodus
+ * @param {HTMLInputElement} placeInput - Stedsnavn input-felt
+ * @param {Function} onSelect - Callback når bruker velger lokalitet (name, id)
+ */
+export function initAutocomplete(placeInput, onSelect) {
+  if (!placeInput) return;
+
+  let debounceTimer = null;
+  let currentResults = [];
+  let activeIndex = -1;
+
+  // Opprett dropdown for resultater
+  const dropdown = document.createElement('div');
+  dropdown.className = 'autocomplete-dropdown';
+  dropdown.style.cssText = `
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    max-height: 300px;
+    overflow-y: auto;
+    z-index: 1000;
+    display: none;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  `;
+
+  // Sett inn dropdown rett etter input-feltet
+  placeInput.parentElement.style.position = 'relative';
+  placeInput.parentElement.appendChild(dropdown);
+
+  /**
+   * Hent autocomplete-resultater fra backend
+   */
+  async function fetchAutocomplete(term) {
+    if (!term || term.length < 2) {
+      dropdown.style.display = 'none';
+      return;
+    }
+
+    try {
+      // Sjekk om bruker er innlogget (for private lokaliteter)
+      const tokens = JSON.parse(localStorage.getItem('ao_tokens') || '{}');
+      const loginToken = tokens.loginToken || '';
+      const authCookie = tokens.authCookie || '';
+
+      const params = new URLSearchParams({
+        term: term,
+        ...(loginToken && { loginToken }),
+        ...(authCookie && { authCookie })
+      });
+
+      const response = await fetch(`/api/ao-autocomplete?${params}`);
+      const results = await response.json();
+
+      currentResults = results;
+      renderResults(results);
+    } catch (error) {
+      console.error('Autocomplete-feil:', error);
+      dropdown.style.display = 'none';
+    }
+  }
+
+  /**
+   * Vis resultater i dropdown med fargekoding
+   */
+  function renderResults(results) {
+    dropdown.innerHTML = '';
+
+    if (!results || results.length === 0) {
+      dropdown.style.display = 'none';
+      return;
+    }
+
+    results.forEach((result, index) => {
+      const item = document.createElement('div');
+      item.className = 'autocomplete-item';
+      item.dataset.index = index;
+
+      // Fargekoding basert på ColorString
+      const isMine = result.ColorString === '#ffff00';
+      const bgColor = isMine ? 'rgba(255, 255, 0, 0.15)' : 'rgba(0, 102, 0, 0.1)';
+      const borderColor = isMine ? '#ffff00' : '#006600';
+
+      item.style.cssText = `
+        padding: 10px 12px;
+        cursor: pointer;
+        border-left: 3px solid ${borderColor};
+        background: ${bgColor};
+        transition: background 0.2s;
+      `;
+
+      // Hovedtekst (presentationvalue)
+      const mainText = document.createElement('div');
+      mainText.textContent = result.presentationvalue || result.value;
+      mainText.style.cssText = `
+        font-size: 0.95em;
+        color: var(--text);
+        margin-bottom: 2px;
+      `;
+
+      // Subtext (kommune) hvis forskjellig fra hovedtekst
+      if (result.subvalue && result.presentationvalue !== result.subvalue) {
+        const subText = document.createElement('div');
+        subText.textContent = result.subvalue;
+        subText.style.cssText = `
+          font-size: 0.75em;
+          color: var(--muted);
+        `;
+        item.appendChild(mainText);
+        item.appendChild(subText);
+      } else {
+        item.appendChild(mainText);
+      }
+
+      // Mine lokaliteter-merke
+      if (isMine) {
+        const badge = document.createElement('span');
+        badge.textContent = '★ Min';
+        badge.style.cssText = `
+          font-size: 0.7em;
+          color: #ff9900;
+          margin-left: 8px;
+          font-weight: bold;
+        `;
+        mainText.appendChild(badge);
+      }
+
+      // Hover-effekt
+      item.addEventListener('mouseenter', () => {
+        item.style.background = isMine ? 'rgba(255, 255, 0, 0.25)' : 'rgba(0, 102, 0, 0.2)';
+        activeIndex = index;
+        updateActiveItem();
+      });
+
+      item.addEventListener('mouseleave', () => {
+        item.style.background = bgColor;
+      });
+
+      // Klikk-handler
+      item.addEventListener('click', () => selectItem(index));
+
+      dropdown.appendChild(item);
+    });
+
+    dropdown.style.display = 'block';
+    activeIndex = -1;
+  }
+
+  /**
+   * Oppdater visuell indikator for aktiv item
+   */
+  function updateActiveItem() {
+    const items = dropdown.querySelectorAll('.autocomplete-item');
+    items.forEach((item, index) => {
+      if (index === activeIndex) {
+        item.style.outline = '2px solid var(--accent)';
+      } else {
+        item.style.outline = 'none';
+      }
+    });
+  }
+
+  /**
+   * Velg en lokalitet fra listen
+   */
+  function selectItem(index) {
+    if (index < 0 || index >= currentResults.length) return;
+
+    const selected = currentResults[index];
+    const name = selected.value;
+    const id = selected.id;
+
+    placeInput.value = name;
+    dropdown.style.display = 'none';
+
+    // Callback til parent-komponent
+    if (onSelect) {
+      onSelect(name, id);
+    }
+  }
+
+  /**
+   * Event listeners
+   */
+  placeInput.addEventListener('input', (e) => {
+    const value = e.target.value.trim();
+
+    // Debounce for å unngå for mange requests
+    if (debounceTimer) clearTimeout(debounceTimer);
+
+    debounceTimer = setTimeout(() => {
+      fetchAutocomplete(value);
+    }, 300);
+  });
+
+  placeInput.addEventListener('keydown', (e) => {
+    if (!currentResults.length) return;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      activeIndex = (activeIndex + 1) % currentResults.length;
+      updateActiveItem();
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      activeIndex = (activeIndex - 1 + currentResults.length) % currentResults.length;
+      updateActiveItem();
+    } else if (e.key === 'Enter') {
+      if (activeIndex >= 0) {
+        e.preventDefault();
+        selectItem(activeIndex);
+      }
+    } else if (e.key === 'Escape') {
+      dropdown.style.display = 'none';
+      activeIndex = -1;
+    }
+  });
+
+  // Lukk dropdown ved klikk utenfor
+  document.addEventListener('click', (e) => {
+    if (!placeInput.contains(e.target) && !dropdown.contains(e.target)) {
+      dropdown.style.display = 'none';
+      activeIndex = -1;
+    }
+  });
+
+  // Cleanup-funksjon for å deaktivere autocomplete
+  return () => {
+    if (dropdown && dropdown.parentElement) {
+      dropdown.parentElement.removeChild(dropdown);
+    }
+  };
+}
