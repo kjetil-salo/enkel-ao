@@ -218,6 +218,51 @@ Dropdown vises ikke hvis:
 - Maksimalt 20 resultater returneres av AO
 - Ingen paginering/scrolling for å hente flere
 
+## ao-direct.html Auto-oppdatering
+
+Når tokens fornyes via autocomplete eller ao-sites, oppdateres ao-direct.html automatisk:
+
+### Custom Events
+**Frontend dispatches event ved token-refresh:**
+```javascript
+window.dispatchEvent(new CustomEvent('ao_tokens_updated', {
+  detail: { source: 'autocomplete', tokens }
+}));
+```
+
+**ao-direct.html lytter og oppdaterer felt:**
+```javascript
+// Samme tab
+window.addEventListener('ao_tokens_updated', (e) => {
+  loadTokensIntoFields();  // Oppdater input-felt
+  // Vis notifikasjon: "✅ Token automatisk oppdatert!"
+});
+
+// Andre tabs/windows
+window.addEventListener('storage', (e) => {
+  if (e.key === 'ao_tokens') loadTokensIntoFields();
+});
+```
+
+**Resultat:**
+- Token-feltene i ao-direct.html oppdateres automatisk
+- Fungerer både i samme tab og andre tabs
+- Bruker ser alltid oppdaterte tokens
+
+## Test-resultater (2026-02-16)
+
+### Sliding Expiration
+- ✅ Fungerer perfekt - AO sender ny cookie etter ~1 time
+- ✅ 5 min interval gir god balanse (5% overhead ved aktiv bruk)
+- ✅ Token holdes i live så lenge bruker er aktiv (<30 min mellom søk)
+
+### Caching
+- ✅ Skipper refresh hvis <5 min siden sist probe
+- ✅ Reduserer overhead betydelig
+
+### Neste test
+- ⏳ LoginToken-refresh (når token faktisk utløper >30 min)
+
 ## Se også
 - `docs/ao-lokalitet-api.md` - Dokumentasjon av AO lokalitet-API
 - `docs/ao-token-autentisering.md` - Autentisering mot AO
