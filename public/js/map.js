@@ -59,9 +59,10 @@ if (sites && Array.isArray(sites)) {
   sites.forEach(site => {
     // Sjekk om site er privat
     const isPrivate = isPrivateSite(site);
-    // Private lokasjoner vises på kartet hvis de er mine
-    if (isPrivate && !site.isMine) {
-      return; // Hopp over private som ikke er mine
+    const showPrivateSites = localStorage.getItem('showPrivateSitesOnMap') === '1';
+    // Private lokasjoner vises på kartet hvis de er mine, eller hvis innstillingen er på
+    if (isPrivate && !site.isMine && !showPrivateSites) {
+      return; // Hopp over private som ikke er mine (med mindre innstillingen er på)
     }
 
     const lat = parseFloat(site.lat);
@@ -75,6 +76,9 @@ if (sites && Array.isArray(sites)) {
     if (site.isMine) {
       markerColor = 'yellow';
       polygonColor = '#eab308';  // Gul
+    } else if (isPrivate) {
+      markerColor = 'grey';
+      polygonColor = '#9ca3af';  // Grå — andres private, dempet
     } else if (site.isSuper) {
       markerColor = 'orange';
       polygonColor = '#f97316';  // Oransje

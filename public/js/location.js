@@ -179,6 +179,16 @@ export function setAoSiteSuggestions(sites, currentPosition, dropdown, aoSitesEl
       }
     });
 
+    // Hover-effekt på rad
+    item.addEventListener('mouseenter', () => {
+      item.style.background = 'rgba(59, 130, 246, 0.1)';
+      item.style.borderColor = 'rgba(59, 130, 246, 0.3)';
+    });
+    item.addEventListener('mouseleave', () => {
+      item.style.background = 'transparent';
+      item.style.borderColor = 'transparent';
+    });
+
     // Kartknapp
     const mapBtn = document.createElement('button');
     mapBtn.textContent = '🗺️';
@@ -450,12 +460,25 @@ export function initCreateSite(getPosition, getPlaceName, onSiteCreated) {
   const cancelBtn = document.getElementById('create-site-cancel');
   const statusEl = document.getElementById('create-site-status');
 
+  const mapImg = document.getElementById('create-site-map');
+
   if (!btn || !modal) return;
 
   function openModal() {
     nameInput.value = getPlaceName() || '';
     statusEl.style.display = 'none';
     submitBtn.disabled = false;
+
+    // Vis kartbilde fra OSM tile
+    const pos = getPosition();
+    if (pos && mapImg) {
+      const z = 15;
+      const latRad = pos.lat * Math.PI / 180;
+      const tileX = Math.floor((pos.lon + 180) / 360 * Math.pow(2, z));
+      const tileY = Math.floor((1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2 * Math.pow(2, z));
+      mapImg.src = `https://tile.openstreetmap.org/${z}/${tileX}/${tileY}.png`;
+    }
+
     modal.style.display = 'flex';
   }
 
