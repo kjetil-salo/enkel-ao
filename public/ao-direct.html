@@ -444,6 +444,7 @@
               </div>
 
               <button class="btn" id="login-btn" style="margin-bottom: 12px;">🔐 Logg inn</button>
+              <button class="btn" id="delete-credentials-btn" style="margin-bottom: 12px; background: transparent; border: 1px solid var(--border, #333); color: var(--muted, #888); display: none;">🗑 Slett lagret bruker & passord</button>
 
               <p style="font-size: 0.75rem; color: var(--muted); margin-top: 8px;">
                 <a href="#" id="show-manual-tokens" style="color: var(--accent);">Manuell token-konfigurasjon →</a>
@@ -787,6 +788,24 @@
       if (savedUsername) aoUsernameInput.value = savedUsername;
       if (savedPassword) aoPasswordInput.value = savedPassword;
 
+      // Slett lagret bruker & passord
+      const deleteCredentialsBtn = document.getElementById('delete-credentials-btn');
+      function updateDeleteBtn() {
+        const hasStored = localStorage.getItem('ao_username') || localStorage.getItem('ao_password');
+        deleteCredentialsBtn.style.display = hasStored ? 'block' : 'none';
+      }
+      updateDeleteBtn();
+      deleteCredentialsBtn.addEventListener('click', () => {
+        localStorage.removeItem('ao_username');
+        localStorage.removeItem('ao_password');
+        aoUsernameInput.value = '';
+        aoPasswordInput.value = '';
+        updateDeleteBtn();
+        tokenStatus.style.display = 'block';
+        tokenStatus.className = 'token-status valid';
+        tokenStatus.textContent = '✅ Bruker og passord slettet fra localStorage. LoginToken beholdt.';
+      });
+
       // Toggle config section
       configToggle.addEventListener('click', () => {
         configContent.classList.toggle('open');
@@ -862,6 +881,7 @@
 
             // Clear password from input
             aoPasswordInput.value = '';
+            updateDeleteBtn();
 
             tokenStatus.className = 'token-status valid';
             const userInfo = mapUserId ? `bruker ${result.userId} (kart: ${mapUserId})` : `bruker ${result.userId}`;
