@@ -254,7 +254,7 @@ describe('setAoSiteSuggestions', () => {
 
     setAoSiteSuggestions(sites, { lat: 59.9, lon: 10.7 }, dropdown, aoSitesEl, placeInput, setCurrentPlace);
 
-    expect(dropdown.children[1].textContent).toContain('🔒');
+    expect(dropdown.children[1].textContent).toContain('👤');
   });
 
   it('should limit to 20 sites', () => {

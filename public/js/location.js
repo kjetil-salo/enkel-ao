@@ -148,7 +148,7 @@ export function setAoSiteSuggestions(sites, currentPosition, dropdown, aoSitesEl
     let label = getSiteLabel(site) || site.name;
     if (site.isMine) label = '⭐ ' + label;
     if (site.isSuper) label = '🏷️ ' + label;
-    if (isPrivateSite(site)) label = '🔒 ' + label;
+    if (isPrivateSite(site)) label = '👤 ' + label;
 
     let distStr = '';
     if (site._distance != null) {
