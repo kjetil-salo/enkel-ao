@@ -2,6 +2,8 @@
  * Kart-modul for visning av brukerposisjon og AO-lokaliteter
  */
 
+import { createAoSite } from './api.js';
+
 // Hent data fra localStorage
 const mapData = localStorage.getItem('mapData');
 if (!mapData) {
@@ -213,6 +215,172 @@ function selectLocation(locationName) {
 
 // Gjør selectLocation tilgjengelig globalt for onclick i popup
 window.selectLocation = selectLocation;
+
+// --- Opprett ny lokasjon (pin-drop) ---
+
+const fab = document.getElementById('add-site-fab');
+const hint = document.getElementById('pin-drop-hint');
+const cancelPinBtn = document.getElementById('cancel-pin-btn');
+const panel = document.getElementById('create-site-panel');
+const nameInput = document.getElementById('new-site-name');
+const accuracySelect = document.getElementById('new-site-accuracy');
+const createBtn = document.getElementById('panel-create-btn');
+const panelCancelBtn = document.getElementById('panel-cancel-btn');
+const panelStatus = document.getElementById('panel-status');
+
+// Vis FAB kun hvis innlogget på AO
+const aoTokens = JSON.parse(localStorage.getItem('ao_tokens') || '{}');
+if (aoTokens.loginToken && aoTokens.authCookie && fab) {
+  fab.style.display = '';
+}
+
+let pinDropMode = false;
+let dropMarker = null;
+let mapClickHandler = null;
+
+function enterPinDropMode() {
+  pinDropMode = true;
+  fab.style.display = 'none';
+  hint.style.display = 'block';
+  cancelPinBtn.style.display = 'block';
+  map.getContainer().style.cursor = 'crosshair';
+
+  mapClickHandler = (e) => {
+    // Plasser draggbar marker
+    if (dropMarker) {
+      map.removeLayer(dropMarker);
+    }
+    const redIcon = L.icon({
+      iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+      shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+      iconSize: [25, 41],
+      iconAnchor: [12, 41],
+      popupAnchor: [1, -34],
+      shadowSize: [41, 41]
+    });
+    dropMarker = L.marker(e.latlng, { icon: redIcon, draggable: true }).addTo(map);
+    hint.style.display = 'none';
+    cancelPinBtn.style.display = 'none';
+
+    // Fjern klikk-handler (kun én pin)
+    map.off('click', mapClickHandler);
+
+    // Vis opprett-panel
+    openCreatePanel();
+  };
+
+  map.on('click', mapClickHandler);
+}
+
+function exitPinDropMode() {
+  pinDropMode = false;
+  hint.style.display = 'none';
+  cancelPinBtn.style.display = 'none';
+  panel.style.display = 'none';
+  map.getContainer().style.cursor = '';
+
+  if (mapClickHandler) {
+    map.off('click', mapClickHandler);
+    mapClickHandler = null;
+  }
+  if (dropMarker) {
+    map.removeLayer(dropMarker);
+    dropMarker = null;
+  }
+
+  // Vis FAB igjen
+  if (aoTokens.loginToken && aoTokens.authCookie && fab) {
+    fab.style.display = '';
+  }
+}
+
+function openCreatePanel() {
+  nameInput.value = '';
+  panelStatus.style.display = 'none';
+  createBtn.disabled = false;
+  panel.style.display = 'block';
+}
+
+function showPanelStatus(msg, isError) {
+  panelStatus.textContent = msg;
+  panelStatus.style.display = 'block';
+  panelStatus.style.background = isError ? 'rgba(239,68,68,0.15)' : 'rgba(34,197,94,0.15)';
+  panelStatus.style.color = isError ? '#ef4444' : '#22c55e';
+}
+
+function addNewSiteMarker(name, lat, lon) {
+  const yellowIcon = L.icon({
+    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-yellow.png',
+    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+    shadowSize: [41, 41]
+  });
+  const marker = L.marker([lat, lon], { icon: yellowIcon }).addTo(map);
+  marker.bindTooltip(`★ ${name}`, {
+    permanent: true,
+    direction: 'top',
+    className: 'site-label mine-label',
+    offset: [0, -35]
+  });
+  marker.bindPopup(`<strong>★ ${name}</strong><br><em>Nettopp opprettet</em>`);
+}
+
+// Event listeners
+if (fab) {
+  fab.addEventListener('click', enterPinDropMode);
+}
+if (cancelPinBtn) {
+  cancelPinBtn.addEventListener('click', exitPinDropMode);
+}
+if (panelCancelBtn) {
+  panelCancelBtn.addEventListener('click', exitPinDropMode);
+}
+if (createBtn) {
+  createBtn.addEventListener('click', async () => {
+    const name = nameInput.value.trim();
+    if (!name) {
+      showPanelStatus('Skriv inn et lokalitetsnavn', true);
+      return;
+    }
+    if (!dropMarker) {
+      showPanelStatus('Ingen posisjon valgt', true);
+      return;
+    }
+
+    const latlng = dropMarker.getLatLng();
+    createBtn.disabled = true;
+    showPanelStatus('Oppretter lokasjon...', false);
+
+    try {
+      const result = await createAoSite(name, latlng.lat, latlng.lng, parseInt(accuracySelect.value));
+
+      if (result.success) {
+        showPanelStatus(result.message || 'Lokasjon opprettet!', false);
+        // Fjern rød marker, legg til gul
+        if (dropMarker) {
+          map.removeLayer(dropMarker);
+          dropMarker = null;
+        }
+        addNewSiteMarker(name, latlng.lat, latlng.lng);
+
+        setTimeout(() => {
+          panel.style.display = 'none';
+          pinDropMode = false;
+          map.getContainer().style.cursor = '';
+          if (fab) fab.style.display = '';
+        }, 1500);
+      } else {
+        showPanelStatus(result.message || result.error || 'Ukjent feil', true);
+        createBtn.disabled = false;
+      }
+    } catch (e) {
+      showPanelStatus('Nettverksfeil: ' + e.message, true);
+      createBtn.disabled = false;
+    }
+  });
+}
 
 /**
  * Beregn avstand mellom to punkter (haversine-formel)

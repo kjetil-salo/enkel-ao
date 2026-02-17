@@ -142,6 +142,135 @@
     .leaflet-popup-content button:active {
       transform: translateY(0);
     }
+
+    /* Pluss-knapp (FAB) for ny lokasjon */
+    .add-site-fab {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      z-index: 1000;
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: #3b82f6;
+      color: white;
+      border: none;
+      font-size: 32px;
+      line-height: 56px;
+      text-align: center;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.5);
+      transition: all 0.2s;
+    }
+    .add-site-fab:hover {
+      background: #2563eb;
+      transform: scale(1.1);
+    }
+
+    /* Instruksjonstekst under pin-drop */
+    .pin-drop-hint {
+      display: none;
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1000;
+      background: rgba(0,0,0,0.8);
+      color: white;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 500;
+      white-space: nowrap;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+    }
+
+    /* Avbryt-knapp i pin-drop-modus */
+    .cancel-pin-btn {
+      display: none;
+      position: absolute;
+      bottom: 24px;
+      right: 24px;
+      z-index: 1000;
+      background: #ef4444;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 12px 20px;
+      font-size: 16px;
+      font-weight: 500;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+    }
+
+    /* Opprett-lokasjon-panel */
+    .create-site-panel {
+      display: none;
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      z-index: 1000;
+      background: white;
+      color: #0f172a;
+      border-radius: 16px 16px 0 0;
+      padding: 20px;
+      box-shadow: 0 -4px 20px rgba(0,0,0,0.3);
+    }
+    .create-site-panel h3 {
+      margin-bottom: 12px;
+      font-size: 18px;
+    }
+    .create-site-panel label {
+      display: block;
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 4px;
+      color: #374151;
+    }
+    .create-site-panel input,
+    .create-site-panel select {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 16px;
+      margin-bottom: 12px;
+      background: white;
+      color: #0f172a;
+    }
+    .create-site-panel .panel-buttons {
+      display: flex;
+      gap: 10px;
+    }
+    .create-site-panel .panel-buttons button {
+      flex: 1;
+      padding: 12px;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+    .create-site-panel .btn-create {
+      background: #22c55e;
+      color: white;
+    }
+    .create-site-panel .btn-create:disabled {
+      background: #9ca3af;
+    }
+    .create-site-panel .btn-cancel {
+      background: #f3f4f6;
+      color: #374151;
+    }
+    .create-site-panel .panel-status {
+      display: none;
+      margin-top: 8px;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 14px;
+      text-align: center;
+    }
   </style>
 </head>
 <body>
@@ -152,6 +281,31 @@
   <div class="info-box" id="info-box" style="display: none;">
     <strong>Lokaliteter:</strong>
     <span id="site-count">0</span> offentlige lokaliteter
+  </div>
+
+  <!-- Ny lokasjon: FAB, hint og avbryt -->
+  <button class="add-site-fab" id="add-site-fab" style="display: none;" title="Opprett ny lokasjon">+</button>
+  <div class="pin-drop-hint" id="pin-drop-hint">Trykk på kartet for å plassere lokasjon</div>
+  <button class="cancel-pin-btn" id="cancel-pin-btn">Avbryt</button>
+
+  <!-- Opprett-lokasjon-panel (bottom sheet) -->
+  <div class="create-site-panel" id="create-site-panel">
+    <h3>Opprett ny lokasjon</h3>
+    <label for="new-site-name">Navn</label>
+    <input type="text" id="new-site-name" placeholder="Navn på lokalitet" />
+    <label for="new-site-accuracy">Nøyaktighet</label>
+    <select id="new-site-accuracy">
+      <option value="0">Punktobservasjon</option>
+      <option value="25" selected>25 m</option>
+      <option value="50">50 m</option>
+      <option value="100">100 m</option>
+      <option value="500">500 m</option>
+    </select>
+    <div class="panel-buttons">
+      <button class="btn-cancel" id="panel-cancel-btn">Avbryt</button>
+      <button class="btn-create" id="panel-create-btn">Opprett</button>
+    </div>
+    <div class="panel-status" id="panel-status"></div>
   </div>
 
   <!-- Leaflet JS -->
