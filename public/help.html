@@ -198,7 +198,7 @@
         <h2>Kom i gang</h2>
         <ol>
           <li><strong>Oppdater posisjon</strong> – trykk knappen for å få riktig stedsnavn.</li>
-          <li><strong>Velg lokasjon</strong> – velg fra listen over nærliggende lokaliteter.</li>
+          <li><strong>Velg lokasjon</strong> – dropdown viser nærliggende lokaliteter sortert etter avstand. Trykk kartknappen for å se dem på kart.</li>
           <li><strong>Søk art</strong> – skriv norsk eller latinsk navn.</li>
           <li><strong>Sett antall og aktivitet</strong> – bruk hurtigknappene eller velg fra dropdown.</li>
           <li><strong>Kopier og åpne AO</strong> – lim inn i Artsobservasjoner.</li>
@@ -207,6 +207,19 @@
         <div class="note">
           <strong>Personvern:</strong> Alt lagres kun i nettleseren din (localStorage). Ingenting sendes til server.
         </div>
+
+        <h2>Lokaliteter og kartet</h2>
+        <p>Trykk kartknappen ved lokasjon for å se alle lokaliteter rundt deg på et kart.</p>
+        <ul>
+          <li><strong>Grønne markører</strong> – offentlige lokaliteter fra Artsobservasjoner.</li>
+          <li><strong>Hengelås-markører</strong> – private lokaliteter opprettet av andre brukere. Disse kan brukes fritt av alle og fungerer som helt vanlige lokaliteter.</li>
+        </ul>
+        <p>Trykk på en markør for å velge lokaliteten.</p>
+
+        <div class="tip">
+          <strong>Hvorfor private lokasjoner?</strong> Tidligere kunne alle opprette lokaliteter som andre kunne bruke. Denne muligheten ble fjernet av AO, men de eksisterende lokalitetene er der fortsatt. I mange områder (f.eks. Osterøy) finnes det nesten ingen offisielle lokaliteter – da er de private uvurderlige. Appen viser dem som standard.
+        </div>
+        <p>Du kan slå av visning av private lokasjoner i innstillingene.</p>
 
         <h2>Feltmodus vs Etterregistrering</h2>
         <p>Appen har to modus som du bytter mellom ved å klikke på pillen i headeren:</p>
@@ -219,6 +232,7 @@
         </div>
 
         <h2>Viktig ved import til Artsobservasjoner</h2>
+        <p>Import må gjøres via <strong>www.artsobservasjoner.no</strong> (desktop-versjonen), ikke mobil.artsobservasjoner.no.</p>
         <p>Mange lokaliteter har <strong>samme navn</strong> (f.eks. «Byparken»). AO kan velge feil sted hvis navnet finnes flere ganger.</p>
         <div class="tip">
           <strong>Tips:</strong> Marker dine vanlige lokaliteter som <strong>favoritter</strong> i AO. Da foreslår AO oftere «din» variant automatisk.
