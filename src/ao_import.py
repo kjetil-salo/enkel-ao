@@ -20,6 +20,13 @@ from urllib.parse import urlencode, quote_plus
 from urllib.request import Request, urlopen
 
 
+def _mask(token, visible=6):
+    """Masker et token for logging."""
+    if not token:
+        return 'None'
+    return token[:visible] + '***'
+
+
 def observations_to_csv(observations):
     """
     Konverter observations array til AO CSV-format.
@@ -195,7 +202,7 @@ def fetch_csrf_token(login_token, auth_cookie, ao_base_url='https://www.artsobse
                 m = re.search(r'\.ASPXAUTHNO=([^;]+)', sc)
                 if m:
                     refreshed_auth = m.group(1)
-                    print(f'[AO] Fornyet .ASPXAUTHNO fra Set-Cookie: {refreshed_auth[:20]}...', file=sys.stderr)
+                    print(f'[AO] Fornyet .ASPXAUTHNO fra Set-Cookie: {_mask(refreshed_auth)}', file=sys.stderr)
                     sys.stderr.flush()
             
             html = resp.read().decode('utf-8', errors='ignore')
@@ -210,7 +217,7 @@ def fetch_csrf_token(login_token, auth_cookie, ao_base_url='https://www.artsobse
 
         if match:
             token = match.group(1)
-            print(f'[AO] Hentet CSRF token: {token[:20]}...', file=sys.stderr)
+            print(f'[AO] Hentet CSRF token: {_mask(token)}', file=sys.stderr)
             sys.stderr.flush()
             return {'csrf_token': token, 'auth_cookie': refreshed_auth}
 

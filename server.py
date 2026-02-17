@@ -17,7 +17,7 @@ import threading
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse, parse_qs
 
-from src.api_handlers import handle_species_search, handle_reverse_geocoding, handle_ao_sites_search, login_to_ao, refresh_ao_cookie_if_needed
+from src.api_handlers import handle_species_search, handle_reverse_geocoding, handle_ao_sites_search, login_to_ao, refresh_ao_cookie_if_needed, mask_token
 from src.html_templates import generate_stats_login_page, generate_stats_page, generate_error_page
 from src.supabase_log import log_view_to_supabase
 from src.ao_import_httpx import post_with_curl
@@ -189,8 +189,8 @@ class Handler(SimpleHTTPRequestHandler):
 
             print(f'[AO-REFRESH] === Session Refresh Request ===', file=sys.stderr)
             print(f'[AO-REFRESH] Input tokens:', file=sys.stderr)
-            print(f'[AO-REFRESH]   loginToken: {login_token[:30] if login_token else "None"}...', file=sys.stderr)
-            print(f'[AO-REFRESH]   authCookie: {auth_cookie[:30] if auth_cookie else "None"}...', file=sys.stderr)
+            print(f'[AO-REFRESH]   loginToken: {mask_token(login_token)}', file=sys.stderr)
+            print(f'[AO-REFRESH]   authCookie: {mask_token(auth_cookie)}', file=sys.stderr)
             print(f'[AO-REFRESH]   userId: {user_id}', file=sys.stderr)
 
             if not login_token:
@@ -229,15 +229,15 @@ class Handler(SimpleHTTPRequestHandler):
 
             if '.ASPXAUTHNO' in response.cookies:
                 refreshed_auth = response.cookies['.ASPXAUTHNO']
-                print(f'[AO-REFRESH]   New authCookie: {refreshed_auth[:30]}...', file=sys.stderr)
+                print(f'[AO-REFRESH]   New authCookie: {mask_token(refreshed_auth)}', file=sys.stderr)
 
             if 'logintoken' in response.cookies:
                 refreshed_login_token = response.cookies['logintoken']
-                print(f'[AO-REFRESH]   New loginToken: {refreshed_login_token[:30]}...', file=sys.stderr)
+                print(f'[AO-REFRESH]   New loginToken: {mask_token(refreshed_login_token)}', file=sys.stderr)
 
             print(f'[AO-REFRESH] === Refresh Result ===', file=sys.stderr)
-            print(f'[AO-REFRESH]   New authCookie: {refreshed_auth[:30] if refreshed_auth else "None"}...', file=sys.stderr)
-            print(f'[AO-REFRESH]   New loginToken: {refreshed_login_token[:30] if refreshed_login_token else "None (unchanged)"}...', file=sys.stderr)
+            print(f'[AO-REFRESH]   New authCookie: {mask_token(refreshed_auth)}', file=sys.stderr)
+            print(f'[AO-REFRESH]   New loginToken: {mask_token(refreshed_login_token)}', file=sys.stderr)
 
             result = {}
             if refreshed_auth:
@@ -474,7 +474,7 @@ class Handler(SimpleHTTPRequestHandler):
             print(f'[DEBUG] ao-sites refresh resultat: refreshed_auth_cookie={refreshed_auth_cookie is not None}, auth_failed={auth_failed}', flush=True)
             if refreshed_auth_cookie:
                 response_data['refreshedAuthCookie'] = refreshed_auth_cookie
-                print(f'[DEBUG] Sender refreshed auth cookie tilbake til frontend (første 20 tegn): {refreshed_auth_cookie[:20]}...', flush=True)
+                print(f'[DEBUG] Sender refreshed auth cookie tilbake til frontend: {mask_token(refreshed_auth_cookie)}', flush=True)
             if auth_failed:
                 response_data['authRequired'] = True
                 print(f'[DEBUG] Auth feilet - sender authRequired=true til frontend', flush=True)

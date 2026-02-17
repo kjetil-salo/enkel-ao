@@ -15,6 +15,14 @@ from urllib.request import Request, urlopen
 
 import httpx
 
+
+def mask_token(token, visible=6):
+    """Masker et token for logging — viser kun de første tegnene."""
+    if not token:
+        return 'None'
+    return token[:visible] + '***'
+
+
 # Import for å hente CSRF tokens
 from src.ao_import_httpx import fetch_csrf_tokens
 
@@ -144,7 +152,7 @@ def refresh_ao_cookie_if_needed(auth_cookie: str, user_id: str, logintoken: str 
                 refreshed = response.cookies['.ASPXAUTHNO']
                 _ao_cookie_refresh_cache[cache_key] = (refreshed, now)
                 print(f'\n######################### TOKEN FORNYET #########################', flush=True)
-                print(f'[AO-COOKIE-REFRESH] Sliding expiration: fikk ny auth-cookie: {refreshed[:20]}...', flush=True)
+                print(f'[AO-COOKIE-REFRESH] Sliding expiration: fikk ny auth-cookie: {mask_token(refreshed)}', flush=True)
                 print(f'###############################################################\n', flush=True)
                 return refreshed
 
@@ -312,7 +320,7 @@ def login_to_ao(username: str, password: str) -> dict:
             _credentials_cache[user_id] = (username, password)
             print(f'[AO-LOGIN] Lagret credentials for auto-relogin (user_id={user_id})', flush=True)
 
-        print(f'[AO-LOGIN] Innlogging vellykket! user_id={user_id}, auth_cookie={auth_cookie[:20]}...', flush=True)
+        print(f'[AO-LOGIN] Innlogging vellykket! user_id={user_id}, auth_cookie={mask_token(auth_cookie)}', flush=True)
 
         return {
             'authCookie': auth_cookie,
@@ -345,7 +353,7 @@ def refresh_with_logintoken(login_token: str, user_id: str) -> str:
         return None
 
     print(f'[LOGINTOKEN-REFRESH] Prøver å fornye session med logintoken...', flush=True)
-    print(f'[LOGINTOKEN-REFRESH] LoginToken: {login_token[:20]}... (user_id={user_id})', flush=True)
+    print(f'[LOGINTOKEN-REFRESH] LoginToken: {mask_token(login_token)} (user_id={user_id})', flush=True)
 
     try:
         with httpx.Client() as client:
@@ -652,7 +660,7 @@ def handle_ao_sites_search(lat, lon, size_m=600.0, ao_mobile_base_url='https://m
             print(f'[DEBUG] Kunne ikke hente auth cookie: {e}', flush=True)
             ao_auth = None
 
-    print(f'[DEBUG] AO-tokens final: user_id={ao_user_id}, login_token={ao_login[:20] if ao_login else None}..., auth_cookie={ao_auth[:30] if ao_auth else None}...', flush=True)
+    print(f'[DEBUG] AO-tokens final: user_id={ao_user_id}, login_token={mask_token(ao_login)}, auth_cookie={mask_token(ao_auth)}', flush=True)
 
     if ao_login and ao_auth and ao_user_id:
         try:
@@ -664,7 +672,7 @@ def handle_ao_sites_search(lat, lon, size_m=600.0, ao_mobile_base_url='https://m
             # Hent CSRF token fra AO (samme strategi som ao_import)
             try:
                 _, csrf_cookie_token, refreshed = fetch_csrf_tokens(ao_login, auth_val)
-                print(f'[DEBUG] GetSitesGeoJson: Hentet CSRF token: {csrf_cookie_token[:30] if csrf_cookie_token else None}...', flush=True)
+                print(f'[DEBUG] GetSitesGeoJson: Hentet CSRF token: {mask_token(csrf_cookie_token)}', flush=True)
                 # Bruk eventuell refreshed auth cookie
                 if refreshed:
                     auth_val = refreshed

@@ -12,6 +12,13 @@ from urllib.parse import quote_plus
 import httpx
 
 
+def _mask(token, visible=6):
+    """Masker et token for logging."""
+    if not token:
+        return 'None'
+    return token[:visible] + '***'
+
+
 def observations_to_csv(observations):
     """Samme som i ao_import.py"""
     from src.ao_import import observations_to_csv as orig
@@ -56,7 +63,7 @@ def fetch_csrf_tokens(login_token, auth_cookie):
     refreshed_auth = None
     if '.ASPXAUTHNO' in response.cookies:
         refreshed_auth = response.cookies['.ASPXAUTHNO']
-        print(f'[AO-HTTPX] Fornyet .ASPXAUTHNO: {refreshed_auth[:20]}...', file=sys.stderr)
+        print(f'[AO-HTTPX] Fornyet .ASPXAUTHNO: {_mask(refreshed_auth)}', file=sys.stderr)
 
     # Hent form-token fra HTML
     match = re.search(r'name="__RequestVerificationToken"[^>]*value="([^"]+)"', html)
@@ -69,8 +76,8 @@ def fetch_csrf_tokens(login_token, auth_cookie):
     if not cookie_token:
         raise ValueError('Kunne ikke finne cookie CSRF token')
 
-    print(f'[AO-HTTPX] Form token: {form_token[:30]}...', file=sys.stderr)
-    print(f'[AO-HTTPX] Cookie token: {cookie_token[:30]}...', file=sys.stderr)
+    print(f'[AO-HTTPX] Form token: {_mask(form_token)}', file=sys.stderr)
+    print(f'[AO-HTTPX] Cookie token: {_mask(cookie_token)}', file=sys.stderr)
 
     return form_token, cookie_token, refreshed_auth
 
@@ -228,8 +235,8 @@ def publish_all(login_token, auth_cookie):
     if not cookie_token:
         raise ValueError('Kunne ikke finne cookie CSRF token for publisering')
 
-    print(f'[AO-HTTPX] Publish form token: {form_token[:30]}...', file=sys.stderr)
-    print(f'[AO-HTTPX] Publish cookie token: {cookie_token[:30]}...', file=sys.stderr)
+    print(f'[AO-HTTPX] Publish form token: {_mask(form_token)}', file=sys.stderr)
+    print(f'[AO-HTTPX] Publish cookie token: {_mask(cookie_token)}', file=sys.stderr)
 
     # URL-encode form token
     encoded_form_token = quote_plus(form_token, safe='', encoding='utf-8')
