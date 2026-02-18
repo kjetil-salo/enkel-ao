@@ -73,14 +73,12 @@ export function initAutocomplete(placeInput, onSelect) {
       const authCookie = tokens.authCookie || '';
       const userId = tokens.userId || '';
 
-      const params = new URLSearchParams({
-        term: term,
-        ...(loginToken && { loginToken }),
-        ...(authCookie && { authCookie }),
-        ...(userId && { userId })
-      });
+      const headers = {};
+      if (loginToken) headers['X-AO-Login-Token'] = loginToken;
+      if (authCookie) headers['X-AO-Auth-Cookie'] = authCookie;
+      if (userId) headers['X-AO-User-Id'] = userId;
 
-      const response = await fetch(`/api/ao-autocomplete?${params}`);
+      const response = await fetch(`/api/ao-autocomplete?term=${encodeURIComponent(term)}`, { headers });
       const data = await response.json();
 
       // Håndter auto-relogin: oppdater auth cookie hvis den ble fornyet

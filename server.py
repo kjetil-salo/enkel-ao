@@ -208,7 +208,7 @@ class Handler(SimpleHTTPRequestHandler):
                 cookies['.ASPXAUTHNO'] = auth_val
 
             # Prøv å refreshe ved å treffe en beskyttet AO-side
-            probe_url = 'https://www.artsobservasjoner.no/Observations'
+            probe_url = 'https://www.artsobservasjoner.no/User/MyPages'
             print(f'[AO-REFRESH] Prober: {probe_url}', file=sys.stderr)
 
             with httpx.Client() as client:
@@ -521,9 +521,9 @@ class Handler(SimpleHTTPRequestHandler):
 
         params = parse_qs(parsed.query)
         term = params.get('term', [''])[0].strip()
-        login_token = params.get('loginToken', [''])[0].strip()
-        auth_cookie = params.get('authCookie', [''])[0].strip()
-        user_id = params.get('userId', [''])[0].strip()
+        login_token = self.headers.get('X-AO-Login-Token', '').strip()
+        auth_cookie = self.headers.get('X-AO-Auth-Cookie', '').strip()
+        user_id = self.headers.get('X-AO-User-Id', '').strip()
 
         if not term or len(term) < 2:
             self._send_json({'results': [], 'refreshed_auth_cookie': None})
