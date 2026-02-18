@@ -221,24 +221,24 @@ class Handler(SimpleHTTPRequestHandler):
                     timeout=15,
                     follow_redirects=True
                 )
-                # Hent alle cookies (inkl. opprinnelige + nye fra AO)
-                all_cookies = dict(client.cookies)
-
-            # Parse response for refreshed cookies
-            refreshed_auth = None
-            refreshed_login_token = None
+                # Finn nye cookies fra jar (unngå dict() som krasjer ved duplikater)
+                cookie_names = [c.name for c in client.cookies.jar]
+                refreshed_auth = None
+                refreshed_login_token = None
+                for cookie in client.cookies.jar:
+                    if cookie.name == '.ASPXAUTHNO' and cookie.value != auth_val:
+                        refreshed_auth = cookie.value
+                    elif cookie.name == 'logintoken' and cookie.value != login_token:
+                        refreshed_login_token = cookie.value
 
             print(f'[AO-REFRESH] Response status: {response.status_code}', file=sys.stderr)
             print(f'[AO-REFRESH] Final URL: {response.url}', file=sys.stderr)
-            print(f'[AO-REFRESH] Client cookies: {list(all_cookies.keys())}', file=sys.stderr)
+            print(f'[AO-REFRESH] Client cookie names: {cookie_names}', file=sys.stderr)
 
-            # Sjekk om AO sendte NY .ASPXAUTHNO (forskjellig fra den vi sendte inn)
-            if '.ASPXAUTHNO' in all_cookies and all_cookies['.ASPXAUTHNO'] != auth_val:
-                refreshed_auth = all_cookies['.ASPXAUTHNO']
+            if refreshed_auth:
                 print(f'[AO-REFRESH]   New authCookie: {mask_token(refreshed_auth)}', file=sys.stderr)
 
-            if 'logintoken' in all_cookies and all_cookies['logintoken'] != login_token:
-                refreshed_login_token = all_cookies['logintoken']
+            if refreshed_login_token:
                 print(f'[AO-REFRESH]   New loginToken: {mask_token(refreshed_login_token)}', file=sys.stderr)
 
             print(f'[AO-REFRESH] === Refresh Result ===', file=sys.stderr)

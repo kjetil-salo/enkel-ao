@@ -372,18 +372,20 @@ def refresh_with_logintoken(login_token: str, user_id: str) -> str:
                 follow_redirects=True  # Følg redirect til /LogOn automatisk
             )
 
-            # Hent alle cookies (inkl. opprinnelige + nye fra AO)
-            all_cookies = dict(client.cookies)
+            # Finn ny .ASPXAUTHNO fra cookie jar (unngå dict() som krasjer ved duplikater)
+            cookie_names = [c.name for c in client.cookies.jar]
+            new_auth = None
+            for cookie in client.cookies.jar:
+                if cookie.name == '.ASPXAUTHNO':
+                    new_auth = cookie.value
+                    break
 
             # DEBUG: Logg response-detaljer
             print(f'[LOGINTOKEN-REFRESH] Response status: {response.status_code}', flush=True)
             print(f'[LOGINTOKEN-REFRESH] Final URL: {response.url}', flush=True)
-            print(f'[LOGINTOKEN-REFRESH] Client cookies: {list(all_cookies.keys())}', flush=True)
+            print(f'[LOGINTOKEN-REFRESH] Client cookie names: {cookie_names}', flush=True)
 
-            # Sjekk om vi fikk ny .ASPXAUTHNO (enten fra MyPages eller LogOn)
-            new_auth = all_cookies.get('.ASPXAUTHNO')
             if new_auth:
-                # Sjekk om vi ble redirected til LogOn (indikerer session ble fornyet)
                 if '/LogOn' in str(response.url):
                     print(f'[LOGINTOKEN-REFRESH] ✅ Session fornyet via /LogOn redirect (UTEN credentials)', flush=True)
                 else:
@@ -391,16 +393,6 @@ def refresh_with_logintoken(login_token: str, user_id: str) -> str:
                 return new_auth
             else:
                 print(f'[LOGINTOKEN-REFRESH] ❌ Ingen .ASPXAUTHNO mottatt (logintoken ugyldig?)', flush=True)
-                # Lagre full response til fil for videre analyse
-                try:
-                    import os
-                    debug_dir = '/tmp'
-                    debug_file = os.path.join(debug_dir, 'logintoken_refresh_response.html')
-                    with open(debug_file, 'w', encoding='utf-8') as f:
-                        f.write(response.text)
-                    print(f'[LOGINTOKEN-REFRESH] Full response lagret til {debug_file}', flush=True)
-                except Exception as e:
-                    print(f'[LOGINTOKEN-REFRESH] Kunne ikke lagre debug-fil: {e}', flush=True)
                 return None
 
     except Exception as e:
@@ -440,16 +432,19 @@ def auto_relogin_if_needed(user_id: str, auth_cookie: str, login_token: str = No
                 timeout=10,
                 follow_redirects=True  # Følg redirects for å fange logintoken-refresh
             )
-            # Hent alle cookies (inkl. opprinnelige + nye fra AO)
-            all_cookies = dict(client.cookies)
+            # Finn ny .ASPXAUTHNO fra cookie jar (unngå dict() som krasjer ved duplikater)
+            new_auth = None
+            for cookie in client.cookies.jar:
+                if cookie.name == '.ASPXAUTHNO' and cookie.value != auth_cookie:
+                    new_auth = cookie.value
+                    break
             # Hvis vi får 200 og ny cookie, har AO fornyet den automatisk
             if response.status_code == 200:
-                new_auth = all_cookies.get('.ASPXAUTHNO')
-                if new_auth and new_auth != auth_cookie:
+                if new_auth:
                     print(f'[AUTO-RELOGIN] ✅ Cookie fornyet automatisk via logintoken (user_id={user_id})', flush=True)
                     return new_auth
-                elif response.status_code == 200:
-                    # Cookie fortsatt gyldig, ingen refresh nødvendig
+                # Sjekk om vi IKKE ble redirectet til login (cookie fortsatt gyldig)
+                if '/LogOn' not in str(response.url):
                     return None
     except Exception as e:
         print(f'[AUTO-RELOGIN] Feil ved cookie-test: {e}', flush=True)
