@@ -219,20 +219,24 @@ class Handler(SimpleHTTPRequestHandler):
                     timeout=15,
                     follow_redirects=True
                 )
+                # VIKTIG: Hent cookies fra client (akkumulerer alle cookies fra redirect-kjeden)
+                # response.cookies inneholder kun cookies fra siste response
+                all_cookies = dict(client.cookies)
 
             # Parse response for refreshed cookies
             refreshed_auth = None
             refreshed_login_token = None
 
             print(f'[AO-REFRESH] Response status: {response.status_code}', file=sys.stderr)
-            print(f'[AO-REFRESH] Response cookies:', file=sys.stderr)
+            print(f'[AO-REFRESH] Final URL: {response.url}', file=sys.stderr)
+            print(f'[AO-REFRESH] Client cookies: {list(all_cookies.keys())}', file=sys.stderr)
 
-            if '.ASPXAUTHNO' in response.cookies:
-                refreshed_auth = response.cookies['.ASPXAUTHNO']
+            if '.ASPXAUTHNO' in all_cookies:
+                refreshed_auth = all_cookies['.ASPXAUTHNO']
                 print(f'[AO-REFRESH]   New authCookie: {mask_token(refreshed_auth)}', file=sys.stderr)
 
-            if 'logintoken' in response.cookies:
-                refreshed_login_token = response.cookies['logintoken']
+            if 'logintoken' in all_cookies:
+                refreshed_login_token = all_cookies['logintoken']
                 print(f'[AO-REFRESH]   New loginToken: {mask_token(refreshed_login_token)}', file=sys.stderr)
 
             print(f'[AO-REFRESH] === Refresh Result ===', file=sys.stderr)

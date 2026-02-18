@@ -171,11 +171,16 @@ def test_fetch_csrf_tokens_success(monkeypatch):
         pass
     mock_response.raise_for_status = mock_raise_for_status
 
-    # Mock httpx.Client
+    # Mock httpx.Client - client.cookies akkumulerer alle cookies fra redirect-kjeden
+    client_cookies = httpx.Cookies()
+    client_cookies.set('__RequestVerificationToken', 'COOKIE123')
+    client_cookies.set('.ASPXAUTHNO', 'REFRESHED456')
+
     mock_client = Mock()
     mock_client.__enter__ = Mock(return_value=mock_client)
     mock_client.__exit__ = Mock(return_value=None)
     mock_client.get = Mock(return_value=mock_response)
+    mock_client.cookies = client_cookies
 
     monkeypatch.setattr('httpx.Client', lambda: mock_client)
 
@@ -200,11 +205,15 @@ def test_fetch_csrf_tokens_httponly_cookie(monkeypatch):
         pass
     mock_response.raise_for_status = mock_raise_for_status
 
-    # Mock httpx.Client
+    # Mock httpx.Client - client.cookies akkumulerer alle cookies fra redirect-kjeden
+    client_cookies = httpx.Cookies()
+    client_cookies.set('__RequestVerificationToken', 'HTTPONLY789')
+
     mock_client = Mock()
     mock_client.__enter__ = Mock(return_value=mock_client)
     mock_client.__exit__ = Mock(return_value=None)
     mock_client.get = Mock(return_value=mock_response)
+    mock_client.cookies = client_cookies
 
     monkeypatch.setattr('httpx.Client', lambda: mock_client)
 

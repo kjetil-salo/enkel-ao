@@ -371,17 +371,17 @@ def refresh_with_logintoken(login_token: str, user_id: str) -> str:
                 follow_redirects=True  # Følg redirect til /LogOn automatisk
             )
 
+            # VIKTIG: Hent cookies fra client (akkumulerer alle cookies fra redirect-kjeden)
+            # response.cookies inneholder kun cookies fra siste response i kjeden
+            all_cookies = dict(client.cookies)
+
             # DEBUG: Logg response-detaljer
             print(f'[LOGINTOKEN-REFRESH] Response status: {response.status_code}', flush=True)
             print(f'[LOGINTOKEN-REFRESH] Final URL: {response.url}', flush=True)
-            print(f'[LOGINTOKEN-REFRESH] Cookies i response: {list(response.cookies.keys())}', flush=True)
-
-            # Lagre response body for debugging
-            body_preview = response.text[:500] if response.text else '(tom)'
-            print(f'[LOGINTOKEN-REFRESH] Body preview: {body_preview}', flush=True)
+            print(f'[LOGINTOKEN-REFRESH] Client cookies: {list(all_cookies.keys())}', flush=True)
 
             # Sjekk om vi fikk ny .ASPXAUTHNO (enten fra MyPages eller LogOn)
-            new_auth = response.cookies.get('.ASPXAUTHNO')
+            new_auth = all_cookies.get('.ASPXAUTHNO')
             if new_auth:
                 # Sjekk om vi ble redirected til LogOn (indikerer session ble fornyet)
                 if '/LogOn' in str(response.url):
@@ -440,9 +440,11 @@ def auto_relogin_if_needed(user_id: str, auth_cookie: str, login_token: str = No
                 timeout=10,
                 follow_redirects=True  # Følg redirects for å fange logintoken-refresh
             )
+            # VIKTIG: Hent cookies fra client (akkumulerer alle fra redirect-kjeden)
+            all_cookies = dict(client.cookies)
             # Hvis vi får 200 og ny cookie, har AO fornyet den automatisk
             if response.status_code == 200:
-                new_auth = response.cookies.get('.ASPXAUTHNO')
+                new_auth = all_cookies.get('.ASPXAUTHNO')
                 if new_auth and new_auth != auth_cookie:
                     print(f'[AUTO-RELOGIN] ✅ Cookie fornyet automatisk via logintoken (user_id={user_id})', flush=True)
                     return new_auth

@@ -56,13 +56,15 @@ def fetch_csrf_tokens(login_token, auth_cookie):
             follow_redirects=True
         )
         response.raise_for_status()
+        # VIKTIG: Hent cookies fra client (akkumulerer alle fra redirect-kjeden)
+        all_cookies = dict(client.cookies)
 
     html = response.text
 
-    # Sjekk Set-Cookie header for fornyet .ASPXAUTHNO
+    # Sjekk for fornyet .ASPXAUTHNO
     refreshed_auth = None
-    if '.ASPXAUTHNO' in response.cookies:
-        refreshed_auth = response.cookies['.ASPXAUTHNO']
+    if '.ASPXAUTHNO' in all_cookies:
+        refreshed_auth = all_cookies['.ASPXAUTHNO']
         print(f'[AO-HTTPX] Fornyet .ASPXAUTHNO: {_mask(refreshed_auth)}', file=sys.stderr)
 
     # Hent form-token fra HTML
@@ -71,8 +73,8 @@ def fetch_csrf_tokens(login_token, auth_cookie):
         raise ValueError('Kunne ikke finne form CSRF token i HTML')
     form_token = match.group(1)
 
-    # Hent cookie-token fra response cookies
-    cookie_token = response.cookies.get('__RequestVerificationToken')
+    # Hent cookie-token fra client cookies (akkumulert fra redirect-kjeden)
+    cookie_token = all_cookies.get('__RequestVerificationToken')
     if not cookie_token:
         raise ValueError('Kunne ikke finne cookie CSRF token')
 
