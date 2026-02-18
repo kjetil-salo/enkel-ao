@@ -47,16 +47,16 @@ def fetch_csrf_tokens(login_token, auth_cookie):
         'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:147.0) Gecko/20100101 Firefox/147.0'
     }
 
-    with httpx.Client() as client:
+    # VIKTIG: Cookies på CLIENT-nivå for å videresendes ved redirects
+    with httpx.Client(cookies=cookies) as client:
         response = client.get(
             'https://www.artsobservasjoner.no/ImportSighting',
-            cookies=cookies,
             headers=headers,
             timeout=15,
             follow_redirects=True
         )
         response.raise_for_status()
-        # VIKTIG: Hent cookies fra client (akkumulerer alle fra redirect-kjeden)
+        # Hent alle cookies (inkl. opprinnelige + nye fra AO)
         all_cookies = dict(client.cookies)
 
     html = response.text

@@ -182,7 +182,7 @@ def test_fetch_csrf_tokens_success(monkeypatch):
     mock_client.get = Mock(return_value=mock_response)
     mock_client.cookies = client_cookies
 
-    monkeypatch.setattr('httpx.Client', lambda: mock_client)
+    monkeypatch.setattr('httpx.Client', lambda **kwargs: mock_client)
 
     # Test
     form_token, cookie_token, refreshed_auth = fetch_csrf_tokens('LOGIN123', 'AUTH456')
@@ -215,7 +215,7 @@ def test_fetch_csrf_tokens_httponly_cookie(monkeypatch):
     mock_client.get = Mock(return_value=mock_response)
     mock_client.cookies = client_cookies
 
-    monkeypatch.setattr('httpx.Client', lambda: mock_client)
+    monkeypatch.setattr('httpx.Client', lambda **kwargs: mock_client)
 
     form_token, cookie_token, refreshed_auth = fetch_csrf_tokens('LOGIN', 'AUTH')
 

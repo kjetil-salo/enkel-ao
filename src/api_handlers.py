@@ -356,23 +356,23 @@ def refresh_with_logintoken(login_token: str, user_id: str) -> str:
     print(f'[LOGINTOKEN-REFRESH] LoginToken: {mask_token(login_token)} (user_id={user_id})', flush=True)
 
     try:
-        with httpx.Client() as client:
-            # GET /MyPages med logintoken
-            # Hvis session utløpt → AO redirecter til /LogOn → logintoken sendes videre → ny session
+        # VIKTIG: Sett cookies på CLIENT-nivå, ikke request-nivå!
+        # Per-request cookies sendes kun med første request og videresendes IKKE ved redirects.
+        # Client-level cookies sendes med ALLE requests i redirect-kjeden.
+        login_cookies = {
+            'logintoken': login_token,
+            'logintoken_ssl': '1',
+            'AcceptCookies': '1'
+        }
+        with httpx.Client(cookies=login_cookies) as client:
             response = client.get(
                 'https://www.artsobservasjoner.no/User/MyPages',
                 headers={'User-Agent': 'Mozilla/5.0 (compatible; Fugleobservasjoner/1.0)'},
-                cookies={
-                    'logintoken': login_token,
-                    'logintoken_ssl': '1',
-                    'AcceptCookies': '1'
-                },
                 timeout=10,
                 follow_redirects=True  # Følg redirect til /LogOn automatisk
             )
 
-            # VIKTIG: Hent cookies fra client (akkumulerer alle cookies fra redirect-kjeden)
-            # response.cookies inneholder kun cookies fra siste response i kjeden
+            # Hent alle cookies (inkl. opprinnelige + nye fra AO)
             all_cookies = dict(client.cookies)
 
             # DEBUG: Logg response-detaljer
@@ -432,15 +432,15 @@ def auto_relogin_if_needed(user_id: str, auth_cookie: str, login_token: str = No
             cookies['logintoken'] = login_token
             cookies['logintoken_ssl'] = '1'
 
-        with httpx.Client() as client:
+        # VIKTIG: Cookies på CLIENT-nivå for å videresendes ved redirects
+        with httpx.Client(cookies=cookies) as client:
             response = client.get(
                 'https://www.artsobservasjoner.no/User/MyPages',
                 headers={'User-Agent': 'Mozilla/5.0 (compatible; Fugleobservasjoner/1.0)'},
-                cookies=cookies,
                 timeout=10,
                 follow_redirects=True  # Følg redirects for å fange logintoken-refresh
             )
-            # VIKTIG: Hent cookies fra client (akkumulerer alle fra redirect-kjeden)
+            # Hent alle cookies (inkl. opprinnelige + nye fra AO)
             all_cookies = dict(client.cookies)
             # Hvis vi får 200 og ny cookie, har AO fornyet den automatisk
             if response.status_code == 200:
