@@ -662,7 +662,9 @@
           margin: 0;
           margin-bottom: 16px;
           max-width: 100%;
-          margin: 0;
+          min-width: 0;
+          box-sizing: border-box;
+          overflow: hidden;
         }
 
       fieldset.section-main legend {
@@ -683,6 +685,8 @@
         opacity: 0.85;
         margin: 0;
         margin-bottom: 16px;
+        min-width: 0;
+        box-sizing: border-box;
       }
 
       .section-optional legend {
