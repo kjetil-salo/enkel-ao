@@ -203,7 +203,7 @@ class Handler(SimpleHTTPRequestHandler):
                 auth_val = auth_val.split('=', 1)[1]
 
             # Bygg cookies dict for httpx
-            cookies = {'logintoken': login_token, 'logintoken_ssl': '1'}
+            cookies = {'logintoken': login_token, 'logintoken_ssl': '1', 'AcceptCookies': '1'}
             if auth_val:
                 cookies['.ASPXAUTHNO'] = auth_val
 
