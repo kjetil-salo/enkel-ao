@@ -288,6 +288,43 @@
   background: var(--accent-soft);
 }
 
+/* AO-lokasjoner dropdown */
+.ao-sites-dropdown-list {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  max-height: 260px;
+  overflow-y: auto;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  z-index: 100;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.ao-site-suggestion {
+  padding: 8px 12px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--border);
+}
+
+.ao-site-suggestion:last-child {
+  border-bottom: none;
+}
+
+.ao-site-suggestion:hover {
+  background: var(--accent-soft);
+}
+
+.ao-site-suggestion.ao-site-empty {
+  cursor: default;
+}
+
+.ao-site-suggestion.ao-site-empty:hover {
+  background: transparent;
+}
+
 /* Flash-animasjoner for visuell feedback */
 
 /* Subtil flash for toast og andre elementer */
@@ -664,7 +701,7 @@
           max-width: 100%;
           min-width: 0;
           box-sizing: border-box;
-          overflow: hidden;
+          overflow: visible;
         }
 
       fieldset.section-main legend {
