@@ -45,21 +45,24 @@ def fetch_ao_autocomplete(term: str, login_token: str = None, auth_cookie: str =
 
     refreshed_auth_cookie = None
 
-    # STEG 1: Prøv sliding expiration FØRST (raskere, sender ikke credentials)
+    # STEG 1: Prøv auto-relogin FØRST (treffer .aspx-side, trygt ved utløpt session)
+    # VIKTIG: Etter 8+ timer er .ASPXAUTHNO utløpt. Å sende utløpt cookie direkte
+    # til et beskyttet API-endepunkt kan ødelegge/invalidere logintoken.
+    # auto_relogin treffer /User/MyPages (.aspx) som trigger trygg fornyelse.
     if user_id and auth_cookie and login_token:
+        new_cookie = auto_relogin_if_needed(user_id, auth_cookie, login_token)
+        if new_cookie:
+            auth_cookie = new_cookie
+            refreshed_auth_cookie = new_cookie
+            print(f'[AO-AUTOCOMPLETE] Auto-relogin vellykket via .aspx')
+
+    # STEG 2: Sliding expiration som fallback
+    if not refreshed_auth_cookie and user_id and auth_cookie and login_token:
         refreshed = refresh_ao_cookie_if_needed(auth_cookie, user_id, login_token)
         if refreshed:
             auth_cookie = refreshed
             refreshed_auth_cookie = refreshed
             print(f'[AO-AUTOCOMPLETE] Sliding expiration vellykket')
-
-    # STEG 2: Kun hvis sliding feilet - prøv auto-relogin (logintoken først, credentials som fallback)
-    if not refreshed_auth_cookie and user_id and auth_cookie:
-        new_cookie = auto_relogin_if_needed(user_id, auth_cookie, login_token)
-        if new_cookie:
-            auth_cookie = new_cookie
-            refreshed_auth_cookie = new_cookie
-            print(f'[AO-AUTOCOMPLETE] Auto-relogin vellykket (fallback)')
 
     base_url = os.getenv('AO_URL', 'https://www.artsobservasjoner.no')
     params = {

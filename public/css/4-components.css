@@ -105,7 +105,7 @@
 
 .activity-pill {
   position: relative;
-  z-index: 100;
+  z-index: 10;
   font-size: 0.75em;
   padding: 4px 10px;
   border-radius: var(--radius-full);
