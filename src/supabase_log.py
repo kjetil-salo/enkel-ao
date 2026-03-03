@@ -47,7 +47,7 @@ def parse_user_agent(user_agent: str) -> dict:
         return {"device_type": "unknown", "os": "unknown", "browser": "unknown"}
 
 
-def log_view_to_supabase(ip: str, user_agent: str):
+def log_view_to_supabase(ip: str, user_agent: str, device_id: str = ''):
     if not supabase:
         return False
     try:
@@ -62,6 +62,8 @@ def log_view_to_supabase(ip: str, user_agent: str):
             "browser": ua_info["browser"],
             # timestamp settes automatisk av Supabase (default now())
         }
+        if device_id:
+            data["device_id"] = device_id
         supabase.table("stats").insert(data).execute()
         return True
     except Exception as e:

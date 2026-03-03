@@ -107,6 +107,15 @@ export function showToast(msg, options = {}) {
     toast.appendChild(undoBtn);
   }
 
+  // Plasser toasten midt i synlig viewport (over skjermtastatur)
+  if (window.visualViewport) {
+    const vv = window.visualViewport;
+    const topPx = vv.offsetTop + vv.height / 2;
+    toast.style.top = topPx + 'px';
+  } else {
+    toast.style.top = '30%';
+  }
+
   // Reset
   toast.style.transform = 'translate(-50%, -50%) scale(0.7)';
   toast.style.opacity = '0';

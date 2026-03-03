@@ -31,6 +31,7 @@ _stats = {
     'total': 0,
     'per_ip': {},
     'per_ua': {},
+    'devices': set(),
 }
 
 
@@ -76,27 +77,51 @@ class Handler(SimpleHTTPRequestHandler):
     def _handle_logview_post(self):
         """Håndter logging av sidevisning."""
         import sys
-        
+        import uuid
+        from http.cookies import SimpleCookie
+
         # Hent ekte IP-adresse (støtt for proxies)
         xff = self.headers.get('X-Forwarded-For')
         real_ip = xff.split(',')[0].strip() if xff else self.client_address[0]
         user_agent = self.headers.get('User-Agent', '-')
-        
-        print(f"[LOGVIEW] IP: {real_ip} | UA: {user_agent}", file=sys.stderr)
-        
+
+        # Les eller generer device_id fra cookie
+        device_id = ''
+        cookie_header = self.headers.get('Cookie', '')
+        if 'device_id=' in cookie_header:
+            c = SimpleCookie(cookie_header)
+            if 'device_id' in c:
+                device_id = c['device_id'].value
+
+        set_cookie = False
+        if not device_id:
+            device_id = str(uuid.uuid4())
+            set_cookie = True
+
+        print(f"[LOGVIEW] IP: {real_ip} | UA: {user_agent} | Device: {device_id[:8]}...", file=sys.stderr)
+
         # Oppdater in-memory statistikk
         with _stats_lock:
             _stats['total'] += 1
             _stats['per_ip'][real_ip] = _stats['per_ip'].get(real_ip, 0) + 1
             _stats['per_ua'][user_agent] = _stats['per_ua'].get(user_agent, 0) + 1
-        
+            _stats['devices'].add(device_id)
+
         # Logg til Supabase (ikke blokkerende)
         try:
-            log_view_to_supabase(real_ip, user_agent)
+            log_view_to_supabase(real_ip, user_agent, device_id=device_id)
         except Exception as e:
             print(f"[Supabase] Feil ved logging: {e}")
-        
-        self._send_json({'ok': True})
+
+        # Sett cookie hvis ny enhet (2 år levetid)
+        if set_cookie:
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.send_header('Set-Cookie', f'device_id={device_id}; Path=/; Max-Age=63072000; SameSite=Lax')
+            self.end_headers()
+            self.wfile.write(b'{"ok":true}')
+        else:
+            self._send_json({'ok': True})
 
     def _handle_ao_import_post(self):
         """Håndter direkte posting av observasjoner til AO (kun for eier)."""
@@ -381,6 +406,13 @@ class Handler(SimpleHTTPRequestHandler):
                 os_res = supabase.rpc('count_per_os').execute()
                 per_os = {row['os']: row['count'] for row in os_res.data} if hasattr(os_res, 'data') and os_res.data else {}
 
+                # Hent antall unike enheter (device_id)
+                try:
+                    device_res = supabase.rpc('count_unique_devices').execute()
+                    total_unique_devices = device_res.data[0]['count'] if hasattr(device_res, 'data') and device_res.data else 0
+                except Exception:
+                    total_unique_devices = 0
+
                 html = generate_stats_page(
                     recent_ips,
                     {},  # per_ua ikke brukt med Supabase-data
@@ -389,7 +421,8 @@ class Handler(SimpleHTTPRequestHandler):
                     per_os=per_os,
                     per_browser=per_browser,
                     total_unique_ips=total_unique_ips,
-                    source="Supabase"
+                    source="Supabase",
+                    total_unique_devices=total_unique_devices,
                 )
                 self._send_html_response(html)
                 return
@@ -401,6 +434,7 @@ class Handler(SimpleHTTPRequestHandler):
             total = _stats['total']
             per_ip = dict(_stats['per_ip'])
             per_ua = dict(_stats['per_ua'])
+            unique_devices = len(_stats['devices'])
 
         recent_ips = list(per_ip.items())[:10]
         # per_ua brukes som fallback for både browser og os hvis Supabase ikke er tilgjengelig
@@ -412,7 +446,8 @@ class Handler(SimpleHTTPRequestHandler):
             {},  # per_os
             {},  # per_browser
             len(per_ip),
-            source="In-memory (denne økt)"
+            source="In-memory (denne økt)",
+            total_unique_devices=unique_devices,
         )
         self._send_html_response(html)
     

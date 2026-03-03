@@ -75,11 +75,45 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
         .map(obs => obs.species && obs.species.taxonName ? obs.species.taxonName.trim().toLowerCase() : null)
         .filter(Boolean)
     );
+    // Finn tidligste og seneste klokkeslett i gruppen
+    // TODO: Vis også dato ved stedsnavnet når obs spenner over flere dager
+    let earliestMs = Infinity;
+    let latestMs = -Infinity;
+    group.items.forEach(obs => {
+      if (obs.timestamp) {
+        const t = new Date(obs.timestamp).getTime();
+        if (!isNaN(t)) {
+          if (t < earliestMs) earliestMs = t;
+          if (t > latestMs) latestMs = t;
+        }
+      }
+      // tilKlokkeslett er alltid >= timestamp for samme obs
+      const til = obs.tilKlokkeslett || obs.timestamp;
+      if (til) {
+        const t = new Date(til).getTime();
+        if (!isNaN(t) && t > latestMs) latestMs = t;
+      }
+    });
+
+    let timeSpanHtml = '';
+    if (earliestMs < Infinity && latestMs > -Infinity) {
+      const fmt = d => {
+        const hh = String(d.getHours()).padStart(2, '0');
+        const mm = String(d.getMinutes()).padStart(2, '0');
+        return `${hh}:${mm}`;
+      };
+      const fra = fmt(new Date(earliestMs));
+      const til = fmt(new Date(latestMs));
+      timeSpanHtml = fra === til
+        ? ` <span style="font-weight:normal;font-size:0.85em;color:var(--muted);margin-left:6px;">${fra}</span>`
+        : ` <span style="font-weight:normal;font-size:0.85em;color:var(--muted);margin-left:6px;">${fra}–${til}</span>`;
+    }
+
     const groupRow = document.createElement('tr');
     const groupCell = document.createElement('td');
     groupCell.colSpan = 5;
     groupCell.className = 'obs-group-title';
-    groupCell.innerHTML = `${group.key} <span style="font-weight:normal;font-size:0.98em;color:#3b82f6;margin-left:8px;">• ${uniqueSpecies.size} art${uniqueSpecies.size === 1 ? '' : 'er'}</span>`;
+    groupCell.innerHTML = `${group.key}${timeSpanHtml} <span style="font-weight:normal;font-size:0.98em;color:#3b82f6;margin-left:8px;">• ${uniqueSpecies.size} art${uniqueSpecies.size === 1 ? '' : 'er'}</span>`;
     groupRow.appendChild(groupCell);
     tbody.appendChild(groupRow);
 
@@ -484,7 +518,15 @@ export function toCsv(observations) {
     cols[12] = gender;
     cols[13] = activity;
     cols[14] = comment;
-    
+
+    // Skjul funn til dato (kolonne 16, index 16) — konverter YYYY-MM-DD → DD.MM.YYYY
+    if (obs.hideUntil) {
+      const parts = obs.hideUntil.split('-');
+      if (parts.length === 3) {
+        cols[16] = `${parts[2]}.${parts[1]}.${parts[0]}`;
+      }
+    }
+
     // Medobservatører (10 kolonner)
     if (Array.isArray(obs.coObservers)) {
       for (let i = 0; i < 10; i++) {

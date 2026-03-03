@@ -35,7 +35,7 @@ def generate_stats_login_page():
 """
 
 
-def generate_stats_page(recent_ips, per_ua, total, per_device=None, per_os=None, per_browser=None, total_unique_ips=0, source="Supabase"):
+def generate_stats_page(recent_ips, per_ua, total, per_device=None, per_os=None, per_browser=None, total_unique_ips=0, source="Supabase", total_unique_devices=0):
     """Generer statistikk-side med data fra enten Supabase eller in-memory."""
     per_device = per_device or {}
     per_os = per_os or {}
@@ -120,7 +120,8 @@ def generate_stats_page(recent_ips, per_ua, total, per_device=None, per_os=None,
         <h1>Brukerstatistikk</h1>
         <div class="stat-row">
             <span>{total} sidevisninger</span>
-            <span>{total_unique_ips} unike IP-adresser</span>
+            <span>{total_unique_ips} unike IP-er</span>
+            <span>{total_unique_devices} unike enheter</span>
         </div>
 
         <div class="section-title">Siste 10 IP-adresser</div>

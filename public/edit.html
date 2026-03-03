@@ -82,6 +82,9 @@
         <label>Kommentar (synlig for alle)
           <textarea id="f-comment" name="comment" rows="3" style="width:100%;padding:8px;border-radius:8px;border:1px solid rgba(148,163,184,0.12);background:rgba(255,255,255,0.02);color:var(--text);"></textarea>
         </label>
+        <label>Skjul funn til dato
+          <input id="f-hide-until" name="hideUntil" type="date" />
+        </label>
         <div id="medobs-readonly" style="margin-top:8px;color:var(--muted)"></div>
         <div style="margin-top:12px;text-align:right;display:flex;gap:8px;justify-content:flex-end;">
           <button type="button" id="cancel-btn" class="btn-ghost">Avbryt</button>
@@ -126,6 +129,7 @@
       const fDate = document.getElementById('f-date');
       const fTimeFrom = document.getElementById('f-time-from');
       const fTimeTo = document.getElementById('f-time-to');
+      const fHideUntil = document.getElementById('f-hide-until');
 
       // Hjelpefunksjon for å hente YYYY-MM-DD fra ISO-streng
       function isoToDate(isoStr) {
@@ -189,6 +193,8 @@
         fTimeTo.value = isoToTime(obs.tilKlokkeslett);
         // Kommentar
         document.getElementById('f-comment').value = obs.comment || '';
+        // Skjul funn til dato
+        fHideUntil.value = obs.hideUntil || '';
         // Vis medobservatører (readonly)
         const mDiv = document.getElementById('medobs-readonly');
         if (mDiv) {
@@ -258,6 +264,12 @@
           delete obs.tilKlokkeslett;
         }
         obs.comment = (document.getElementById('f-comment').value || '').trim();
+        // Skjul funn til dato (YYYY-MM-DD → DD.MM.YYYY for AO CSV)
+        if (fHideUntil.value) {
+          obs.hideUntil = fHideUntil.value;
+        } else {
+          delete obs.hideUntil;
+        }
         // Oppdater lagring
         observations[idx] = obs;
         saveObservations(observations);

@@ -67,7 +67,7 @@ def test_logview_monkeypatch(monkeypatch):
 
     called = {'supabase': False}
 
-    def fake_log_view_to_supabase(ip, ua):
+    def fake_log_view_to_supabase(ip, ua, device_id=''):
         called['supabase'] = True
 
     # Patch the supabase logger in both modules so Handler uses the fake

@@ -159,9 +159,13 @@ function setupEventListeners() {
 
   if (dom.placeInput) {
     dom.placeInput.addEventListener('input', () => {
-      appState.currentPlaceName = dom.placeInput.value;
-      appState.currentPlaceId = null; // Nullstill ID når brukeren skriver manuelt
-      dom.placeInput.dataset.autofilled = 'false';
+      const newValue = dom.placeInput.value;
+      // Kun nullstill placeId hvis teksten faktisk endret seg fra det autofylte
+      if (newValue !== appState.currentPlaceName) {
+        appState.currentPlaceId = null;
+        dom.placeInput.dataset.autofilled = 'false';
+      }
+      appState.currentPlaceName = newValue;
       updateSectionStates(appState, dom);
     });
   }

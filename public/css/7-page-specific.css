@@ -196,7 +196,7 @@
 .activity-pills {
   display: flex;
   flex-wrap: wrap;
-  gap: 5px;
+  gap: 10px;
   margin-bottom: 4px;
   margin-top: 6px;
 }
@@ -209,8 +209,8 @@
 }
 
 .activity-pill {
-  font-size: 0.75em;
-  padding: 4px 10px;
+  font-size: 0.8em;
+  padding: 8px 14px;
   border-radius: 999px;
   border: 1.5px solid rgba(255, 255, 255, 0.5);
   background: var(--card-bg);
@@ -556,6 +556,7 @@
         font-size: 0.75rem;
         color: var(--muted);
       }
+
 
       .result-empty {
         font-size: 0.78rem;
@@ -1191,16 +1192,16 @@
 
         /* Kompakte aktivitetspiller på tablet - én rad */
         .activity-pills {
-          gap: 4px;
+          gap: 8px;
           margin-top: 4px;
           margin-bottom: 2px;
           flex-wrap: wrap;
         }
 
         .activity-pill {
-          padding: 4px 6px;
+          padding: 6px 10px;
           margin: 0;
-          min-height: 28px;
+          min-height: 36px;
           min-width: unset;
           font-size: 0.8em;
         }
