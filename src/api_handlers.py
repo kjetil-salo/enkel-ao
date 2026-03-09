@@ -5,6 +5,7 @@ Håndterer eksterne API-kall til Artsobservasjoner og Nominatim.
 """
 
 import json
+import logging
 import math
 import re
 import os
@@ -14,6 +15,8 @@ from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
 import httpx
+
+logger = logging.getLogger('fugleobs')
 
 
 def mask_token(token, visible=6):
@@ -54,7 +57,7 @@ def fetch_ao_autocomplete(term: str, login_token: str = None, auth_cookie: str =
         if new_cookie:
             auth_cookie = new_cookie
             refreshed_auth_cookie = new_cookie
-            print(f'[AO-AUTOCOMPLETE] Auto-relogin vellykket via .aspx')
+            logger.debug('[AO-AUTOCOMPLETE] Auto-relogin vellykket via .aspx')
 
     # STEG 2: Sliding expiration som fallback
     if not refreshed_auth_cookie and user_id and auth_cookie and login_token:
@@ -62,7 +65,7 @@ def fetch_ao_autocomplete(term: str, login_token: str = None, auth_cookie: str =
         if refreshed:
             auth_cookie = refreshed
             refreshed_auth_cookie = refreshed
-            print(f'[AO-AUTOCOMPLETE] Sliding expiration vellykket')
+            logger.debug('[AO-AUTOCOMPLETE] Sliding expiration vellykket')
 
     base_url = os.getenv('AO_URL', 'https://www.artsobservasjoner.no')
     params = {
@@ -89,19 +92,18 @@ def fetch_ao_autocomplete(term: str, login_token: str = None, auth_cookie: str =
             response = client.get(url, headers=headers, follow_redirects=True)
             response.raise_for_status()
 
-            # Debug: Logg response
-            print(f'[AO-AUTOCOMPLETE] Status: {response.status_code}, Content-Type: {response.headers.get("content-type")}')
+            logger.debug(f'[AO-AUTOCOMPLETE] Status: {response.status_code}, Content-Type: {response.headers.get("content-type")}')
 
             # Sjekk om responsen er JSON
             content_type = response.headers.get('content-type', '')
             if 'application/json' not in content_type:
-                print(f'[AO-AUTOCOMPLETE] Ikke-JSON respons. Første 500 tegn: {response.text[:500]}')
+                logger.warning(f'[AO-AUTOCOMPLETE] Ikke-JSON respons. Første 500 tegn: {response.text[:500]}')
                 return {'results': [], 'refreshed_auth_cookie': refreshed_auth_cookie}
 
             results = response.json()
             return {'results': results, 'refreshed_auth_cookie': refreshed_auth_cookie}
     except Exception as e:
-        print(f'[AO-AUTOCOMPLETE] Feil ved henting: {e}')
+        logger.error(f'[AO-AUTOCOMPLETE] Feil ved henting: {e}')
         return {'results': [], 'refreshed_auth_cookie': refreshed_auth_cookie}
 
 
@@ -127,11 +129,11 @@ def refresh_ao_cookie_if_needed(auth_cookie: str, user_id: str, logintoken: str 
     cache_key = f'{user_id}:{auth_cookie[:16]}'
     last_entry = _ao_cookie_refresh_cache.get(cache_key)
     if last_entry and now - last_entry[1] < _AO_COOKIE_REFRESH_INTERVAL:
-        print(f'[AO-COOKIE-REFRESH] Skipper refresh: sist oppdatert for {int(now - last_entry[1])} sekunder siden.', flush=True)
+        logger.debug(f'[AO-COOKIE-REFRESH] Skipper refresh: sist oppdatert for {int(now - last_entry[1])} sekunder siden.')
         return None
     # Treff AO-side for sliding expiration
     probe_url = 'https://www.artsobservasjoner.no/User/MyPages'
-    print(f'[AO-COOKIE-REFRESH] Prober AO-side for sliding expiration: {probe_url}', flush=True)
+    logger.debug(f'[AO-COOKIE-REFRESH] Prober AO-side for sliding expiration: {probe_url}')
     try:
         # Bygg cookies med både .ASPXAUTHNO og logintoken hvis tilgjengelig
         cookies = {'.ASPXAUTHNO': auth_cookie}
@@ -154,19 +156,17 @@ def refresh_ao_cookie_if_needed(auth_cookie: str, user_id: str, logintoken: str 
                 found_set_cookie = True
                 refreshed = response.cookies['.ASPXAUTHNO']
                 _ao_cookie_refresh_cache[cache_key] = (refreshed, now)
-                print(f'\n######################### TOKEN FORNYET #########################', flush=True)
-                print(f'[AO-COOKIE-REFRESH] Sliding expiration: fikk ny auth-cookie: {mask_token(refreshed)}', flush=True)
-                print(f'###############################################################\n', flush=True)
+                logger.info(f'[AO-COOKIE-REFRESH] Sliding expiration: fikk ny auth-cookie: {mask_token(refreshed)}')
                 return refreshed
 
             if not found_set_cookie:
-                print(f'[AO-COOKIE-REFRESH] Ingen Set-Cookie header med .ASPXAUTHNO funnet i responsen.', flush=True)
+                logger.debug('[AO-COOKIE-REFRESH] Ingen Set-Cookie header med .ASPXAUTHNO funnet i responsen.')
             # Ingen ny cookie, men oppdater timestamp for sliding expiration
             _ao_cookie_refresh_cache[cache_key] = (auth_cookie, now)
-            print(f'[AO-COOKIE-REFRESH] Sliding expiration: ingen ny cookie, men refresh-tid oppdatert', flush=True)
+            logger.debug('[AO-COOKIE-REFRESH] Sliding expiration: ingen ny cookie, men refresh-tid oppdatert')
             return None
     except Exception as e:
-        print(f'[AO-COOKIE-REFRESH] Feil ved sliding expiration refresh: {e}', flush=True)
+        logger.error(f'[AO-COOKIE-REFRESH] Feil ved sliding expiration refresh: {e}')
         return None
 
 
@@ -194,13 +194,13 @@ def get_fresh_auth_cookie(logintoken: str) -> tuple:
         cached_auth, cached_ts = _auth_cache[logintoken]
         if time.time() - cached_ts < _AUTH_CACHE_TTL:
             user_id = logintoken.split(':')[0]
-            print(f'[AUTH] Bruker cached auth cookie for user {user_id}', flush=True)
+            logger.debug(f'[AUTH] Bruker cached auth cookie for user {user_id}')
             return (cached_auth, user_id)
 
     # userId er første del av logintoken (før kolon)
     user_id = logintoken.split(':')[0]
 
-    print(f'[AUTH] Henter fersk .ASPXAUTHNO for user {user_id}...', flush=True)
+    logger.debug(f'[AUTH] Henter fersk .ASPXAUTHNO for user {user_id}...')
 
     # Send request til /LogOn med kun logintoken - følg redirects
     with httpx.Client() as client:
@@ -227,7 +227,7 @@ def get_fresh_auth_cookie(logintoken: str) -> tuple:
         # Lagre i cache
         _auth_cache[logintoken] = (auth_cookie, time.time())
 
-        print(f'[AUTH] Hentet fersk auth cookie for user {user_id}', flush=True)
+        logger.debug(f'[AUTH] Hentet fersk auth cookie for user {user_id}')
         return (auth_cookie, user_id)
 
 
@@ -243,7 +243,7 @@ def login_to_ao(username: str, password: str) -> dict:
     Raises:
         ValueError: Ved ugyldig brukernavn/passord eller andre feil
     """
-    print(f'[AO-LOGIN] Starter innlogging for bruker: {username}', flush=True)
+    logger.info(f'[AO-LOGIN] Starter innlogging for bruker: {username}')
 
     # Steg 1: Hent login-siden for CSRF-token
     with httpx.Client() as client:
@@ -269,7 +269,7 @@ def login_to_ao(username: str, password: str) -> dict:
         # Hent cookie-token fra response cookies
         cookie_token = response.cookies.get('__RequestVerificationToken', '')
 
-        print(f'[AO-LOGIN] Hentet CSRF-tokens, sender innlogging...', flush=True)
+        logger.debug('[AO-LOGIN] Hentet CSRF-tokens, sender innlogging...')
 
         # Steg 2: POST login med credentials
         post_data = {
@@ -321,9 +321,9 @@ def login_to_ao(username: str, password: str) -> dict:
         # Lagre credentials for auto-relogin
         if user_id:
             _credentials_cache[user_id] = (username, password)
-            print(f'[AO-LOGIN] Lagret credentials for auto-relogin (user_id={user_id})', flush=True)
+            logger.debug(f'[AO-LOGIN] Lagret credentials for auto-relogin (user_id={user_id})')
 
-        print(f'[AO-LOGIN] Innlogging vellykket! user_id={user_id}, auth_cookie={mask_token(auth_cookie)}', flush=True)
+        logger.info(f'[AO-LOGIN] Innlogging vellykket! user_id={user_id}, auth_cookie={mask_token(auth_cookie)}')
 
         return {
             'authCookie': auth_cookie,
@@ -352,11 +352,10 @@ def refresh_with_logintoken(login_token: str, user_id: str) -> str:
         Ny .ASPXAUTHNO cookie hvis vellykket, ellers None
     """
     if not login_token:
-        print(f'[LOGINTOKEN-REFRESH] Ingen logintoken tilgjengelig', flush=True)
+        logger.debug('[LOGINTOKEN-REFRESH] Ingen logintoken tilgjengelig')
         return None
 
-    print(f'[LOGINTOKEN-REFRESH] Prøver å fornye session med logintoken...', flush=True)
-    print(f'[LOGINTOKEN-REFRESH] LoginToken: {mask_token(login_token)} (user_id={user_id})', flush=True)
+    logger.debug(f'[LOGINTOKEN-REFRESH] Prøver å fornye session med logintoken: {mask_token(login_token)} (user_id={user_id})')
 
     try:
         # VIKTIG: Sett cookies på CLIENT-nivå, ikke request-nivå!
@@ -383,23 +382,20 @@ def refresh_with_logintoken(login_token: str, user_id: str) -> str:
                     new_auth = cookie.value
                     break
 
-            # DEBUG: Logg response-detaljer
-            print(f'[LOGINTOKEN-REFRESH] Response status: {response.status_code}', flush=True)
-            print(f'[LOGINTOKEN-REFRESH] Final URL: {response.url}', flush=True)
-            print(f'[LOGINTOKEN-REFRESH] Client cookie names: {cookie_names}', flush=True)
+            logger.debug(f'[LOGINTOKEN-REFRESH] Response: status={response.status_code}, url={response.url}, cookies={cookie_names}')
 
             if new_auth:
                 if '/LogOn' in str(response.url):
-                    print(f'[LOGINTOKEN-REFRESH] ✅ Session fornyet via /LogOn redirect (UTEN credentials)', flush=True)
+                    logger.info('[LOGINTOKEN-REFRESH] Session fornyet via /LogOn redirect (UTEN credentials)')
                 else:
-                    print(f'[LOGINTOKEN-REFRESH] ✅ Session fortsatt gyldig, fikk bekreftet .ASPXAUTHNO', flush=True)
+                    logger.debug('[LOGINTOKEN-REFRESH] Session fortsatt gyldig, fikk bekreftet .ASPXAUTHNO')
                 return new_auth
             else:
-                print(f'[LOGINTOKEN-REFRESH] ❌ Ingen .ASPXAUTHNO mottatt (logintoken ugyldig?)', flush=True)
+                logger.warning('[LOGINTOKEN-REFRESH] Ingen .ASPXAUTHNO mottatt (logintoken ugyldig?)')
                 return None
 
     except Exception as e:
-        print(f'[LOGINTOKEN-REFRESH] Feil: {e}', flush=True)
+        logger.error(f'[LOGINTOKEN-REFRESH] Feil: {e}')
         return None
 
 
@@ -444,35 +440,35 @@ def auto_relogin_if_needed(user_id: str, auth_cookie: str, login_token: str = No
             # Hvis vi får 200 og ny cookie, har AO fornyet den automatisk
             if response.status_code == 200:
                 if new_auth:
-                    print(f'[AUTO-RELOGIN] ✅ Cookie fornyet automatisk via logintoken (user_id={user_id})', flush=True)
+                    logger.info(f'[AUTO-RELOGIN] Cookie fornyet automatisk via logintoken (user_id={user_id})')
                     return new_auth
                 # Sjekk om vi IKKE ble redirectet til login (cookie fortsatt gyldig)
                 if '/LogOn' not in str(response.url):
                     return None
     except Exception as e:
-        print(f'[AUTO-RELOGIN] Feil ved cookie-test: {e}', flush=True)
+        logger.error(f'[AUTO-RELOGIN] Feil ved cookie-test: {e}')
 
-    print(f'[AUTO-RELOGIN] Cookie utløpt for user_id={user_id}', flush=True)
+    logger.info(f'[AUTO-RELOGIN] Cookie utløpt for user_id={user_id}')
 
     # STEG 1: Prøv logintoken-refresh (INGEN credentials)
     if login_token:
         new_cookie = refresh_with_logintoken(login_token, user_id)
         if new_cookie:
             return new_cookie
-        print(f'[AUTO-RELOGIN] Logintoken-refresh feilet, prøver full relogin...', flush=True)
+        logger.warning('[AUTO-RELOGIN] Logintoken-refresh feilet, prøver full relogin...')
 
     # STEG 2: Fallback til full relogin med credentials
     if user_id not in _credentials_cache:
-        print(f'[AUTO-RELOGIN] Ingen lagrede credentials for user_id={user_id}', flush=True)
+        logger.warning(f'[AUTO-RELOGIN] Ingen lagrede credentials for user_id={user_id}')
         return None
 
     username, password = _credentials_cache[user_id]
     try:
         result = login_to_ao(username, password)
-        print(f'[AUTO-RELOGIN] Vellykket (full relogin med credentials)', flush=True)
+        logger.info('[AUTO-RELOGIN] Vellykket (full relogin med credentials)')
         return result['authCookie']
     except Exception as e:
-        print(f'[AUTO-RELOGIN] Feilet: {e}', flush=True)
+        logger.error(f'[AUTO-RELOGIN] Feilet: {e}')
         return None
 
 
@@ -533,7 +529,7 @@ def handle_species_search(search_term, dont_include_sub='true', ao_base_url='htt
 
         return results
     except Exception as e:
-        print('Feil ved henting fra Artsobservasjoner:', e)
+        logger.error(f'Feil ved henting fra Artsobservasjoner: {e}')
         raise
 
 
@@ -581,7 +577,7 @@ def handle_reverse_geocoding(lat, lon, nominatim_base_url):
         
         return name
     except Exception as e:
-        print('Feil ved reverse geokoding:', e)
+        logger.error(f'Feil ved reverse geokoding: {e}')
         raise
 
 
@@ -611,7 +607,7 @@ def handle_ao_sites_search(lat, lon, size_m=600.0, ao_mobile_base_url='https://m
         if new_cookie:
             ao_auth = new_cookie
             refreshed_auth_cookie = new_cookie
-            print(f'[AO-SITES] Auto-relogin vellykket, bruker ny auth_cookie')
+            logger.info('[AO-SITES] Auto-relogin vellykket, bruker ny auth_cookie')
 
     # STEG 2: Sliding expiration - prøv å holde auth_cookie i live hvis mulig
     if ao_auth and ao_user_id and not refreshed_auth_cookie:
@@ -633,12 +629,11 @@ def handle_ao_sites_search(lat, lon, size_m=600.0, ao_mobile_base_url='https://m
     min_x = lon - d_lon
     max_x = lon + d_lon
 
-    print(
-        f'[DEBUG] AO-sites forespørsel: lat={lat:.6f}, lon={lon:.6f}, size_m={size_m:.1f}, '
-        f'minX={min_x:.6f}, minY={min_y:.6f}, maxX={max_x:.6f}, maxY={max_y:.6f}',
-        flush=True
+    logger.debug(
+        f'AO-sites forespørsel: lat={lat:.6f}, lon={lon:.6f}, size_m={size_m:.1f}, '
+        f'minX={min_x:.6f}, minY={min_y:.6f}, maxX={max_x:.6f}, maxY={max_y:.6f}'
     )
-    print(f'[DEBUG] AO-tokens mottatt: user_id={bool(user_id)}, login_token={bool(login_token)}, auth_cookie={bool(auth_cookie)}', flush=True)
+    logger.debug(f'AO-tokens: user_id={bool(user_id)}, login_token={bool(login_token)}, auth_cookie={bool(auth_cookie)}')
 
     # Samler raw sites her
     raw_sites = []
@@ -655,12 +650,12 @@ def handle_ao_sites_search(lat, lon, size_m=600.0, ao_mobile_base_url='https://m
             ao_auth = fresh_auth
             if not ao_user_id:
                 ao_user_id = extracted_user_id
-            print(f'[DEBUG] Hentet fersk auth cookie automatisk for user {ao_user_id}', flush=True)
+            logger.debug(f'Hentet fersk auth cookie automatisk for user {ao_user_id}')
         except ValueError as e:
-            print(f'[DEBUG] Kunne ikke hente auth cookie: {e}', flush=True)
+            logger.debug(f'Kunne ikke hente auth cookie: {e}')
             ao_auth = None
 
-    print(f'[DEBUG] AO-tokens final: user_id={ao_user_id}, login_token={mask_token(ao_login)}, auth_cookie={mask_token(ao_auth)}', flush=True)
+    logger.debug(f'AO-tokens final: user_id={ao_user_id}, login_token={mask_token(ao_login)}, auth_cookie={mask_token(ao_auth)}')
 
     if ao_login and ao_auth and ao_user_id:
         try:
@@ -672,14 +667,14 @@ def handle_ao_sites_search(lat, lon, size_m=600.0, ao_mobile_base_url='https://m
             # Hent CSRF token fra AO (samme strategi som ao_import)
             try:
                 _, csrf_cookie_token, refreshed = fetch_csrf_tokens(ao_login, auth_val)
-                print(f'[DEBUG] GetSitesGeoJson: Hentet CSRF token: {mask_token(csrf_cookie_token)}', flush=True)
+                logger.debug(f'GetSitesGeoJson: Hentet CSRF token: {mask_token(csrf_cookie_token)}')
                 # Bruk eventuell refreshed auth cookie
                 if refreshed:
                     auth_val = refreshed
                     refreshed_auth_cookie = refreshed
-                    print(f'[DEBUG] GetSitesGeoJson: Bruker refreshed auth cookie', flush=True)
+                    logger.debug('GetSitesGeoJson: Bruker refreshed auth cookie')
             except Exception as csrf_err:
-                print(f'[DEBUG] GetSitesGeoJson: Kunne ikke hente CSRF token: {csrf_err}', flush=True)
+                logger.debug(f'GetSitesGeoJson: Kunne ikke hente CSRF token: {csrf_err}')
                 csrf_cookie_token = None
 
             # Fallback: Hvis AO svarer med auth-feil, prøv sliding expiration refresh én gang
@@ -718,8 +713,7 @@ def handle_ao_sites_search(lat, lon, size_m=600.0, ao_mobile_base_url='https://m
                 'taxonId': None
             }
 
-            print(f'[DEBUG] GetSitesGeoJson POST to {geojson_url}', flush=True)
-            print(f'[DEBUG] GetSitesGeoJson bbox: {bbox_str}', flush=True)
+            logger.debug(f'GetSitesGeoJson POST to {geojson_url}, bbox: {bbox_str}')
 
             # Bruk httpx for POST-kall
             with httpx.Client() as client:
@@ -743,19 +737,19 @@ def handle_ao_sites_search(lat, lon, size_m=600.0, ao_mobile_base_url='https://m
                 # Parse Set-Cookie header for refreshed auth token
                 if not refreshed_auth_cookie and '.ASPXAUTHNO' in response.cookies:
                     refreshed_auth_cookie = response.cookies['.ASPXAUTHNO']
-                    print(f'[DEBUG] GetSitesGeoJson: Fant refreshed auth cookie', flush=True)
+                    logger.debug('GetSitesGeoJson: Fant refreshed auth cookie')
 
                 body = response.text
-                print(f'[DEBUG] GetSitesGeoJson body length: {len(body)}, first 500: {repr(body[:500])}', flush=True)
+                logger.debug(f'GetSitesGeoJson body length: {len(body)}, first 500: {repr(body[:500])}')
 
                 # Sjekk om vi fikk HTML i stedet for JSON (auth-feil)
                 if body.strip().startswith('<!DOCTYPE') or body.strip().startswith('<html'):
-                    print(f'[DEBUG] GetSitesGeoJson: Fikk HTML i stedet for JSON - auth ugyldig, skipper private sites', flush=True)
+                    logger.warning('GetSitesGeoJson: Fikk HTML i stedet for JSON - auth ugyldig, skipper private sites')
                     auth_failed = True  # Marker at auth feilet
                     geojson_data = None
                 else:
                     geojson_data = response.json() if body else None
-            print(f'[DEBUG] GetSitesGeoJson parsed keys: {list(geojson_data.keys()) if isinstance(geojson_data, dict) else type(geojson_data)}', flush=True)
+            logger.debug(f'GetSitesGeoJson parsed keys: {list(geojson_data.keys()) if isinstance(geojson_data, dict) else type(geojson_data)}')
 
             # GetSitesGeoJson returnerer { points: { features: [...] }, polygons: {...} }
             # Brukerens egne sites har isPrivate=true
@@ -780,10 +774,9 @@ def handle_ao_sites_search(lat, lon, size_m=600.0, ao_mobile_base_url='https://m
                         if props.get('isPrivate') and site_id is not None:
                             my_site_ids.add(int(site_id))
 
-            print(f'GetSitesGeoJson: fant {len(my_site_ids)} private site-IDs')
+            logger.debug(f'GetSitesGeoJson: fant {len(my_site_ids)} private site-IDs')
         except Exception as geojs_err:
-            # Logging feil ved henting av brukerens egne lokasjoner - ikke kritisk
-            print(f'[DEBUG] GetSitesGeoJson feilet: {geojs_err}')
+            logger.warning(f'GetSitesGeoJson feilet: {geojs_err}')
             # Hvis auth er ugyldig, fortsett med kun offentlige sites
             pass
 
@@ -824,9 +817,9 @@ def handle_ao_sites_search(lat, lon, size_m=600.0, ao_mobile_base_url='https://m
                         match = re.search(r'\.ASPXAUTHNO=([^;]+)', set_cookie_header)
                         if match:
                             refreshed_auth_cookie = match.group(1)
-                            print(f'Fikk refreshed auth cookie fra ByBoundingBox')
+                            logger.debug('Fikk refreshed auth cookie fra ByBoundingBox')
                 except Exception as cookie_err:
-                    print(f'Feil ved parsing av Set-Cookie: {cookie_err}')
+                    logger.debug(f'Feil ved parsing av Set-Cookie: {cookie_err}')
             
             body = resp.read().decode('utf-8', errors='ignore')
         data = json.loads(body)
@@ -913,11 +906,11 @@ def handle_ao_sites_search(lat, lon, size_m=600.0, ao_mobile_base_url='https://m
         # Logging: vis alle site-IDs som har isMine=True
         mine_sites = [s for s in sites if s.get('isMine')]
         if mine_sites:
-            print(f'[AO-SITES] Lokasjoner med isMine=True:')
+            logger.debug(f'[AO-SITES] Lokasjoner med isMine=True: {len(mine_sites)}')
             for s in mine_sites:
-                print(f'  - Navn: {s.get("name")}, ID: {s.get("id")}, Lat: {s.get("lat")}, Lon: {s.get("lon")}')
+                logger.debug(f'  - Navn: {s.get("name")}, ID: {s.get("id")}')
         else:
-            print('[AO-SITES] Ingen lokasjoner med isMine=True i sites-array.')
+            logger.debug('[AO-SITES] Ingen lokasjoner med isMine=True i sites-array.')
 
         # Etter at vi har samlet alle sites, utled om noen er "superlokasjoner"
         # ved å se etter parent-referanser. Hvis et item A har parentSiteId = B,
@@ -941,9 +934,9 @@ def handle_ao_sites_search(lat, lon, size_m=600.0, ao_mobile_base_url='https://m
         except Exception:
             pass
 
-        print(f'AO-sites svar: {len(sites)} lokaliteter returnert')
+        logger.info(f'AO-sites: {len(sites)} lokaliteter')
         if sites[:3]:
-            print('AO-sites eksempelsteder:', [s.get('name') for s in sites[:3]])
+            logger.info(f'AO-sites eksempel: {[s.get("name") for s in sites[:3]]}')
 
         # Merk bruker-eide lokasjoner hvis de er angitt i miljøvariabel
         # MY_AO_SITE_IDS kan være en kommaseparert liste med site-id'er som eies av brukeren.
@@ -967,5 +960,5 @@ def handle_ao_sites_search(lat, lon, size_m=600.0, ao_mobile_base_url='https://m
 
         return sites, refreshed_auth_cookie, auth_failed
     except Exception as e:
-        print('Feil ved henting av AO-lokaliteter:', repr(e))
+        logger.error(f'Feil ved henting av AO-lokaliteter: {repr(e)}')
         raise

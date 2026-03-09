@@ -12,10 +12,20 @@ except ImportError:
     pass
 
 import json
+import logging
 import os
 import threading
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse, parse_qs
+
+# Konfigurerbart log-nivå via miljøvariabel (DEBUG, INFO, WARNING, ERROR)
+LOG_LEVEL = os.environ.get('LOG_LEVEL', 'INFO').upper()
+logging.basicConfig(
+    level=getattr(logging, LOG_LEVEL, logging.INFO),
+    format='%(asctime)s [%(levelname)s] %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+logger = logging.getLogger('fugleobs')
 
 from src.api_handlers import handle_species_search, handle_reverse_geocoding, handle_ao_sites_search, login_to_ao, refresh_ao_cookie_if_needed, mask_token
 from src.html_templates import generate_stats_login_page, generate_stats_page, generate_error_page
@@ -76,7 +86,6 @@ class Handler(SimpleHTTPRequestHandler):
     
     def _handle_logview_post(self):
         """Håndter logging av sidevisning."""
-        import sys
         import uuid
         from http.cookies import SimpleCookie
 
@@ -98,7 +107,7 @@ class Handler(SimpleHTTPRequestHandler):
             device_id = str(uuid.uuid4())
             set_cookie = True
 
-        print(f"[LOGVIEW] IP: {real_ip} | UA: {user_agent} | Device: {device_id[:8]}...", file=sys.stderr)
+        logger.debug(f"[LOGVIEW] IP: {real_ip} | UA: {user_agent} | Device: {device_id[:8]}...")
 
         # Oppdater in-memory statistikk
         with _stats_lock:
@@ -111,7 +120,7 @@ class Handler(SimpleHTTPRequestHandler):
         try:
             log_view_to_supabase(real_ip, user_agent, device_id=device_id)
         except Exception as e:
-            print(f"[Supabase] Feil ved logging: {e}")
+            logger.warning(f"[Supabase] Feil ved logging: {e}")
 
         # Sett cookie hvis ny enhet (2 år levetid)
         if set_cookie:
@@ -125,8 +134,6 @@ class Handler(SimpleHTTPRequestHandler):
 
     def _handle_ao_import_post(self):
         """Håndter direkte posting av observasjoner til AO (kun for eier)."""
-        import sys
-
         # Les request body
         try:
             content_length = int(self.headers.get('Content-Length', 0))
@@ -145,27 +152,25 @@ class Handler(SimpleHTTPRequestHandler):
                 self._send_json({'error': 'Mangler loginToken eller authCookie'}, status=400)
                 return
 
-            print(f'[AO-IMPORT] Mottatt {len(observations)} observasjoner, area={area_id}', file=sys.stderr)
+            logger.info(f'[AO-IMPORT] Mottatt {len(observations)} observasjoner, area={area_id}')
 
             # Post til AO med curl (tokens fra klient)
             result = post_with_curl(observations, login_token, auth_cookie, area_id=area_id)
 
-            print(f'[AO-IMPORT] Suksess: {result}', file=sys.stderr)
+            logger.info(f'[AO-IMPORT] Suksess: {result}')
             self._send_json(result)
 
         except ValueError as e:
             # Valideringsfeil eller AO-feil
-            print(f'[AO-IMPORT] Feil: {e}', file=sys.stderr)
+            logger.error(f'[AO-IMPORT] Feil: {e}')
             self._send_json({'error': str(e)}, status=400)
         except Exception as e:
             # Uventet feil
-            print(f'[AO-IMPORT] Uventet feil: {e}', file=sys.stderr)
+            logger.error(f'[AO-IMPORT] Uventet feil: {e}')
             self._send_json({'error': f'Server-feil: {str(e)}'}, status=500)
 
     def _handle_ao_login_post(self):
         """Håndter innlogging til AO med brukernavn/passord."""
-        import sys
-
         try:
             content_length = int(self.headers.get('Content-Length', 0))
             body = self.rfile.read(content_length).decode('utf-8')
@@ -178,12 +183,12 @@ class Handler(SimpleHTTPRequestHandler):
                 self._send_json({'error': 'Brukernavn og passord er påkrevd'}, status=400)
                 return
 
-            print(f'[AO-LOGIN] Innloggingsforsøk for bruker: {username}', file=sys.stderr)
+            logger.info(f'[AO-LOGIN] Innloggingsforsøk for bruker: {username}')
 
             # Logg inn via api_handlers
             result = login_to_ao(username, password)
 
-            print(f'[AO-LOGIN] Vellykket for user_id={result.get("userId")}', file=sys.stderr)
+            logger.info(f'[AO-LOGIN] Vellykket for user_id={result.get("userId")}')
             self._send_json({
                 'success': True,
                 'authCookie': result['authCookie'],
@@ -192,15 +197,14 @@ class Handler(SimpleHTTPRequestHandler):
             })
 
         except ValueError as e:
-            print(f'[AO-LOGIN] Feil: {e}', file=sys.stderr)
+            logger.error(f'[AO-LOGIN] Feil: {e}')
             self._send_json({'error': str(e)}, status=401)
         except Exception as e:
-            print(f'[AO-LOGIN] Uventet feil: {e}', file=sys.stderr)
+            logger.error(f'[AO-LOGIN] Uventet feil: {e}')
             self._send_json({'error': f'Server-feil: {str(e)}'}, status=500)
 
     def _handle_ao_refresh_post(self):
         """Håndter refresh av AO session token."""
-        import sys
         import httpx
 
         try:
@@ -212,11 +216,7 @@ class Handler(SimpleHTTPRequestHandler):
             auth_cookie = data.get('authCookie', '').strip()
             user_id = data.get('userId', '').strip()
 
-            print(f'[AO-REFRESH] === Session Refresh Request ===', file=sys.stderr)
-            print(f'[AO-REFRESH] Input tokens:', file=sys.stderr)
-            print(f'[AO-REFRESH]   loginToken: {mask_token(login_token)}', file=sys.stderr)
-            print(f'[AO-REFRESH]   authCookie: {mask_token(auth_cookie)}', file=sys.stderr)
-            print(f'[AO-REFRESH]   userId: {user_id}', file=sys.stderr)
+            logger.debug(f'[AO-REFRESH] Session refresh: loginToken={mask_token(login_token)}, authCookie={mask_token(auth_cookie)}, userId={user_id}')
 
             if not login_token:
                 self._send_json({'error': 'loginToken er påkrevd'}, status=400)
@@ -234,7 +234,7 @@ class Handler(SimpleHTTPRequestHandler):
 
             # Prøv å refreshe ved å treffe en beskyttet AO-side
             probe_url = 'https://www.artsobservasjoner.no/User/MyPages'
-            print(f'[AO-REFRESH] Prober: {probe_url}', file=sys.stderr)
+            logger.debug(f'[AO-REFRESH] Prober: {probe_url}')
 
             # VIKTIG: Sett cookies på CLIENT-nivå, ikke request-nivå!
             # Per-request cookies sendes kun med første request og videresendes IKKE ved redirects.
@@ -256,19 +256,11 @@ class Handler(SimpleHTTPRequestHandler):
                     elif cookie.name == 'logintoken' and cookie.value != login_token:
                         refreshed_login_token = cookie.value
 
-            print(f'[AO-REFRESH] Response status: {response.status_code}', file=sys.stderr)
-            print(f'[AO-REFRESH] Final URL: {response.url}', file=sys.stderr)
-            print(f'[AO-REFRESH] Client cookie names: {cookie_names}', file=sys.stderr)
-
+            logger.debug(f'[AO-REFRESH] Response: status={response.status_code}, url={response.url}, cookies={cookie_names}')
             if refreshed_auth:
-                print(f'[AO-REFRESH]   New authCookie: {mask_token(refreshed_auth)}', file=sys.stderr)
-
+                logger.debug(f'[AO-REFRESH] Ny authCookie: {mask_token(refreshed_auth)}')
             if refreshed_login_token:
-                print(f'[AO-REFRESH]   New loginToken: {mask_token(refreshed_login_token)}', file=sys.stderr)
-
-            print(f'[AO-REFRESH] === Refresh Result ===', file=sys.stderr)
-            print(f'[AO-REFRESH]   New authCookie: {mask_token(refreshed_auth)}', file=sys.stderr)
-            print(f'[AO-REFRESH]   New loginToken: {mask_token(refreshed_login_token)}', file=sys.stderr)
+                logger.debug(f'[AO-REFRESH] Ny loginToken: {mask_token(refreshed_login_token)}')
 
             result = {}
             if refreshed_auth:
@@ -279,7 +271,7 @@ class Handler(SimpleHTTPRequestHandler):
             if not result:
                 # Sjekk om vi ble redirectet til login (token utløpt)
                 if '/LogOn' in str(response.url) or response.status_code == 302:
-                    print(f'[AO-REFRESH] Token utløpt - redirect til LogOn', file=sys.stderr)
+                    logger.info(f'[AO-REFRESH] Token utløpt - redirect til LogOn')
                     result['error'] = 'Token utløpt - krever ny innlogging'
                 else:
                     result['message'] = 'Ingen ny token mottatt, eksisterende kan fortsatt være gyldig'
@@ -287,12 +279,11 @@ class Handler(SimpleHTTPRequestHandler):
             self._send_json(result)
 
         except Exception as e:
-            print(f'[AO-REFRESH] Feil: {e}', file=sys.stderr)
+            logger.error(f'[AO-REFRESH] Feil: {e}')
             self._send_json({'error': str(e)}, status=500)
 
     def _handle_ao_create_site_post(self):
         """Håndter opprettelse av ny AO-lokasjon."""
-        import sys
         from src.ao_create_site import create_ao_site
 
         try:
@@ -323,26 +314,27 @@ class Handler(SimpleHTTPRequestHandler):
             lon = float(lon)
             accuracy = int(accuracy)
 
-            print(f'[AO-CREATE-SITE] Oppretter "{name}" ved {lat}, {lon} (±{accuracy}m)', file=sys.stderr)
+            logger.info(f'[AO-CREATE-SITE] Oppretter "{name}" ved {lat}, {lon} (±{accuracy}m)')
 
             result = create_ao_site(name, lat, lon, accuracy, login_token, auth_cookie)
 
-            print(f'[AO-CREATE-SITE] Resultat: {result}', file=sys.stderr)
+            logger.info(f'[AO-CREATE-SITE] Resultat: {result}')
             self._send_json(result)
 
         except (ValueError, TypeError) as e:
-            print(f'[AO-CREATE-SITE] Valideringsfeil: {e}', file=sys.stderr)
+            logger.error(f'[AO-CREATE-SITE] Valideringsfeil: {e}')
             self._send_json({'error': str(e)}, status=400)
         except Exception as e:
-            print(f'[AO-CREATE-SITE] Uventet feil: {e}', file=sys.stderr)
+            logger.error(f'[AO-CREATE-SITE] Uventet feil: {e}')
             self._send_json({'error': f'Server-feil: {str(e)}'}, status=500)
+
+    def log_message(self, format, *args):
+        """Overstyr BaseHTTPRequestHandler sin innebygde request-logging."""
+        logger.debug(f"{self.client_address[0]} - {format % args}")
 
     def do_GET(self):
         """Håndter GET-forespørsler."""
-        import sys
-        
-        user_agent = self.headers.get('User-Agent', '-')
-        print(f"[LOG] IP: {self.client_address[0]} | UA: {user_agent} | PATH: {self.path}", file=sys.stderr)
+        logger.debug(f"IP: {self.client_address[0]} | UA: {self.headers.get('User-Agent', '-')} | PATH: {self.path}")
         
         parsed = urlparse(self.path)
         
@@ -367,7 +359,7 @@ class Handler(SimpleHTTPRequestHandler):
             else:
                 self._handle_static_files(parsed)
         except Exception as e:
-            print(f"[ERROR] Feil i {parsed.path}: {e}", file=sys.stderr)
+            logger.error(f"Feil i {parsed.path}: {e}")
             self._send_error_response(str(e))
     
     def _handle_stats_page(self, parsed):
@@ -427,7 +419,7 @@ class Handler(SimpleHTTPRequestHandler):
                 self._send_html_response(html)
                 return
         except Exception as e:
-            print(f"[STATS] Supabase feil: {e}")
+            logger.warning(f"[STATS] Supabase feil: {e}")
         
         # Fallback til in-memory statistikk
         with _stats_lock:
@@ -502,9 +494,9 @@ class Handler(SimpleHTTPRequestHandler):
         # Hvis vi har loginToken men ikke user_id, ekstraher fra loginToken
         if login_token and not user_id and ':' in login_token:
             user_id = login_token.split(':')[0]
-            print(f'[DEBUG] Ekstraherte user_id={user_id} fra loginToken', flush=True)
-        
-        print(f'[DEBUG] ao-sites mottok auth: user_id={user_id is not None}, login_token={login_token is not None}, auth_cookie={auth_cookie is not None}', flush=True)
+            logger.debug(f'ao-sites: Ekstraherte user_id={user_id} fra loginToken')
+
+        logger.debug(f'ao-sites mottok auth: user_id={user_id is not None}, login_token={login_token is not None}, auth_cookie={auth_cookie is not None}')
         
         ao_mobile_base = os.environ.get(
             'AO_MOBILE_URL', 'https://mobil.artsobservasjoner.no'
@@ -512,13 +504,13 @@ class Handler(SimpleHTTPRequestHandler):
         try:
             sites, refreshed_auth_cookie, auth_failed = handle_ao_sites_search(lat_raw, lon_raw, size_raw, ao_mobile_base, user_id, login_token, auth_cookie)
             response_data = {'sites': sites}
-            print(f'[DEBUG] ao-sites refresh resultat: refreshed_auth_cookie={refreshed_auth_cookie is not None}, auth_failed={auth_failed}', flush=True)
+            logger.debug(f'ao-sites refresh: refreshed={refreshed_auth_cookie is not None}, auth_failed={auth_failed}')
             if refreshed_auth_cookie:
                 response_data['refreshedAuthCookie'] = refreshed_auth_cookie
-                print(f'[DEBUG] Sender refreshed auth cookie tilbake til frontend: {mask_token(refreshed_auth_cookie)}', flush=True)
+                logger.debug(f'Sender refreshed auth cookie til frontend: {mask_token(refreshed_auth_cookie)}')
             if auth_failed:
                 response_data['authRequired'] = True
-                print(f'[DEBUG] Auth feilet - sender authRequired=true til frontend', flush=True)
+                logger.debug(f'Auth feilet - sender authRequired=true til frontend')
             self._send_json(response_data)
         except ValueError as e:
             self._send_json({'error': str(e)}, status=400)
@@ -528,7 +520,6 @@ class Handler(SimpleHTTPRequestHandler):
     
     def _handle_ao_areas_api(self, parsed):
         """Proxy for AO område-søk (politiske grenser). Åpent API med access-key."""
-        import sys
         import httpx
 
         params = parse_qs(parsed.query)
@@ -552,12 +543,11 @@ class Handler(SimpleHTTPRequestHandler):
                 data = response.json()
             self._send_json(data)
         except Exception as e:
-            print(f'[AO-AREAS] Feil: {e}', file=sys.stderr)
+            logger.error(f'[AO-AREAS] Feil: {e}')
             self._send_json([])
 
     def _handle_ao_autocomplete_api(self, parsed):
         """Proxy for AO autocomplete-søk på lokaliteter."""
-        import sys
         from src.api_handlers import fetch_ao_autocomplete
 
         params = parse_qs(parsed.query)
@@ -570,7 +560,7 @@ class Handler(SimpleHTTPRequestHandler):
             self._send_json({'results': [], 'refreshed_auth_cookie': None})
             return
 
-        print(f'[AO-AUTOCOMPLETE] Søk: term={term}, autentisert={bool(login_token and auth_cookie)}, user_id={user_id}', file=sys.stderr)
+        logger.debug(f'[AO-AUTOCOMPLETE] Søk: term={term}, autentisert={bool(login_token and auth_cookie)}, user_id={user_id}')
 
         try:
             # Kall autocomplete med auto-relogin support
@@ -583,7 +573,7 @@ class Handler(SimpleHTTPRequestHandler):
             # data er nå {'results': [...], 'refreshed_auth_cookie': ...}
             self._send_json(data)
         except Exception as e:
-            print(f'[AO-AUTOCOMPLETE] Feil: {e}', file=sys.stderr)
+            logger.error(f'[AO-AUTOCOMPLETE] Feil: {e}')
             self._send_json({'results': [], 'refreshed_auth_cookie': None})
 
     def _handle_static_files(self, parsed):
@@ -662,7 +652,7 @@ def run(port=3000):
     os.chdir(BASE_DIR)
     server_address = ('', port)
     httpd = ThreadingHTTPServer(server_address, Handler)
-    print(f'Server kjører på port {port}')
+    logger.info(f'Server kjører på port {port} (log_level={LOG_LEVEL})')
     httpd.serve_forever()
 
 
