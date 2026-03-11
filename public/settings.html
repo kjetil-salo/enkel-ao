@@ -114,6 +114,32 @@
       <div style="font-size:0.92em;color:var(--muted,#aaa);">
         Aktiver for å registrere observasjoner med egen dato/tid (ikke sanntid).
       </div>
+      <div style="border-top:1px solid rgba(148,163,184,0.12);margin-top:18px;padding-top:18px;">
+        <h3 style="margin:0 0 4px 0;font-size:1em;color:var(--text,#e5e7eb);">AO-innlogging</h3>
+        <p style="font-size:0.82em;color:var(--muted,#aaa);margin:0 0 14px 0;">
+          Brukernavn og passord sendes direkte til Artsobservasjoner.no og lagres ikke på server. Kildekoden kan verifiseres på GitHub. Bruk et unikt passord.
+        </p>
+        <div style="margin-bottom:12px;">
+          <label for="ao-username" style="display:block;font-size:0.88em;color:var(--muted,#aaa);margin-bottom:4px;">Brukernavn</label>
+          <input type="text" id="ao-username" autocomplete="username" placeholder="ditt_brukernavn"
+            style="width:100%;padding:10px 12px;border-radius:8px;border:1px solid rgba(148,163,184,0.3);background:rgba(15,23,42,0.8);color:var(--text,#e5e7eb);font-size:16px;box-sizing:border-box;" />
+        </div>
+        <div>
+          <label for="ao-password" style="display:block;font-size:0.88em;color:var(--muted,#aaa);margin-bottom:4px;">Passord</label>
+          <div style="position:relative;">
+            <input type="password" id="ao-password" autocomplete="current-password" placeholder="••••••••"
+              style="width:100%;padding:10px 40px 10px 12px;border-radius:8px;border:1px solid rgba(148,163,184,0.3);background:rgba(15,23,42,0.8);color:var(--text,#e5e7eb);font-size:16px;box-sizing:border-box;" />
+            <button type="button" id="toggle-ao-password"
+              style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--muted,#aaa);font-size:1.1em;padding:4px;">👁</button>
+          </div>
+        </div>
+        <button type="button" id="test-ao-login"
+          style="margin-top:14px;width:100%;padding:10px;border-radius:8px;border:none;background:#3b82f6;color:white;font-size:1em;cursor:pointer;">
+          🔐 Test innlogging
+        </button>
+        <div id="ao-login-status" style="display:none;margin-top:8px;padding:10px;border-radius:8px;font-size:0.85em;"></div>
+      </div>
+
       <div style="margin-top:32px;text-align:center;">
         <a href="/" style="color:#3b82f6;text-decoration:none;font-size:1.05em;">← Tilbake</a>
       </div>
@@ -250,6 +276,77 @@
       privateSitesCb.addEventListener('change', () => {
         if(privateSitesCb.checked) localStorage.removeItem(privateSitesKey);
         else localStorage.setItem(privateSitesKey, '0');
+      });
+
+      // AO-innlogging
+      const aoUsernameInput = document.getElementById('ao-username');
+      const aoPasswordInput = document.getElementById('ao-password');
+      const togglePasswordBtn = document.getElementById('toggle-ao-password');
+
+      aoUsernameInput.value = localStorage.getItem('ao_username') || '';
+      aoPasswordInput.value = localStorage.getItem('ao_password') || '';
+
+      aoUsernameInput.addEventListener('input', () => {
+        const val = aoUsernameInput.value.trim();
+        if (val) localStorage.setItem('ao_username', val);
+        else localStorage.removeItem('ao_username');
+      });
+
+      aoPasswordInput.addEventListener('input', () => {
+        const val = aoPasswordInput.value;
+        if (val) localStorage.setItem('ao_password', val);
+        else localStorage.removeItem('ao_password');
+      });
+
+      togglePasswordBtn.addEventListener('click', () => {
+        if (aoPasswordInput.type === 'password') {
+          aoPasswordInput.type = 'text';
+          togglePasswordBtn.textContent = '🙈';
+        } else {
+          aoPasswordInput.type = 'password';
+          togglePasswordBtn.textContent = '👁';
+        }
+      });
+
+      // Test innlogging
+      const testLoginBtn = document.getElementById('test-ao-login');
+      const loginStatus = document.getElementById('ao-login-status');
+
+      testLoginBtn.addEventListener('click', async () => {
+        const username = localStorage.getItem('ao_username');
+        const password = localStorage.getItem('ao_password');
+        if (!username || !password) {
+          loginStatus.style.display = 'block';
+          loginStatus.style.cssText = 'display:block;margin-top:8px;padding:10px;border-radius:8px;font-size:0.85em;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);color:#fca5a5;';
+          loginStatus.textContent = '❌ Fyll inn brukernavn og passord først';
+          return;
+        }
+
+        testLoginBtn.disabled = true;
+        testLoginBtn.textContent = '⏳ Tester...';
+        loginStatus.style.cssText = 'display:block;margin-top:8px;padding:10px;border-radius:8px;font-size:0.85em;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.3);color:#93c5fd;';
+        loginStatus.textContent = '⏳ Kobler til Artsobservasjoner...';
+
+        try {
+          const resp = await fetch('/api/ao-login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password }),
+          });
+          const result = await resp.json();
+          if (resp.ok && result.success) {
+            loginStatus.style.cssText = 'display:block;margin-top:8px;padding:10px;border-radius:8px;font-size:0.85em;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);color:#86efac;';
+            loginStatus.textContent = `✅ Innlogging OK! Bruker-ID: ${result.userId}`;
+          } else {
+            throw new Error(result.error || 'Innlogging feilet');
+          }
+        } catch (e) {
+          loginStatus.style.cssText = 'display:block;margin-top:8px;padding:10px;border-radius:8px;font-size:0.85em;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);color:#fca5a5;';
+          loginStatus.textContent = `❌ ${e.message}`;
+        } finally {
+          testLoginBtn.disabled = false;
+          testLoginBtn.textContent = '🔐 Test innlogging';
+        }
       });
     </script>
   </body>

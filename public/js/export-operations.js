@@ -65,6 +65,76 @@ export async function handleCopyAndOpen(observations, dom) {
   }
 }
 
+export async function handleDirectSend(observations, dom, callbacks) {
+  if (!observations.length) return;
+
+  const username = localStorage.getItem('ao_username');
+  const password = localStorage.getItem('ao_password');
+  if (!username || !password) return;
+
+  dom.aoDirectBtn.disabled = true;
+  dom.aoDirectStatus.style.display = 'block';
+  dom.aoDirectStatus.style.cssText = 'display:block;margin-top:8px;padding:10px;border-radius:8px;font-size:0.9rem;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.3);color:#93c5fd;';
+  dom.aoDirectStatus.textContent = '⏳ Logger inn på AO...';
+
+  try {
+    const loginResp = await fetch('/api/ao-login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password }),
+    });
+    const loginResult = await loginResp.json();
+    if (!loginResp.ok || !loginResult.success) {
+      throw new Error(loginResult.error || 'Innlogging feilet');
+    }
+
+    const tokens = JSON.parse(localStorage.getItem('ao_tokens') || '{}');
+    tokens.loginToken = loginResult.loginToken;
+    tokens.authCookie = loginResult.authCookie;
+    tokens.userId = tokens.mapUserId || loginResult.userId;
+    localStorage.setItem('ao_tokens', JSON.stringify(tokens));
+
+    dom.aoDirectStatus.textContent = '⏳ Sender observasjoner...';
+
+    const importResp = await fetch('/api/ao-import', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        observations,
+        loginToken: tokens.loginToken,
+        authCookie: tokens.authCookie,
+        areaId: localStorage.getItem('ao_area') ? JSON.parse(localStorage.getItem('ao_area')).id : '',
+      }),
+    });
+    const importResult = await importResp.json();
+
+    if (importResp.ok && importResult.success) {
+      if (importResult.refreshedAuthCookie) {
+        const t = JSON.parse(localStorage.getItem('ao_tokens') || '{}');
+        t.authCookie = importResult.refreshedAuthCookie;
+        localStorage.setItem('ao_tokens', JSON.stringify(t));
+      }
+      dom.aoDirectStatus.style.cssText = 'display:block;margin-top:8px;padding:10px;border-radius:8px;font-size:0.9rem;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);color:#86efac;';
+      dom.aoDirectStatus.textContent = `✅ ${importResult.count} observasjon${importResult.count !== 1 ? 'er' : ''} sendt til AO!`;
+
+      setTimeout(() => {
+        if (confirm('Sending vellykket! Vil du tømme observasjonslisten?')) {
+          observations.splice(0, observations.length);
+          callbacks.doRenderObservations();
+          callbacks.saveState();
+          dom.aoDirectStatus.style.display = 'none';
+        }
+      }, 1500);
+    } else {
+      throw new Error(importResult.error || 'Import feilet');
+    }
+  } catch (error) {
+    dom.aoDirectStatus.style.cssText = 'display:block;margin-top:8px;padding:10px;border-radius:8px;font-size:0.9rem;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);color:#fca5a5;';
+    dom.aoDirectStatus.textContent = `❌ ${error.message}`;
+    dom.aoDirectBtn.disabled = false;
+  }
+}
+
 export function handleClear(observations, dom, callbacks) {
   if (!observations.length) return;
   const ok = window.confirm('Slette alle observasjoner i listen?');

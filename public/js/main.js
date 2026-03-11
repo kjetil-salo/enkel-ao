@@ -14,7 +14,7 @@ import { renderObservations } from './observations.js';
 import { updateSectionStates, pulseSearchFieldAndFocus } from './form-state.js';
 import { fetchResults, renderResults, chooseItem, updateSubtaxaCheckboxState } from './species-search.js';
 import { commitObservation, renderActivityPills } from './observation-commit.js';
-import { handleExport, handleCopy, handleCopyAndOpen, handleClear } from './export-operations.js';
+import { handleExport, handleCopy, handleCopyAndOpen, handleClear, handleDirectSend } from './export-operations.js';
 import { initAutocomplete } from './autocomplete.js';
 
 // ============================================================
@@ -57,6 +57,9 @@ const dom = {
   copyBtn: document.getElementById('copy-btn'),
   copyOpenBtn: document.getElementById('copy-open-btn'),
   clearBtn: document.getElementById('clear-btn'),
+  aoDirectBtn: document.getElementById('ao-direct-btn'),
+  aoDirectRow: document.getElementById('ao-direct-row'),
+  aoDirectStatus: document.getElementById('ao-direct-status'),
   locDot: document.getElementById('loc-dot'),
   locText: document.getElementById('loc-text'),
   locMapBtn: document.getElementById('loc-map-btn'),
@@ -108,8 +111,14 @@ function loadState() {
 }
 
 function doRenderObservations() {
-  const buttons = { exportBtn: dom.exportBtn, copyBtn: dom.copyBtn, copyOpenBtn: dom.copyOpenBtn, clearBtn: dom.clearBtn };
+  const buttons = { exportBtn: dom.exportBtn, copyBtn: dom.copyBtn, copyOpenBtn: dom.copyOpenBtn, clearBtn: dom.clearBtn, aoDirectBtn: dom.aoDirectBtn };
   renderObservations(appState.observations, dom.obsListEl, buttons, saveState);
+}
+
+function updateAoDirectVisibility() {
+  if (!dom.aoDirectRow) return;
+  const hasCredentials = localStorage.getItem('ao_username') && localStorage.getItem('ao_password');
+  dom.aoDirectRow.style.display = hasCredentials ? 'block' : 'none';
 }
 
 function commitFromActivity() {
@@ -314,6 +323,7 @@ window.updateMapBtnVisibility = updateMapBtnVisibility;
   if (dom.copyBtn) dom.copyBtn.addEventListener('click', () => handleCopy(appState.observations, dom));
   if (dom.copyOpenBtn) dom.copyOpenBtn.addEventListener('click', () => handleCopyAndOpen(appState.observations, dom));
   if (dom.clearBtn) dom.clearBtn.addEventListener('click', () => handleClear(appState.observations, dom, callbacks));
+  if (dom.aoDirectBtn) dom.aoDirectBtn.addEventListener('click', () => handleDirectSend(appState.observations, dom, callbacks));
 }
 
 // ============================================================
@@ -475,4 +485,5 @@ window.addEventListener('DOMContentLoaded', () => {
   updateMapBtnVisibility();
   updateModeUI();
   setupModeToggle();
+  updateAoDirectVisibility();
 });

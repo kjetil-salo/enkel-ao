@@ -197,7 +197,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
-  margin-bottom: 4px;
+  margin-bottom: 12px;
   margin-top: 6px;
 }
 
@@ -629,6 +629,38 @@
         background: radial-gradient(circle at top left, rgba(15, 23, 42, 0.96), rgba(15, 23, 42, 0.9));
       }
 
+      /* Observasjonsliste: tydelig nøytral ramme */
+      .section-liste {
+        border: 2px solid rgba(100, 116, 139, 0.28);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+        overflow: hidden;
+      }
+
+      /* Handlingsseksjon: subtil amber-antydning for "action" */
+      .section-handlinger {
+        background: rgba(245, 158, 11, 0.05);
+        border: 2px solid rgba(245, 158, 11, 0.2);
+        box-shadow: 0 2px 8px rgba(245, 158, 11, 0.08);
+        margin-top: 12px;
+        margin-bottom: 0;
+      }
+
+      .section-handlinger legend {
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: rgba(245, 158, 11, 0.8);
+        font-weight: 600;
+        padding: 0 8px;
+        margin-left: -4px;
+      }
+
+      /* Medobservatører-link i obs-seksjonen */
+      .medobs-link {
+        font-size: 0.82rem !important;
+        opacity: 0.85;
+      }
+
       /* Tydelig skille før observasjonslisten på mobil */
       @media (max-width: 767px) {
         .tablet-list-column .section {
@@ -850,9 +882,8 @@
 
 
       .obs-table {
-        /* Let the table extend a bit beyond the section padding so content uses full width */
-        width: calc(100% + 24px);
-        margin-left: -12px;
+        width: 100%;
+        margin-left: 0;
         border-collapse: collapse;
         margin-bottom: 4px;
       }
@@ -981,12 +1012,8 @@
         overflow-x: auto;
       }
 
-      /* Visual separator above the export buttons to clearly separate
-         the species/observations list from the action buttons. */
       .export-row {
-        border-top: 1px solid rgba(148,163,184,0.08);
-        padding-top: 10px;
-        margin-top: 14px;
+        margin-top: 4px;
       }
 
       @media (max-width: 480px) {

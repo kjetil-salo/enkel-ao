@@ -176,6 +176,9 @@
               </button>
             </div>
           </div>
+          <div class="row" style="margin-top:10px;">
+            <a class="btn medobs-link" href="/medobs.html">👥 Medobservatører</a>
+          </div>
 
           <!-- Dato/tid-felt for etterregistreringsmodus (skjult som default) -->
           <div class="row" id="datetime-fields" style="display:none;margin-top:20px;padding-top:8px;clear:both;">
@@ -238,23 +241,37 @@
         </div><!-- /tablet-input-column -->
 
         <div class="tablet-list-column">
-        <div class="section">
+        <div class="section section-liste">
           <div class="section-title"><img src="/public/img/ugle-logo.png" alt="" class="obs-title-owl obs-title-owl-left"><span>Observasjoner</span><img src="/public/img/ugle-logo.png" alt="" class="obs-title-owl obs-title-owl-right"></div>
           <div class="obs-list" id="obs-list"></div>
-          <div class="export-row" style="max-width:calc(100% - 16px);padding-right:12px;">
-            <button class="btn" id="clear-btn" disabled style="margin-right:16px;">
+        </div>
+
+        <fieldset class="section-main section-handlinger">
+          <legend>Send inn</legend>
+          <div id="ao-direct-row" style="display:none;margin-bottom:10px;">
+            <button class="btn" id="ao-direct-btn" disabled style="width:100%;font-size:18px!important;font-weight:600;display:flex;justify-content:center;align-items:center;gap:8px;">
+              <span>📡</span>
+              <span>Send direkte til AO</span>
+            </button>
+            <span style="font-size:0.75em;color:var(--muted,#9ca3af);line-height:1.3;display:block;margin-top:4px;">Logger inn og sender obsene direkte til Artsobservasjoner — ingen klipp-og-lim</span>
+            <div id="ao-direct-status" style="display:none;margin-top:8px;padding:10px;border-radius:8px;font-size:0.9rem;"></div>
+          </div>
+          <div class="export-row">
+            <button class="btn" id="clear-btn" disabled>
               <span>🗑️</span>
               <span>Tøm liste</span>
             </button>
             <!-- Kopier CSV-knapp fjernet -->
-            <button class="btn" id="copy-open-btn" disabled>
-              <span>🚀</span>
-              <span>Send til AO</span>
-            </button>
-            <a class="btn" href="/medobs.html">👥 Medobservatører</a>
+            <div style="display:flex;flex-direction:column;gap:4px;">
+              <button class="btn" id="copy-open-btn" disabled>
+                <span>🚀</span>
+                <span>Send til AO via importside</span>
+              </button>
+              <span style="font-size:0.75em;color:var(--muted,#9ca3af);line-height:1.3;">Kopierer obsene til utklippstavlen og åpner AO sin importside — du limer inn selv</span>
+            </div>
             <!-- Last ned CSV-knapp fjernet -->
           </div>
-        </div>
+        </fieldset>
         </div><!-- /tablet-list-column -->
         </div><!-- /tablet-layout -->
       </div>
