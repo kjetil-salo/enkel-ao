@@ -352,6 +352,8 @@ class Handler(SimpleHTTPRequestHandler):
                 self._handle_reverse_api(parsed)
             elif parsed.path == '/api/ao-sites':
                 self._handle_ao_sites_api(parsed)
+            elif parsed.path == '/api/ao-private-sites':
+                self._handle_ao_private_sites_api()
             elif parsed.path == '/api/ao-areas':
                 self._handle_ao_areas_api(parsed)
             elif parsed.path == '/api/ao-autocomplete':
@@ -517,7 +519,22 @@ class Handler(SimpleHTTPRequestHandler):
         except Exception:
             # Ikke la dette knekke klienten – returner bare tom liste
             self._send_json({'sites': []})
-    
+
+    def _handle_ao_private_sites_api(self):
+        """Hent alle brukerens private lokasjoner via BindUserSitesGrid."""
+        from src.api_handlers import handle_ao_private_sites
+        auth_cookie = self.headers.get('X-AO-Auth-Cookie', '').strip() or None
+        if not auth_cookie:
+            self._send_json({'error': 'Ikke innlogget'}, status=401)
+            return
+        ao_base = os.environ.get('AO_URL', 'https://www.artsobservasjoner.no')
+        try:
+            sites = handle_ao_private_sites(auth_cookie, ao_base)
+            self._send_json({'sites': sites})
+        except Exception as e:
+            logger.warning(f'[AO-PRIVATE-SITES] Feil: {e}')
+            self._send_json({'error': 'Kunne ikke hente private lokasjoner'}, status=500)
+
     def _handle_ao_areas_api(self, parsed):
         """Proxy for AO område-søk (politiske grenser). Åpent API med access-key."""
         import httpx

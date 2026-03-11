@@ -6,6 +6,47 @@
 const SPECIES_CACHE_PREFIX = 'species_';
 const SPECIES_CACHE_TTL = 365 * 24 * 60 * 60 * 1000; // 1 år
 
+// Cache for private lokasjoner
+const PRIVATE_SITES_KEY = 'ao_private_sites';
+const PRIVATE_SITES_TTL = 24 * 60 * 60 * 1000; // 24 timer
+
+/**
+ * Hent cachet liste over brukerens private lokasjoner
+ * @returns {Array} - Liste med {id, name, lat, lon, acc}, eller tom liste
+ */
+export function getCachedPrivateSites() {
+  try {
+    const item = localStorage.getItem(PRIVATE_SITES_KEY);
+    if (!item) return [];
+    const { ts, sites } = JSON.parse(item);
+    if (Date.now() - ts > PRIVATE_SITES_TTL) return [];
+    return Array.isArray(sites) ? sites : [];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Hent og cache alle brukerens private lokasjoner fra AO
+ * Kjøres i bakgrunnen etter innlogging
+ */
+export async function fetchAndCachePrivateSites() {
+  try {
+    const tokens = JSON.parse(localStorage.getItem('ao_tokens') || '{}');
+    if (!tokens.authCookie) return;
+    const resp = await fetch('/api/ao-private-sites', {
+      headers: { 'X-AO-Auth-Cookie': tokens.authCookie }
+    });
+    if (!resp.ok) return;
+    const data = await resp.json();
+    if (!Array.isArray(data.sites)) return;
+    localStorage.setItem(PRIVATE_SITES_KEY, JSON.stringify({ ts: Date.now(), sites: data.sites }));
+    console.log(`[AO] Cachet ${data.sites.length} private lokasjoner`);
+  } catch (e) {
+    console.warn('[AO] Kunne ikke hente private lokasjoner:', e);
+  }
+}
+
 /**
  * Hent fra localStorage cache
  */
@@ -114,6 +155,7 @@ async function tryAutoRelogin() {
       }
       localStorage.setItem('ao_tokens', JSON.stringify(savedTokens));
       console.log('[Auto-relogin] Vellykket! Nye tokens lagret.');
+      fetchAndCachePrivateSites();
       return true;
     }
   } catch (e) {

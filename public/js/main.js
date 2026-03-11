@@ -4,7 +4,7 @@
  */
 
 // Eksisterende moduler
-import { logPageView, loadActivities, fetchAoSites } from './api.js';
+import { logPageView, loadActivities, fetchAoSites, fetchAndCachePrivateSites, getCachedPrivateSites } from './api.js';
 import { loadObservations, saveObservations, loadAoSearchRadius, saveAoSearchRadius } from './storage.js';
 import { setStatus, setLocationStatus } from './ui.js';
 import { setAoSiteSuggestions, initLocation, openMap, openMapPage, updateCreateSiteBtnVisibility, initCreateSite } from './location.js';
@@ -486,4 +486,12 @@ window.addEventListener('DOMContentLoaded', () => {
   updateModeUI();
   setupModeToggle();
   updateAoDirectVisibility();
+
+  // Hent private lokasjoner i bakgrunnen hvis cache mangler eller er utdatert
+  if (getCachedPrivateSites().length === 0) {
+    const tokens = JSON.parse(localStorage.getItem('ao_tokens') || '{}');
+    if (tokens.authCookie) {
+      fetchAndCachePrivateSites();
+    }
+  }
 });

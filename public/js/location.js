@@ -3,7 +3,7 @@
  */
 
 
-import { fetchAoSites, createAoSite } from './api.js';
+import { fetchAoSites, createAoSite, getCachedPrivateSites } from './api.js';
 import { setLocationStatus, haversine } from './ui.js';
 
 
@@ -68,8 +68,27 @@ export function getSiteLabel(site) {
 export function setAoSiteSuggestions(sites, currentPosition, dropdown, aoSitesEl, placeInput, setCurrentPlace) {
   console.log('currentPosition:', currentPosition);
   
-  const currentAoSites = Array.isArray(sites) ? sites : [];
-  
+  // Slå sammen bbox-sites med cachet liste over mine private lokasjoner
+  const bboxSites = Array.isArray(sites) ? sites : [];
+  const cachedPrivate = getCachedPrivateSites();
+  const cachedIds = new Set(cachedPrivate.map(s => s.id));
+
+  // Marker bbox-sites som isMine hvis de finnes i cachen
+  const markedBbox = bboxSites.map(s => {
+    if (!s.isMine && s.id != null && cachedIds.has(s.id)) {
+      return { ...s, isMine: true };
+    }
+    return s;
+  });
+
+  // Legg til cachet private lokasjoner som ikke er innenfor bbox
+  const bboxIds = new Set(bboxSites.map(s => s.id).filter(id => id != null));
+  const extraPrivate = cachedPrivate
+    .filter(s => !bboxIds.has(s.id))
+    .map(s => ({ ...s, isMine: true }));
+
+  const currentAoSites = [...markedBbox, ...extraPrivate];
+
   if (!dropdown) return currentAoSites;
   
   dropdown.innerHTML = '';

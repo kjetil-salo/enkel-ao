@@ -581,6 +581,59 @@ def handle_reverse_geocoding(lat, lon, nominatim_base_url):
         raise
 
 
+def _epsg3857_to_wgs84(x, y):
+    """Konverter Web Mercator (EPSG:3857) til WGS84 (lat, lon)."""
+    R = 6378137.0
+    lon = math.degrees(x / R)
+    lat = math.degrees(2 * math.atan(math.exp(y / R)) - math.pi / 2)
+    return round(lat, 6), round(lon, 6)
+
+
+def handle_ao_private_sites(auth_cookie: str, ao_base_url: str = 'https://www.artsobservasjoner.no') -> list:
+    """
+    Hent alle brukerens private lokasjoner via BindUserSitesGrid.
+
+    Returnerer liste med dicts: { id, name, lat, lon, acc }
+    Koordinater er konvertert fra EPSG:3857 til WGS84.
+    """
+    url = f'{ao_base_url}/Site/BindUserSitesGrid?UserSitesGrid-size=500'
+    req = Request(
+        url,
+        data=b'page=1&size=500',
+        headers={
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Accept': 'application/json',
+            'Accept-Encoding': 'gzip',
+            'Cookie': f'.ASPXAUTHNO={auth_cookie}',
+            'User-Agent': 'Mozilla/5.0 (compatible; Fugleobservasjoner/1.0)',
+        },
+    )
+    with urlopen(req, timeout=15) as resp:
+        raw_body = resp.read()
+        content_encoding = resp.headers.get('Content-Encoding', '')
+        if 'gzip' in content_encoding:
+            import gzip
+            body = gzip.decompress(raw_body)
+        else:
+            body = raw_body
+        data = json.loads(body)
+
+    sites = []
+    for item in data.get('data', []):
+        site_id = item.get('SiteId')
+        name = item.get('Name')
+        x = item.get('SiteXCoord')
+        y = item.get('SiteYCoord')
+        acc = item.get('Accuracy')
+        if not (site_id and name and x and y):
+            continue
+        lat, lon = _epsg3857_to_wgs84(x, y)
+        sites.append({'id': site_id, 'name': name, 'lat': lat, 'lon': lon, 'acc': acc})
+
+    logger.info(f'[AO-PRIVATE-SITES] Hentet {len(sites)} private lokasjoner')
+    return sites
+
+
 def handle_ao_sites_search(lat, lon, size_m=600.0, ao_mobile_base_url='https://mobil.artsobservasjoner.no', user_id=None, login_token=None, auth_cookie=None):
     """Håndter søk etter AO-lokaliteter.
 
