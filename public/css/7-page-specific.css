@@ -940,7 +940,7 @@
         .obs-table th, .obs-table td { padding: 4px 6px; }
 
         .obs-table th:first-child,
-        .obs-table td:first-child { width: 27%; }
+        .obs-table td:first-child { width: 23%; }
 
         .obs-table th:nth-child(2),
         .obs-table td:nth-child(2) { width: 38%; min-width: unset; }
@@ -952,8 +952,12 @@
         .obs-table th:nth-last-child(2),
         .obs-table td:nth-last-child(2) { display: none; }
 
+        /* 19% = ~62px på typisk mobil — akkurat nok til to emoji-knapper */
         .obs-table th:last-child,
-        .obs-table td:last-child { width: 15%; padding-right: 4px; }
+        .obs-table td:last-child { width: 19%; padding-right: 4px; }
+
+        /* Kompakte action-knapper på smal skjerm */
+        .edit-obs-btn, .delete-obs-btn { padding: 1px 2px; }
 
         /* Aktivitetstekst avkortet via div-wrapper (fungerer uten table-layout:fixed) */
         .obs-activity-text {

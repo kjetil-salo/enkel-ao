@@ -71,7 +71,7 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
   // hindrer fixed layout i å beregne korrekte bredder.
   if (window.innerWidth <= 480) {
     const colgroup = document.createElement('colgroup');
-    ['27%', '38%', '20%', '0%', '15%'].forEach(w => {
+    ['23%', '38%', '20%', '0%', '19%'].forEach(w => {
       const col = document.createElement('col');
       col.style.width = w;
       colgroup.appendChild(col);
