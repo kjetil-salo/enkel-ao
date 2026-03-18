@@ -66,6 +66,19 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
   const table = document.createElement('table');
   table.className = 'obs-table';
 
+  // På smal skjerm: colgroup definerer kolonnebredder for table-layout:fixed.
+  // Nødvendig fordi første rad er en gruppe-header med colSpan=5, som ellers
+  // hindrer fixed layout i å beregne korrekte bredder.
+  if (window.innerWidth <= 480) {
+    const colgroup = document.createElement('colgroup');
+    ['27%', '38%', '20%', '0%', '15%'].forEach(w => {
+      const col = document.createElement('col');
+      col.style.width = w;
+      colgroup.appendChild(col);
+    });
+    table.appendChild(colgroup);
+  }
+
   const tbody = document.createElement('tbody');
 
   groups.forEach((group) => {
@@ -134,17 +147,21 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
       // Render count cell med pluss/minus knapper
       function renderCountCell() {
         countTd.innerHTML = '';
-        countTd.style.display = 'flex';
-        countTd.style.alignItems = 'center';
+        // Wrapper-div brukes i stedet for direkte flex på td —
+        // display:flex på <td> overstyrer table-layout:fixed sine bredder
+        const countWrap = document.createElement('div');
+        countWrap.style.display = 'flex';
+        countWrap.style.alignItems = 'center';
 
         // Detekter om vi har presis peker (mus/trackpad) vs touch
         const hasFineMouse = window.matchMedia('(pointer: fine) and (hover: hover)').matches;
         const isLargeScreen = window.innerWidth >= 768 && window.innerHeight >= 600;
+        const isNarrow = !hasFineMouse && window.innerWidth <= 420;
 
-        // Mindre knapper på desktop/laptop med mus - større på touch
-        const btnSize = hasFineMouse ? '28px' : '44px';
-        const btnFontSize = hasFineMouse ? '1em' : '1.5em';
-        countTd.style.gap = hasFineMouse ? '3px' : '6px';
+        // Mindre knapper på desktop/laptop med mus - noe mindre på smal mobil for å unngå overflow
+        const btnSize = hasFineMouse ? '28px' : isNarrow ? '36px' : '44px';
+        const btnFontSize = hasFineMouse ? '1em' : '1.4em';
+        countWrap.style.gap = hasFineMouse ? '3px' : isNarrow ? '4px' : '6px';
 
         const btnStyle = {
           width: btnSize,
@@ -215,11 +232,11 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
         span.textContent = obs.count != null ? String(obs.count) : '';
         Object.assign(span.style, {
           cursor: 'pointer',
-          minWidth: '36px',
+          minWidth: isNarrow ? '24px' : '36px',
           textAlign: 'center',
           fontSize: '1.3em',
           fontWeight: '600',
-          padding: '4px 8px',
+          padding: isNarrow ? '4px 4px' : '4px 8px',
         });
         span.title = 'Klikk for å endre antall';
         span.addEventListener('click', () => {
@@ -259,11 +276,12 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
           });
         }
 
-        if (minus10Btn) countTd.appendChild(minus10Btn);
-        countTd.appendChild(minusBtn);
-        countTd.appendChild(span);
-        countTd.appendChild(plusBtn);
-        if (plus10Btn) countTd.appendChild(plus10Btn);
+        if (minus10Btn) countWrap.appendChild(minus10Btn);
+        countWrap.appendChild(minusBtn);
+        countWrap.appendChild(span);
+        countWrap.appendChild(plusBtn);
+        if (plus10Btn) countWrap.appendChild(plus10Btn);
+        countTd.appendChild(countWrap);
       }
       
       function showInput() {
@@ -310,9 +328,12 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
       tr.appendChild(countTd);
 
       const activityTd = document.createElement('td');
-      activityTd.textContent = obs.activity || '';
-      activityTd.style.fontSize = '0.85em';
-      activityTd.style.color = '#b0b8c1';
+      const activitySpan = document.createElement('span');
+      activitySpan.className = 'obs-activity-text';
+      activitySpan.textContent = obs.activity || '';
+      activitySpan.style.fontSize = '0.85em';
+      activitySpan.style.color = '#b0b8c1';
+      activityTd.appendChild(activitySpan);
       tr.appendChild(activityTd);
 
       const detailsTd = document.createElement('td');

@@ -157,6 +157,7 @@
   min-width: 0;
   max-width: 100%;
   overflow: hidden;
+  margin-top: 8px;
 }
 
 .activity-input-row select {
@@ -636,6 +637,13 @@
         overflow: hidden;
       }
 
+      /* Alle handlingsknapper full bredde og sentrert */
+      .section-handlinger .btn {
+        width: 100%;
+        display: flex;
+        justify-content: center;
+      }
+
       /* Handlingsseksjon: subtil amber-antydning for "action" */
       .section-handlinger {
         background: rgba(245, 158, 11, 0.05);
@@ -659,6 +667,8 @@
       .medobs-link {
         font-size: 0.82rem !important;
         opacity: 0.85;
+        width: 100%;
+        justify-content: center;
       }
 
       /* Tydelig skille før observasjonslisten på mobil */
@@ -925,15 +935,33 @@
       }
 
       @media (max-width: 480px) {
-        .obs-table th:nth-last-child(2),
-        .obs-table td:nth-last-child(2) {
-          width: 60px;
-          font-size: 0.7em;
-        }
+        /* Colgroup definert i JS gir fixed-layout korrekte bredder selv med colspan-header */
+        .obs-table { table-layout: fixed; }
         .obs-table th, .obs-table td { padding: 4px 6px; }
+
+        .obs-table th:first-child,
+        .obs-table td:first-child { width: 27%; }
+
+        .obs-table th:nth-child(2),
+        .obs-table td:nth-child(2) { width: 38%; min-width: unset; }
+
+        .obs-table th:nth-child(3),
+        .obs-table td:nth-child(3) { width: 20%; }
+
+        /* Skjul alder/kjønn-kolonne — nesten alltid tom */
+        .obs-table th:nth-last-child(2),
+        .obs-table td:nth-last-child(2) { display: none; }
+
         .obs-table th:last-child,
-        .obs-table td:last-child {
-          padding-right: 10px;
+        .obs-table td:last-child { width: 15%; padding-right: 4px; }
+
+        /* Aktivitetstekst avkortet via div-wrapper (fungerer uten table-layout:fixed) */
+        .obs-activity-text {
+          overflow: hidden;
+          white-space: nowrap;
+          text-overflow: ellipsis;
+          width: 100%;
+          display: block;
         }
       }
 
@@ -984,10 +1012,8 @@
 
       .obs-table td.action-td {
         white-space: nowrap;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 6px;
+        text-align: right;
+        padding-right: 8px;
       }
 
       .footer-credit {
@@ -1005,30 +1031,17 @@
       .export-row {
         margin-top: 8px;
         display: flex;
-        justify-content: flex-end;
-        flex-wrap: wrap;
+        flex-direction: column;
         gap: 8px;
-        min-width: 0;
-        overflow-x: auto;
       }
 
-      .export-row {
-        margin-top: 4px;
+      .export-row .btn {
+        width: 100%;
+        justify-content: center;
       }
 
-      @media (max-width: 480px) {
-        .export-row {
-          padding-top: 8px;
-          margin-top: 10px;
-          flex-direction: column;
-        }
-        .export-row .btn {
-          width: 100%;
-          justify-content: center;
-          padding: 12px 16px;
-          font-size: 0.9rem;
-          min-height: 44px;
-        }
+      #ao-direct-row {
+        width: 100%;
       }
 
       .btn {
@@ -1221,7 +1234,6 @@
         .activity-pills {
           gap: 8px;
           margin-top: 4px;
-          margin-bottom: 2px;
           flex-wrap: wrap;
         }
 
@@ -1272,15 +1284,5 @@
         .obs-table th:nth-child(3),
         .obs-table td:nth-child(3) { width: 25%; }
 
-        /* Eksport-knapper i full bredde */
-        .export-row {
-          flex-direction: column;
-          gap: 8px;
-        }
-
-        .export-row .btn {
-          width: 100%;
-          justify-content: center;
-        }
       }
 
