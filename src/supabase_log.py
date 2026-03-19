@@ -69,3 +69,51 @@ def log_view_to_supabase(ip: str, user_agent: str, device_id: str = ''):
     except Exception as e:
         print(f"[Supabase] Feil ved logging: {e}")
         return False
+
+
+def get_stats_from_supabase():
+    """Hent aggregert statistikk fra Supabase via RPC-funksjon."""
+    if not supabase:
+        return None
+    try:
+        result = supabase.rpc("get_stats").execute()
+        data = result.data
+        if not data:
+            return None
+
+        top_ips = [(r["ip"], r["cnt"]) for r in (data.get("top_ips") or [])]
+
+        from datetime import date, timedelta
+        today = date.today()
+        trend_map = {(today - timedelta(days=i)).isoformat(): 0 for i in range(29, -1, -1)}
+        for r in (data.get("trend_30d") or []):
+            d = str(r.get("dato", ""))[:10]
+            if d in trend_map:
+                trend_map[d] = r.get("cnt", 0)
+        trend_30d = list(trend_map.items())
+
+        return {
+            "total": data.get("total", 0),
+            "total_unique_ips": data.get("unique_ips", 0),
+            "total_unique_devices": data.get("unique_devices", 0),
+            "recent_ips": top_ips,
+            "per_browser": data.get("per_browser") or {},
+            "per_os": data.get("per_os") or {},
+            "exports": data.get("exports") or {},
+            "trend_30d": trend_30d,
+        }
+    except Exception as e:
+        print(f"[Supabase] Feil ved henting av stats: {e}")
+        return None
+
+
+def log_export_to_supabase(export_type: str) -> bool:
+    """Logg eksport-hendelse til Supabase ('copy_open' eller 'direct')."""
+    if not supabase:
+        return False
+    try:
+        supabase.table("exports").insert({"type": export_type}).execute()
+        return True
+    except Exception as e:
+        print(f"[Supabase] Feil ved logging av eksport: {e}")
+        return False

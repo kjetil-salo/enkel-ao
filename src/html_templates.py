@@ -35,11 +35,16 @@ def generate_stats_login_page():
 """
 
 
-def generate_stats_page(recent_ips, per_ua, total, per_device=None, per_os=None, per_browser=None, total_unique_ips=0, source="Supabase", total_unique_devices=0):
+def generate_stats_page(recent_ips, per_ua, total, per_device=None, per_os=None, per_browser=None, total_unique_ips=0, source="Supabase", total_unique_devices=0, exports=None, trend_30d=None, trend_7d=None):
     """Generer statistikk-side med data fra enten Supabase eller in-memory."""
     per_device = per_device or {}
     per_os = per_os or {}
     per_browser = per_browser or {}
+    exports = exports or {}
+    trend_30d = trend_30d or trend_7d or []
+    export_copy_open = exports.get('copy_open', 0)
+    export_direct = exports.get('direct', 0)
+    export_total = export_copy_open + export_direct
 
     # recent_ips er liste av (ip, count) tuples, allerede sortert nyeste først
     ip_rows = ''.join(f'<tr><td><a href="https://ipinfo.io/{ip}" target="_blank" rel="noopener">{ip}</a></td><td>{count}</td></tr>'
@@ -94,6 +99,42 @@ def generate_stats_page(recent_ips, per_ua, total, per_device=None, per_os=None,
             '''
         device_section += '</div>'
 
+    trend_section = ""
+    if trend_30d:
+        labels = [dato for dato, _ in trend_30d]
+        values = [cnt for _, cnt in trend_30d]
+        trend_section = f'''
+        <div class="section-title">Sidevisninger siste 30 dager</div>
+        <canvas id="trendChart" style="width:100%;max-height:220px;"></canvas>
+        <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+        <script>
+        (function() {{
+            var ctx = document.getElementById('trendChart').getContext('2d');
+            new Chart(ctx, {{
+                type: 'bar',
+                data: {{
+                    labels: {labels},
+                    datasets: [{{
+                        label: 'Sidevisninger',
+                        data: {values},
+                        backgroundColor: 'rgba(59, 130, 246, 0.6)',
+                        borderColor: 'rgba(59, 130, 246, 1)',
+                        borderWidth: 1
+                    }}]
+                }},
+                options: {{
+                    responsive: true,
+                    plugins: {{ legend: {{ display: false }} }},
+                    scales: {{
+                        x: {{ ticks: {{ maxRotation: 45, font: {{ size: 10 }} }} }},
+                        y: {{ beginAtZero: true, ticks: {{ stepSize: 1 }} }}
+                    }}
+                }}
+            }});
+        }})();
+        </script>
+        '''
+
     return f"""
 <html>
 <head>
@@ -123,7 +164,13 @@ def generate_stats_page(recent_ips, per_ua, total, per_device=None, per_os=None,
             <span>{total_unique_ips} unike IP-er</span>
             <span>{total_unique_devices} unike enheter</span>
         </div>
+        <div class="stat-row" style="font-size:1.1em;">
+            <span>📤 {export_total} eksporter totalt</span>
+            <span>📋 {export_copy_open} via importside</span>
+            <span>📡 {export_direct} direkte til AO</span>
+        </div>
 
+        {trend_section}
         <div class="section-title">Siste 10 IP-adresser</div>
         <table>
             <tr><th>IP-adresse</th><th>Antall visninger</th></tr>

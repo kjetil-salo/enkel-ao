@@ -29,7 +29,8 @@ logger = logging.getLogger('fugleobs')
 
 from src.api_handlers import handle_species_search, handle_reverse_geocoding, handle_ao_sites_search, login_to_ao, refresh_ao_cookie_if_needed, mask_token
 from src.html_templates import generate_stats_login_page, generate_stats_page, generate_error_page
-from src.supabase_log import log_view_to_supabase
+from src.sqlite_log import log_view as log_view_to_sqlite, log_export
+from src.supabase_log import log_view_to_supabase, log_export_to_supabase, get_stats_from_supabase
 from src.ao_import_httpx import post_with_curl
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -80,10 +81,28 @@ class Handler(SimpleHTTPRequestHandler):
             self._handle_ao_create_site_post()
             return
 
+        if parsed.path == '/api/log-export':
+            self._handle_log_export_post()
+            return
+
         # For alt annet, returner 404
         self.send_response(404)
         self.end_headers()
     
+    def _handle_log_export_post(self):
+        """Håndter logging av eksport-hendelse."""
+        try:
+            content_length = int(self.headers.get('Content-Length', 0))
+            body = json.loads(self.rfile.read(content_length)) if content_length else {}
+            export_type = body.get('type', 'unknown')
+            if export_type not in ('copy_open', 'direct'):
+                export_type = 'unknown'
+            log_export(export_type)
+            log_export_to_supabase(export_type)
+        except Exception as e:
+            logger.warning(f"[log-export] Feil: {e}")
+        self._send_json({'ok': True})
+
     def _handle_logview_post(self):
         """Håndter logging av sidevisning."""
         import uuid
@@ -116,7 +135,11 @@ class Handler(SimpleHTTPRequestHandler):
             _stats['per_ua'][user_agent] = _stats['per_ua'].get(user_agent, 0) + 1
             _stats['devices'].add(device_id)
 
-        # Logg til Supabase (ikke blokkerende)
+        # Logg til SQLite og Supabase
+        try:
+            log_view_to_sqlite(real_ip, user_agent, device_id=device_id)
+        except Exception as e:
+            logger.warning(f"[SQLite] Feil ved logging: {e}")
         try:
             log_view_to_supabase(real_ip, user_agent, device_id=device_id)
         except Exception as e:
@@ -375,74 +398,46 @@ class Handler(SimpleHTTPRequestHandler):
             self._send_html_response(generate_stats_login_page())
             return
         
-        # Forsøk å hente data fra Supabase først
-        try:
-            from src.supabase_log import supabase
-            if supabase:
-                # Hent totalt antall sidevisninger
-                count_res = supabase.table("stats").select("id", count='exact').execute()
-                total = count_res.count if hasattr(count_res, 'count') else 0
-
-                # Hent de siste 10 unike IP-er (nyeste først)
-                ip_res = supabase.rpc('recent_unique_ips', {"limit_num": 10}).execute()
-                # Forventet at recent_unique_ips returnerer [{ip: 'x.x.x.x', count: n}, ...]
-                recent_ips = [(row['ip'], row['count']) for row in ip_res.data] if hasattr(ip_res, 'data') else []
-
-                # Hent totalt antall unike IP-er
-                unique_ip_res = supabase.rpc('count_unique_ips').execute()
-                total_unique_ips = unique_ip_res.data[0]['count'] if hasattr(unique_ip_res, 'data') and unique_ip_res.data else 0
-
-                # Hent statistikk for nettleser
-                browser_res = supabase.rpc('count_per_browser').execute()
-                per_browser = {row['browser']: row['count'] for row in browser_res.data} if hasattr(browser_res, 'data') and browser_res.data else {}
-
-                # Hent statistikk for OS
-                os_res = supabase.rpc('count_per_os').execute()
-                per_os = {row['os']: row['count'] for row in os_res.data} if hasattr(os_res, 'data') and os_res.data else {}
-
-                # Hent antall unike enheter (device_id)
-                try:
-                    device_res = supabase.rpc('count_unique_devices').execute()
-                    total_unique_devices = device_res.data[0]['count'] if hasattr(device_res, 'data') and device_res.data else 0
-                except Exception:
-                    total_unique_devices = 0
-
-                html = generate_stats_page(
-                    recent_ips,
-                    {},  # per_ua ikke brukt med Supabase-data
-                    total,
-                    {},  # per_device ikke brukt
-                    per_os=per_os,
-                    per_browser=per_browser,
-                    total_unique_ips=total_unique_ips,
-                    source="Supabase",
-                    total_unique_devices=total_unique_devices,
-                )
-                self._send_html_response(html)
-                return
-        except Exception as e:
-            logger.warning(f"[STATS] Supabase feil: {e}")
-        
-        # Fallback til in-memory statistikk
-        with _stats_lock:
-            total = _stats['total']
-            per_ip = dict(_stats['per_ip'])
-            per_ua = dict(_stats['per_ua'])
-            unique_devices = len(_stats['devices'])
-
-        recent_ips = list(per_ip.items())[:10]
-        # per_ua brukes som fallback for både browser og os hvis Supabase ikke er tilgjengelig
-        html = generate_stats_page(
-            recent_ips,
-            per_ua,
-            total,
-            {},  # per_device
-            {},  # per_os
-            {},  # per_browser
-            len(per_ip),
-            source="In-memory (denne økt)",
-            total_unique_devices=unique_devices,
-        )
+        # Hent data – Supabase først, deretter SQLite som fallback
+        stats = get_stats_from_supabase()
+        source = "Supabase"
+        if not stats:
+            from src.sqlite_log import get_stats
+            stats = get_stats()
+            source = "SQLite"
+        if stats:
+            html = generate_stats_page(
+                stats["recent_ips"],
+                {},
+                stats["total"],
+                {},
+                per_os=stats["per_os"],
+                per_browser=stats["per_browser"],
+                total_unique_ips=stats["total_unique_ips"],
+                source=source,
+                total_unique_devices=stats["total_unique_devices"],
+                exports=stats["exports"],
+                trend_30d=stats.get("trend_30d"),
+            )
+        else:
+            # Fallback til in-memory statistikk
+            with _stats_lock:
+                total = _stats['total']
+                per_ip = dict(_stats['per_ip'])
+                per_ua = dict(_stats['per_ua'])
+                unique_devices = len(_stats['devices'])
+            recent_ips = list(per_ip.items())[:10]
+            html = generate_stats_page(
+                recent_ips,
+                per_ua,
+                total,
+                {},
+                {},
+                {},
+                len(per_ip),
+                source="In-memory (denne økt)",
+                total_unique_devices=unique_devices,
+            )
         self._send_html_response(html)
     
     def _handle_species_api(self, parsed):
@@ -524,12 +519,13 @@ class Handler(SimpleHTTPRequestHandler):
         """Hent alle brukerens private lokasjoner via BindUserSitesGrid."""
         from src.api_handlers import handle_ao_private_sites
         auth_cookie = self.headers.get('X-AO-Auth-Cookie', '').strip() or None
+        login_token = self.headers.get('X-AO-Login-Token', '').strip() or None
         if not auth_cookie:
             self._send_json({'error': 'Ikke innlogget'}, status=401)
             return
         ao_base = os.environ.get('AO_URL', 'https://www.artsobservasjoner.no')
         try:
-            sites = handle_ao_private_sites(auth_cookie, ao_base)
+            sites = handle_ao_private_sites(auth_cookie, ao_base, login_token=login_token)
             self._send_json({'sites': sites})
         except Exception as e:
             logger.warning(f'[AO-PRIVATE-SITES] Feil: {e}')
