@@ -21,11 +21,22 @@ export default defineConfig({
       },
     },
     {
-      name: 'samsung-galaxy',
+      name: 'samsung-galaxy-s23-360',
       use: {
         browserName: 'chromium',
         viewport: { width: 360, height: 800 },
         deviceScaleFactor: 3,
+        isMobile: true,
+        hasTouch: true,
+        userAgent: 'Mozilla/5.0 (Linux; Android 14; SM-S928B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36',
+      },
+    },
+    {
+      name: 'samsung-galaxy-ultra-412',
+      use: {
+        browserName: 'chromium',
+        viewport: { width: 412, height: 915 },
+        deviceScaleFactor: 3.5,
         isMobile: true,
         hasTouch: true,
         userAgent: 'Mozilla/5.0 (Linux; Android 14; SM-S928B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36',
