@@ -178,16 +178,26 @@ def post_with_curl(observations, login_token=None, auth_cookie=None, area_id='')
     print(f'[AO-HTTPX] Venter 3 sekunder på at AO prosesserer importen...', file=sys.stderr)
     time.sleep(3)
 
-    # Steg 3: Publiser observasjonene
+    # Steg 3: Publiser observasjonene (med retry)
     print(f'[AO-HTTPX] Starter publisering...', file=sys.stderr)
-    try:
-        publish_result = publish_all(login_token, auth_cookie)
-        print(f'[AO-HTTPX] Publisering: {publish_result}', file=sys.stderr)
-    except Exception as e:
-        print(f'[AO-HTTPX] Publisering feilet: {e}', file=sys.stderr)
+    last_error = None
+    for attempt, delay in enumerate([0, 5, 10], start=1):
+        if delay:
+            print(f'[AO-HTTPX] Venter {delay} sekunder før forsøk {attempt}...', file=sys.stderr)
+            time.sleep(delay)
+        try:
+            publish_result = publish_all(login_token, auth_cookie)
+            print(f'[AO-HTTPX] Publisering vellykket (forsøk {attempt}): {publish_result}', file=sys.stderr)
+            last_error = None
+            break
+        except Exception as e:
+            last_error = e
+            print(f'[AO-HTTPX] Publisering feilet (forsøk {attempt}): {e}', file=sys.stderr)
+
+    if last_error:
         return {
             'success': True,
-            'message': f'{len(observations)} observasjoner importert (men publisering feilet: {e})',
+            'message': f'{len(observations)} observasjoner importert (men publisering feilet: {last_error})',
             'count': len(observations),
             'published': False,
             'refreshedAuthCookie': refreshed_auth
