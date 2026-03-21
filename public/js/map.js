@@ -2,7 +2,8 @@
  * Kart-modul for visning av brukerposisjon og AO-lokaliteter
  */
 
-import { createAoSite } from './api.js';
+import { createAoSite, ensureAoTokens } from './api.js';
+import { haversine } from './utils.js';
 
 // Hent data fra localStorage
 const mapData = localStorage.getItem('mapData');
@@ -228,9 +229,11 @@ const createBtn = document.getElementById('panel-create-btn');
 const panelCancelBtn = document.getElementById('panel-cancel-btn');
 const panelStatus = document.getElementById('panel-status');
 
-// Vis FAB kun hvis innlogget på AO
-const aoTokens = JSON.parse(localStorage.getItem('ao_tokens') || '{}');
-if (aoTokens.loginToken && aoTokens.authCookie && fab) {
+// Vis FAB kun hvis bruker har AO-credentials
+function hasAoCredentials() {
+  return !!(localStorage.getItem('ao_username') && localStorage.getItem('ao_password'));
+}
+if (hasAoCredentials() && fab) {
   fab.style.display = '';
 }
 
@@ -289,7 +292,7 @@ function exitPinDropMode() {
   }
 
   // Vis FAB igjen
-  if (aoTokens.loginToken && aoTokens.authCookie && fab) {
+  if (hasAoCredentials() && fab) {
     fab.style.display = '';
   }
 }
@@ -351,9 +354,17 @@ if (createBtn) {
 
     const latlng = dropMarker.getLatLng();
     createBtn.disabled = true;
-    showPanelStatus('Oppretter lokasjon...', false);
+    showPanelStatus('Logger inn på AO...', false);
 
     try {
+      const loggedIn = await ensureAoTokens();
+      if (!loggedIn) {
+        showPanelStatus('Innlogging feilet. Sjekk brukernavn/passord i innstillinger.', true);
+        createBtn.disabled = false;
+        return;
+      }
+
+      showPanelStatus('Oppretter lokasjon...', false);
       const result = await createAoSite(name, latlng.lat, latlng.lng, parseInt(accuracySelect.value));
 
       if (result.success) {
@@ -382,25 +393,3 @@ if (createBtn) {
   });
 }
 
-/**
- * Beregn avstand mellom to punkter (haversine-formel)
- * @param {number} lat1 - Latitude punkt 1
- * @param {number} lon1 - Longitude punkt 1
- * @param {number} lat2 - Latitude punkt 2
- * @param {number} lon2 - Longitude punkt 2
- * @returns {number|null} - Avstand i meter, eller null hvis ugyldig
- */
-function haversine(lat1, lon1, lat2, lon2) {
-  if (lat1 == null || lon1 == null || lat2 == null || lon2 == null) return null;
-  const R = 6371e3; // Jordens radius i meter
-  const φ1 = (lat1 * Math.PI) / 180;
-  const φ2 = (lat2 * Math.PI) / 180;
-  const Δφ = ((lat2 - lat1) * Math.PI) / 180;
-  const Δλ = ((lon2 - lon1) * Math.PI) / 180;
-
-  const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
-    Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
-  return R * c;
-}
