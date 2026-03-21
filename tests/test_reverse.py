@@ -23,25 +23,28 @@ def start_server(port):
 
 
 def test_reverse_valid(monkeypatch):
-    # Mock urlopen to return a simple JSON body
-    class DummyResp:
-        def __init__(self, data):
-            self._data = data
+    # Mock httpx.Client for å returnere fake Nominatim-respons
+    from unittest.mock import MagicMock
 
-        def read(self):
-            return self._data.encode('utf-8')
+    fake_json = {'display_name': 'Test Place', 'address': {'city': 'TestCity'}}
 
-        def __enter__(self):
-            return self
-
-        def __exit__(self, exc_type, exc, tb):
+    class FakeResponse:
+        status_code = 200
+        text = json.dumps(fake_json)
+        def raise_for_status(self):
             pass
 
-    def fake_urlopen(req, timeout=10):
-        body = json.dumps({'display_name': 'Test Place', 'address': {'city': 'TestCity'}})
-        return DummyResp(body)
+    class FakeClient:
+        def __init__(self, **kwargs):
+            pass
+        def get(self, url, **kwargs):
+            return FakeResponse()
+        def __enter__(self):
+            return self
+        def __exit__(self, *args):
+            pass
 
-    monkeypatch.setattr('src.api_handlers.urlopen', fake_urlopen)
+    monkeypatch.setattr('httpx.Client', FakeClient)
 
     port = 38001
     srv = start_server(port)

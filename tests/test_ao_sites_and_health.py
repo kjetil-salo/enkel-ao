@@ -40,41 +40,45 @@ def test_health_endpoint():
 
 def test_ao_sites_valid(monkeypatch):
     """Test /api/ao-sites med gyldig input."""
-    # Mock response fra AO API
+    # Mock response fra AO API (ByBoundingBox-format)
+    # Site 1 er en superlokasjon (referert som parent av site 2)
+    # Site 2 er en underlokasjon med parentSiteId=1
     fake_sites = [
         {
             'id': 1,
             'name': 'Østensjøvannet',
-            'lat': 59.91,
-            'lon': 10.81,
+            'latitude': 59.91,
+            'longitude': 10.81,
         },
         {
             'id': 2,
             'name': 'Sognsvann',
-            'lat': 59.97,
-            'lon': 10.73,
-            'isSuper': True,
+            'latitude': 59.97,
+            'longitude': 10.73,
+            'parentSiteId': 1,
         }
     ]
 
-    class DummyResp:
-        def __init__(self, data):
+    class FakeResponse:
+        status_code = 200
+        def __init__(self, data=None):
             self._data = data
-            self.headers = {}  # Legg til headers attributt
+        def raise_for_status(self):
+            pass
+        def json(self):
+            return self._data
 
-        def read(self):
-            return json.dumps(self._data).encode('utf-8')
-
+    class FakeClient:
+        def __init__(self, **kwargs):
+            pass
+        def get(self, url, **kwargs):
+            return FakeResponse(fake_sites)
         def __enter__(self):
             return self
-
-        def __exit__(self, exc_type, exc, tb):
+        def __exit__(self, *args):
             pass
 
-    def fake_urlopen(req, timeout=10):
-        return DummyResp(fake_sites)
-
-    monkeypatch.setattr('src.api_handlers.urlopen', fake_urlopen)
+    monkeypatch.setattr('httpx.Client', FakeClient)
 
     port = 38006
     srv = start_server(port)
@@ -86,9 +90,14 @@ def test_ao_sites_valid(monkeypatch):
     assert 'sites' in data
     assert isinstance(data['sites'], list)
     assert len(data['sites']) == 2
-    assert data['sites'][0]['name'] == 'Østensjøvannet'
-    assert data['sites'][1]['name'] == 'Sognsvann'
-    assert data['sites'][1].get('isSuper') == True
+    names = [s['name'] for s in data['sites']]
+    assert 'Østensjøvannet' in names
+    assert 'Sognsvann' in names
+    # Østensjøvannet er superlokasjon (referert som parent av Sognsvann)
+    ostensjovannet = next(s for s in data['sites'] if s['name'] == 'Østensjøvannet')
+    sognsvann = next(s for s in data['sites'] if s['name'] == 'Sognsvann')
+    assert ostensjovannet.get('isSuper') is True
+    assert sognsvann.get('isSuper') is False
 
     srv.shutdown()
 
@@ -129,10 +138,17 @@ def test_ao_sites_invalid_coords():
 
 def test_ao_sites_api_error(monkeypatch):
     """Test at /api/ao-sites håndterer eksterne API-feil grasiøst."""
-    def fake_urlopen(req, timeout=10):
-        raise Exception('External API error')
+    class FakeClient:
+        def __init__(self, **kwargs):
+            pass
+        def get(self, url, **kwargs):
+            raise Exception('External API error')
+        def __enter__(self):
+            return self
+        def __exit__(self, *args):
+            pass
 
-    monkeypatch.setattr('src.api_handlers.urlopen', fake_urlopen)
+    monkeypatch.setattr('httpx.Client', FakeClient)
 
     port = 38009
     srv = start_server(port)
@@ -148,39 +164,34 @@ def test_ao_sites_api_error(monkeypatch):
     srv.shutdown()
 
 
-def test_ao_sites_default_size():
+def test_ao_sites_default_size(monkeypatch):
     """Test at /api/ao-sites bruker default size hvis ikke oppgitt."""
-    # Denne testen bruker faktisk api_handlers direkte
     from src.api_handlers import handle_ao_sites_search
-
-    # Mock urlopen
-    import src.api_handlers
-    original_urlopen = src.api_handlers.urlopen
 
     called_urls = []
 
-    class DummyResp:
-        def __init__(self):
-            self.headers = {}  # Legg til headers attributt
-            
-        def read(self):
-            return b'[]'
+    class FakeResponse:
+        status_code = 200
+        def raise_for_status(self):
+            pass
+        def json(self):
+            return []
+
+    class FakeClient:
+        def __init__(self, **kwargs):
+            pass
+        def get(self, url, **kwargs):
+            called_urls.append(url)
+            return FakeResponse()
         def __enter__(self):
             return self
         def __exit__(self, *args):
             pass
 
-    def mock_urlopen(req, timeout=10):
-        called_urls.append(req.full_url)
-        return DummyResp()
+    monkeypatch.setattr('httpx.Client', FakeClient)
 
-    src.api_handlers.urlopen = mock_urlopen
-
-    try:
-        sites, refreshed_auth, auth_failed = handle_ao_sites_search(59.9, 10.7)
-        assert len(called_urls) == 1
-        # Default size er 600 meter
-        assert 'minX=' in called_urls[0]
-        assert 'maxX=' in called_urls[0]
-    finally:
-        src.api_handlers.urlopen = original_urlopen
+    sites, refreshed_auth, auth_failed = handle_ao_sites_search(59.9, 10.7)
+    assert len(called_urls) == 1
+    # Default size er 600 meter
+    assert 'minX=' in called_urls[0]
+    assert 'maxX=' in called_urls[0]

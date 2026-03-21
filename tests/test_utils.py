@@ -16,32 +16,32 @@ sys.path.insert(0, REPO_ROOT)
 
 def test_mask_token_normal():
     """Test masking av vanlig token."""
-    from src.api_handlers import mask_token
+    from src.utils import mask_token
     assert mask_token('abcdefghijk') == 'abcdef***'
 
 
 def test_mask_token_short():
     """Test masking av kort token."""
-    from src.api_handlers import mask_token
+    from src.utils import mask_token
     result = mask_token('abc')
     assert result == 'abc***'
 
 
 def test_mask_token_none():
     """Test masking av None-verdi."""
-    from src.api_handlers import mask_token
+    from src.utils import mask_token
     assert mask_token(None) == 'None'
 
 
 def test_mask_token_empty():
     """Test masking av tom streng."""
-    from src.api_handlers import mask_token
+    from src.utils import mask_token
     assert mask_token('') == 'None'
 
 
 def test_mask_token_custom_visible():
     """Test masking med egendefinert antall synlige tegn."""
-    from src.api_handlers import mask_token
+    from src.utils import mask_token
     assert mask_token('abcdefghijk', visible=3) == 'abc***'
 
 
@@ -49,7 +49,7 @@ def test_mask_token_custom_visible():
 
 def test_parse_user_agent_mobile():
     """Test parsing av mobil user agent."""
-    from src.supabase_log import parse_user_agent
+    from src.utils import parse_user_agent
     ua = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1'
     result = parse_user_agent(ua)
     assert result['device_type'] == 'mobile'
@@ -59,7 +59,7 @@ def test_parse_user_agent_mobile():
 
 def test_parse_user_agent_desktop():
     """Test parsing av desktop user agent."""
-    from src.supabase_log import parse_user_agent
+    from src.utils import parse_user_agent
     ua = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
     result = parse_user_agent(ua)
     assert result['device_type'] == 'desktop'
@@ -69,7 +69,7 @@ def test_parse_user_agent_desktop():
 
 def test_parse_user_agent_bot():
     """Test parsing av bot user agent."""
-    from src.supabase_log import parse_user_agent
+    from src.utils import parse_user_agent
     ua = 'Googlebot/2.1 (+http://www.google.com/bot.html)'
     result = parse_user_agent(ua)
     assert result['device_type'] == 'bot'
@@ -77,7 +77,7 @@ def test_parse_user_agent_bot():
 
 def test_parse_user_agent_empty():
     """Test parsing av tom user agent."""
-    from src.supabase_log import parse_user_agent
+    from src.utils import parse_user_agent
     result = parse_user_agent('')
     assert result['device_type'] == 'unknown'
     assert result['os'] == 'unknown'
@@ -86,14 +86,14 @@ def test_parse_user_agent_empty():
 
 def test_parse_user_agent_none():
     """Test parsing av None user agent."""
-    from src.supabase_log import parse_user_agent
+    from src.utils import parse_user_agent
     result = parse_user_agent(None)
     assert result['device_type'] == 'unknown'
 
 
 def test_parse_user_agent_android():
     """Test parsing av Android user agent."""
-    from src.supabase_log import parse_user_agent
+    from src.utils import parse_user_agent
     ua = 'Mozilla/5.0 (Linux; Android 14; SM-S921B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36'
     result = parse_user_agent(ua)
     assert result['device_type'] == 'mobile'

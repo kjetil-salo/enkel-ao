@@ -28,23 +28,23 @@ def test_species_parsing(monkeypatch):
     item2 = json.dumps({'taxonid': 2, 'taxonname': 'Rock Dove', 'scientificname': 'Columba livia', 'leaf': 'true'})
     fake_html = f'<span class="itemjson">{item1}</span><span class="itemjson">{item2}</span>'
 
-    class DummyResp:
-        def __init__(self, data):
-            self._data = data
-
-        def read(self):
-            return self._data.encode('utf-8')
-
-        def __enter__(self):
-            return self
-
-        def __exit__(self, exc_type, exc, tb):
+    class FakeResponse:
+        status_code = 200
+        text = fake_html
+        def raise_for_status(self):
             pass
 
-    def fake_urlopen(req, timeout=10):
-        return DummyResp(fake_html)
+    class FakeClient:
+        def __init__(self, **kwargs):
+            pass
+        def get(self, url, **kwargs):
+            return FakeResponse()
+        def __enter__(self):
+            return self
+        def __exit__(self, *args):
+            pass
 
-    monkeypatch.setattr('src.api_handlers.urlopen', fake_urlopen)
+    monkeypatch.setattr('httpx.Client', FakeClient)
 
     port = 38003
     srv = start_server(port)
@@ -65,16 +65,15 @@ def test_logview_monkeypatch(monkeypatch):
     _stats['per_ip'] = {}
     _stats['per_ua'] = {}
 
-    called = {'supabase': False}
+    called = {'sqlite': False}
 
-    def fake_log_view_to_supabase(ip, ua, device_id=''):
-        called['supabase'] = True
+    def fake_log_view(ip, ua, device_id=''):
+        called['sqlite'] = True
 
-    # Patch the supabase logger in both modules so Handler uses the fake
-    from src import supabase_log
+    from src import sqlite_log
     import server as server_mod
-    monkeypatch.setattr(supabase_log, 'log_view_to_supabase', fake_log_view_to_supabase)
-    monkeypatch.setattr(server_mod, 'log_view_to_supabase', fake_log_view_to_supabase)
+    monkeypatch.setattr(sqlite_log, 'log_view', fake_log_view)
+    monkeypatch.setattr(server_mod, 'log_view_to_sqlite', fake_log_view)
 
     port = 38004
     srv = start_server(port)
@@ -85,6 +84,6 @@ def test_logview_monkeypatch(monkeypatch):
     assert r.status_code == 200
     assert r.json().get('ok') is True
     assert _stats['total'] == 1
-    assert called['supabase'] is True
+    assert called['sqlite'] is True
 
     srv.shutdown()

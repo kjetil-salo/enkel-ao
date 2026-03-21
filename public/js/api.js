@@ -34,9 +34,9 @@ export async function fetchAndCachePrivateSites() {
   try {
     const tokens = JSON.parse(localStorage.getItem('ao_tokens') || '{}');
     if (!tokens.authCookie) return;
-    const resp = await fetch('/api/ao-private-sites', {
-      headers: { 'X-AO-Auth-Cookie': tokens.authCookie }
-    });
+    const headers = { 'X-AO-Auth-Cookie': tokens.authCookie };
+    if (tokens.loginToken) headers['X-AO-Login-Token'] = tokens.loginToken;
+    const resp = await fetch('/api/ao-private-sites', { headers });
     if (!resp.ok) return;
     const data = await resp.json();
     if (!Array.isArray(data.sites)) return;
@@ -201,6 +201,7 @@ export async function fetchAoSites(lat, lon, sizeMeters = 1000, isRetry = false)
   }
 
   const data = await resp.json();
+  if (!data) return [];
 
   // Håndter refreshed auth cookie hvis mottatt
   if (data.refreshedAuthCookie) {
@@ -262,6 +263,34 @@ export async function fetchAoSites(lat, lon, sizeMeters = 1000, isRetry = false)
  * @param {number} accuracy - Nøyaktighet i meter
  * @returns {Promise<Object>} - {success, siteId, message}
  */
+/**
+ * Sikre at ao_tokens er satt — logg inn automatisk hvis de mangler
+ * @returns {Promise<boolean>} true hvis tokens er tilgjengelige
+ */
+export async function ensureAoTokens() {
+  const tokens = JSON.parse(localStorage.getItem('ao_tokens') || '{}');
+  if (tokens.loginToken && tokens.authCookie) return true;
+
+  const username = localStorage.getItem('ao_username');
+  const password = localStorage.getItem('ao_password');
+  if (!username || !password) return false;
+
+  const resp = await fetch('/api/ao-login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, password }),
+  });
+  const result = await resp.json();
+  if (!resp.ok || !result.success) return false;
+
+  const saved = JSON.parse(localStorage.getItem('ao_tokens') || '{}');
+  saved.loginToken = result.loginToken;
+  saved.authCookie = result.authCookie;
+  if (!saved.userId) saved.userId = result.userId;
+  localStorage.setItem('ao_tokens', JSON.stringify(saved));
+  return true;
+}
+
 export async function createAoSite(name, lat, lon, accuracy) {
   const savedTokens = JSON.parse(localStorage.getItem('ao_tokens') || '{}');
   const loginToken = savedTokens.loginToken;

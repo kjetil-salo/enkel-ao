@@ -3,6 +3,9 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 // Mock avhengigheter før import
 vi.mock('../../public/js/api.js', () => ({
   fetchAoSites: vi.fn(),
+  getCachedPrivateSites: vi.fn(() => []),
+  ensureAoTokens: vi.fn(),
+  createAoSite: vi.fn(),
 }));
 vi.mock('../../public/js/ui.js', () => ({
   setLocationStatus: vi.fn(),
@@ -294,7 +297,7 @@ describe('setAoSiteSuggestions', () => {
     const textSpan = siteElement.querySelector('span');
     textSpan.click();
 
-    expect(setCurrentPlace).toHaveBeenCalledWith('Østensjøvannet');
+    expect(setCurrentPlace).toHaveBeenCalledWith('Østensjøvannet', null);
     expect(placeInput.value).toBe('Østensjøvannet');
     expect(placeInput.dataset.autofilled).toBe('true');
     expect(dropdown.style.display).toBe('none');
