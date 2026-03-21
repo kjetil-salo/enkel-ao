@@ -1,11 +1,11 @@
 # Supabase for logging
-supabase
+supabase>=2.0,<3
 
 # For .env-støtte
-python-dotenv
+python-dotenv>=1.0
 
 # User agent parsing
-user-agents
+user-agents>=2.2
 
 # HTTP client (erstatter subprocess curl)
-httpx
+httpx>=0.27

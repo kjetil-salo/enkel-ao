@@ -10,10 +10,8 @@
     "test:ui": "vitest --ui",
     "test:coverage": "vitest run --coverage"
   },
-  "dependencies": {
-    "@playwright/test": "^1.57.0"
-  },
   "devDependencies": {
+    "@playwright/test": "^1.57.0",
     "@vitest/ui": "^4.0.17",
     "jsdom": "^27.4.0",
     "vitest": "^4.0.17"

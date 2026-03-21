@@ -5,7 +5,7 @@ Databasefil: DB_PATH (env), default /data/stats.db
 import os
 import sqlite3
 import threading
-from user_agents import parse as parse_ua_string
+from src.utils import parse_user_agent
 
 DB_PATH = os.environ.get('DB_PATH', '/data/stats.db')
 _lock = threading.Lock()
@@ -44,33 +44,9 @@ def init_db():
         conn.commit()
 
 
-def _parse_user_agent(user_agent: str) -> dict:
-    if not user_agent:
-        return {"device_type": "unknown", "os": "unknown", "browser": "unknown"}
-    try:
-        ua = parse_ua_string(user_agent)
-        if ua.is_mobile:
-            device_type = "mobile"
-        elif ua.is_tablet:
-            device_type = "tablet"
-        elif ua.is_pc:
-            device_type = "desktop"
-        elif ua.is_bot:
-            device_type = "bot"
-        else:
-            device_type = "unknown"
-        return {
-            "device_type": device_type,
-            "os": ua.os.family or "unknown",
-            "browser": ua.browser.family or "unknown",
-        }
-    except Exception:
-        return {"device_type": "unknown", "os": "unknown", "browser": "unknown"}
-
-
 def log_view(ip: str, user_agent: str, device_id: str = '') -> bool:
     try:
-        ua_info = _parse_user_agent(user_agent)
+        ua_info = parse_user_agent(user_agent)
         with _lock:
             with _connect() as conn:
                 conn.execute(

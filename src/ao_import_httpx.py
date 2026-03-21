@@ -11,12 +11,7 @@ from urllib.parse import quote_plus
 
 import httpx
 
-
-def _mask(token, visible=6):
-    """Masker et token for logging."""
-    if not token:
-        return 'None'
-    return token[:visible] + '***'
+from src.utils import mask_token as _mask
 
 
 def observations_to_csv(observations):
@@ -164,15 +159,8 @@ def post_with_curl(observations, login_token=None, auth_cookie=None, area_id='')
     print(f'[AO-HTTPX] HTTP Status: {response.status_code}', file=sys.stderr)
 
     if response.status_code >= 400:
-        # Lagre response for debugging
-        with open('/tmp/ao_httpx_response.html', 'w') as f:
-            f.write(response.text)
-        print(f'[AO-HTTPX] Response saved to /tmp/ao_httpx_response.html', file=sys.stderr)
+        print(f'[AO-HTTPX] Feil: HTTP {response.status_code}', file=sys.stderr)
         raise ValueError(f'HTTP {response.status_code}')
-
-    # Lagre suksess-response
-    with open('/tmp/ao_httpx_response.html', 'w') as f:
-        f.write(response.text)
 
     # Steg 2: Vent på at AO prosesserer importen (asynkron)
     print(f'[AO-HTTPX] Venter 3 sekunder på at AO prosesserer importen...', file=sys.stderr)
@@ -298,10 +286,6 @@ def publish_all(login_token, auth_cookie):
         )
 
     print(f'[AO-HTTPX] Publish HTTP Status: {response.status_code}', file=sys.stderr)
-
-    # Lagre response
-    with open('/tmp/ao_publish_response.html', 'w') as f:
-        f.write(response.text)
 
     if response.status_code >= 400:
         raise ValueError(f'Publisering feilet: HTTP {response.status_code}')
