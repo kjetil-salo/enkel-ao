@@ -645,42 +645,16 @@ def handle_ao_private_sites(auth_cookie: str, ao_base_url: str = 'https://www.ar
     return sites
 
 
-def handle_ao_sites_search(lat, lon, size_m=600.0, ao_mobile_base_url='https://mobil.artsobservasjoner.no', user_id=None, login_token=None, auth_cookie=None):
-    """Håndter søk etter AO-lokaliteter.
+def _wgs84_to_mercator(lat, lon):
+    """Konverter WGS84 (lat, lon) til Web Mercator (EPSG:3857)."""
+    x = lon * 20037508.34 / 180
+    y = math.log(math.tan((90 + lat) * math.pi / 360)) / (math.pi / 180)
+    y = y * 20037508.34 / 180
+    return x, y
 
-    Returns:
-        tuple: (sites_list, refreshed_auth_cookie_or_None, auth_failed_bool)
-    """
-    # Valider input
-    try:
-        lat = float(lat)
-        lon = float(lon)
-        size_m = float(size_m) if size_m else 600.0
-    except ValueError:
-        raise ValueError('Ugyldig lat/lon/size')
-        
-    # Variabel for å holde styr på refreshed tokens og auth-status
-    refreshed_auth_cookie = None
-    auth_failed = False  # True hvis GetSitesGeoJson feiler pga ugyldig auth
-    ao_user_id = user_id or (login_token.split(':')[0] if login_token and ':' in login_token else None)
-    ao_auth = auth_cookie or os.getenv('AO_AUTH_COOKIE')
 
-    # STEG 1: Prøv auto-relogin hvis token er utløpt
-    if ao_auth and ao_user_id:
-        new_cookie = auto_relogin_if_needed(ao_user_id, ao_auth, login_token)
-        if new_cookie:
-            ao_auth = new_cookie
-            refreshed_auth_cookie = new_cookie
-            logger.info('[AO-SITES] Auto-relogin vellykket, bruker ny auth_cookie')
-
-    # STEG 2: Sliding expiration - prøv å holde auth_cookie i live hvis mulig
-    if ao_auth and ao_user_id and not refreshed_auth_cookie:
-        refreshed = refresh_ao_cookie_if_needed(ao_auth, ao_user_id, login_token)
-        if refreshed:
-            ao_auth = refreshed
-            refreshed_auth_cookie = refreshed
-
-    # Beregn geografisk boks
+def _compute_bbox(lat, lon, size_m):
+    """Beregn geografisk bounding box i WGS84."""
     half_m = max(size_m, 1.0) / 2.0
     meters_per_deg_lat = 111_320.0
     meters_per_deg_lon = meters_per_deg_lat * math.cos(math.radians(lat)) or 1.0
@@ -688,334 +662,301 @@ def handle_ao_sites_search(lat, lon, size_m=600.0, ao_mobile_base_url='https://m
     d_lat = half_m / meters_per_deg_lat
     d_lon = half_m / meters_per_deg_lon
 
-    min_y = lat - d_lat
-    max_y = lat + d_lat
-    min_x = lon - d_lon
-    max_x = lon + d_lon
+    return {
+        'min_x': lon - d_lon, 'max_x': lon + d_lon,
+        'min_y': lat - d_lat, 'max_y': lat + d_lat,
+    }
 
-    logger.debug(
-        f'AO-sites forespørsel: lat={lat:.6f}, lon={lon:.6f}, size_m={size_m:.1f}, '
-        f'minX={min_x:.6f}, minY={min_y:.6f}, maxX={max_x:.6f}, maxY={max_y:.6f}'
-    )
-    logger.debug(f'AO-tokens: user_id={bool(user_id)}, login_token={bool(login_token)}, auth_cookie={bool(auth_cookie)}')
 
-    # Samler raw sites her
-    raw_sites = []
-    my_site_ids = set()  # Holder styr på ALLE brukerens site-IDer (ikke bare i bbox)
+def _ensure_auth(ao_auth, ao_user_id, login_token):
+    """Sørg for at auth-cookie er gyldig (auto-relogin + sliding expiration).
 
-    # --- KALL 1: Hent brukerens lokasjoner via GetSitesGeoJson ---
-    # Bruker samme bbox for å finne brukerens egne sites i området
+    Returns:
+        tuple: (ao_auth, refreshed_auth_cookie_or_None)
+    """
+    refreshed = None
+
+    if ao_auth and ao_user_id:
+        new_cookie = auto_relogin_if_needed(ao_user_id, ao_auth, login_token)
+        if new_cookie:
+            ao_auth = new_cookie
+            refreshed = new_cookie
+            logger.info('[AO-SITES] Auto-relogin vellykket, bruker ny auth_cookie')
+
+    if ao_auth and ao_user_id and not refreshed:
+        sliding = refresh_ao_cookie_if_needed(ao_auth, ao_user_id, login_token)
+        if sliding:
+            ao_auth = sliding
+            refreshed = sliding
+
+    return ao_auth, refreshed
+
+
+def _fetch_private_site_ids(lat, lon, size_m, ao_login, ao_auth, ao_user_id, refreshed_auth_cookie):
+    """Hent brukerens private site-IDer via GetSitesGeoJson.
+
+    Returns:
+        tuple: (my_site_ids: set, refreshed_auth_cookie, auth_failed: bool)
+    """
+    my_site_ids = set()
+    auth_failed = False
+
+    if not (ao_login and ao_auth and ao_user_id):
+        return my_site_ids, refreshed_auth_cookie, auth_failed
+
+    try:
+        # Normaliser AO_AUTH_COOKIE verdi
+        auth_val = ao_auth
+        if auth_val.startswith('.ASPXAUTHNO='):
+            auth_val = auth_val.split('=', 1)[1]
+
+        # Hent CSRF token fra AO
+        csrf_cookie_token = None
+        try:
+            _, csrf_cookie_token, refreshed = fetch_csrf_tokens(ao_login, auth_val)
+            logger.debug(f'GetSitesGeoJson: Hentet CSRF token: {mask_token(csrf_cookie_token)}')
+            if refreshed:
+                auth_val = refreshed
+                refreshed_auth_cookie = refreshed
+        except Exception as csrf_err:
+            logger.debug(f'GetSitesGeoJson: Kunne ikke hente CSRF token: {csrf_err}')
+
+        # Konverter til Web Mercator bbox
+        center_x, center_y = _wgs84_to_mercator(lat, lon)
+        half_size = max(size_m / 2, 100)
+        bbox_str = f'{int(center_x - half_size)},{int(center_y - half_size)},{int(center_x + half_size)},{int(center_y + half_size)}'
+
+        cookies_dict = {'AcceptCookies': '1', '.ASPXAUTHNO': auth_val, 'logintoken': ao_login}
+        if csrf_cookie_token:
+            cookies_dict['__RequestVerificationToken'] = csrf_cookie_token
+
+        post_data = {
+            'zoomLevel': 16, 'bbox': bbox_str, 'userId': int(ao_user_id),
+            'coordSyst': 0, 'speciesGroupId': '0', 'taxonId': None
+        }
+
+        logger.debug(f'GetSitesGeoJson POST bbox: {bbox_str}')
+
+        geojson_data = None
+        with httpx.Client() as client:
+            response = client.post(
+                'https://www.artsobservasjoner.no/Map/GetSitesGeoJson',
+                headers={
+                    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:147.0) Gecko/20100101 Firefox/147.0',
+                    'Accept': '*/*',
+                    'Content-Type': 'application/json; charset=UTF-8',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Origin': 'https://www.artsobservasjoner.no',
+                    'Referer': 'https://www.artsobservasjoner.no/SubmitSighting/Report'
+                },
+                cookies=cookies_dict, json=post_data, timeout=15, follow_redirects=True
+            )
+            response.raise_for_status()
+
+            if not refreshed_auth_cookie and '.ASPXAUTHNO' in response.cookies:
+                refreshed_auth_cookie = response.cookies['.ASPXAUTHNO']
+
+            body = response.text
+            if body.strip().startswith('<!DOCTYPE') or body.strip().startswith('<html'):
+                logger.warning('GetSitesGeoJson: Fikk HTML i stedet for JSON - auth ugyldig')
+                auth_failed = True
+            else:
+                geojson_data = response.json() if body else None
+
+        # Ekstraher private site-IDer fra GeoJSON
+        if isinstance(geojson_data, dict):
+            for layer_key in ('points', 'polygons'):
+                layer = geojson_data.get(layer_key, {})
+                if isinstance(layer, dict):
+                    for feature in layer.get('features', []):
+                        props = feature.get('properties', {})
+                        site_id = props.get('siteId') or props.get('id') or feature.get('id')
+                        if props.get('isPrivate') and site_id is not None:
+                            my_site_ids.add(int(site_id))
+
+        logger.debug(f'GetSitesGeoJson: fant {len(my_site_ids)} private site-IDs')
+    except Exception as geojs_err:
+        logger.warning(f'GetSitesGeoJson feilet: {geojs_err}')
+
+    return my_site_ids, refreshed_auth_cookie, auth_failed
+
+
+def _fetch_public_sites(bbox, ao_mobile_base_url):
+    """Hent offentlige lokasjoner via ByBoundingBox API.
+
+    Returns:
+        list: Rå site-dicts fra API-et
+    """
+    query_params = {
+        'maxSites': '1000',
+        'minX': f'{bbox["min_x"]:.6f}', 'minY': f'{bbox["min_y"]:.6f}',
+        'maxX': f'{bbox["max_x"]:.6f}', 'maxY': f'{bbox["max_y"]:.6f}',
+        'includePublicSites': 'true',
+    }
+
+    ao_sites_url = ao_mobile_base_url + '/core/Sites/ByBoundingBox?' + urlencode(query_params)
+
+    with httpx.Client() as client:
+        resp = client.get(
+            ao_sites_url,
+            headers={
+                'User-Agent': 'Mozilla/5.0 (compatible; Fugleobservasjoner-Python/0.1)',
+                'Accept': 'application/json, text/plain, */*',
+                'Accept-Encoding': 'identity',
+                'X-CSRF': '1',
+                'Referer': 'https://mobil.artsobservasjoner.no/contribute/submit-sightings',
+            },
+            timeout=10,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+
+    if isinstance(data, list):
+        return data
+    elif isinstance(data, dict):
+        return data.get('sites') or data.get('Sites') or []
+    return []
+
+
+def _normalize_site(item, my_site_ids):
+    """Normaliser et rå site-dict til internt format med superlokasjon-deteksjon."""
+    name = item.get('name') or item.get('Name') or item.get('siteName') or item.get('SiteName')
+    site_id = item.get('id') or item.get('Id') or item.get('siteId')
+    lat_val = item.get('lat') or item.get('latitude') or item.get('Lat')
+    lon_val = item.get('lon') or item.get('longitude') or item.get('Lon')
+
+    site = {'raw': item}
+    if name:
+        site['name'] = name
+    if site_id is not None:
+        site['id'] = site_id
+        try:
+            if int(site_id) in my_site_ids:
+                site['isMine'] = True
+        except (ValueError, TypeError):
+            pass
+    if lat_val is not None:
+        site['lat'] = lat_val
+    if lon_val is not None:
+        site['lon'] = lon_val
+
+    # Detekter superlokasjon-status
+    try:
+        for k in ('isSuper', 'isSuperSite', 'IsSuper', 'IsSuperSite', 'is_super'):
+            if k in item:
+                v = item.get(k)
+                if v is True or v == 'true' or v == 'True' or v == '1':
+                    site['isSuper'] = True
+                elif v is False or v == 'false' or v == 'False' or v == '0':
+                    site['isSuper'] = False
+                break
+
+        if 'isSuper' not in site:
+            t = item.get('siteType') or item.get('type') or item.get('SiteType')
+            if isinstance(t, str) and ('super' in t.lower() or 'superlok' in t.lower()):
+                site['isSuper'] = True
+
+        for pk in ('parentId', 'parentSiteId', 'ParentId', 'parent'):
+            if pk in item and item.get(pk) is not None:
+                site['parentId'] = item.get(pk)
+                if 'isSuper' not in site:
+                    site['isSuper'] = False
+                break
+    except Exception:
+        pass
+
+    return site
+
+
+def _resolve_super_sites(sites):
+    """Utled superlokasjoner fra parent-referanser mellom sites."""
+    try:
+        id_map = {s.get('id'): s for s in sites if s.get('id') is not None}
+        for s in sites:
+            raw = s.get('raw') or {}
+            for pk in ('parentSiteId', 'parentId', 'parent', 'ParentId', 'parentSite'):
+                if pk in raw and raw.get(pk) is not None:
+                    pid = raw.get(pk)
+                    s['parentId'] = pid
+                    s['isSuper'] = False
+                    if pid in id_map:
+                        id_map[pid]['isSuper'] = True
+                    break
+    except Exception:
+        pass
+
+
+def _mark_env_owned_sites(sites):
+    """Merk bruker-eide lokasjoner fra MY_AO_SITE_IDS miljøvariabel."""
+    try:
+        my_ids_raw = os.getenv('MY_AO_SITE_IDS', '')
+        if my_ids_raw:
+            my_ids = {int(x.strip()) for x in my_ids_raw.split(',') if x.strip()}
+            for s in sites:
+                sid = s.get('id')
+                if sid is not None and int(sid) in my_ids:
+                    s['isMine'] = True
+    except Exception:
+        pass
+
+
+def handle_ao_sites_search(lat, lon, size_m=600.0, ao_mobile_base_url='https://mobil.artsobservasjoner.no', user_id=None, login_token=None, auth_cookie=None):
+    """Håndter søk etter AO-lokaliteter.
+
+    Returns:
+        tuple: (sites_list, refreshed_auth_cookie_or_None, auth_failed_bool)
+    """
+    try:
+        lat = float(lat)
+        lon = float(lon)
+        size_m = float(size_m) if size_m else 600.0
+    except ValueError:
+        raise ValueError('Ugyldig lat/lon/size')
+
+    ao_user_id = user_id or (login_token.split(':')[0] if login_token and ':' in login_token else None)
+    ao_auth = auth_cookie or os.getenv('AO_AUTH_COOKIE')
+
+    # Sørg for gyldig auth
+    ao_auth, refreshed_auth_cookie = _ensure_auth(ao_auth, ao_user_id, login_token)
+
+    # Beregn bounding box
+    bbox = _compute_bbox(lat, lon, size_m)
+    logger.debug(f'AO-sites: lat={lat:.6f}, lon={lon:.6f}, size_m={size_m:.1f}')
+
+    # Hent logintoken (fra parameter eller env)
     ao_login = login_token or os.getenv('AO_LOGIN_TOKEN')
-    # (ao_auth og ao_user_id er allerede satt over)
-    # NY: Hvis vi har loginToken men mangler auth_cookie, hent den automatisk
     if ao_login and not ao_auth:
         try:
             fresh_auth, extracted_user_id = get_fresh_auth_cookie(ao_login)
             ao_auth = fresh_auth
             if not ao_user_id:
                 ao_user_id = extracted_user_id
-            logger.debug(f'Hentet fersk auth cookie automatisk for user {ao_user_id}')
         except ValueError as e:
             logger.debug(f'Kunne ikke hente auth cookie: {e}')
             ao_auth = None
 
-    logger.debug(f'AO-tokens final: user_id={ao_user_id}, login_token={mask_token(ao_login)}, auth_cookie={mask_token(ao_auth)}')
-
-    if ao_login and ao_auth and ao_user_id:
-        try:
-            # Normaliser AO_AUTH_COOKIE verdi
-            auth_val = ao_auth
-            if auth_val.startswith('.ASPXAUTHNO='):
-                auth_val = auth_val.split('=', 1)[1]
-
-            # Hent CSRF token fra AO (samme strategi som ao_import)
-            try:
-                _, csrf_cookie_token, refreshed = fetch_csrf_tokens(ao_login, auth_val)
-                logger.debug(f'GetSitesGeoJson: Hentet CSRF token: {mask_token(csrf_cookie_token)}')
-                # Bruk eventuell refreshed auth cookie
-                if refreshed:
-                    auth_val = refreshed
-                    refreshed_auth_cookie = refreshed
-                    logger.debug('GetSitesGeoJson: Bruker refreshed auth cookie')
-            except Exception as csrf_err:
-                logger.debug(f'GetSitesGeoJson: Kunne ikke hente CSRF token: {csrf_err}')
-                csrf_cookie_token = None
-
-            # Fallback: Hvis AO svarer med auth-feil, prøv sliding expiration refresh én gang
-            # (NB: AO returnerer ikke alltid tydelig feilkode, så dette må evt. utvides)
-            # Kan utvides med ekstra logikk hvis behov
-
-            # Konverter lat/lon til Web Mercator (EPSG:3857) for bbox
-            def lat_lon_to_mercator(lat, lon):
-                x = lon * 20037508.34 / 180
-                y = math.log(math.tan((90 + lat) * math.pi / 360)) / (math.pi / 180)
-                y = y * 20037508.34 / 180
-                return x, y
-
-            center_x, center_y = lat_lon_to_mercator(lat, lon)
-            # Bbox rundt sentrum - bruk samme radius som søket (size_m)
-            # size_m er i meter, og Web Mercator er også i meter, så vi kan bruke det direkte
-            half_size = max(size_m / 2, 100)  # Minimum 100m, ellers halve søkeradiusen
-            bbox_str = f'{int(center_x - half_size)},{int(center_y - half_size)},{int(center_x + half_size)},{int(center_y + half_size)}'
-
-            # Cookie dict - inkluder CSRF token hvis vi har den
-            cookies_dict = {
-                'AcceptCookies': '1',
-                '.ASPXAUTHNO': auth_val,
-                'logintoken': ao_login
-            }
-            if csrf_cookie_token:
-                cookies_dict['__RequestVerificationToken'] = csrf_cookie_token
-
-            geojson_url = 'https://www.artsobservasjoner.no/Map/GetSitesGeoJson'
-            post_data = {
-                'zoomLevel': 16,
-                'bbox': bbox_str,
-                'userId': int(ao_user_id),
-                'coordSyst': 0,
-                'speciesGroupId': '0',  # Alle artsgrupper, ikke bare fugler
-                'taxonId': None
-            }
-
-            logger.debug(f'GetSitesGeoJson POST to {geojson_url}, bbox: {bbox_str}')
-
-            geojson_data = None
-            # Bruk httpx for POST-kall
-            with httpx.Client() as client:
-                response = client.post(
-                    geojson_url,
-                    headers={
-                        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:147.0) Gecko/20100101 Firefox/147.0',
-                        'Accept': '*/*',
-                        'Content-Type': 'application/json; charset=UTF-8',
-                        'X-Requested-With': 'XMLHttpRequest',
-                        'Origin': 'https://www.artsobservasjoner.no',
-                        'Referer': 'https://www.artsobservasjoner.no/SubmitSighting/Report'
-                    },
-                    cookies=cookies_dict,
-                    json=post_data,
-                    timeout=15,
-                    follow_redirects=True
-                )
-                response.raise_for_status()
-
-                # Parse Set-Cookie header for refreshed auth token
-                if not refreshed_auth_cookie and '.ASPXAUTHNO' in response.cookies:
-                    refreshed_auth_cookie = response.cookies['.ASPXAUTHNO']
-                    logger.debug('GetSitesGeoJson: Fant refreshed auth cookie')
-
-                body = response.text
-                logger.debug(f'GetSitesGeoJson body length: {len(body)}, first 500: {repr(body[:500])}')
-
-                # Sjekk om vi fikk HTML i stedet for JSON (auth-feil)
-                if body.strip().startswith('<!DOCTYPE') or body.strip().startswith('<html'):
-                    logger.warning('GetSitesGeoJson: Fikk HTML i stedet for JSON - auth ugyldig, skipper private sites')
-                    auth_failed = True  # Marker at auth feilet
-                    geojson_data = None
-                else:
-                    geojson_data = response.json() if body else None
-            logger.debug(f'GetSitesGeoJson parsed keys: {list(geojson_data.keys()) if isinstance(geojson_data, dict) else type(geojson_data)}')
-
-            # GetSitesGeoJson returnerer { points: { features: [...] }, polygons: {...} }
-            # Brukerens egne sites har isPrivate=true
-            if isinstance(geojson_data, dict):
-                # Sjekk points.features
-                points = geojson_data.get('points', {})
-                if isinstance(points, dict):
-                    for feature in points.get('features', []):
-                        props = feature.get('properties', {})
-                        site_id = props.get('siteId') or props.get('id') or feature.get('id')
-
-                        if props.get('isPrivate') and site_id is not None:
-                            my_site_ids.add(int(site_id))
-
-                # Sjekk også polygons.features
-                polygons = geojson_data.get('polygons', {})
-                if isinstance(polygons, dict):
-                    for feature in polygons.get('features', []):
-                        props = feature.get('properties', {})
-                        site_id = props.get('siteId') or props.get('id') or feature.get('id')
-
-                        if props.get('isPrivate') and site_id is not None:
-                            my_site_ids.add(int(site_id))
-
-            logger.debug(f'GetSitesGeoJson: fant {len(my_site_ids)} private site-IDs')
-        except Exception as geojs_err:
-            logger.warning(f'GetSitesGeoJson feilet: {geojs_err}')
-            # Hvis auth er ugyldig, fortsett med kun offentlige sites
-            pass
-
-    # --- KALL 2: Hent offentlige lokasjoner (ByBoundingBox) ---
-    query_params = {
-        'maxSites': '1000',
-        'minX': f'{min_x:.6f}',
-        'minY': f'{min_y:.6f}',
-        'maxX': f'{max_x:.6f}',
-        'maxY': f'{max_y:.6f}',
-        'includePublicSites': 'true',
-    }
-
-    ao_sites_url = (
-        ao_mobile_base_url + '/core/Sites/ByBoundingBox?' +
-        urlencode(query_params)
+    # Hent private site-IDer via GeoJSON
+    my_site_ids, refreshed_auth_cookie, auth_failed = _fetch_private_site_ids(
+        lat, lon, size_m, ao_login, ao_auth, ao_user_id, refreshed_auth_cookie
     )
 
+    # Hent offentlige sites via ByBoundingBox
     try:
-        with httpx.Client() as client:
-            resp = client.get(
-                ao_sites_url,
-                headers={
-                    'User-Agent': 'Mozilla/5.0 (compatible; Fugleobservasjoner-Python/0.1)',
-                    'Accept': 'application/json, text/plain, */*',
-                    'Accept-Encoding': 'identity',
-                    'X-CSRF': '1',
-                    'Referer': 'https://mobil.artsobservasjoner.no/contribute/submit-sightings',
-                },
-                timeout=10,
-            )
-            resp.raise_for_status()
+        raw_sites = _fetch_public_sites(bbox, ao_mobile_base_url)
 
-            # Sjekk etter refreshed auth cookie også her
-            if not refreshed_auth_cookie and '.ASPXAUTHNO' in resp.cookies:
-                refreshed_auth_cookie = resp.cookies['.ASPXAUTHNO']
-                logger.debug('Fikk refreshed auth cookie fra ByBoundingBox')
+        # Normaliser alle sites
+        sites = [_normalize_site(item, my_site_ids) for item in raw_sites if isinstance(item, dict)]
 
-            body = resp.text
-        data = json.loads(body)
-
-        # Normaliser datastruktur fra ByBoundingBox
-        if isinstance(data, list):
-            public_sites = data
-        elif isinstance(data, dict):
-            public_sites = data.get('sites') or data.get('Sites') or []
-        else:
-            public_sites = []
-
-        # Legg til alle sites fra ByBoundingBox
-        for item in public_sites or []:
-            if not isinstance(item, dict):
-                continue
-            raw_sites.append(item)
-
-        # Prosesser steder
-        sites = []
-        for item in raw_sites or []:
-            if not isinstance(item, dict):
-                continue
-
-            name = (
-                item.get('name') or
-                item.get('Name') or
-                item.get('siteName') or
-                item.get('SiteName')
-            )
-            site_id = item.get('id') or item.get('Id') or item.get('siteId')
-            lat_val = item.get('lat') or item.get('latitude') or item.get('Lat')
-            lon_val = item.get('lon') or item.get('longitude') or item.get('Lon')
-
-            site = {'raw': item}
-            if name:
-                site['name'] = name
-            if site_id is not None:
-                site['id'] = site_id
-                # Sjekk om dette er en av mine lokasjoner (basert på GetMySites)
-                try:
-                    if int(site_id) in my_site_ids:
-                        site['isMine'] = True
-                except (ValueError, TypeError):
-                    pass
-
-            if lat_val is not None:
-                site['lat'] = lat_val
-            if lon_val is not None:
-                site['lon'] = lon_val
-
-            # Oppdag om dette er en "superlokasjon" eller har en parent-id.
-            try:
-                # Sjekk eksplisitte flagg (bool eller strings)
-                for k in ('isSuper', 'isSuperSite', 'IsSuper', 'IsSuperSite', 'is_super'):
-                    if k in item:
-                        v = item.get(k)
-                        if v is True or v == 'true' or v == 'True' or v == '1':
-                            site['isSuper'] = True
-                        elif v is False or v == 'false' or v == 'False' or v == '0':
-                            site['isSuper'] = False
-                        break
-
-                # Sjekk om typen inneholder ordet 'super' eller 'superlokalitet'
-                if 'isSuper' not in site:
-                    t = item.get('siteType') or item.get('type') or item.get('SiteType')
-                    if isinstance(t, str) and ('super' in t.lower() or 'superlok' in t.lower()):
-                        site['isSuper'] = True
-
-                # Parent-id kan indikere at dette er en underlokalitet (ikke super)
-                for pk in ('parentId', 'parentSiteId', 'ParentId', 'parent'):
-                    if pk in item and item.get(pk) is not None:
-                        site['parentId'] = item.get(pk)
-                        # Hvis parent finnes og isSuper ikke eksplisitt satt,
-                        # merk isSuper som False (dette er en barn-lokalitet)
-                        if 'isSuper' not in site:
-                            site['isSuper'] = False
-                        break
-            except Exception:
-                # Ikke la parsing av ekstra felt knekke hele kall
-                pass
-            sites.append(site)
-
-        # Logging: vis alle site-IDs som har isMine=True
-        mine_sites = [s for s in sites if s.get('isMine')]
-        if mine_sites:
-            logger.debug(f'[AO-SITES] Lokasjoner med isMine=True: {len(mine_sites)}')
-            for s in mine_sites:
-                logger.debug(f'  - Navn: {s.get("name")}, ID: {s.get("id")}')
-        else:
-            logger.debug('[AO-SITES] Ingen lokasjoner med isMine=True i sites-array.')
-
-        # Etter at vi har samlet alle sites, utled om noen er "superlokasjoner"
-        # ved å se etter parent-referanser. Hvis et item A har parentSiteId = B,
-        # så er B en superlokasjon (forelder) og A er en underlokalitet.
-        try:
-            id_map = {s.get('id'): s for s in sites if s.get('id') is not None}
-            for s in sites:
-                raw = s.get('raw') or {}
-                # Sjekk flere varianter av parent-felt
-                parent_keys = ('parentSiteId', 'parentId', 'parent', 'ParentId', 'parentSite')
-                for pk in parent_keys:
-                    if pk in raw and raw.get(pk) is not None:
-                        pid = raw.get(pk)
-                        s['parentId'] = pid
-                        # Barn-lokalitet
-                        s['isSuper'] = False
-                        # Marker parent som super hvis vi har den i resultatsettet
-                        if pid in id_map:
-                            id_map[pid]['isSuper'] = True
-                        break
-        except Exception:
-            pass
+        # Utled superlokasjoner fra parent-referanser
+        _resolve_super_sites(sites)
 
         logger.info(f'AO-sites: {len(sites)} lokaliteter')
-        if sites[:3]:
-            logger.info(f'AO-sites eksempel: {[s.get("name") for s in sites[:3]]}')
 
-        # Merk bruker-eide lokasjoner hvis de er angitt i miljøvariabel
-        # MY_AO_SITE_IDS kan være en kommaseparert liste med site-id'er som eies av brukeren.
-        try:
-            my_ids_raw = os.getenv('MY_AO_SITE_IDS', '')
-            if my_ids_raw:
-                my_ids = set([int(x.strip()) for x in my_ids_raw.split(',') if x.strip()])
-                for s in sites:
-                    sid = s.get('id')
-                    if sid is not None and int(sid) in my_ids:
-                        s['isMine'] = True
-        except Exception:
-            # Ikke la parsing av denne configen knekke kall
-            pass
+        # Merk bruker-eide fra miljøvariabel
+        _mark_env_owned_sites(sites)
 
-        # Sorter slik at `isMine` (brukerens egne) kommer først, deretter resten uendret
-        try:
-            sites.sort(key=lambda s: (0 if s.get('isMine') else 1))
-        except Exception:
-            pass
+        # Sorter brukerens egne først
+        sites.sort(key=lambda s: (0 if s.get('isMine') else 1))
 
         return sites, refreshed_auth_cookie, auth_failed
     except Exception as e:
