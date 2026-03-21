@@ -2,10 +2,13 @@
 SQLite-logging for fugleobservasjoner — erstatning for Supabase.
 Databasefil: DB_PATH (env), default /data/stats.db
 """
+import logging
 import os
 import sqlite3
 import threading
 from src.utils import parse_user_agent
+
+logger = logging.getLogger('fugleobs')
 
 DB_PATH = os.environ.get('DB_PATH', '/data/stats.db')
 _lock = threading.Lock()
@@ -56,7 +59,7 @@ def log_view(ip: str, user_agent: str, device_id: str = '') -> bool:
                 conn.commit()
         return True
     except Exception as e:
-        print(f"[SQLite] Feil ved logging: {e}")
+        logger.warning(f"[SQLite] Feil ved logging: {e}")
         return False
 
 
@@ -69,7 +72,7 @@ def log_export(export_type: str) -> bool:
                 conn.commit()
         return True
     except Exception as e:
-        print(f"[SQLite] Feil ved logging av eksport: {e}")
+        logger.warning(f"[SQLite] Feil ved logging av eksport: {e}")
         return False
 
 
@@ -132,7 +135,7 @@ def get_stats() -> dict:
             "trend_30d": trend_30d,
         }
     except Exception as e:
-        print(f"[SQLite] Feil ved henting av stats: {e}")
+        logger.warning(f"[SQLite] Feil ved henting av stats: {e}")
         return None
 
 
@@ -140,4 +143,4 @@ def get_stats() -> dict:
 try:
     init_db()
 except Exception as e:
-    print(f"[SQLite] Klarte ikke initialisere database: {e}")
+    logger.warning(f"[SQLite] Klarte ikke initialisere database: {e}")

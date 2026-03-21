@@ -2,16 +2,17 @@
 AO Direct Import - Bruker httpx for HTTP-kall.
 """
 
-import json
+import logging
 import os
 import re
-import sys
 import time
 from urllib.parse import quote_plus
 
 import httpx
 
 from src.utils import mask_token as _mask
+
+logger = logging.getLogger('fugleobs')
 
 
 def observations_to_csv(observations):
@@ -63,7 +64,7 @@ def fetch_csrf_tokens(login_token, auth_cookie):
     html = response.text
 
     if refreshed_auth:
-        print(f'[AO-HTTPX] Fornyet .ASPXAUTHNO: {_mask(refreshed_auth)}', file=sys.stderr)
+        logger.debug(f'[AO-HTTPX] Fornyet .ASPXAUTHNO: {_mask(refreshed_auth)}')
 
     # Hent form-token fra HTML
     match = re.search(r'name="__RequestVerificationToken"[^>]*value="([^"]+)"', html)
@@ -74,8 +75,8 @@ def fetch_csrf_tokens(login_token, auth_cookie):
     if not cookie_token:
         raise ValueError('Kunne ikke finne cookie CSRF token')
 
-    print(f'[AO-HTTPX] Form token: {_mask(form_token)}', file=sys.stderr)
-    print(f'[AO-HTTPX] Cookie token: {_mask(cookie_token)}', file=sys.stderr)
+    logger.debug(f'[AO-HTTPX] Form token: {_mask(form_token)}')
+    logger.debug(f'[AO-HTTPX] Cookie token: {_mask(cookie_token)}')
 
     return form_token, cookie_token, refreshed_auth
 
@@ -102,8 +103,7 @@ def post_with_curl(observations, login_token=None, auth_cookie=None, area_id='')
     form_token, cookie_token, refreshed_auth = fetch_csrf_tokens(login_token, auth_cookie)
 
     csv_data = observations_to_csv(observations)
-    print(f'[AO-HTTPX] CSV length: {len(csv_data)}', file=sys.stderr)
-    print(f'[AO-HTTPX] CSV preview: {csv_data[:100]}...', file=sys.stderr)
+    logger.debug(f'[AO-HTTPX] CSV length: {len(csv_data)}')
 
     # URL-encode
     encoded_csv = quote_plus(csv_data, safe='', encoding='utf-8')
@@ -156,31 +156,31 @@ def post_with_curl(observations, login_token=None, auth_cookie=None, area_id='')
             follow_redirects=True
         )
 
-    print(f'[AO-HTTPX] HTTP Status: {response.status_code}', file=sys.stderr)
+    logger.info(f'[AO-HTTPX] HTTP Status: {response.status_code}')
 
     if response.status_code >= 400:
-        print(f'[AO-HTTPX] Feil: HTTP {response.status_code}', file=sys.stderr)
+        logger.error(f'[AO-HTTPX] Feil: HTTP {response.status_code}')
         raise ValueError(f'HTTP {response.status_code}')
 
     # Steg 2: Vent på at AO prosesserer importen (asynkron)
-    print(f'[AO-HTTPX] Venter 3 sekunder på at AO prosesserer importen...', file=sys.stderr)
+    logger.debug('[AO-HTTPX] Venter 3 sekunder på at AO prosesserer importen...')
     time.sleep(3)
 
     # Steg 3: Publiser observasjonene (med retry)
-    print(f'[AO-HTTPX] Starter publisering...', file=sys.stderr)
+    logger.info('[AO-HTTPX] Starter publisering...')
     last_error = None
     for attempt, delay in enumerate([0, 5, 10], start=1):
         if delay:
-            print(f'[AO-HTTPX] Venter {delay} sekunder før forsøk {attempt}...', file=sys.stderr)
+            logger.debug(f'[AO-HTTPX] Venter {delay} sekunder før forsøk {attempt}...')
             time.sleep(delay)
         try:
             publish_result = publish_all(login_token, auth_cookie)
-            print(f'[AO-HTTPX] Publisering vellykket (forsøk {attempt}): {publish_result}', file=sys.stderr)
+            logger.info(f'[AO-HTTPX] Publisering vellykket (forsøk {attempt}): {publish_result}')
             last_error = None
             break
         except Exception as e:
             last_error = e
-            print(f'[AO-HTTPX] Publisering feilet (forsøk {attempt}): {e}', file=sys.stderr)
+            logger.warning(f'[AO-HTTPX] Publisering feilet (forsøk {attempt}): {e}')
 
     if last_error:
         return {
@@ -236,8 +236,8 @@ def publish_all(login_token, auth_cookie):
     if not cookie_token:
         raise ValueError('Kunne ikke finne cookie CSRF token for publisering')
 
-    print(f'[AO-HTTPX] Publish form token: {_mask(form_token)}', file=sys.stderr)
-    print(f'[AO-HTTPX] Publish cookie token: {_mask(cookie_token)}', file=sys.stderr)
+    logger.debug(f'[AO-HTTPX] Publish form token: {_mask(form_token)}')
+    logger.debug(f'[AO-HTTPX] Publish cookie token: {_mask(cookie_token)}')
 
     # URL-encode form token
     encoded_form_token = quote_plus(form_token, safe='', encoding='utf-8')
@@ -285,7 +285,7 @@ def publish_all(login_token, auth_cookie):
             follow_redirects=True
         )
 
-    print(f'[AO-HTTPX] Publish HTTP Status: {response.status_code}', file=sys.stderr)
+    logger.info(f'[AO-HTTPX] Publish HTTP Status: {response.status_code}')
 
     if response.status_code >= 400:
         raise ValueError(f'Publisering feilet: HTTP {response.status_code}')

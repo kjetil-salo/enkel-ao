@@ -5,11 +5,13 @@ Bruker EPSG:3857 (Web Mercator) koordinater og /Map/SaveSite endepunktet.
 Verifisert mot AO sitt JavaScript (NewSiteAdded-funksjonen i MasterJs).
 """
 
+import logging
 import math
-import sys
 
 import httpx
 
+
+logger = logging.getLogger('fugleobs')
 
 AO_BASE_URL = 'https://www.artsobservasjoner.no'
 
@@ -65,7 +67,7 @@ def _update_site_accuracy(site_id, name, x, y, accuracy, wkt_geometry, login_tok
         'comment': '',
     }
 
-    print(f'[AO-CREATE] Setter nøyaktighet: {accuracy}m for siteId={site_id}', file=sys.stderr)
+    logger.debug(f'[AO-CREATE] Setter nøyaktighet: {accuracy}m for siteId={site_id}')
 
     try:
         with httpx.Client() as client:
@@ -78,19 +80,18 @@ def _update_site_accuracy(site_id, name, x, y, accuracy, wkt_geometry, login_tok
                 follow_redirects=True,
             )
 
-        print(f'[AO-CREATE] AddSiteInfo status: {response.status_code}', file=sys.stderr)
-        print(f'[AO-CREATE] AddSiteInfo body: {response.text[:500]}', file=sys.stderr)
+        logger.debug(f'[AO-CREATE] AddSiteInfo status: {response.status_code}')
 
         data = response.json()
         if data.get('success'):
-            print(f'[AO-CREATE] Nøyaktighet satt til {accuracy}m', file=sys.stderr)
+            logger.info(f'[AO-CREATE] Nøyaktighet satt til {accuracy}m')
             return True
 
-        print(f'[AO-CREATE] Kunne ikke sette nøyaktighet: {data.get("message")}', file=sys.stderr)
+        logger.warning(f'[AO-CREATE] Kunne ikke sette nøyaktighet: {data.get("message")}')
         return False
 
     except Exception as e:
-        print(f'[AO-CREATE] Feil ved setting av nøyaktighet: {e}', file=sys.stderr)
+        logger.error(f'[AO-CREATE] Feil ved setting av nøyaktighet: {e}')
         return False
 
 
@@ -111,13 +112,11 @@ def create_ao_site(name, lat, lon, accuracy, login_token, auth_cookie):
     Returns:
         dict: {success, siteId, siteName, message, refreshedAuthCookie}
     """
-    print(f'[AO-CREATE] === Oppretter lokasjon ===', file=sys.stderr)
-    print(f'[AO-CREATE] Navn: {name}', file=sys.stderr)
-    print(f'[AO-CREATE] Koordinater: {lat}, {lon} (nøyaktighet: {accuracy}m)', file=sys.stderr)
+    logger.info(f'[AO-CREATE] Oppretter lokasjon "{name}" ved {lat}, {lon} (±{accuracy}m)')
 
     # Konverter til Web Mercator (EPSG:3857)
     x, y = wgs84_to_web_mercator(lat, lon)
-    print(f'[AO-CREATE] EPSG:3857: x={x}, y={y}', file=sys.stderr)
+    logger.debug(f'[AO-CREATE] EPSG:3857: x={x}, y={y}')
 
     # WKT POINT i EPSG:3857 (slik AO sitt kart sender det)
     wkt_point = f'POINT({x} {y})'
@@ -137,8 +136,7 @@ def create_ao_site(name, lat, lon, accuracy, login_token, auth_cookie):
     url = f'{AO_BASE_URL}/Map/SaveSite'
     cookies = _build_cookies(login_token, auth_cookie)
 
-    print(f'[AO-CREATE] POST {url}', file=sys.stderr)
-    print(f'[AO-CREATE] Payload: {form_data}', file=sys.stderr)
+    logger.debug(f'[AO-CREATE] POST {url}')
 
     refreshed_auth = None
 
@@ -153,8 +151,7 @@ def create_ao_site(name, lat, lon, accuracy, login_token, auth_cookie):
                 follow_redirects=True,
             )
 
-        print(f'[AO-CREATE] Status: {response.status_code}', file=sys.stderr)
-        print(f'[AO-CREATE] Body: {response.text[:1000]}', file=sys.stderr)
+        logger.debug(f'[AO-CREATE] Status: {response.status_code}')
 
         # Sjekk for fornyet auth cookie
         if '.ASPXAUTHNO' in response.cookies:
@@ -189,8 +186,7 @@ def create_ao_site(name, lat, lon, accuracy, login_token, auth_cookie):
             props = features[0].get('properties', {})
             site_id = props.get('siteId')
             site_name = props.get('siteName', name)
-            coord_str = props.get('siteCoordinateStringPresentation', '')
-            print(f'[AO-CREATE] Opprettet: siteId={site_id}, coords={coord_str}', file=sys.stderr)
+            logger.info(f'[AO-CREATE] Opprettet: siteId={site_id}')
 
         if site_id and site_id > 0:
             # SaveSite ignorerer Accuracy, så vi setter den via AddSiteInfo
@@ -218,7 +214,7 @@ def create_ao_site(name, lat, lon, accuracy, login_token, auth_cookie):
         }
 
     except Exception as e:
-        print(f'[AO-CREATE] Feil: {e}', file=sys.stderr)
+        logger.error(f'[AO-CREATE] Feil: {e}')
         return {
             'success': False,
             'message': f'Feil ved opprettelse: {e}',

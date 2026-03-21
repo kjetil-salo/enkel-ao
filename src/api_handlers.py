@@ -13,7 +13,6 @@ import threading
 import time
 from html import unescape
 from urllib.parse import urlencode
-from urllib.request import Request, urlopen
 
 import httpx
 
@@ -495,20 +494,20 @@ def handle_species_search(search_term, dont_include_sub='true', ao_base_url='htt
     }
     ao_url = ao_base_url + '/Taxon/PickerSearch?' + urlencode(query_params)
 
-    req = Request(
-        ao_url,
-        headers={
-            'User-Agent': 'Mozilla/5.0 (compatible; Fugleobservasjoner-Python/0.1)',
-            'Accept': 'text/html, */*; q=0.01',
-            'X-Requested-With': 'XMLHttpRequest',
-            'Referer': 'https://www.artsobservasjoner.no/SubmitSighting/Report',
-        },
-    )
-
     try:
-        with urlopen(req, timeout=10) as resp:
-            html_bytes = resp.read()
-        html = html_bytes.decode('utf-8', errors='ignore')
+        with httpx.Client() as client:
+            resp = client.get(
+                ao_url,
+                headers={
+                    'User-Agent': 'Mozilla/5.0 (compatible; Fugleobservasjoner-Python/0.1)',
+                    'Accept': 'text/html, */*; q=0.01',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Referer': 'https://www.artsobservasjoner.no/SubmitSighting/Report',
+                },
+                timeout=10,
+            )
+            resp.raise_for_status()
+            html = resp.text
 
         # Finn alle <span class="itemjson">...</span>
         items = re.findall(r'<span class="itemjson">(.*?)</span>', html)
@@ -551,18 +550,19 @@ def handle_reverse_geocoding(lat, lon, nominatim_base_url):
 
     nominatim_url = f'{nominatim_base_url}?format=jsonv2&lat={lat}&lon={lon}&zoom=14&addressdetails=1'
 
-    req = Request(
-        nominatim_url,
-        headers={
-            'User-Agent': 'Fugleobservasjoner/0.1 (hobbyprosjekt)',
-            'Accept': 'application/json',
-        },
-    )
-
     try:
-        with urlopen(req, timeout=10) as resp:
-            body = resp.read().decode('utf-8', errors='ignore')
-        
+        with httpx.Client() as client:
+            resp = client.get(
+                nominatim_url,
+                headers={
+                    'User-Agent': 'Fugleobservasjoner/0.1 (hobbyprosjekt)',
+                    'Accept': 'application/json',
+                },
+                timeout=10,
+            )
+            resp.raise_for_status()
+            body = resp.text
+
         if not body.strip():
             return None
 
@@ -860,33 +860,27 @@ def handle_ao_sites_search(lat, lon, size_m=600.0, ao_mobile_base_url='https://m
         urlencode(query_params)
     )
 
-    req = Request(
-        ao_sites_url,
-        headers={
-            'User-Agent': 'Mozilla/5.0 (compatible; Fugleobservasjoner-Python/0.1)',
-            'Accept': 'application/json, text/plain, */*',
-            'Accept-Encoding': 'identity',
-            'X-CSRF': '1',
-            'Referer': 'https://mobil.artsobservasjoner.no/contribute/submit-sightings',
-        },
-    )
-
     try:
-        with urlopen(req, timeout=10) as resp:
+        with httpx.Client() as client:
+            resp = client.get(
+                ao_sites_url,
+                headers={
+                    'User-Agent': 'Mozilla/5.0 (compatible; Fugleobservasjoner-Python/0.1)',
+                    'Accept': 'application/json, text/plain, */*',
+                    'Accept-Encoding': 'identity',
+                    'X-CSRF': '1',
+                    'Referer': 'https://mobil.artsobservasjoner.no/contribute/submit-sightings',
+                },
+                timeout=10,
+            )
+            resp.raise_for_status()
+
             # Sjekk etter refreshed auth cookie også her
-            if not refreshed_auth_cookie:  # Kun hvis ikke allerede satt
-                try:
-                    set_cookie_header = resp.headers.get('Set-Cookie', '')
-                    if set_cookie_header and '.ASPXAUTHNO=' in set_cookie_header:
-                        import re
-                        match = re.search(r'\.ASPXAUTHNO=([^;]+)', set_cookie_header)
-                        if match:
-                            refreshed_auth_cookie = match.group(1)
-                            logger.debug('Fikk refreshed auth cookie fra ByBoundingBox')
-                except Exception as cookie_err:
-                    logger.debug(f'Feil ved parsing av Set-Cookie: {cookie_err}')
-            
-            body = resp.read().decode('utf-8', errors='ignore')
+            if not refreshed_auth_cookie and '.ASPXAUTHNO' in resp.cookies:
+                refreshed_auth_cookie = resp.cookies['.ASPXAUTHNO']
+                logger.debug('Fikk refreshed auth cookie fra ByBoundingBox')
+
+            body = resp.text
         data = json.loads(body)
 
         # Normaliser datastruktur fra ByBoundingBox

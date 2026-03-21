@@ -1,8 +1,11 @@
 # Enkel Supabase-logging for fugleobservasjoner
 # Krever: pip install supabase user-agents
+import logging
 import os
 from supabase import create_client, Client
 from src.utils import parse_user_agent
+
+logger = logging.getLogger('fugleobs')
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
@@ -31,7 +34,7 @@ def log_view_to_supabase(ip: str, user_agent: str, device_id: str = ''):
         supabase.table("stats").insert(data).execute()
         return True
     except Exception as e:
-        print(f"[Supabase] Feil ved logging: {e}")
+        logger.warning(f"[Supabase] Feil ved logging: {e}")
         return False
 
 
@@ -67,7 +70,7 @@ def get_stats_from_supabase():
             "trend_30d": trend_30d,
         }
     except Exception as e:
-        print(f"[Supabase] Feil ved henting av stats: {e}")
+        logger.warning(f"[Supabase] Feil ved henting av stats: {e}")
         return None
 
 
@@ -79,5 +82,5 @@ def log_export_to_supabase(export_type: str) -> bool:
         supabase.table("exports").insert({"type": export_type}).execute()
         return True
     except Exception as e:
-        print(f"[Supabase] Feil ved logging av eksport: {e}")
+        logger.warning(f"[Supabase] Feil ved logging av eksport: {e}")
         return False
