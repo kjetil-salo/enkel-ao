@@ -599,7 +599,9 @@ class Handler(SimpleHTTPRequestHandler):
         else:
             # Prøv å mappe til public-katalogen
             candidate = os.path.join(PUBLIC_DIR, parsed.path.lstrip('/'))
-            if os.path.exists(candidate) and os.path.isfile(candidate):
+            real_candidate = os.path.realpath(candidate)
+            if (real_candidate.startswith(os.path.realpath(PUBLIC_DIR) + os.sep)
+                    and os.path.isfile(real_candidate)):
                 self.path = '/public/' + parsed.path.lstrip('/')
             else:
                 # Fallback til index.html

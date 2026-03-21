@@ -9,6 +9,7 @@ import logging
 import math
 import re
 import os
+import threading
 import time
 from html import unescape
 from urllib.parse import urlencode
@@ -18,12 +19,7 @@ import httpx
 
 logger = logging.getLogger('fugleobs')
 
-
-def mask_token(token, visible=6):
-    """Masker et token for logging — viser kun de første tegnene."""
-    if not token:
-        return 'None'
-    return token[:visible] + '***'
+from src.utils import mask_token
 
 
 # Import for å hente CSRF tokens
@@ -119,15 +115,18 @@ _credentials_cache = {}  # user_id -> (username, password)
 _ao_cookie_refresh_cache = {}
 _AO_COOKIE_REFRESH_INTERVAL = 300  # 5 minutter (balanse mellom overhead og token-friskhet)
 
+# Lock for trådsikker tilgang til alle cacher (ThreadingHTTPServer)
+_cache_lock = threading.Lock()
+
 def refresh_ao_cookie_if_needed(auth_cookie: str, user_id: str, logintoken: str = None) -> str:
     """
     Sørger for at .ASPXAUTHNO holdes i live ved å treffe en AO-side hvis det er >10 min siden sist.
     Returnerer evt. ny auth-cookie hvis sliding expiration trigges, ellers None.
     """
-    global _ao_cookie_refresh_cache
     now = time.time()
     cache_key = f'{user_id}:{auth_cookie[:16]}'
-    last_entry = _ao_cookie_refresh_cache.get(cache_key)
+    with _cache_lock:
+        last_entry = _ao_cookie_refresh_cache.get(cache_key)
     if last_entry and now - last_entry[1] < _AO_COOKIE_REFRESH_INTERVAL:
         logger.debug(f'[AO-COOKIE-REFRESH] Skipper refresh: sist oppdatert for {int(now - last_entry[1])} sekunder siden.')
         return None
@@ -155,14 +154,16 @@ def refresh_ao_cookie_if_needed(auth_cookie: str, user_id: str, logintoken: str 
             if '.ASPXAUTHNO' in response.cookies:
                 found_set_cookie = True
                 refreshed = response.cookies['.ASPXAUTHNO']
-                _ao_cookie_refresh_cache[cache_key] = (refreshed, now)
+                with _cache_lock:
+                    _ao_cookie_refresh_cache[cache_key] = (refreshed, now)
                 logger.info(f'[AO-COOKIE-REFRESH] Sliding expiration: fikk ny auth-cookie: {mask_token(refreshed)}')
                 return refreshed
 
             if not found_set_cookie:
                 logger.debug('[AO-COOKIE-REFRESH] Ingen Set-Cookie header med .ASPXAUTHNO funnet i responsen.')
             # Ingen ny cookie, men oppdater timestamp for sliding expiration
-            _ao_cookie_refresh_cache[cache_key] = (auth_cookie, now)
+            with _cache_lock:
+                _ao_cookie_refresh_cache[cache_key] = (auth_cookie, now)
             logger.debug('[AO-COOKIE-REFRESH] Sliding expiration: ingen ny cookie, men refresh-tid oppdatert')
             return None
     except Exception as e:
@@ -190,8 +191,10 @@ def get_fresh_auth_cookie(logintoken: str) -> tuple:
         raise ValueError('Ugyldig logintoken format (forventet userId:hash)')
 
     # Sjekk cache først
-    if logintoken in _auth_cache:
-        cached_auth, cached_ts = _auth_cache[logintoken]
+    with _cache_lock:
+        cached = _auth_cache.get(logintoken)
+    if cached:
+        cached_auth, cached_ts = cached
         if time.time() - cached_ts < _AUTH_CACHE_TTL:
             user_id = logintoken.split(':')[0]
             logger.debug(f'[AUTH] Bruker cached auth cookie for user {user_id}')
@@ -225,7 +228,8 @@ def get_fresh_auth_cookie(logintoken: str) -> tuple:
             raise ValueError('Kunne ikke hente .ASPXAUTHNO fra logintoken')
 
         # Lagre i cache
-        _auth_cache[logintoken] = (auth_cookie, time.time())
+        with _cache_lock:
+            _auth_cache[logintoken] = (auth_cookie, time.time())
 
         logger.debug(f'[AUTH] Hentet fersk auth cookie for user {user_id}')
         return (auth_cookie, user_id)
@@ -320,7 +324,8 @@ def login_to_ao(username: str, password: str) -> dict:
 
         # Lagre credentials for auto-relogin
         if user_id:
-            _credentials_cache[user_id] = (username, password)
+            with _cache_lock:
+                _credentials_cache[user_id] = (username, password)
             logger.debug(f'[AO-LOGIN] Lagret credentials for auto-relogin (user_id={user_id})')
 
         logger.info(f'[AO-LOGIN] Innlogging vellykket! user_id={user_id}, auth_cookie={mask_token(auth_cookie)}')
@@ -458,11 +463,13 @@ def auto_relogin_if_needed(user_id: str, auth_cookie: str, login_token: str = No
         logger.warning('[AUTO-RELOGIN] Logintoken-refresh feilet, prøver full relogin...')
 
     # STEG 2: Fallback til full relogin med credentials
-    if user_id not in _credentials_cache:
+    with _cache_lock:
+        creds = _credentials_cache.get(user_id)
+    if not creds:
         logger.warning(f'[AUTO-RELOGIN] Ingen lagrede credentials for user_id={user_id}')
         return None
 
-    username, password = _credentials_cache[user_id]
+    username, password = creds
     try:
         result = login_to_ao(username, password)
         logger.info('[AUTO-RELOGIN] Vellykket (full relogin med credentials)')
@@ -589,34 +596,38 @@ def _epsg3857_to_wgs84(x, y):
     return round(lat, 6), round(lon, 6)
 
 
-def handle_ao_private_sites(auth_cookie: str, ao_base_url: str = 'https://www.artsobservasjoner.no') -> list:
+def handle_ao_private_sites(auth_cookie: str, ao_base_url: str = 'https://www.artsobservasjoner.no', login_token: str = None) -> list:
     """
     Hent alle brukerens private lokasjoner via BindUserSitesGrid.
 
     Returnerer liste med dicts: { id, name, lat, lon, acc }
     Koordinater er konvertert fra EPSG:3857 til WGS84.
+
+    BindUserSitesGrid er et Kendo-grid-endepunkt som krever X-Requested-With: XMLHttpRequest.
     """
-    url = f'{ao_base_url}/Site/BindUserSitesGrid?UserSitesGrid-size=500'
-    req = Request(
-        url,
-        data=b'page=1&size=500',
-        headers={
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'Accept': 'application/json',
-            'Accept-Encoding': 'gzip',
-            'Cookie': f'.ASPXAUTHNO={auth_cookie}',
-            'User-Agent': 'Mozilla/5.0 (compatible; Fugleobservasjoner/1.0)',
-        },
-    )
-    with urlopen(req, timeout=15) as resp:
-        raw_body = resp.read()
-        content_encoding = resp.headers.get('Content-Encoding', '')
-        if 'gzip' in content_encoding:
-            import gzip
-            body = gzip.decompress(raw_body)
-        else:
-            body = raw_body
-        data = json.loads(body)
+    url_grid = f'{ao_base_url}/Site/BindUserSitesGrid?UserSitesGrid-size=500'
+    seed_cookies = {'.ASPXAUTHNO': auth_cookie, 'AcceptCookies': '1'}
+    if login_token:
+        seed_cookies['logintoken'] = login_token
+
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (compatible; Fugleobservasjoner/1.0)',
+        'Accept': 'application/json',
+    }
+
+    with httpx.Client(cookies=seed_cookies, follow_redirects=True) as client:
+        response = client.post(
+            url_grid,
+            headers={
+                **headers,
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            content=b'page=1&size=500',
+            timeout=15,
+        )
+        response.raise_for_status()
+        data = response.json()
 
     sites = []
     for item in data.get('data', []):
@@ -768,6 +779,7 @@ def handle_ao_sites_search(lat, lon, size_m=600.0, ao_mobile_base_url='https://m
 
             logger.debug(f'GetSitesGeoJson POST to {geojson_url}, bbox: {bbox_str}')
 
+            geojson_data = None
             # Bruk httpx for POST-kall
             with httpx.Client() as client:
                 response = client.post(
