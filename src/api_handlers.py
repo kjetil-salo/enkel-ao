@@ -334,25 +334,30 @@ def _full_relogin(user_id: str, login_token: str = None) -> str:
     Returns:
         Ny .ASPXAUTHNO hvis vellykket, ellers None.
     """
+    # Denne funksjonen kalles KUN når sliding expiration feilet (cookie utløpt).
+    # Logger som ERROR for å gi statistikk på hvor ofte dette skjer.
+    logger.error(f'[AUTH-RELOGIN-REQUIRED] Sliding expiration feilet for user_id={user_id}, må logge inn på nytt')
+
     # Steg 1: Prøv logintoken-refresh (ingen credentials nødvendig)
     if login_token:
         new_cookie = _refresh_with_logintoken(login_token, user_id)
         if new_cookie:
+            logger.error(f'[AUTH-RELOGIN-RESULT] Logintoken-refresh vellykket for user_id={user_id}')
             return new_cookie
 
     # Steg 2: Full relogin med lagrede credentials (fra disk)
     creds = _load_credentials(user_id)
     if not creds:
-        logger.warning(f'[RELOGIN] Ingen lagrede credentials for user_id={user_id}')
+        logger.error(f'[AUTH-RELOGIN-RESULT] Ingen lagrede credentials for user_id={user_id} — bruker må logge inn manuelt')
         return None
 
     username, password = creds
     try:
         result = login_to_ao(username, password)
-        logger.info(f'[RELOGIN] Vellykket med credentials for user_id={user_id}')
+        logger.error(f'[AUTH-RELOGIN-RESULT] Credentials-relogin vellykket for user_id={user_id}')
         return result['authCookie']
     except Exception as e:
-        logger.error(f'[RELOGIN] Feilet: {e}')
+        logger.error(f'[AUTH-RELOGIN-RESULT] Credentials-relogin feilet for user_id={user_id}: {e}')
         return None
 
 
