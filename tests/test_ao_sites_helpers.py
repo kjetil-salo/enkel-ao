@@ -1,7 +1,9 @@
 """Tester for refaktorerte hjelpefunksjoner i api_handlers."""
+import json
 import math
 import os
 import sys
+import tempfile
 
 import pytest
 
@@ -193,42 +195,146 @@ def test_ensure_auth_no_credentials():
     assert refreshed is None
 
 
-def test_ensure_auth_auto_relogin(monkeypatch):
-    """Test at auto-relogin trigger ved gyldige credentials."""
+def test_ensure_auth_sliding_returns_new_cookie(monkeypatch):
+    """Test at sliding expiration returnerer ny cookie."""
     monkeypatch.setattr(
-        'src.api_handlers.auto_relogin_if_needed',
-        lambda user_id, auth, login: 'new-cookie'
+        'src.api_handlers._sliding_expiration',
+        lambda auth, user_id, login: 'new-cookie'
     )
     auth, refreshed = _ensure_auth('old-cookie', '12345', '12345:abc')
     assert auth == 'new-cookie'
     assert refreshed == 'new-cookie'
 
 
-def test_ensure_auth_sliding_fallback(monkeypatch):
-    """Test at sliding expiration brukes når auto-relogin ikke gir ny cookie."""
+def test_ensure_auth_full_relogin_fallback(monkeypatch):
+    """Test at full relogin brukes når sliding feiler og cookie er utløpt."""
     monkeypatch.setattr(
-        'src.api_handlers.auto_relogin_if_needed',
-        lambda user_id, auth, login: None
+        'src.api_handlers._sliding_expiration',
+        lambda auth, user_id, login: None
     )
     monkeypatch.setattr(
-        'src.api_handlers.refresh_ao_cookie_if_needed',
-        lambda auth, user_id, login: 'sliding-cookie'
+        'src.api_handlers._is_cookie_expired',
+        lambda auth, user_id, login: True
+    )
+    monkeypatch.setattr(
+        'src.api_handlers._full_relogin',
+        lambda user_id, login: 'relogin-cookie'
     )
     auth, refreshed = _ensure_auth('old-cookie', '12345', '12345:abc')
-    assert auth == 'sliding-cookie'
-    assert refreshed == 'sliding-cookie'
+    assert auth == 'relogin-cookie'
+    assert refreshed == 'relogin-cookie'
 
 
 def test_ensure_auth_no_refresh_needed(monkeypatch):
-    """Test at auth beholdes når ingen refresh trengs."""
+    """Test at auth beholdes når sliding ikke gir ny cookie og cookie er gyldig."""
     monkeypatch.setattr(
-        'src.api_handlers.auto_relogin_if_needed',
-        lambda user_id, auth, login: None
+        'src.api_handlers._sliding_expiration',
+        lambda auth, user_id, login: None
     )
     monkeypatch.setattr(
-        'src.api_handlers.refresh_ao_cookie_if_needed',
-        lambda auth, user_id, login: None
+        'src.api_handlers._is_cookie_expired',
+        lambda auth, user_id, login: False
     )
     auth, refreshed = _ensure_auth('valid-cookie', '12345', '12345:abc')
     assert auth == 'valid-cookie'
     assert refreshed is None
+
+
+# --- _save_credentials / _load_credentials ---
+
+def test_credentials_roundtrip(monkeypatch):
+    """Test at credentials lagres og lastes fra disk."""
+    from src.api_handlers import _save_credentials, _load_credentials
+
+    with tempfile.NamedTemporaryFile(suffix='.json', delete=False) as f:
+        tmp_path = f.name
+
+    try:
+        monkeypatch.setattr('src.api_handlers._CREDENTIALS_PATH', tmp_path)
+
+        # Lagre
+        _save_credentials('12345', 'testuser', 'testpass')
+
+        # Last
+        result = _load_credentials('12345')
+        assert result == ('testuser', 'testpass')
+
+        # Ukjent bruker
+        assert _load_credentials('99999') is None
+    finally:
+        os.unlink(tmp_path)
+
+
+def test_credentials_survives_overwrite(monkeypatch):
+    """Test at credentials for flere brukere lagres uavhengig."""
+    from src.api_handlers import _save_credentials, _load_credentials
+
+    with tempfile.NamedTemporaryFile(suffix='.json', delete=False) as f:
+        tmp_path = f.name
+
+    try:
+        monkeypatch.setattr('src.api_handlers._CREDENTIALS_PATH', tmp_path)
+
+        _save_credentials('111', 'user1', 'pass1')
+        _save_credentials('222', 'user2', 'pass2')
+
+        assert _load_credentials('111') == ('user1', 'pass1')
+        assert _load_credentials('222') == ('user2', 'pass2')
+    finally:
+        os.unlink(tmp_path)
+
+
+def test_load_credentials_missing_file(monkeypatch):
+    """Test at manglende fil returnerer None."""
+    from src.api_handlers import _load_credentials
+
+    monkeypatch.setattr('src.api_handlers._CREDENTIALS_PATH', '/tmp/nonexistent_creds_xyz.json')
+    assert _load_credentials('12345') is None
+
+
+# --- _full_relogin ---
+
+def test_full_relogin_logintoken_first(monkeypatch):
+    """Test at logintoken-refresh prøves før credentials."""
+    from src.api_handlers import _full_relogin
+
+    monkeypatch.setattr(
+        'src.api_handlers._refresh_with_logintoken',
+        lambda login_token, user_id: 'logintoken-cookie'
+    )
+    result = _full_relogin('12345', '12345:abc')
+    assert result == 'logintoken-cookie'
+
+
+def test_full_relogin_credentials_fallback(monkeypatch):
+    """Test at credentials brukes når logintoken feiler."""
+    from src.api_handlers import _full_relogin, _save_credentials
+
+    with tempfile.NamedTemporaryFile(suffix='.json', delete=False) as f:
+        tmp_path = f.name
+
+    try:
+        monkeypatch.setattr('src.api_handlers._CREDENTIALS_PATH', tmp_path)
+        monkeypatch.setattr(
+            'src.api_handlers._refresh_with_logintoken',
+            lambda login_token, user_id: None
+        )
+        monkeypatch.setattr(
+            'src.api_handlers.login_to_ao',
+            lambda username, password: {'authCookie': 'cred-cookie', 'loginToken': 'lt', 'userId': '12345'}
+        )
+
+        _save_credentials('12345', 'testuser', 'testpass')
+        result = _full_relogin('12345', '12345:abc')
+        assert result == 'cred-cookie'
+    finally:
+        os.unlink(tmp_path)
+
+
+def test_full_relogin_no_credentials(monkeypatch):
+    """Test at None returneres uten credentials og logintoken."""
+    from src.api_handlers import _full_relogin
+
+    monkeypatch.setattr('src.api_handlers._CREDENTIALS_PATH', '/tmp/nonexistent_creds_xyz.json')
+    result = _full_relogin('12345', None)
+    assert result is None

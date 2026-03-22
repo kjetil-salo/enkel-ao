@@ -27,7 +27,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger('fugleobs')
 
-from src.api_handlers import handle_species_search, handle_reverse_geocoding, handle_ao_sites_search, login_to_ao, refresh_ao_cookie_if_needed, mask_token
+from src.api_handlers import handle_species_search, handle_reverse_geocoding, handle_ao_sites_search, login_to_ao, mask_token
 from src.html_templates import generate_stats_login_page, generate_stats_page, generate_error_page
 from src.sqlite_log import log_view as log_view_to_sqlite, log_export
 from src.supabase_log import log_view_to_supabase, log_export_to_supabase, get_stats_from_supabase
