@@ -9,11 +9,13 @@
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
+    <script src="/js/theme.js"></script>
     <div class="shell">
       <div class="card">
         <header>
           <div class="title">
-            <span id="app-title" style="cursor:default;user-select:none;">🦆 Enkel-AO</span>
+            <img src="/favicon.svg" alt="" style="width:28px;height:28px;border-radius:6px;flex-shrink:0;">
+            <span id="app-title" style="cursor:default;user-select:none;">Enkel-AO</span>
             <span class="pill mode-pill" id="mode-pill" style="cursor:pointer;" title="Klikk for å bytte modus">Felt</span>
           </div>
           <div style="display: flex; align-items: center; gap: 8px;">
@@ -73,6 +75,7 @@
               }
             </style>
             <div style="display:flex;align-items:center;gap:3px;">
+                <label for="ao-size" style="font-size:0.7em;color:var(--muted);white-space:nowrap;margin:0;">Radius</label>
                 <input
                   type="number"
                   id="ao-size"
@@ -107,7 +110,8 @@
 
         <fieldset class="section-main section-observasjon" style="margin:0;padding:0 6px 12px 6px;box-sizing:border-box;">
           <legend>② Observasjon</legend>
-          <div class="status-row">
+          <!-- TODO: Skjul status-raden til søk faktisk pågår. Vis kun når brukeren har begynt å skrive (>0 tegn). -->
+          <div class="status-row" style="display:none;">
             <div class="status-left">
               <span class="status-dot" id="status-dot"></span>
               <span id="status-text">Klar for søk</span>
@@ -160,7 +164,7 @@
 
           <div class="results" id="results" role="listbox" aria-label="Arter"></div>
           <div class="result-empty" id="empty-msg" style="display:none;">Ingen treff ennå. Skriv minst 2 tegn.</div>
-          <div class="row">
+          <div class="row" style="margin-top:12px;margin-bottom:4px;">
             <label>Aktivitet</label>
             <div id="activity-pills" class="activity-pills"></div>
             <div class="activity-input-row section-aktivitet">
@@ -176,29 +180,10 @@
               </button>
             </div>
           </div>
-          <div class="row" style="margin-top:10px;">
-            <a class="btn medobs-link" href="/medobs.html">👥 Medobservatører</a>
-          </div>
-
-          <!-- Dato/tid-felt for etterregistreringsmodus (skjult som default) -->
-          <div class="row" id="datetime-fields" style="display:none;margin-top:20px;padding-top:8px;clear:both;">
-            <label style="font-size:0.78rem;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:8px;">Dato og tid</label>
-            <div style="display:flex;gap:8px;align-items:center;">
-              <input type="date" id="obs-date" style="flex:1;padding:7px 10px;border-radius:999px;border:1px solid rgba(148,163,184,0.45);background:radial-gradient(circle at top left,rgba(248,250,252,0.04),rgba(15,23,42,0.95));color:var(--text);font-size:16px;" />
-              <label style="font-size:0.8em;color:var(--muted);white-space:nowrap;">Fra:</label>
-              <input type="time" id="obs-time" placeholder="Valgfri" style="flex:1;padding:7px 10px;border-radius:999px;border:1px solid rgba(148,163,184,0.45);background:radial-gradient(circle at top left,rgba(248,250,252,0.04),rgba(15,23,42,0.95));color:var(--text);font-size:16px;" />
-              <label style="font-size:0.8em;color:var(--muted);white-space:nowrap;">Til:</label>
-              <input type="time" id="obs-time-to" placeholder="Valgfri" style="flex:1;padding:7px 10px;border-radius:999px;border:1px solid rgba(148,163,184,0.45);background:radial-gradient(circle at top left,rgba(248,250,252,0.04),rgba(15,23,42,0.95));color:var(--text);font-size:16px;" />
-            </div>
-          </div>
-        </fieldset>
-
-        <fieldset class="section-optional">
-          <legend style="font-size:0.75rem;color:var(--muted);font-weight:400;padding:0 6px;">③ Tilleggsinfo (valgfritt)</legend>
-          <div class="row advanced-row">
-            <div class="advanced-field">
-              <label for="age">Alder</label>
-              <select id="age" disabled>
+          <div class="row" style="margin-top:12px;display:flex;gap:8px;">
+            <div style="flex:1;">
+              <label for="age" style="font-size:0.8em;color:var(--muted);">Alder</label>
+              <select id="age" disabled style="width:100%;">
                 <option value="">Ikke oppgitt</option>
                 <option value="Adult">Adult</option>
                 <option value="Egg">Egg</option>
@@ -225,10 +210,9 @@
                 <option value="7K-">7K-</option>
               </select>
             </div>
-
-            <div class="advanced-field">
-              <label for="gender">Kjønn</label>
-              <select id="gender" disabled>
+            <div style="flex:1;">
+              <label for="gender" style="font-size:0.8em;color:var(--muted);">Kjønn</label>
+              <select id="gender" disabled style="width:100%;">
                 <option value="">Ikke oppgitt</option>
                 <option value="Hann">Hann</option>
                 <option value="Hunn">Hunn</option>
@@ -237,7 +221,23 @@
               </select>
             </div>
           </div>
+          <div class="row" style="margin-top:10px;">
+            <button type="button" class="btn medobs-link" id="medobs-open-btn">👥 Medobservatører</button>
+          </div>
+
+          <!-- Dato/tid-felt for etterregistreringsmodus (skjult som default) -->
+          <div class="row" id="datetime-fields" style="display:none;margin-top:20px;padding-top:8px;clear:both;">
+            <label style="font-size:0.78rem;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:8px;">Dato og tid</label>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <input type="date" id="obs-date" style="flex:1;padding:7px 10px;border-radius:999px;border:1px solid rgba(148,163,184,0.45);background:var(--card-bg,#111827);color:var(--text);font-size:16px;" />
+              <label style="font-size:0.8em;color:var(--muted);white-space:nowrap;">Fra:</label>
+              <input type="time" id="obs-time" placeholder="Valgfri" style="flex:1;padding:7px 10px;border-radius:999px;border:1px solid rgba(148,163,184,0.45);background:var(--card-bg,#111827);color:var(--text);font-size:16px;" />
+              <label style="font-size:0.8em;color:var(--muted);white-space:nowrap;">Til:</label>
+              <input type="time" id="obs-time-to" placeholder="Valgfri" style="flex:1;padding:7px 10px;border-radius:999px;border:1px solid rgba(148,163,184,0.45);background:var(--card-bg,#111827);color:var(--text);font-size:16px;" />
+            </div>
+          </div>
         </fieldset>
+
         </div><!-- /tablet-input-column -->
 
         <div class="tablet-list-column">
@@ -248,30 +248,26 @@
 
         <fieldset class="section-main section-handlinger">
           <legend>Send inn</legend>
-          <div id="ao-direct-row" style="display:none;margin-bottom:10px;">
-            <button class="btn" id="ao-direct-btn" disabled style="width:100%;font-size:18px!important;font-weight:600;display:flex;justify-content:center;align-items:center;gap:8px;">
-              <span>📡</span>
-              <span>Send direkte til AO</span>
-            </button>
-            <span style="font-size:0.75em;color:var(--muted,#9ca3af);line-height:1.3;display:block;margin-top:4px;">Logger inn og sender obsene direkte til Artsobservasjoner — ingen klipp-og-lim</span>
-            <div id="ao-direct-status" style="display:none;margin-top:8px;padding:10px;border-radius:8px;font-size:0.9rem;"></div>
-          </div>
           <div class="export-row">
-            <button class="btn" id="clear-btn" disabled>
-              <span>🗑️</span>
-              <span>Tøm liste</span>
-            </button>
-            <!-- Kopier CSV-knapp fjernet -->
-            <div style="display:flex;flex-direction:column;gap:4px;">
-              <button class="btn" id="copy-open-btn" disabled>
-                <span>🚀</span>
-                <span>Send til AO via importside</span>
+            <div id="ao-direct-row" style="display:none;">
+              <button class="btn btn-primary-action" id="ao-direct-btn" disabled>
+                <span>📡</span>
+                <span>Publiser til AO</span>
               </button>
-              <span style="font-size:0.75em;color:var(--muted,#9ca3af);line-height:1.3;">Kopierer obsene til utklippstavlen og åpner AO sin importside — du limer inn selv</span>
+<div id="ao-direct-status" style="display:none;margin-top:8px;padding:10px;border-radius:8px;font-size:0.9rem;"></div>
             </div>
-            <!-- Last ned CSV-knapp fjernet -->
+            <button class="btn btn-secondary-action" id="copy-open-btn" disabled>
+              <span>📋</span>
+              <span>Kopier &amp; åpne AO-import</span>
+            </button>
           </div>
         </fieldset>
+        <div style="margin-top:8px;text-align:center;">
+          <button class="btn btn-danger-muted" id="clear-btn" disabled style="font-size:0.75em;opacity:0.6;border:none;background:transparent;color:var(--muted);">
+            <span>🗑️</span>
+            <span>Tøm liste</span>
+          </button>
+        </div>
         </div><!-- /tablet-list-column -->
         </div><!-- /tablet-layout -->
       </div>
@@ -321,6 +317,237 @@
 
       appTitle.addEventListener('mouseleave', () => {
         if (longPressTimer) clearTimeout(longPressTimer);
+      });
+    </script>
+
+    <!-- Modal: Medobservatører -->
+    <div id="medobs-modal" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,0.5);align-items:center;justify-content:center;">
+      <div style="background:var(--card-bg);border-radius:12px;padding:20px;max-width:380px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,0.3);max-height:85vh;overflow-y:auto;">
+        <h3 style="margin:0 0 12px 0;font-size:1.1em;">👥 Medobservatører</h3>
+        <table id="medobs-modal-table" style="width:100%;border-collapse:collapse;">
+          <thead>
+            <tr>
+              <th style="text-align:left;padding:6px 4px;font-size:0.8em;color:var(--muted);">Navn</th>
+              <th style="width:50px;text-align:center;padding:6px 4px;font-size:0.8em;color:var(--muted);">Aktiv</th>
+            </tr>
+          </thead>
+          <tbody id="medobs-modal-tbody"></tbody>
+        </table>
+        <div style="margin-top:12px;display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;">
+          <button type="button" id="medobs-apply-all-btn" style="padding:8px 12px;border-radius:6px;border:1px solid var(--border);background:var(--accent);color:white;cursor:pointer;font-size:0.85em;font-weight:500;">Legg til på alle obs</button>
+          <button type="button" id="medobs-close-btn" style="padding:8px 16px;border:1px solid var(--border);border-radius:6px;background:transparent;color:var(--text);cursor:pointer;font-size:0.9em;">Lukk</button>
+        </div>
+        <p style="margin-top:10px;font-size:0.75em;color:var(--muted);line-height:1.3;">Aktive medobservatører legges automatisk på nye observasjoner.</p>
+      </div>
+    </div>
+
+    <style>
+      /* Autocomplete for medobservatør-søk i modal */
+      .medobs-ac-wrap { position: relative; }
+      .medobs-ac-list {
+        position: absolute; top: 100%; left: 0; right: 0; z-index: 1100;
+        background: var(--card-bg, #1e293b); border: 1px solid var(--border, rgba(148,163,184,0.25));
+        border-radius: 8px; max-height: 180px; overflow-y: auto;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.4); display: none;
+      }
+      .medobs-ac-list.show { display: block; }
+      .medobs-ac-item {
+        padding: 8px 10px; cursor: pointer; font-size: 0.95em;
+        border-bottom: 1px solid rgba(148,163,184,0.08);
+      }
+      .medobs-ac-item:last-child { border-bottom: none; }
+      .medobs-ac-item:hover, .medobs-ac-item.active { background: rgba(59,130,246,0.2); }
+      .medobs-ac-item .ac-city { font-size: 0.8em; color: var(--muted, #9ca3af); margin-left: 6px; }
+      .medobs-ac-item .ac-fav { color: #f59e0b; margin-right: 4px; font-size: 0.85em; }
+      .medobs-ac-spinner { padding: 8px 10px; font-size: 0.85em; color: var(--muted); }
+    </style>
+    <script type="module">
+      import { loadMedobs, saveMedobs } from './js/storage.js';
+
+      const modal = document.getElementById('medobs-modal');
+      const tbody = document.getElementById('medobs-modal-tbody');
+      const openBtn = document.getElementById('medobs-open-btn');
+      const closeBtn = document.getElementById('medobs-close-btn');
+      const applyAllBtn = document.getElementById('medobs-apply-all-btn');
+
+      function defaultList() {
+        const arr = [];
+        for (let i = 0; i < 10; i++) arr.push({ name: '', active: false });
+        return arr;
+      }
+
+      function load() {
+        const raw = loadMedobs();
+        const out = defaultList();
+        for (let i = 0; i < Math.min(10, raw.length); i++) {
+          out[i].name = (raw[i] && raw[i].name) || '';
+          out[i].active = !!(raw[i] && raw[i].active);
+        }
+        return out;
+      }
+
+      function esc(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"})[c]); }
+
+      // Autocomplete-søk mot AO
+      let acDebounce = null;
+      let acActiveIdx = -1;
+
+      function getTokens() {
+        try { return JSON.parse(localStorage.getItem('ao_tokens') || '{}'); }
+        catch { return {}; }
+      }
+
+      async function searchObservers(query) {
+        const tokens = getTokens();
+        if (!tokens.loginToken || !tokens.authCookie) return [];
+        try {
+          const resp = await fetch('/api/ao-search-observers', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ search: query, loginToken: tokens.loginToken, authCookie: tokens.authCookie }),
+          });
+          if (!resp.ok) return [];
+          return await resp.json();
+        } catch { return []; }
+      }
+
+      function setupModalAutocomplete(inp) {
+        const td = inp.parentElement;
+        const wrap = document.createElement('div');
+        wrap.className = 'medobs-ac-wrap';
+        td.appendChild(wrap);
+        wrap.appendChild(inp);
+
+        const dropdown = document.createElement('div');
+        dropdown.className = 'medobs-ac-list';
+        wrap.appendChild(dropdown);
+
+        function hideDropdown() { dropdown.classList.remove('show'); dropdown.innerHTML = ''; acActiveIdx = -1; }
+
+        function selectItem(name) {
+          inp.value = name;
+          const i = Number(inp.dataset.i);
+          const l = load(); l[i].name = name; saveMedobs(l);
+          hideDropdown();
+        }
+
+        inp.addEventListener('input', () => {
+          const i = Number(inp.dataset.i);
+          const l = load(); l[i].name = inp.value; saveMedobs(l);
+
+          const query = inp.value.trim();
+          if (query.length < 3) { hideDropdown(); return; }
+
+          clearTimeout(acDebounce);
+          acDebounce = setTimeout(async () => {
+            dropdown.innerHTML = '<div class="medobs-ac-spinner">Søker…</div>';
+            dropdown.classList.add('show');
+            acActiveIdx = -1;
+
+            const results = await searchObservers(query);
+            dropdown.innerHTML = '';
+            if (results.length === 0) {
+              dropdown.innerHTML = '<div class="medobs-ac-spinner">Ingen treff</div>';
+              return;
+            }
+            results.sort((a, b) => (b.isCoObserver ? 1 : 0) - (a.isCoObserver ? 1 : 0));
+            results.forEach((user) => {
+              const item = document.createElement('div');
+              item.className = 'medobs-ac-item';
+              let html = '';
+              if (user.isCoObserver) html += '<span class="ac-fav">★</span>';
+              html += esc(user.name);
+              if (user.city) html += `<span class="ac-city">${esc(user.city)}</span>`;
+              item.innerHTML = html;
+              item.addEventListener('mousedown', (e) => { e.preventDefault(); selectItem(user.name); });
+              dropdown.appendChild(item);
+            });
+          }, 400);
+        });
+
+        inp.addEventListener('keydown', (e) => {
+          const items = dropdown.querySelectorAll('.medobs-ac-item');
+          if (!items.length) return;
+          if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            acActiveIdx = Math.min(acActiveIdx + 1, items.length - 1);
+            items.forEach((it, i) => it.classList.toggle('active', i === acActiveIdx));
+          } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            acActiveIdx = Math.max(acActiveIdx - 1, 0);
+            items.forEach((it, i) => it.classList.toggle('active', i === acActiveIdx));
+          } else if (e.key === 'Enter' && acActiveIdx >= 0) {
+            e.preventDefault();
+            const el = items[acActiveIdx].cloneNode(true);
+            el.querySelector('.ac-city')?.remove();
+            el.querySelector('.ac-fav')?.remove();
+            selectItem(el.textContent.trim());
+          } else if (e.key === 'Escape') {
+            hideDropdown();
+          }
+        });
+
+        inp.addEventListener('blur', () => { setTimeout(hideDropdown, 200); });
+      }
+
+      function renderModal() {
+        const list = load();
+        tbody.innerHTML = '';
+        list.forEach((it, i) => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `<td style="padding:4px 2px;"><input type="text" data-i="${i}" value="${esc(it.name)}" autocomplete="off" style="width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:16px;background:var(--card-bg);color:var(--text);box-sizing:border-box;" /></td><td style="text-align:center;padding:4px 2px;"><input type="checkbox" data-i="${i}" ${it.active ? 'checked' : ''} style="width:20px;height:20px;" /></td>`;
+          tbody.appendChild(tr);
+        });
+
+        tbody.querySelectorAll('input[type="text"]').forEach(inp => {
+          setupModalAutocomplete(inp);
+        });
+        tbody.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+          cb.addEventListener('change', () => {
+            const list = load();
+            list[Number(cb.dataset.i)].active = cb.checked;
+            saveMedobs(list);
+          });
+        });
+      }
+
+      openBtn.addEventListener('click', () => {
+        renderModal();
+        modal.style.display = 'flex';
+      });
+
+      closeBtn.addEventListener('click', () => {
+        modal.style.display = 'none';
+      });
+
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) modal.style.display = 'none';
+      });
+
+      applyAllBtn.addEventListener('click', () => {
+        const list = load();
+        const active = list.filter(m => m.active && m.name.trim()).map(m => m.name.trim());
+        if (active.length === 0) { alert('Ingen aktive medobservatører valgt.'); return; }
+
+        const obsKey = 'fugleobservasjoner_v1';
+        const raw = localStorage.getItem(obsKey);
+        if (!raw) { alert('Ingen observasjoner funnet.'); return; }
+
+        const payload = JSON.parse(raw);
+        const obs = payload.observations || [];
+        if (obs.length === 0) { alert('Ingen observasjoner funnet.'); return; }
+
+        if (!confirm(`Legg til ${active.join(', ')} på alle ${obs.length} obs?`)) return;
+
+        const coObs = Array(10).fill('');
+        active.forEach((n, i) => { if (i < 10) coObs[i] = n; });
+        obs.forEach(o => { o.coObservers = [...coObs]; });
+        payload.observations = obs;
+        localStorage.setItem(obsKey, JSON.stringify(payload));
+
+        applyAllBtn.textContent = `Oppdatert ${obs.length} obs!`;
+        applyAllBtn.style.background = '#22c55e';
+        setTimeout(() => { applyAllBtn.textContent = 'Legg til på alle obs'; applyAllBtn.style.background = ''; }, 2500);
       });
     </script>
 

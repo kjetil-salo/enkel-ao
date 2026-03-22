@@ -85,6 +85,10 @@ class Handler(SimpleHTTPRequestHandler):
             self._handle_log_export_post()
             return
 
+        if parsed.path == '/api/ao-search-observers':
+            self._handle_ao_search_observers_post()
+            return
+
         # For alt annet, returner 404
         self.send_response(404)
         self.end_headers()
@@ -102,6 +106,77 @@ class Handler(SimpleHTTPRequestHandler):
         except Exception as e:
             logger.warning(f"[log-export] Feil: {e}")
         self._send_json({'ok': True})
+
+    def _handle_ao_search_observers_post(self):
+        """Proxy for å søke etter medobservatører på AO."""
+        import httpx
+
+        try:
+            content_length = int(self.headers.get('Content-Length', 0))
+            body = json.loads(self.rfile.read(content_length)) if content_length else {}
+            search = body.get('search', '').strip()
+
+            login_token = body.get('loginToken', '').strip()
+            auth_cookie = body.get('authCookie', '').strip()
+
+            if not login_token or not auth_cookie:
+                self._send_json({'error': 'Ikke innlogget'}, status=401)
+                return
+
+            if len(search) < 3:
+                self._send_json([])
+                return
+
+            # Normaliser auth cookie
+            auth_val = auth_cookie
+            if auth_val.startswith('.ASPXAUTHNO='):
+                auth_val = auth_val.split('=', 1)[1]
+
+            cookies = {
+                'logintoken': login_token,
+                'logintoken_ssl': '1',
+                '.ASPXAUTHNO': auth_val,
+                'AcceptCookies': '1',
+            }
+
+            ao_payload = {
+                'Search': search,
+                'FilterByHasCollection': False,
+                'IncludeAccountsFromOldPortals': False,
+                'IncludeCurrentUserInResult': False,
+                'includeDeletedUsersInResult': False,
+                'TopListUsers': False,
+            }
+
+            with httpx.Client(cookies=cookies) as client:
+                resp = client.post(
+                    'https://www.artsobservasjoner.no/User/FindUsersByName',
+                    json=ao_payload,
+                    headers={
+                        'Content-Type': 'application/json; charset=UTF-8',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'User-Agent': 'Mozilla/5.0 (compatible; Fugleobservasjoner/1.0)',
+                    },
+                    timeout=10,
+                )
+                resp.raise_for_status()
+                data = resp.json()
+
+            # Returner kun nødvendige felter
+            results = []
+            for user in data:
+                results.append({
+                    'id': user.get('Id'),
+                    'name': user.get('PresentationName', '').strip(),
+                    'city': user.get('City', ''),
+                    'isCoObserver': user.get('IsCoObserver', False),
+                })
+
+            self._send_json(results)
+
+        except Exception as e:
+            logger.error(f'[AO-SEARCH-OBSERVERS] Feil: {e}')
+            self._send_json([], status=200)
 
     def _handle_logview_post(self):
         """Håndter logging av sidevisning."""
