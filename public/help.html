@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-    <title>Hjelp – Fugleobservasjoner</title>
+    <title>Hjelp – Enkel-AO</title>
     <style>
       :root {
         color-scheme: light dark;
@@ -175,9 +175,27 @@
           font-size: 1rem;
         }
       }
+      /* Lyst tema */
+      body.theme-light {
+        --bg: #ffffff;
+        --card-bg: #ffffff;
+        --border: #e2e8f0;
+        --accent: #2563eb;
+        --accent-soft: rgba(37, 99, 235, 0.1);
+        --text: #1a1a1a;
+        --muted: #64748b;
+        background: #ffffff !important;
+      }
+      body.theme-light .card {
+        background: #ffffff !important;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08) !important;
+        border-color: #e2e8f0 !important;
+        backdrop-filter: none !important;
+      }
     </style>
   </head>
   <body>
+    <script src="/js/theme.js"></script>
     <div class="shell">
       <div class="card">
         <header>
@@ -186,57 +204,103 @@
             <span>Hjelp</span>
           </div>
           <a href="/" class="back-link">
-            <span>←</span>
+            <span>&#8592;</span>
             <span>Tilbake</span>
           </a>
         </header>
 
+        <div style="text-align:center;margin:8px 0 20px;">
+          <img src="/img/ugle-logo.png" alt="Kortøret ugle" style="max-width:220px;width:100%;opacity:0.92;">
+        </div>
+
         <p style="font-size:1.05em; margin-bottom:18px;">
-          En digital notatbok for fugleobservasjoner i felt – ingen innlogging, ingen venting, bare <strong>art, antall og aktivitet</strong> på sekunder. Når du er ferdig, kan du enkelt importere til Artsobservasjoner.
+          En rask digital feltnotatbok for fugleobservasjoner. Registrer <strong>art, antall og aktivitet</strong> på sekunder, og send observasjonene rett til Artsobservasjoner.no.
         </p>
+
+        <div class="note">
+          <strong>Personvern:</strong> Alle observasjoner lagres kun i nettleseren din (localStorage). Ingenting sendes til server f&#248;r du selv velger &#229; publisere.
+        </div>
 
         <h2>Kom i gang</h2>
         <ol>
-          <li><strong>Oppdater posisjon</strong> – trykk knappen for å få riktig stedsnavn.</li>
-          <li><strong>Velg lokasjon</strong> – dropdown viser nærliggende lokaliteter sortert etter avstand. Trykk kartknappen for å se dem på kart.</li>
-          <li><strong>Søk art</strong> – skriv norsk eller latinsk navn.</li>
-          <li><strong>Sett antall og aktivitet</strong> – bruk hurtigknappene eller velg fra dropdown.</li>
-          <li><strong>Kopier og åpne AO</strong> – lim inn i Artsobservasjoner.</li>
+          <li><strong>Hent posisjon</strong> &#8211; trykk &#171;Oppdater lokasjon&#187; for &#229; finne lokaliteter i n&#230;rheten. Du kan justere s&#248;keradius (100&#8211;3000 m).</li>
+          <li><strong>Velg lokasjon</strong> &#8211; dropdown viser n&#230;rliggende AO-lokaliteter sortert etter avstand. Trykk &#x1F5FA;&#xFE0F; for &#229; se dem p&#229; kart.</li>
+          <li><strong>S&#248;k art</strong> &#8211; skriv norsk eller latinsk navn. Bruk &#171;Vis underarter&#187; for &#229; inkludere underarter.</li>
+          <li><strong>Sett antall og aktivitet</strong> &#8211; velg aktivitet med hurtigknappene (pills) eller dropdown, og trykk &#10003; for &#229; registrere.</li>
+          <li><strong>Send inn</strong> &#8211; publiser direkte til AO, eller kopier CSV og lim inn manuelt.</li>
         </ol>
 
-        <div class="note">
-          <strong>Personvern:</strong> Alt lagres kun i nettleseren din (localStorage). Ingenting sendes til server.
-        </div>
+        <h2>Funksjoner</h2>
 
-        <h2>Lokaliteter og kartet</h2>
-        <p>Trykk kartknappen ved lokasjon for å se alle lokaliteter rundt deg på et kart.</p>
+        <h3>Interaktivt kart</h3>
+        <p>Trykk &#x1F5FA;&#xFE0F; ved lokasjon for &#229; se alle lokaliteter rundt deg p&#229; et kart.</p>
         <ul>
-          <li><strong>Grønne markører</strong> – offentlige lokaliteter fra Artsobservasjoner.</li>
-          <li><strong>Grå markører (👤)</strong> – private lokaliteter opprettet av andre brukere. Disse kan brukes fritt av alle og fungerer som helt vanlige lokaliteter.</li>
+          <li><strong>Gr&#248;nne mark&#248;rer</strong> &#8211; offentlige lokaliteter fra Artsobservasjoner.</li>
+          <li><strong>Gr&#229; mark&#248;rer</strong> &#8211; private lokaliteter opprettet av andre brukere. Kan brukes fritt.</li>
+          <li><strong>Gule mark&#248;rer</strong> &#8211; nyopprettede lokaliteter.</li>
+          <li><strong>Polygoner</strong> &#8211; omr&#229;delokaliteter (f.eks. innsjøer) vises med fargede omriss.</li>
         </ul>
-        <p>Trykk på en markør for å velge lokaliteten.</p>
+        <p>Trykk p&#229; en mark&#248;r for &#229; velge lokaliteten.</p>
 
         <div class="tip">
-          <strong>Hvorfor private lokasjoner?</strong> Tidligere kunne alle opprette lokaliteter som andre kunne bruke. Denne muligheten ble fjernet av AO, men de eksisterende lokalitetene er der fortsatt. I mange områder finnes det få offisielle lokaliteter – da er de private uvurderlige. Appen viser dem som standard.
+          <strong>Hvorfor private lokasjoner?</strong> Tidligere kunne alle opprette lokaliteter i AO. Denne muligheten ble fjernet, men de eksisterende er der fortsatt. I mange omr&#229;der finnes det f&#229; offisielle lokaliteter &#8211; da er de private uvurderlige. Du kan sl&#229; av visning av private lokasjoner i innstillingene.
         </div>
-        <p>Du kan slå av visning av private lokasjoner i innstillingene.</p>
 
-        <h2>Feltmodus vs Etterregistrering</h2>
-        <p>Appen har to modus som du bytter mellom ved å klikke på pillen i headeren:</p>
+        <h3>Opprett ny lokasjon</h3>
+        <p>Mangler det en lokalitet? Trykk <strong>+</strong> ved lokasjonsfeltet (krever at du er innlogget i AO via innstillingene). Du kan ogs&#229; opprette lokasjon direkte fra kartsiden med draggbar mark&#248;r for presis plassering.</p>
+
+        <h3>Direkte publisering til AO</h3>
+        <p>Logg inn med AO-brukeren din i innstillingene (&#x2699;&#xFE0F;), s&#229; kan du publisere observasjonene med &#233;n knapp &#8211; uten &#229; kopiere CSV manuelt. Appen h&#229;ndterer innlogging og verifisering automatisk.</p>
+
+        <h3>Feltmodus vs Etterregistrering</h3>
+        <p>Bytt modus ved &#229; trykke p&#229; pillen i headeren:</p>
         <ul>
-          <li><strong style="color:#4ade80">Felt (grønn pill)</strong> – Standard modus for registrering i felt. Tidspunkt settes automatisk til "nå" når du lagrer observasjonen.</li>
-          <li><strong style="color:#fca5a5">Etterreg (rød pill)</strong> – For å registrere observasjoner fra tidligere tidspunkter. Du velger selv dato og eventuelt klokkeslett. Hvis du ikke fyller inn klokkeslett, vises kun dato i CSV-eksporten.</li>
+          <li><strong style="color:#4ade80">Felt (gr&#248;nn)</strong> &#8211; for registrering i felt. Tidspunkt settes automatisk til &#171;n&#229;&#187;.</li>
+          <li><strong style="color:#fca5a5">Etterreg (r&#248;d)</strong> &#8211; for &#229; registrere fra tidligere tidspunkter. Du velger dato og eventuelt fra/til-klokkeslett.</li>
         </ul>
+        <p>I etterregistreringsmodus kan du s&#248;ke etter stedsnavn med autocomplete direkte fra AO.</p>
+
+        <h3>Alder og kj&#248;nn</h3>
+        <p>Felter for alder (Adult, 1K, 2K osv.) og kj&#248;nn (Hann, Hunn, Hunnfarget, I par) vises under artss&#248;ket. Disse er valgfrie og inkluderes i eksporten.</p>
+
+        <h3>Medobservat&#248;rer</h3>
+        <p>Trykk &#x1F465; for &#229; &#229;pne medobservat&#248;r-panelet. Her kan du:</p>
+        <ul>
+          <li>Legge til opptil 10 medobservat&#248;rer med autocomplete-s&#248;k mot AO</li>
+          <li>Markere hvem som er aktive &#8211; aktive legges automatisk p&#229; nye observasjoner</li>
+          <li>Masseoppdatere: legg til aktive medobservat&#248;rer p&#229; alle eksisterende observasjoner med &#233;n knapp</li>
+        </ul>
+
+        <h3>Aktivitetspills</h3>
+        <p>Hurtigknappene for aktivitet kan tilpasses i innstillingene. Velg fritt blant alle aktiviteter, endre rekkef&#248;lge, eller sett 0 pills for &#229; kun bruke dropdown.</p>
+
+        <h3>Observasjonslisten</h3>
+        <ul>
+          <li>Observasjoner grupperes automatisk etter lokasjon og sorteres alfabetisk</li>
+          <li>Bruk <strong>+/&#8211;</strong> for &#229; justere antall direkte i listen</li>
+          <li>Trykk p&#229; antallet for &#229; skrive inn et nytt tall</li>
+          <li>Slett med angrefrist p&#229; 5 sekunder</li>
+          <li>Klokkeslett (fra&#8211;til) vises ved stedsnavn</li>
+        </ul>
+
+        <h2>Manuell CSV-import til AO</h2>
+        <p>Hvis du ikke bruker direkte publisering, kan du kopiere CSV-en og lime inn i AO:</p>
+        <ol>
+          <li>Trykk &#171;Kopier &amp; &#229;pne AO-import&#187;</li>
+          <li>Import m&#229; gj&#248;res via <strong>www.artsobservasjoner.no</strong> (desktop), ikke mobil-versjonen</li>
+          <li>Lim inn hele teksten inkludert overskriftsraden</li>
+        </ol>
+        <p>Mange lokaliteter har <strong>samme navn</strong> (f.eks. &#171;Byparken&#187;). AO kan velge feil sted.</p>
         <div class="tip">
-          <strong>Tips:</strong> Du kan også aktivere etterregistreringsmodus i innstillingene (⚙️). Valgt modus huskes automatisk.
+          <strong>Tips:</strong> Marker dine vanlige lokaliteter som <strong>favoritter</strong> i AO. Da foresl&#229;r AO oftere &#171;din&#187; variant automatisk.
         </div>
 
-        <h2>Viktig ved import til Artsobservasjoner</h2>
-        <p>Import må gjøres via <strong>www.artsobservasjoner.no</strong> (desktop-versjonen), ikke mobil.artsobservasjoner.no.</p>
-        <p>Mange lokaliteter har <strong>samme navn</strong> (f.eks. «Byparken»). AO kan velge feil sted hvis navnet finnes flere ganger.</p>
-        <div class="tip">
-          <strong>Tips:</strong> Marker dine vanlige lokaliteter som <strong>favoritter</strong> i AO. Da foreslår AO oftere «din» variant automatisk.
-        </div>
+        <h2>Offline-st&#248;tte</h2>
+        <p>Appen fungerer uten nettforbindelse. Artss&#248;k bruker en hurtigbuffer, men underarter er kun tilgjengelig online. Observasjoner lagres lokalt uansett.</p>
+
+        <h2>Installer p&#229; telefonen</h2>
+        <p><strong>iPhone (Safari):</strong> Trykk p&#229; del-ikonet og velg &#171;Legg til p&#229; Hjem-skjerm&#187;.</p>
+        <p><strong>Android (Chrome):</strong> Trykk p&#229; menyen (tre prikker) og velg &#171;Legg til p&#229; startskjermen&#187;.</p>
 
         <h2>Lagring</h2>
         <ul>
@@ -247,27 +311,24 @@
 
         <h2>Tastatursnarveier (desktop)</h2>
         <ul>
-          <li><code>↑</code> / <code>↓</code> – Naviger i artslisten</li>
-          <li><code>Enter</code> – Velg art / Gå videre / Lagre</li>
-          <li><code>Esc</code> – Lukk artslisten</li>
+          <li><code>&#8593;</code> / <code>&#8595;</code> &#8211; Naviger i artslisten</li>
+          <li><code>Enter</code> &#8211; Velg art / G&#229; videre / Lagre</li>
+          <li><code>Esc</code> &#8211; Lukk artslisten</li>
         </ul>
 
         <h2>Feilsøking</h2>
 
         <h3>Posisjon ikke tilgjengelig</h3>
-        <p>Sjekk at nettleseren har tillatelse til å bruke posisjonen din (lås-ikon i adressefeltet).</p>
+        <p>Sjekk at nettleseren har tillatelse til &#229; bruke posisjonen din (l&#229;s-ikon i adressefeltet).</p>
 
         <h3>Artslisten viser ingenting</h3>
-        <p>Skriv minst 2-3 tegn. Hvis fortsatt tomt, kan det være midlertidig problem med Artsobservasjoner-API-et.</p>
+        <p>Skriv minst 2&#8211;3 tegn. Hvis fortsatt tomt, kan det v&#230;re midlertidig problem med Artsobservasjoner-APIet.</p>
 
-        <h3>Stedsnavn foreslås ikke</h3>
-        <p>Forslagene kommer fra Artsobservasjoner. Hvis ingen vises, finnes kanskje ingen registrerte lokaliteter i nærheten. Du kan alltid skrive inn manuelt.</p>
-
-        <h3>Importfeil i Artsobservasjoner</h3>
-        <p>Kontroller at hele teksten er limt inn, inkludert overskriftsraden.</p>
+        <h3>Stedsnavn foresl&#229;s ikke</h3>
+        <p>Forslagene kommer fra Artsobservasjoner. Hvis ingen vises, finnes kanskje ingen registrerte lokaliteter i n&#230;rheten. Du kan opprette en ny lokasjon med +-knappen.</p>
 
         <h2>Om appen</h2>
-        <p>Utviklet av <strong>Kjetil Salomonsen</strong> som et personlig verktøy for effektiv registrering av fugleobservasjoner i felt.</p>
+        <p>Utviklet av <strong>Kjetil Salomonsen</strong> som et personlig verkt&#248;y for effektiv registrering av fugleobservasjoner i felt.</p>
         <p style="font-size: 0.88rem; margin-top: 12px;">Kontakt: <a href="mailto:k@vikebo.com" style="color: var(--accent); text-decoration: none;">k@vikebo.com</a></p>
       </div>
       <footer style="text-align:center;color:#888;font-size:0.9em;padding:12px 0;opacity:0.7;">
