@@ -35,9 +35,17 @@ class LocationDB:
 
     def __init__(self, db_path):
         self.db_path = db_path
-        # Initialiser schema
         with self._connect() as conn:
-            conn.executescript(_SCHEMA)
+            # Migrer: fjern NOT NULL fra lat/lon hvis gammel tabell eksisterer
+            row = conn.execute("SELECT sql FROM sqlite_master WHERE name='locations'").fetchone()
+            if row and 'lat REAL NOT NULL' in row[0]:
+                logger.info('LocationDB: migrerer lat/lon til nullable...')
+                conn.execute('ALTER TABLE locations RENAME TO locations_old')
+                conn.executescript(_SCHEMA)
+                conn.execute('INSERT INTO locations SELECT * FROM locations_old')
+                conn.execute('DROP TABLE locations_old')
+            else:
+                conn.executescript(_SCHEMA)
         logger.info(f'LocationDB initialisert: {db_path}')
 
     def _connect(self):
