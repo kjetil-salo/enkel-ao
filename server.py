@@ -33,6 +33,16 @@ from src.sqlite_log import log_view as log_view_to_sqlite, log_export
 from src.supabase_log import log_view_to_supabase, log_export_to_supabase, get_stats_from_supabase
 from src.ao_import_httpx import post_with_curl
 
+# Lokal lokasjons-database (feature toggle via LOCATION_DB_PATH)
+_location_db = None
+_location_db_path = os.environ.get('LOCATION_DB_PATH')
+if _location_db_path:
+    try:
+        from src.location_db import LocationDB
+        _location_db = LocationDB(_location_db_path)
+    except Exception as e:
+        logging.getLogger('fugleobs').error(f'Kunne ikke initialisere LocationDB: {e}')
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 PUBLIC_DIR = os.path.join(BASE_DIR, 'public')
 
@@ -574,7 +584,7 @@ class Handler(SimpleHTTPRequestHandler):
             'AO_MOBILE_URL', 'https://mobil.artsobservasjoner.no'
         )
         try:
-            sites, refreshed_auth_cookie, auth_failed = handle_ao_sites_search(lat_raw, lon_raw, size_raw, ao_mobile_base, user_id, login_token, auth_cookie)
+            sites, refreshed_auth_cookie, auth_failed = handle_ao_sites_search(lat_raw, lon_raw, size_raw, ao_mobile_base, user_id, login_token, auth_cookie, location_db=_location_db)
             response_data = {'sites': sites}
             logger.debug(f'ao-sites refresh: refreshed={refreshed_auth_cookie is not None}, auth_failed={auth_failed}')
             if refreshed_auth_cookie:

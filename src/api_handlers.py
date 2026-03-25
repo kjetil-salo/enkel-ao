@@ -74,6 +74,11 @@ def fetch_ao_autocomplete(term: str, login_token: str = None, auth_cookie: str =
 
             logger.debug(f'[AO-AUTOCOMPLETE] Status: {response.status_code}, Content-Type: {response.headers.get("content-type")}')
 
+            # Sjekk om vi ble redirectet til innloggingssiden
+            if '/LogOn' in str(response.url):
+                logger.warning(f'[AO-AUTOCOMPLETE] Auth utløpt — redirectet til innloggingsside for term={term}')
+                return {'results': [], 'refreshed_auth_cookie': refreshed_auth_cookie, 'auth_expired': True}
+
             # Sjekk om responsen er JSON
             content_type = response.headers.get('content-type', '')
             if 'application/json' not in content_type:
@@ -810,8 +815,11 @@ def _mark_env_owned_sites(sites):
         pass
 
 
-def handle_ao_sites_search(lat, lon, size_m=600.0, ao_mobile_base_url='https://mobil.artsobservasjoner.no', user_id=None, login_token=None, auth_cookie=None):
+def handle_ao_sites_search(lat, lon, size_m=600.0, ao_mobile_base_url='https://mobil.artsobservasjoner.no', user_id=None, login_token=None, auth_cookie=None, location_db=None):
     """Håndter søk etter AO-lokaliteter.
+
+    Hvis location_db er satt, søkes det parallelt i lokal DB og AO.
+    Resultater merges med AO som prioritet, og AO-resultater lagres i lokal DB.
 
     Returns:
         tuple: (sites_list, refreshed_auth_cookie_or_None, auth_failed_bool)
@@ -840,6 +848,15 @@ def handle_ao_sites_search(lat, lon, size_m=600.0, ao_mobile_base_url='https://m
         lat, lon, size_m, ao_login, ao_auth, ao_user_id, refreshed_auth_cookie
     )
 
+    # Hent lokale lokasjoner parallelt hvis lokal DB er tilgjengelig
+    local_sites = []
+    if location_db:
+        try:
+            local_sites = location_db.search_nearby(lat, lon, radius_m=int(size_m))
+            logger.debug(f'Lokal DB: {len(local_sites)} treff')
+        except Exception as e:
+            logger.warning(f'Lokal DB-søk feilet: {e}')
+
     # Hent offentlige sites via ByBoundingBox
     try:
         raw_sites = _fetch_public_sites(bbox, ao_mobile_base_url)
@@ -851,9 +868,19 @@ def handle_ao_sites_search(lat, lon, size_m=600.0, ao_mobile_base_url='https://m
         _resolve_super_sites(sites)
 
         logger.info(f'AO-sites: {len(sites)} lokaliteter')
+        if sites[:3]:
+            logger.info(f'AO-sites eksempel: {[s.get("name") for s in sites[:3]]}')
 
         # Merk bruker-eide fra miljøvariabel
         _mark_env_owned_sites(sites)
+
+        # Merge lokale sites som ikke finnes i AO-resultater
+        if local_sites:
+            ao_ids = {s.get('id') for s in sites if s.get('id') is not None}
+            for local_site in local_sites:
+                if local_site.get('id') not in ao_ids:
+                    sites.append(local_site)
+            logger.debug(f'Merget {len(sites)} totalt (AO + lokal DB)')
 
         # Sorter brukerens egne først
         sites.sort(key=lambda s: (0 if s.get('isMine') else 1))
@@ -861,4 +888,8 @@ def handle_ao_sites_search(lat, lon, size_m=600.0, ao_mobile_base_url='https://m
         return sites, refreshed_auth_cookie, auth_failed
     except Exception as e:
         logger.error(f'Feil ved henting av AO-lokaliteter: {repr(e)}')
+        # Hvis AO feiler men vi har lokale resultater, returner dem
+        if local_sites:
+            logger.info(f'AO feilet, returnerer {len(local_sites)} lokale resultater')
+            return local_sites, refreshed_auth_cookie, auth_failed
         raise
