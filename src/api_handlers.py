@@ -25,15 +25,19 @@ from src.utils import mask_token
 from src.ao_import_httpx import fetch_csrf_tokens
 
 
-def fetch_ao_autocomplete(term: str, login_token: str = None, auth_cookie: str = None, user_id: str = None) -> dict:
+def fetch_ao_autocomplete(term: str, login_token: str = None, auth_cookie: str = None, user_id: str = None, location_db=None) -> dict:
     """
-    Hent autocomplete-forslag for lokaliteter fra AO.
+    Hent autocomplete-forslag for lokaliteter.
+
+    Søker først i lokal DB (hvis tilgjengelig), deretter i AO (hvis innlogget).
+    Uten innlogging returneres kun lokale resultater.
 
     Args:
         term: Søketekst (minimum 2-3 tegn)
         login_token: Optional logintoken cookie (for å inkludere private lokaliteter)
         auth_cookie: Optional .ASPXAUTHNO cookie (for å inkludere private lokaliteter)
         user_id: Optional bruker-ID (for auto-relogin)
+        location_db: Optional LocationDB-instans for lokalt søk
 
     Returns:
         Dict med 'results' (liste) og 'refreshed_auth_cookie' (str eller None)
@@ -41,7 +45,34 @@ def fetch_ao_autocomplete(term: str, login_token: str = None, auth_cookie: str =
     if not term or len(term) < 2:
         return {'results': [], 'refreshed_auth_cookie': None}
 
+    # Søk i lokal DB først (alltid tilgjengelig, ingen innlogging nødvendig)
+    local_results = []
+    if location_db:
+        try:
+            local_sites = location_db.search_by_name(term, limit=20)
+            # Konverter til AO autocomplete-format
+            local_results = [
+                {
+                    'id': site['id'],
+                    'value': site['name'],
+                    'presentationvalue': site['name'],
+                    'subvalue': '',
+                    '_source': 'local_db',
+                }
+                for site in local_sites
+            ]
+            logger.debug(f'[AO-AUTOCOMPLETE] Lokal DB: {len(local_results)} treff for "{term}"')
+        except Exception as e:
+            logger.warning(f'[AO-AUTOCOMPLETE] Lokal DB-søk feilet: {e}')
+
     refreshed_auth_cookie = None
+    is_logged_in = bool(login_token and (auth_cookie or user_id))
+
+    # Prøv AO bare hvis innlogget
+    if not is_logged_in:
+        if local_results:
+            return {'results': local_results, 'refreshed_auth_cookie': None}
+        return {'results': [], 'refreshed_auth_cookie': None, 'not_logged_in': True}
 
     # Sørg for gyldig auth (sliding expiration → logintoken → credentials)
     if user_id and login_token:
@@ -77,19 +108,28 @@ def fetch_ao_autocomplete(term: str, login_token: str = None, auth_cookie: str =
             # Sjekk om vi ble redirectet til innloggingssiden
             if '/LogOn' in str(response.url):
                 logger.warning(f'[AO-AUTOCOMPLETE] Auth utløpt — redirectet til innloggingsside for term={term}')
+                # Returner lokale resultater selv om AO-auth feilet
+                if local_results:
+                    return {'results': local_results, 'refreshed_auth_cookie': refreshed_auth_cookie, 'auth_expired': True}
                 return {'results': [], 'refreshed_auth_cookie': refreshed_auth_cookie, 'auth_expired': True}
 
             # Sjekk om responsen er JSON
             content_type = response.headers.get('content-type', '')
             if 'application/json' not in content_type:
                 logger.warning(f'[AO-AUTOCOMPLETE] Ikke-JSON respons. Første 500 tegn: {response.text[:500]}')
-                return {'results': [], 'refreshed_auth_cookie': refreshed_auth_cookie}
+                return {'results': local_results, 'refreshed_auth_cookie': refreshed_auth_cookie}
 
-            results = response.json()
-            return {'results': results, 'refreshed_auth_cookie': refreshed_auth_cookie}
+            ao_results = response.json()
+
+            # Merge: AO-resultater først, deretter lokale som ikke finnes i AO
+            ao_ids = {r.get('id') for r in ao_results if r.get('id') is not None}
+            merged = ao_results + [r for r in local_results if r['id'] not in ao_ids]
+
+            return {'results': merged, 'refreshed_auth_cookie': refreshed_auth_cookie}
     except Exception as e:
         logger.error(f'[AO-AUTOCOMPLETE] Feil ved henting: {e}')
-        return {'results': [], 'refreshed_auth_cookie': refreshed_auth_cookie}
+        # Ved AO-feil, returner lokale resultater
+        return {'results': local_results, 'refreshed_auth_cookie': refreshed_auth_cookie}
 
 
 

@@ -661,12 +661,13 @@ class Handler(SimpleHTTPRequestHandler):
         logger.debug(f'[AO-AUTOCOMPLETE] Søk: term={term}, autentisert={bool(login_token and auth_cookie)}, user_id={user_id}')
 
         try:
-            # Kall autocomplete med auto-relogin support
+            # Kall autocomplete med lokal DB + AO
             data = fetch_ao_autocomplete(
                 term=term,
                 login_token=login_token if login_token else None,
                 auth_cookie=auth_cookie if auth_cookie else None,
-                user_id=user_id if user_id else None
+                user_id=user_id if user_id else None,
+                location_db=_location_db
             )
             # data er nå {'results': [...], 'refreshed_auth_cookie': ...}
             self._send_json(data)

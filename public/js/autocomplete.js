@@ -96,7 +96,31 @@ export function initAutocomplete(placeInput, onSelect) {
 
       const results = data.results || [];
       currentResults = results;
-      renderResults(results);
+
+      // Vis resultater (kan være fra lokal DB selv uten innlogging)
+      if (results.length > 0) {
+        renderResults(results);
+        // Vis hint om innlogging kan gi flere resultater
+        if (data.auth_expired || data.not_logged_in) {
+          const hint = document.createElement('div');
+          hint.style.cssText = 'padding: 8px 12px; font-size: 0.75em; color: var(--muted); border-top: 1px solid var(--border);';
+          hint.innerHTML = '💡 <a href="/ao-direct.html" style="color: inherit; text-decoration: underline;">Logg inn</a> for flere lokaliteter';
+          dropdown.appendChild(hint);
+        }
+      } else if (data.auth_expired || data.not_logged_in) {
+        dropdown.innerHTML = `
+          <div style="
+            padding: 12px 16px;
+            color: var(--muted);
+            font-size: 0.85em;
+          ">
+            Ingen treff. <a href="/ao-direct.html" style="color: inherit; text-decoration: underline;">Logg inn</a> for å søke i alle AO-lokaliteter.
+          </div>
+        `;
+        dropdown.style.display = 'block';
+      } else {
+        renderResults(results);
+      }
     } catch (error) {
       console.error('Autocomplete-feil:', error);
       dropdown.style.display = 'none';
