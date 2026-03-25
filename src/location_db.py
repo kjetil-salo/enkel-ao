@@ -8,7 +8,6 @@ Aktiveres med miljøvariabel LOCATION_DB_PATH.
 import logging
 import math
 import sqlite3
-import threading
 
 logger = logging.getLogger('fugleobs')
 
@@ -36,22 +35,18 @@ class LocationDB:
 
     def __init__(self, db_path):
         self.db_path = db_path
-        self._local = threading.local()
-        # Initialiser schema med én tilkobling
-        conn = self._get_conn()
-        conn.executescript(_SCHEMA)
-        conn.commit()
+        # Initialiser schema
+        with self._connect() as conn:
+            conn.executescript(_SCHEMA)
         logger.info(f'LocationDB initialisert: {db_path}')
 
-    def _get_conn(self):
-        """Hent tråd-lokal tilkobling (SQLite-tilkoblinger er ikke trådsikre)."""
-        if not hasattr(self._local, 'conn') or self._local.conn is None:
-            conn = sqlite3.connect(self.db_path, timeout=5.0)
-            conn.execute('PRAGMA journal_mode=WAL')
-            conn.execute('PRAGMA busy_timeout=5000')
-            conn.row_factory = sqlite3.Row
-            self._local.conn = conn
-        return self._local.conn
+    def _connect(self):
+        """Opprett ny tilkobling. Ny per operasjon for å se WAL-endringer fra andre prosesser."""
+        conn = sqlite3.connect(self.db_path, timeout=5.0)
+        conn.execute('PRAGMA journal_mode=WAL')
+        conn.execute('PRAGMA busy_timeout=5000')
+        conn.row_factory = sqlite3.Row
+        return conn
 
     def upsert_locations(self, sites, source='enkel-ao'):
         """Sett inn eller oppdater lokasjoner.
@@ -60,45 +55,44 @@ class LocationDB:
             sites: Liste med site-dicts (id, name, lat, lon, isPrivate, isSuper, parentId)
             source: Kildeapp ('enkel-ao' eller 'dagens-funn')
         """
-        conn = self._get_conn()
-        inserted = 0
-        for site in sites:
-            ao_id = site.get('id')
-            name = site.get('name')
-            lat = site.get('lat')
-            lon = site.get('lon')
-            if ao_id is None or not name or lat is None or lon is None:
-                continue
-            try:
-                conn.execute(
-                    """INSERT INTO locations (ao_id, name, lat, lon, is_private, is_super, parent_id, source)
-                       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                       ON CONFLICT(ao_id) DO UPDATE SET
-                           name=excluded.name,
-                           lat=excluded.lat,
-                           lon=excluded.lon,
-                           is_private=excluded.is_private,
-                           is_super=excluded.is_super,
-                           parent_id=excluded.parent_id,
-                           updated_at=datetime('now')""",
-                    (
-                        int(ao_id),
-                        name,
-                        float(lat),
-                        float(lon),
-                        1 if site.get('isPrivate') else 0,
-                        1 if site.get('isSuper') else 0,
-                        site.get('parentId'),
-                        source,
+        with self._connect() as conn:
+            inserted = 0
+            for site in sites:
+                ao_id = site.get('id')
+                name = site.get('name')
+                lat = site.get('lat')
+                lon = site.get('lon')
+                if ao_id is None or not name or lat is None or lon is None:
+                    continue
+                try:
+                    conn.execute(
+                        """INSERT INTO locations (ao_id, name, lat, lon, is_private, is_super, parent_id, source)
+                           VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                           ON CONFLICT(ao_id) DO UPDATE SET
+                               name=excluded.name,
+                               lat=excluded.lat,
+                               lon=excluded.lon,
+                               is_private=excluded.is_private,
+                               is_super=excluded.is_super,
+                               parent_id=excluded.parent_id,
+                               updated_at=datetime('now')""",
+                        (
+                            int(ao_id),
+                            name,
+                            float(lat),
+                            float(lon),
+                            1 if site.get('isPrivate') else 0,
+                            1 if site.get('isSuper') else 0,
+                            site.get('parentId'),
+                            source,
+                        )
                     )
-                )
-                inserted += 1
-            except (ValueError, TypeError, sqlite3.Error) as e:
-                logger.debug(f'LocationDB upsert feilet for site {ao_id}: {e}')
-        conn.commit()
-        if inserted:
-            logger.debug(f'LocationDB: upsert {inserted} lokasjoner fra {source}')
-        return inserted
+                    inserted += 1
+                except (ValueError, TypeError, sqlite3.Error) as e:
+                    logger.debug(f'LocationDB upsert feilet for site {ao_id}: {e}')
+            if inserted:
+                logger.debug(f'LocationDB: upsert {inserted} lokasjoner fra {source}')
+            return inserted
 
     def search_nearby(self, lat, lon, radius_m=600):
         """Finn lokasjoner innenfor radius.
@@ -108,18 +102,17 @@ class LocationDB:
         Returns:
             Liste med site-dicts.
         """
-        # Beregn bounding box (grov filtrering)
         lat_delta = radius_m / 111_320.0
         lon_delta = radius_m / (111_320.0 * math.cos(math.radians(lat)))
 
-        conn = self._get_conn()
-        rows = conn.execute(
-            """SELECT ao_id, name, lat, lon, is_private, is_super, parent_id, source
-               FROM locations
-               WHERE lat BETWEEN ? AND ?
-                 AND lon BETWEEN ? AND ?""",
-            (lat - lat_delta, lat + lat_delta, lon - lon_delta, lon + lon_delta)
-        ).fetchall()
+        with self._connect() as conn:
+            rows = conn.execute(
+                """SELECT ao_id, name, lat, lon, is_private, is_super, parent_id, source
+                   FROM locations
+                   WHERE lat BETWEEN ? AND ?
+                     AND lon BETWEEN ? AND ?""",
+                (lat - lat_delta, lat + lat_delta, lon - lon_delta, lon + lon_delta)
+            ).fetchall()
 
         results = []
         for row in rows:
@@ -145,14 +138,14 @@ class LocationDB:
         Returns:
             Liste med site-dicts.
         """
-        conn = self._get_conn()
-        rows = conn.execute(
-            """SELECT ao_id, name, lat, lon, is_private, is_super, parent_id, source
-               FROM locations
-               WHERE name LIKE ?
-               LIMIT ?""",
-            (f'%{query}%', limit)
-        ).fetchall()
+        with self._connect() as conn:
+            rows = conn.execute(
+                """SELECT ao_id, name, lat, lon, is_private, is_super, parent_id, source
+                   FROM locations
+                   WHERE name LIKE ?
+                   LIMIT ?""",
+                (f'%{query}%', limit)
+            ).fetchall()
         return [
             {
                 'id': row['ao_id'],
@@ -169,8 +162,8 @@ class LocationDB:
 
     def count(self):
         """Antall lokasjoner i databasen."""
-        conn = self._get_conn()
-        return conn.execute('SELECT COUNT(*) FROM locations').fetchone()[0]
+        with self._connect() as conn:
+            return conn.execute('SELECT COUNT(*) FROM locations').fetchone()[0]
 
 
 def _haversine(lat1, lon1, lat2, lon2):
