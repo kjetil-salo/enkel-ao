@@ -15,8 +15,8 @@ _SCHEMA = """
 CREATE TABLE IF NOT EXISTS locations (
     ao_id INTEGER PRIMARY KEY,
     name TEXT NOT NULL,
-    lat REAL NOT NULL,
-    lon REAL NOT NULL,
+    lat REAL,
+    lon REAL,
     is_private INTEGER DEFAULT 0,
     is_super INTEGER DEFAULT 0,
     parent_id INTEGER,
