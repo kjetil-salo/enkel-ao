@@ -3,7 +3,7 @@
  */
 
 
-import { fetchAoSites, createAoSite, getCachedPrivateSites } from './api.js';
+import { fetchAoSites, createAoSite, getCachedPrivateSites, ensureAoTokens } from './api.js';
 import { setLocationStatus, haversine } from './ui.js';
 
 
@@ -65,7 +65,7 @@ export function getSiteLabel(site) {
  * @param {Function} setCurrentPlace - Callback for å sette nåværende sted
  * @returns {Array} - Oppdatert liste med sites
  */
-export function setAoSiteSuggestions(sites, currentPosition, dropdown, aoSitesEl, placeInput, setCurrentPlace) {
+export function setAoSiteSuggestions(sites, currentPosition, dropdown, aoSitesEl, placeInput, setCurrentPlace, searchRadiusMeters) {
   console.log('currentPosition:', currentPosition);
   
   // Slå sammen bbox-sites med cachet liste over mine private lokasjoner
@@ -81,11 +81,22 @@ export function setAoSiteSuggestions(sites, currentPosition, dropdown, aoSitesEl
     return s;
   });
 
-  // Legg til cachet private lokasjoner som ikke er innenfor bbox
+  // Legg til cachet private lokasjoner som ikke er innenfor bbox, men kun de nærmeste
   const bboxIds = new Set(bboxSites.map(s => s.id).filter(id => id != null));
+  const userLat0 = currentPosition && typeof currentPosition.lat === 'number' ? currentPosition.lat : null;
+  const userLon0 = currentPosition && typeof currentPosition.lon === 'number' ? currentPosition.lon : null;
   const extraPrivate = cachedPrivate
     .filter(s => !bboxIds.has(s.id))
-    .map(s => ({ ...s, isMine: true }));
+    .map(s => {
+      let dist = null;
+      if (userLat0 != null && userLon0 != null && s.lat != null && s.lon != null) {
+        dist = haversine(userLat0, userLon0, parseFloat(s.lat), parseFloat(s.lon));
+      }
+      return { ...s, isMine: true, isPrivate: true, _distance: dist };
+    })
+    .filter(s => s._distance != null && s._distance <= (searchRadiusMeters || 5000))
+    .sort((a, b) => (a._distance ?? Infinity) - (b._distance ?? Infinity))
+    .slice(0, 5);
 
   const currentAoSites = [...markedBbox, ...extraPrivate];
 
@@ -122,13 +133,11 @@ export function setAoSiteSuggestions(sites, currentPosition, dropdown, aoSitesEl
   });
   
   withDist.sort((a, b) => {
-    // Superlokasjon først
+    // 1. Superlokasjon først
     if ((a.isSuper ? 1 : 0) !== (b.isSuper ? 1 : 0)) return (b.isSuper ? 1 : 0) - (a.isSuper ? 1 : 0);
-    // Offentlig før privat
+    // 2. Offentlig før privat
     if (isPrivateSite(a) !== isPrivateSite(b)) return isPrivateSite(a) - isPrivateSite(b);
-    // Mine lokaliteter (⭐) først blant private
-    if ((a.isMine ? 1 : 0) !== (b.isMine ? 1 : 0)) return (b.isMine ? 1 : 0) - (a.isMine ? 1 : 0);
-    // Nærmest først
+    // 3. Nærmest først
     if (a._distance != null && b._distance != null) return a._distance - b._distance;
     return 0;
   });
@@ -516,12 +525,7 @@ export function openMapPage(userPosition, sites) {
  * @returns {boolean}
  */
 export function isAoLoggedIn() {
-  try {
-    const tokens = JSON.parse(localStorage.getItem('ao_tokens') || '{}');
-    return !!(tokens.loginToken && tokens.authCookie);
-  } catch {
-    return false;
-  }
+  return !!(localStorage.getItem('ao_username') && localStorage.getItem('ao_password'));
 }
 
 /**
@@ -608,9 +612,17 @@ export function initCreateSite(getPosition, getPlaceName, onSiteCreated) {
     }
 
     submitBtn.disabled = true;
-    showStatus('Oppretter lokasjon...', false);
+    showStatus('Logger inn på AO...', false);
 
     try {
+      const loggedIn = await ensureAoTokens();
+      if (!loggedIn) {
+        showStatus('Innlogging feilet. Sjekk brukernavn/passord i innstillinger.', true);
+        submitBtn.disabled = false;
+        return;
+      }
+
+      showStatus('Oppretter lokasjon...', false);
       const result = await createAoSite(name, pos.lat, pos.lon, parseInt(accuracySelect.value));
 
       if (result.success) {

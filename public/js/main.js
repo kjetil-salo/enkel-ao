@@ -103,6 +103,7 @@ function loadState() {
   const last = appState.observations[appState.observations.length - 1];
   if (last && last.placeName) {
     appState.currentPlaceName = last.placeName;
+    appState.currentPlaceId = last.placeId || null;
     if (dom.placeInput) {
       dom.placeInput.value = appState.currentPlaceName;
       dom.placeInput.dataset.autofilled = 'false';
@@ -148,7 +149,8 @@ function handlePositionUpdate(position, sites) {
     dom.aoSitesDropdown,
     dom.aoSitesEl,
     dom.placeInput,
-    setCurrentPlaceAndUpdate
+    setCurrentPlaceAndUpdate,
+    appState.currentAoSizeMeters
   );
   updateSectionStates(appState, dom);
   updateMapBtnVisibility();
@@ -168,13 +170,10 @@ function setupEventListeners() {
 
   if (dom.placeInput) {
     dom.placeInput.addEventListener('input', () => {
-      const newValue = dom.placeInput.value;
-      // Kun nullstill placeId hvis teksten faktisk endret seg fra det autofylte
-      if (newValue !== appState.currentPlaceName) {
-        appState.currentPlaceId = null;
-        dom.placeInput.dataset.autofilled = 'false';
-      }
-      appState.currentPlaceName = newValue;
+      // Manuell redigering fjerner alltid ID — ID kjem berre frå dropdown-val
+      appState.currentPlaceId = null;
+      dom.placeInput.dataset.autofilled = 'false';
+      appState.currentPlaceName = dom.placeInput.value;
       updateSectionStates(appState, dom);
     });
   }
@@ -341,12 +340,14 @@ async function init() {
   const selectedLocation = localStorage.getItem('selectedLocation');
   if (selectedLocation) {
     appState.currentPlaceName = selectedLocation;
+    const selectedLocationId = localStorage.getItem('selectedLocationId');
+    appState.currentPlaceId = selectedLocationId ? parseInt(selectedLocationId, 10) || selectedLocationId : null;
     if (dom.placeInput) {
       dom.placeInput.value = selectedLocation;
       dom.placeInput.dataset.autofilled = 'true';
     }
-    // Fjern fra localStorage etter bruk
     localStorage.removeItem('selectedLocation');
+    localStorage.removeItem('selectedLocationId');
   }
 
   setupEventListeners();

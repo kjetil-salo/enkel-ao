@@ -139,7 +139,8 @@ if (sites && Array.isArray(sites)) {
     if (distStr) {
       popupHtml += `<br>Avstand: ${distStr}`;
     }
-    popupHtml += `<br><br><button onclick="selectLocation('${siteName.replace(/'/g, "\\'")}')">Velg denne lokaliteten</button>`;
+    const siteIdStr = site.id != null ? String(site.id) : '';
+    popupHtml += `<br><br><button onclick="selectLocation('${siteName.replace(/'/g, "\\'")}', '${siteIdStr}')">Velg denne lokaliteten</button>`;
     marker.bindPopup(popupHtml);
 
     // Tooltip med navn (vises permanent)
@@ -153,7 +154,7 @@ if (sites && Array.isArray(sites)) {
 
     // Klikk på markør velger lokalitet
     marker.on('click', () => {
-      selectLocation(siteName);
+      selectLocation(siteName, site.id ?? null);
     });
 
     // Legg til i bounds
@@ -205,12 +206,15 @@ function isPrivateSite(site) {
 /**
  * Velg lokalitet og gå tilbake til hovedsiden
  * @param {string} locationName - Navn på valgt lokalitet
+ * @param {string|number|null} locationId - AO-lokalitets-ID
  */
-function selectLocation(locationName) {
-  // Lagre valgt lokalitet i localStorage
+function selectLocation(locationName, locationId) {
   localStorage.setItem('selectedLocation', locationName);
-
-  // Gå tilbake til hovedsiden
+  if (locationId != null) {
+    localStorage.setItem('selectedLocationId', String(locationId));
+  } else {
+    localStorage.removeItem('selectedLocationId');
+  }
   window.location.href = '/';
 }
 

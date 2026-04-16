@@ -60,7 +60,7 @@ def test_ao_autocomplete_success(monkeypatch):
         {'id': 2, 'value': 'Østmarka', 'label': 'Østmarka (Oslo)'}
     ]
 
-    def fake_fetch(term, login_token=None, auth_cookie=None, user_id=None):
+    def fake_fetch(term, login_token=None, auth_cookie=None, user_id=None, location_db=None):
         return {'results': fake_results, 'refreshed_auth_cookie': None}
 
     monkeypatch.setattr('src.api_handlers.fetch_ao_autocomplete', fake_fetch)
@@ -80,7 +80,7 @@ def test_ao_autocomplete_success(monkeypatch):
 
 def test_ao_autocomplete_api_error(monkeypatch):
     """Test at ao-autocomplete håndterer feil grasiøst."""
-    def fake_fetch(term, login_token=None, auth_cookie=None, user_id=None):
+    def fake_fetch(term, login_token=None, auth_cookie=None, user_id=None, location_db=None):
         raise Exception('Nettverksfeil')
 
     monkeypatch.setattr('src.api_handlers.fetch_ao_autocomplete', fake_fetch)
