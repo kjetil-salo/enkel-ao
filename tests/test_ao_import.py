@@ -130,6 +130,36 @@ def test_observations_to_csv_with_many_coobservers():
     assert 'Person 12' not in data_row
 
 
+def test_observations_to_csv_uses_place_id_over_name():
+    """Verifiser at placeId brukes i stedet for placeName når tilgjengelig."""
+    observations = [{
+        'species': {'taxonName': 'Gråspurv'},
+        'timestamp': '2024-01-15T14:00:00Z',
+        'placeName': 'Litleholmen',
+        'placeId': 12345,
+        'count': '1'
+    }]
+    csv = observations_to_csv(observations)
+    lines = csv.split('\r\n')
+    fields = lines[1].split('\t')
+    assert fields[1] == '12345'
+    assert 'Litleholmen' not in csv
+
+
+def test_observations_to_csv_falls_back_to_name_when_no_id():
+    """Verifiser at placeName brukes når placeId mangler."""
+    observations = [{
+        'species': {'taxonName': 'Gråspurv'},
+        'timestamp': '2024-01-15T14:00:00Z',
+        'placeName': 'Litleholmen',
+        'count': '1'
+    }]
+    csv = observations_to_csv(observations)
+    lines = csv.split('\r\n')
+    fields = lines[1].split('\t')
+    assert fields[1] == 'Litleholmen'
+
+
 def test_observations_to_csv_time_omitted_when_midnight():
     """Verifiser at tid utelates hvis 00:00."""
     observations = [{

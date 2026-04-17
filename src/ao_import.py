@@ -91,9 +91,13 @@ def observations_to_csv(observations):
         if not time_to_str:
             time_to_str = time_str
 
+        # Bruk placeId (tall-ID) hvis tilgjengelig, ellers stedsnavn
+        place_id = obs.get('placeId')
+        place_col = str(place_id) if place_id is not None else obs.get('placeName', '')
+
         row = [
             species_name,
-            obs.get('placeName', ''),
+            place_col,
             '',  # Superlokalitet
             '',  # Nord (lat)
             '',  # Øst (lon)
