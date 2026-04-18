@@ -7,21 +7,42 @@ const MEDOBS_KEY = 'medobs_list_v1';
 const AO_SIZE_KEY = 'ao_search_radius_v1';
 const ACTIVITY_PILLS_KEY = 'activityPills_v1';
 
+function todayStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
 /**
- * Last medobservatører fra localStorage
+ * Last medobservatører fra localStorage.
+ * Aktive medobservatører nullstilles automatisk neste dag.
  * @returns {Array} - Liste med medobservatører
  */
 export function loadMedobs() {
   try {
     const raw = JSON.parse(window.localStorage.getItem(MEDOBS_KEY) || 'null');
     if (!raw) return [];
-    
-    // Håndter gammelt format (array av strings)
+
+    // Gammelt format: array av strings
     if (Array.isArray(raw) && raw.length && typeof raw[0] === 'string') {
-      return raw.slice(0, 10).map((n) => ({ name: n, active: true }));
+      return raw.slice(0, 10).map((n) => ({ name: n, active: false }));
     }
-    
-    return Array.isArray(raw) ? raw : [];
+
+    // Nytt format: { date: 'YYYY-MM-DD', list: [...] }
+    if (raw && typeof raw === 'object' && !Array.isArray(raw) && raw.list) {
+      const list = Array.isArray(raw.list) ? raw.list : [];
+      if (raw.date !== todayStr()) {
+        // Ny dag — deaktiver alle
+        return list.map((it) => ({ ...it, active: false }));
+      }
+      return list;
+    }
+
+    // Gammelt format: direkte array av objekter
+    if (Array.isArray(raw)) {
+      return raw.map((it) => ({ ...it, active: false }));
+    }
+
+    return [];
   } catch (e) {
     console.warn('Kunne ikke laste medobservatører', e);
     return [];
@@ -29,12 +50,12 @@ export function loadMedobs() {
 }
 
 /**
- * Lagre medobservatører til localStorage
+ * Lagre medobservatører til localStorage med dagens dato.
  * @param {Array} list - Liste med medobservatører
  */
 export function saveMedobs(list) {
   try {
-    window.localStorage.setItem(MEDOBS_KEY, JSON.stringify(list));
+    window.localStorage.setItem(MEDOBS_KEY, JSON.stringify({ date: todayStr(), list }));
   } catch (e) {
     console.warn('Kunne ikke lagre medobservatører', e);
   }
