@@ -152,15 +152,35 @@
         color: var(--accent);
         text-decoration: none;
       }
+      body.theme-light {
+        --bg: #ffffff; --card-bg: #ffffff; --border: #e2e8f0;
+        --accent: #2563eb; --accent-soft: rgba(37,99,235,0.1);
+        --text: #1a1a1a; --muted: #64748b;
+        background: #ffffff !important;
+      }
+      body.theme-light .card { background: #ffffff !important; box-shadow: 0 4px 12px rgba(0,0,0,0.08) !important; border-color: #e2e8f0 !important; backdrop-filter: none !important; }
     </style>
   </head>
   <body>
+    <script src="/js/theme.js"></script>
     <div class="shell">
       <div class="card">
         <header>
           <h1 class="title">📋 Endringslogg</h1>
           <a href="/" class="back-link">← Tilbake</a>
         </header>
+
+        <div class="version">
+          <div class="version-header">
+            <span class="version-number">v1.24.0</span>
+            <span class="version-date">22. april 2026</span>
+          </div>
+          <div class="section-title">Nytt</div>
+          <ul class="changes">
+            <li>Dynamisk liste for medobservatører — legg til og fjern personer med + og ✕</li>
+            <li>Ingen fast grense på antall medobservatører</li>
+          </ul>
+        </div>
 
         <div class="version">
           <div class="version-header">
