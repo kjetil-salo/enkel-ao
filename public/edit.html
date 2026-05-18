@@ -13,9 +13,16 @@
       .row { display:flex; gap:8px; }
       .btn { padding:8px 12px; border-radius:8px; border:1px solid rgba(148,163,184,0.15); background: #3b82f6; color:white; cursor:pointer; }
       .btn-ghost { background:transparent; border:1px solid rgba(148,163,184,0.12); color:var(--text); }
+      body.theme-light {
+        background: #ffffff !important; color: #1a1a1a !important;
+      }
+      body.theme-light .card { background: #ffffff !important; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+      body.theme-light input, body.theme-light select { background: #ffffff !important; color: #1a1a1a !important; border-color: #cbd5e1 !important; }
+      body.theme-light label { color: #64748b !important; }
     </style>
   </head>
   <body>
+    <script src="/js/theme.js"></script>
     <div class="card">
       <h2>Rediger observasjon</h2>
       <form id="edit-form">
@@ -154,10 +161,20 @@
         return `${hh}:${mm}`;
       }
 
+      function toLocalIso(d) {
+        const yyyy = d.getFullYear();
+        const mo = String(d.getMonth() + 1).padStart(2, '0');
+        const dy = String(d.getDate()).padStart(2, '0');
+        const hh = String(d.getHours()).padStart(2, '0');
+        const mi = String(d.getMinutes()).padStart(2, '0');
+        const ss = String(d.getSeconds()).padStart(2, '0');
+        return `${yyyy}-${mo}-${dy}T${hh}:${mi}:${ss}`;
+      }
+
       // Hjelpefunksjon for å oppdatere dato og tid i ISO-streng
       function updateDateTimeInIso(isoStr, dateStr, timeStr) {
         const d = isoStr ? new Date(isoStr) : new Date();
-        if (isNaN(d.getTime())) return isoStr || new Date().toISOString();
+        if (isNaN(d.getTime())) return isoStr || toLocalIso(new Date());
 
         // Oppdater dato hvis oppgitt
         if (dateStr) {
@@ -173,7 +190,7 @@
           d.setHours(0, 0, 0, 0);
         }
 
-        return d.toISOString();
+        return toLocalIso(d);
       }
 
       if (!obs) {

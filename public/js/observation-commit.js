@@ -20,7 +20,7 @@ function getObservationTimestamp() {
 
   if (!dateInput || !dateInput.value) {
     // Fallback til nå hvis dato mangler
-    return new Date().toISOString();
+    return toLocalISOString(new Date());
   }
 
   const dateStr = dateInput.value; // "2026-01-28"
@@ -63,7 +63,7 @@ function getObservationTimestampTo() {
     return null;
   }
 
-  return d.toISOString();
+  return toLocalISOString(d);
 }
 
 function getActivePills() {
