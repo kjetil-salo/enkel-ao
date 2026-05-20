@@ -21,6 +21,21 @@ def observations_to_csv(observations):
     return orig(observations)
 
 
+def _count_review_rows(html):
+    """Tell antall observasjonsrader i AO ReviewSighting HTML. Returnerer 0 hvis ingen."""
+    # Kendo UI grid (AO bruker Kendo) har k-master-row på datarader
+    kendo = re.findall(r'class="[^"]*k-master-row[^"]*"', html)
+    if kendo:
+        return len(kendo)
+    # Fallback: tell <tr>-elementer inne i <tbody>
+    tbody = re.search(r'<tbody[^>]*>(.*?)</tbody>', html, re.DOTALL | re.IGNORECASE)
+    if tbody:
+        rows = re.findall(r'<tr[\s>]', tbody.group(1), re.IGNORECASE)
+        return len(rows)
+    # Kan ikke bestemme – returner None (betyr "ukjent", ikke 0)
+    return None
+
+
 def fetch_csrf_tokens(login_token, auth_cookie):
     """
     Hent BEGGE CSRF tokens:
@@ -157,6 +172,8 @@ def post_with_curl(observations, login_token=None, auth_cookie=None, area_id='')
         )
 
     logger.info(f'[AO-HTTPX] HTTP Status: {response.status_code}')
+    logger.debug(f'[AO-HTTPX] ParseObservations URL etter redirect: {response.url}')
+    logger.debug(f'[AO-HTTPX] ParseObservations respons (første 500 tegn): {response.text[:500]}')
 
     if response.status_code >= 400:
         logger.error(f'[AO-HTTPX] Feil: HTTP {response.status_code}')
@@ -169,6 +186,7 @@ def post_with_curl(observations, login_token=None, auth_cookie=None, area_id='')
     # Steg 3: Publiser observasjonene (med retry)
     logger.info('[AO-HTTPX] Starter publisering...')
     last_error = None
+    publish_result = None
     for attempt, delay in enumerate([0, 5, 10], start=1):
         if delay:
             logger.debug(f'[AO-HTTPX] Venter {delay} sekunder før forsøk {attempt}...')
@@ -184,17 +202,29 @@ def post_with_curl(observations, login_token=None, auth_cookie=None, area_id='')
 
     if last_error:
         return {
-            'success': True,
-            'message': f'{len(observations)} observasjoner importert (men publisering feilet: {last_error})',
-            'count': len(observations),
+            'success': False,
+            'error': f'Publisering feilet: {last_error}',
+            'count': 0,
             'published': False,
             'refreshedAuthCookie': refreshed_auth
         }
 
+    pending = publish_result.get('pending_count') if publish_result else None
+    if pending == 0:
+        logger.warning('[AO-HTTPX] AO hadde ingen observasjoner til publisering – import kan ha feilet')
+        return {
+            'success': False,
+            'error': 'AO aksepterte ingen observasjoner. Importen kan være nede, eller lokaliteten/arten ble ikke gjenkjent.',
+            'count': 0,
+            'published': False,
+            'refreshedAuthCookie': refreshed_auth
+        }
+
+    published_count = pending if pending is not None else len(observations)
     return {
         'success': True,
-        'message': f'{len(observations)} observasjoner importert og publisert',
-        'count': len(observations),
+        'message': f'{published_count} observasjoner importert og publisert',
+        'count': published_count,
         'published': True,
         'refreshedAuthCookie': refreshed_auth
     }
@@ -224,6 +254,13 @@ def publish_all(login_token, auth_cookie):
         response.raise_for_status()
 
     html = response.text
+    logger.debug(f'[AO-HTTPX] ReviewSighting respons (første 500 tegn): {html[:500]}')
+
+    # Tell antall observasjoner som venter på publisering
+    pending_count = _count_review_rows(html)
+    logger.info(f'[AO-HTTPX] Observasjoner til gjennomgang: {pending_count}')
+    if pending_count is not None and pending_count == 0:
+        raise ValueError('AO har ingen observasjoner til publisering – importen kan ha feilet')
 
     # Hent form-token fra HTML
     match = re.search(r'name="__RequestVerificationToken"[^>]*value="([^"]+)"', html)
@@ -290,4 +327,4 @@ def publish_all(login_token, auth_cookie):
     if response.status_code >= 400:
         raise ValueError(f'Publisering feilet: HTTP {response.status_code}')
 
-    return {'status': response.status_code}
+    return {'status': response.status_code, 'pending_count': pending_count}
