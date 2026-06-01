@@ -7,6 +7,91 @@ import { showToast } from './ui.js';
 import { toLocalISOString } from './utils.js';
 
 /**
+ * Vis modal for å sette fra/til-klokkeslett på alle obs i en gruppe
+ */
+function showTimeModal(groupItems, defaultFra, defaultTil, groupName, observations, obsListEl, buttons, saveState) {
+  // Fjern evt. eksisterende modal
+  const existing = document.getElementById('time-modal');
+  if (existing) existing.remove();
+
+  const overlay = document.createElement('div');
+  overlay.id = 'time-modal';
+  Object.assign(overlay.style, {
+    position: 'fixed', inset: '0', zIndex: '1000',
+    background: 'rgba(0,0,0,0.5)', display: 'flex',
+    alignItems: 'center', justifyContent: 'center',
+  });
+
+  const box = document.createElement('div');
+  Object.assign(box.style, {
+    background: 'var(--card-bg, #1e293b)', borderRadius: '12px', padding: '20px',
+    maxWidth: '340px', width: '90%', boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+  });
+
+  box.innerHTML = `
+    <h3 style="margin:0 0 4px 0;font-size:1.05em;">🕐 Sett klokkeslett</h3>
+    <p style="margin:0 0 14px 0;font-size:0.8em;color:var(--muted);line-height:1.3;">${groupName} — ${groupItems.length} observasjon${groupItems.length !== 1 ? 'er' : ''}</p>
+    <div style="display:flex;gap:12px;align-items:center;margin-bottom:16px;">
+      <div style="flex:1;">
+        <label style="font-size:0.8em;color:var(--muted);display:block;margin-bottom:4px;">Fra</label>
+        <input type="time" id="time-modal-fra" value="${defaultFra}" style="width:100%;padding:8px;border-radius:8px;border:1px solid var(--border,rgba(148,163,184,0.25));background:var(--card-bg);color:var(--text);font-size:16px;box-sizing:border-box;" />
+      </div>
+      <div style="flex:1;">
+        <label style="font-size:0.8em;color:var(--muted);display:block;margin-bottom:4px;">Til</label>
+        <input type="time" id="time-modal-til" value="${defaultTil}" style="width:100%;padding:8px;border-radius:8px;border:1px solid var(--border,rgba(148,163,184,0.25));background:var(--card-bg);color:var(--text);font-size:16px;box-sizing:border-box;" />
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;">
+      <button type="button" id="time-modal-cancel" style="padding:8px 16px;border:1px solid var(--border,rgba(148,163,184,0.25));border-radius:6px;background:transparent;color:var(--text);cursor:pointer;font-size:0.9em;">Avbryt</button>
+      <button type="button" id="time-modal-apply" style="padding:8px 16px;border:none;border-radius:6px;background:var(--accent,#3b82f6);color:white;cursor:pointer;font-size:0.9em;font-weight:500;">Sett på alle</button>
+    </div>
+  `;
+
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+
+  const fraInput = document.getElementById('time-modal-fra');
+  const tilInput = document.getElementById('time-modal-til');
+  const cancelBtn = document.getElementById('time-modal-cancel');
+  const applyBtn = document.getElementById('time-modal-apply');
+
+  function close() { overlay.remove(); }
+
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+  cancelBtn.addEventListener('click', close);
+
+  applyBtn.addEventListener('click', () => {
+    const fraVal = fraInput.value;
+    const tilVal = tilInput.value;
+
+    if (!fraVal) { fraInput.focus(); return; }
+
+    groupItems.forEach(obs => {
+      // Bruk eksisterende dato fra obs, bare oppdater klokkeslett
+      const baseDate = obs.timestamp ? new Date(obs.timestamp) : new Date();
+      const [fraH, fraM] = fraVal.split(':').map(Number);
+      const fraDate = new Date(baseDate);
+      fraDate.setHours(fraH, fraM, 0, 0);
+      obs.timestamp = toLocalISOString(fraDate);
+
+      if (tilVal) {
+        const [tilH, tilM] = tilVal.split(':').map(Number);
+        const tilDate = new Date(baseDate);
+        tilDate.setHours(tilH, tilM, 0, 0);
+        obs.tilKlokkeslett = toLocalISOString(tilDate);
+      }
+    });
+
+    saveState();
+    renderObservations(observations, obsListEl, buttons, saveState);
+    close();
+    showToast(`Klokkeslett satt på ${groupItems.length} obs`);
+  });
+
+  fraInput.focus();
+}
+
+/**
  * Render observasjoner i tabellvisning
  * @param {Array} observations - Liste med observasjoner
  * @param {HTMLElement} obsListEl - Container-element
@@ -95,13 +180,14 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
       }
     });
 
+    const fmt = d => {
+      const hh = String(d.getHours()).padStart(2, '0');
+      const mm = String(d.getMinutes()).padStart(2, '0');
+      return `${hh}:${mm}`;
+    };
+
     let timeSpanHtml = '';
     if (earliestMs < Infinity && latestMs > -Infinity) {
-      const fmt = d => {
-        const hh = String(d.getHours()).padStart(2, '0');
-        const mm = String(d.getMinutes()).padStart(2, '0');
-        return `${hh}:${mm}`;
-      };
       const fra = fmt(new Date(earliestMs));
       const til = fmt(new Date(latestMs));
       timeSpanHtml = fra === til
@@ -114,16 +200,37 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
     groupCell.colSpan = 5;
     groupCell.className = 'obs-group-title';
     groupCell.innerHTML = `${group.key}${timeSpanHtml} <span style="font-weight:normal;font-size:0.98em;color:#3b82f6;margin-left:8px;">• ${uniqueSpecies.size} art${uniqueSpecies.size === 1 ? '' : 'er'}</span>`;
+
+    // Klokkeikon for å sette tid på alle obs i gruppen
+    const clockBtn = document.createElement('button');
+    clockBtn.type = 'button';
+    clockBtn.textContent = '🕐';
+    clockBtn.title = 'Sett klokkeslett for alle observasjoner på dette stedet';
+    Object.assign(clockBtn.style, {
+      background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.9em',
+      marginLeft: '6px', padding: '2px 4px', verticalAlign: 'middle', opacity: '0.7',
+    });
+    clockBtn.addEventListener('mouseenter', () => { clockBtn.style.opacity = '1'; });
+    clockBtn.addEventListener('mouseleave', () => { clockBtn.style.opacity = '0.7'; });
+
+    const defaultFra = earliestMs < Infinity ? fmt(new Date(earliestMs)) : '';
+    const defaultTil = latestMs > -Infinity ? fmt(new Date(latestMs)) : '';
+    const groupItems = group.items;
+
+    clockBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      showTimeModal(groupItems, defaultFra, defaultTil, group.key, observations, obsListEl, buttons, saveState);
+    });
+    groupCell.appendChild(clockBtn);
+
     groupRow.appendChild(groupCell);
     tbody.appendChild(groupRow);
 
     group.items.forEach((obs, obsIndex) => {
       const tr = document.createElement('tr');
       
-      // Alternerende bakgrunn
-      if (obsIndex % 2 === 1) {
-        tr.style.background = 'rgba(59,130,246,0.07)';
-      }
+      // Alternerende bakgrunn (settes på td-er for full bredde)
+      const altBg = obsIndex % 2 === 1 ? 'rgba(100,116,139,0.08)' : null;
 
       const artTd = document.createElement('td');
       artTd.textContent = obs.species && obs.species.taxonName ? obs.species.taxonName : '';
@@ -161,8 +268,8 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
           fontSize: btnFontSize,
           fontWeight: '600',
           borderRadius: '50%',
-          border: '2px solid var(--accent, #3b82f6)',
-          background: 'var(--accent-soft, rgba(59,130,246,0.2))',
+          border: '2px solid rgba(100,116,139,0.45)',
+          background: 'rgba(100,116,139,0.12)',
           color: 'var(--text, #e5e7eb)',
           alignItems: 'center',
           justifyContent: 'center',
@@ -382,6 +489,9 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
       actionTd.appendChild(deleteBtn);
       tr.appendChild(actionTd);
 
+      if (altBg) {
+        tr.querySelectorAll('td').forEach(td => td.style.background = altBg);
+      }
       tbody.appendChild(tr);
     });
   });
@@ -466,7 +576,15 @@ export function toCsv(observations) {
   const lines = [header.join(SEP)];
 
   for (const obs of observations) {
-    const name = ((obs.species && obs.species.taxonName) || '').replace(/[;\t]/g, ',');
+    // Kråke: AO har slått sammen kråke og svartkråke – begge heter nå "kråke" i navnebasen.
+    // Bruk latinsk navn for å unngå tvetydighet ved import. Fjern HTML-tags fra scientificNameHtml.
+    // TODO: Fjern dette unntaket når AO har fikset navnekonflikten (~juli 2026).
+    const taxonName = (obs.species && obs.species.taxonName) || '';
+    const useLatin = taxonName.toLowerCase() === 'kråke' && obs.species && obs.species.scientificNameHtml;
+    const resolvedName = useLatin
+      ? obs.species.scientificNameHtml.replace(/<[^>]+>/g, '').trim()
+      : taxonName;
+    const name = resolvedName.replace(/[;\t]/g, ',');
     // Bruk lokalitets-ID hvis tilgjengelig, ellers navn (unngår tvetydighet ved import)
     const place = (obs.placeId || obs.placeName || '').toString().replace(/[;\t]/g, ',');
     const count = obs.count != null ? String(obs.count) : '';
