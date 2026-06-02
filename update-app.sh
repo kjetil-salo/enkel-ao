@@ -18,7 +18,7 @@ elif [[ "$ENVIRONMENT" == "production" ]]; then
 
     # Kjør tester før production deploy
     echo "🧪 Kjører tester før production deploy..."
-    python3 -m pytest --maxfail=3
+    .venv/bin/python3 -m pytest --maxfail=3
     if [ $? -ne 0 ]; then
         echo "❌ Tester feilet! Avbryter production deploy."
         echo "💡 Fikse testene før du prøver igjen."
@@ -34,7 +34,7 @@ fi
 
 echo "🔄 Oppdaterer Fugleobservasjoner lokalt..."
 
-cd ~/bird-observations-made-simple
+cd ~/enkel-ao
 
 # Pull siste endringer
 echo "📥 Henter siste kode fra GitHub..."

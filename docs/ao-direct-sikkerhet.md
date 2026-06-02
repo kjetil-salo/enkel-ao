@@ -206,7 +206,7 @@ Fordi passord-lagring i klartekst kan misforstås som usikkert. Med riktig dokum
 
 ## 📞 Spørsmål?
 
-Ta kontakt på GitHub: https://github.com/kjetil-salo/bird-observations-made-simple/issues
+Ta kontakt på GitHub: https://github.com/kjetil-salo/enkel-ao/issues
 
 ---
 
