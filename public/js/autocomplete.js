@@ -8,7 +8,7 @@
  * @param {HTMLInputElement} placeInput - Stedsnavn input-felt
  * @param {Function} onSelect - Callback når bruker velger lokalitet (name, id)
  */
-export function initAutocomplete(placeInput, onSelect) {
+export function initAutocomplete(placeInput, onSelect, getPosition = null) {
   if (!placeInput) return;
 
   let debounceTimer = null;
@@ -78,7 +78,12 @@ export function initAutocomplete(placeInput, onSelect) {
       if (authCookie) headers['X-AO-Auth-Cookie'] = authCookie;
       if (userId) headers['X-AO-User-Id'] = userId;
 
-      const response = await fetch(`/api/ao-autocomplete?term=${encodeURIComponent(term)}`, { headers });
+      const pos = getPosition && getPosition();
+      let url = `/api/ao-autocomplete?term=${encodeURIComponent(term)}`;
+      if (pos && typeof pos.lat === 'number' && typeof pos.lon === 'number') {
+        url += `&lat=${pos.lat}&lon=${pos.lon}`;
+      }
+      const response = await fetch(url, { headers });
       const data = await response.json();
 
       // Håndter auto-relogin: oppdater auth cookie hvis den ble fornyet
@@ -143,10 +148,12 @@ export function initAutocomplete(placeInput, onSelect) {
       item.className = 'autocomplete-item';
       item.dataset.index = index;
 
-      // Fargekoding basert på ColorString
+      // Fargekoding
       const isMine = result.ColorString === '#ffff00';
-      const bgColor = isMine ? 'rgba(255, 255, 0, 0.15)' : 'rgba(0, 102, 0, 0.1)';
-      const borderColor = isMine ? '#ffff00' : '#006600';
+      const isSuper = result.isSuper === true;
+      const isPrivate = result.isPrivate === true;
+      const bgColor = isMine ? 'rgba(255, 255, 0, 0.15)' : isSuper ? 'rgba(59,130,246,0.07)' : 'rgba(0, 102, 0, 0.1)';
+      const borderColor = isMine ? '#ffff00' : isSuper ? 'var(--accent)' : '#006600';
 
       item.style.cssText = `
         padding: 10px 12px;
@@ -156,30 +163,42 @@ export function initAutocomplete(placeInput, onSelect) {
         transition: background 0.2s;
       `;
 
-      // Hovedtekst (presentationvalue)
+      // Ikon + navn
+      let icon = '';
+      if (isMine) icon = '⭐ ';
+      else if (isSuper) icon = '🏷️ ';
+      else if (isPrivate) icon = '👤 ';
+
       const mainText = document.createElement('div');
-      mainText.textContent = result.presentationvalue || result.value;
+      mainText.textContent = icon + (result.presentationvalue || result.value);
       mainText.style.cssText = `
         font-size: 0.95em;
         color: var(--text);
         margin-bottom: 2px;
       `;
 
-      // Subtext (kommune) hvis forskjellig fra hovedtekst
+      // Subtext: avstand (lokal DB) eller kommune (AO-søk)
+      const subtextParts = [];
+      if (result._distance != null) {
+        subtextParts.push(result._distance < 1000
+          ? `${Math.round(result._distance)} m`
+          : `${(result._distance / 1000).toFixed(1)} km`);
+      }
       if (result.subvalue && result.presentationvalue !== result.subvalue) {
+        subtextParts.push(result.subvalue);
+      }
+
+      if (subtextParts.length > 0) {
         const subText = document.createElement('div');
-        subText.textContent = result.subvalue;
-        subText.style.cssText = `
-          font-size: 0.75em;
-          color: var(--muted);
-        `;
+        subText.textContent = subtextParts.join(' · ');
+        subText.style.cssText = 'font-size: 0.75em; color: var(--muted);';
         item.appendChild(mainText);
         item.appendChild(subText);
       } else {
         item.appendChild(mainText);
       }
 
-      // Mine lokaliteter-merke
+      // Mine lokaliteter-merke (AO-søk)
       if (isMine) {
         const badge = document.createElement('span');
         badge.textContent = '★ Min';

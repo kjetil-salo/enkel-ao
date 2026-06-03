@@ -353,12 +353,16 @@ async function init() {
   setupEventListeners();
 
   if (dom.placeInput && !autocompleteCleanup) {
-    autocompleteCleanup = initAutocomplete(dom.placeInput, (name, id) => {
-      appState.currentPlaceName = name;
-      appState.currentPlaceId = id;
-      dom.placeInput.dataset.autofilled = 'true';
-      updateSectionStates(appState, dom);
-    });
+    autocompleteCleanup = initAutocomplete(
+      dom.placeInput,
+      (name, id) => {
+        appState.currentPlaceName = name;
+        appState.currentPlaceId = id;
+        dom.placeInput.dataset.autofilled = 'true';
+        updateSectionStates(appState, dom);
+      },
+      () => appState.currentPosition
+    );
   }
 
   updateSectionStates(appState, dom);

@@ -654,11 +654,17 @@ class Handler(SimpleHTTPRequestHandler):
         auth_cookie = self.headers.get('X-AO-Auth-Cookie', '').strip()
         user_id = self.headers.get('X-AO-User-Id', '').strip()
 
+        try:
+            lat = float(params.get('lat', [None])[0]) if params.get('lat') else None
+            lon = float(params.get('lon', [None])[0]) if params.get('lon') else None
+        except (ValueError, TypeError):
+            lat, lon = None, None
+
         if not term or len(term) < 2:
             self._send_json({'results': [], 'refreshed_auth_cookie': None})
             return
 
-        logger.debug(f'[AO-AUTOCOMPLETE] Søk: term={term}, autentisert={bool(login_token and auth_cookie)}, user_id={user_id}')
+        logger.debug(f'[AO-AUTOCOMPLETE] Søk: term={term}, autentisert={bool(login_token and auth_cookie)}, user_id={user_id}, pos={lat},{lon}')
 
         try:
             # Kall autocomplete med lokal DB + AO
@@ -667,7 +673,9 @@ class Handler(SimpleHTTPRequestHandler):
                 login_token=login_token if login_token else None,
                 auth_cookie=auth_cookie if auth_cookie else None,
                 user_id=user_id if user_id else None,
-                location_db=_location_db
+                location_db=_location_db,
+                lat=lat,
+                lon=lon,
             )
             # data er nå {'results': [...], 'refreshed_auth_cookie': ...}
             self._send_json(data)

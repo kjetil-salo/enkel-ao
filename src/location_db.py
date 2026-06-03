@@ -140,22 +140,29 @@ class LocationDB:
         results.sort(key=lambda s: s['_distance'])
         return results
 
-    def search_by_name(self, query, limit=50):
+    def search_by_name(self, query, limit=50, lat=None, lon=None):
         """Søk lokasjoner på navn (case-insensitive LIKE).
+
+        Hvis lat/lon er oppgitt, sorteres resultatene etter avstand og
+        _distance (meter) inkluderes i hvert resultat.
 
         Returns:
             Liste med site-dicts.
         """
+        fetch_limit = limit * 5 if (lat is not None and lon is not None) else limit
         with self._connect() as conn:
             rows = conn.execute(
                 """SELECT ao_id, name, lat, lon, is_private, is_super, parent_id, source
                    FROM locations
                    WHERE name LIKE ?
+                     AND is_private = 0
                    LIMIT ?""",
-                (f'%{query}%', limit)
+                (f'%{query}%', fetch_limit)
             ).fetchall()
-        return [
-            {
+
+        results = []
+        for row in rows:
+            entry = {
                 'id': row['ao_id'],
                 'name': row['name'],
                 'lat': row['lat'],
@@ -165,8 +172,14 @@ class LocationDB:
                 'parentId': row['parent_id'],
                 '_source': 'local_db',
             }
-            for row in rows
-        ]
+            if lat is not None and lon is not None and row['lat'] is not None and row['lon'] is not None:
+                entry['_distance'] = _haversine(lat, lon, row['lat'], row['lon'])
+            results.append(entry)
+
+        if lat is not None and lon is not None:
+            results.sort(key=lambda s: s.get('_distance', float('inf')))
+
+        return results[:limit]
 
     def count(self):
         """Antall lokasjoner i databasen."""

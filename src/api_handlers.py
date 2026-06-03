@@ -25,7 +25,7 @@ from src.utils import mask_token
 from src.ao_import_httpx import fetch_csrf_tokens
 
 
-def fetch_ao_autocomplete(term: str, login_token: str = None, auth_cookie: str = None, user_id: str = None, location_db=None) -> dict:
+def fetch_ao_autocomplete(term: str, login_token: str = None, auth_cookie: str = None, user_id: str = None, location_db=None, lat: float = None, lon: float = None) -> dict:
     """
     Hent autocomplete-forslag for lokaliteter.
 
@@ -49,18 +49,22 @@ def fetch_ao_autocomplete(term: str, login_token: str = None, auth_cookie: str =
     local_results = []
     if location_db:
         try:
-            local_sites = location_db.search_by_name(term, limit=20)
+            local_sites = location_db.search_by_name(term, limit=20, lat=lat, lon=lon)
             # Konverter til AO autocomplete-format
-            local_results = [
-                {
+            local_results = []
+            for site in local_sites:
+                entry = {
                     'id': site['id'],
                     'value': site['name'],
                     'presentationvalue': site['name'],
                     'subvalue': '',
                     '_source': 'local_db',
+                    'isSuper': site.get('isSuper', False),
+                    'isPrivate': site.get('isPrivate', False),
                 }
-                for site in local_sites
-            ]
+                if '_distance' in site:
+                    entry['_distance'] = site['_distance']
+                local_results.append(entry)
             logger.debug(f'[AO-AUTOCOMPLETE] Lokal DB: {len(local_results)} treff for "{term}"')
         except Exception as e:
             logger.warning(f'[AO-AUTOCOMPLETE] Lokal DB-søk feilet: {e}')
