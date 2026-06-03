@@ -35,7 +35,7 @@ const appState = {
   _callbacks: null, // settes i init()
 };
 
-// Autocomplete cleanup-funksjon (kun aktivt i etterregistreringsmodus)
+// Autocomplete cleanup-funksjon
 let autocompleteCleanup = null;
 
 // ============================================================
@@ -351,6 +351,16 @@ async function init() {
   }
 
   setupEventListeners();
+
+  if (dom.placeInput && !autocompleteCleanup) {
+    autocompleteCleanup = initAutocomplete(dom.placeInput, (name, id) => {
+      appState.currentPlaceName = name;
+      appState.currentPlaceId = id;
+      dom.placeInput.dataset.autofilled = 'true';
+      updateSectionStates(appState, dom);
+    });
+  }
+
   updateSectionStates(appState, dom);
 
   // Hvis lokalitet ble valgt fra kart, sett fokus på art-feltet
@@ -425,16 +435,6 @@ function updateModeUI() {
     if (gpsControlsRow) gpsControlsRow.style.display = 'none';
     if (aoSitesDropdown) aoSitesDropdown.style.display = 'none';
 
-    // Aktiver autocomplete på stedsnavn-felt
-    if (dom.placeInput && !autocompleteCleanup) {
-      autocompleteCleanup = initAutocomplete(dom.placeInput, (name, id) => {
-        appState.currentPlaceName = name;
-        appState.currentPlaceId = id;
-        dom.placeInput.dataset.autofilled = 'true';
-        updateSectionStates(appState, dom);
-      });
-    }
-
     // Sett dagens dato som default
     const today = new Date();
     const yyyy = today.getFullYear();
@@ -448,12 +448,6 @@ function updateModeUI() {
     modePill.textContent = 'Felt';
     modePill.className = 'pill mode-pill field-mode';
     datetimeFields.style.display = 'none';
-
-    // Deaktiver autocomplete
-    if (autocompleteCleanup) {
-      autocompleteCleanup();
-      autocompleteCleanup = null;
-    }
 
     // Vis GPS-relaterte rader
     if (locStatusRow) locStatusRow.style.display = 'flex';
