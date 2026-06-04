@@ -107,7 +107,21 @@ export function commitObservation(state, dom, callbacks) {
   let age = dom.ageSelect.value || '';
   let gender = dom.genderSelect.value || '';
 
+  const isAfterMode = localStorage.getItem('afterRegistrationMode') === '1';
+  const now = new Date();
+
+  const timestamp = getObservationTimestamp();
+  if (isAfterMode && new Date(timestamp) > now) {
+    showToast('Fra-tidspunkt er frem i tid — AO underkjenner observasjonen');
+    return;
+  }
+
   const tilKlokkeslett = getObservationTimestampTo();
+  if (tilKlokkeslett && new Date(tilKlokkeslett) > now) {
+    showToast('Til-tidspunkt er frem i tid — AO underkjenner observasjonen');
+    return;
+  }
+
   const obs = {
     species: state.selectedSpecies,
     count: num,
@@ -115,7 +129,7 @@ export function commitObservation(state, dom, callbacks) {
     activity,
     placeName: place,
     placeId: state.currentPlaceId || null,
-    timestamp: getObservationTimestamp(),
+    timestamp,
     age,
     gender,
     coObservers: defaultCoObservers(),

@@ -56,6 +56,10 @@ function showTimeModal(groupItems, defaultFra, defaultTil, groupName, observatio
   const applyBtn = document.getElementById('time-modal-apply');
 
   function close() { overlay.remove(); }
+  function resetBorder(el) { el.style.borderColor = ''; }
+
+  fraInput.addEventListener('input', () => resetBorder(fraInput));
+  tilInput.addEventListener('input', () => resetBorder(tilInput));
 
   overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
   cancelBtn.addEventListener('click', close);
@@ -65,6 +69,31 @@ function showTimeModal(groupItems, defaultFra, defaultTil, groupName, observatio
     const tilVal = tilInput.value;
 
     if (!fraVal) { fraInput.focus(); return; }
+
+    const now = new Date();
+    const baseRef = groupItems[0]?.timestamp ? new Date(groupItems[0].timestamp) : new Date();
+
+    const [fraH, fraM] = fraVal.split(':').map(Number);
+    const fraCheck = new Date(baseRef);
+    fraCheck.setHours(fraH, fraM, 0, 0);
+    if (fraCheck > now) {
+      fraInput.style.borderColor = '#ef4444';
+      showToast(`Fra-tid ${fraVal} er frem i tid — AO underkjenner`);
+      fraInput.focus();
+      return;
+    }
+
+    if (tilVal) {
+      const [tilH, tilM] = tilVal.split(':').map(Number);
+      const tilCheck = new Date(baseRef);
+      tilCheck.setHours(tilH, tilM, 0, 0);
+      if (tilCheck > now) {
+        tilInput.style.borderColor = '#ef4444';
+        showToast(`Til-tid ${tilVal} er frem i tid — AO underkjenner`);
+        tilInput.focus();
+        return;
+      }
+    }
 
     groupItems.forEach(obs => {
       // Bruk eksisterende dato fra obs, bare oppdater klokkeslett
