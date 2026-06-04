@@ -37,6 +37,18 @@ docker-compose up --build  # Run with mock Nominatim (safe for load testing)
 # Deploy to Fly.io
 ./update-app.sh staging    # Deploy to staging
 ./update-app.sh production # Deploy to production — tester kjøres automatisk!
+
+# Deploy to Raspberry Pi (primær produksjon)
+./update-ao-pi.sh          # Rsync + docker-compose up --build på Pi
+```
+
+### Lokasjons-DB import (kjøres ved behov, ~40 min)
+```bash
+# Fyll LocationDB med alle offentlige norske AO-lokasjoner
+LOCATION_DB_PATH=/sti/til/locations.db python3 tools/import_ao_locations.py
+
+# Berik med kommune/fylke-data etterpå (~60 min, Nominatim 1 req/sek)
+LOCATION_DB_PATH=/sti/til/locations.db python3 /tmp/enrich2.py
 ```
 
 ### Load Testing
@@ -56,14 +68,24 @@ The `Handler` class routes requests:
   - **Backend returnerer både private og offentlige** (maxSites=2000)
   - **Frontend (map.js)**: Kun offentlige vises på kart (sparer CPU/minne, brukeren vet hvor egne er)
   - **Frontend (location.js)**: Både offentlige og private i dropdown (offentlige sorteres først, maks 20)
+- `/api/ao-autocomplete?term=X[&lat=Y&lon=Z]` → tekstsøk på lokaliteter
+  - Søker lokal DB først (ingen innlogging nødvendig), deretter AO hvis innlogget
+  - Med lat/lon: sorterer etter avstand, returnerer `_distance` i meters
+  - Returnerer `isSuper`, `isPrivate`, `subvalue` (kommune, fylke) per resultat
 - `/api/logview` (POST) → logs page views to Supabase
 - `/stats?key=X` → displays analytics (key-protected)
 - `/health` → health check endpoint
 
 ### Backend Modules (src/)
-- `api_handlers.py` — External API calls (species search, geocoding, AO sites)
+- `api_handlers.py` — External API calls (species search, geocoding, AO sites, autocomplete)
 - `html_templates.py` — HTML generation for stats pages
 - `supabase_log.py` — Optional Supabase analytics logging
+- `location_db.py` — SQLite-cache for AO-lokasjoner (delt mellom containere via Docker-volum)
+  - Aktiveres med `LOCATION_DB_PATH` env-var
+  - Schema: `ao_id, name, lat, lon, is_private, is_super, parent_id, municipality, county, source`
+  - `search_by_name(query, limit, lat, lon)` — tekstsøk, sorterer etter avstand hvis lat/lon gitt
+  - `search_nearby(lat, lon, radius_m)` — geo-søk
+  - `upsert_locations(sites, source)` — idempotent insert/update
 
 ### Frontend Modules (public/js/)
 Pure ES6 modules with no framework:
@@ -73,6 +95,9 @@ Pure ES6 modules with no framework:
 - `observation-commit.js` — Observation validation and activity pills rendering
 - `storage.js` — Browser localStorage management (includes activity pills config)
 - `ui.js` — UI state and rendering
+- `autocomplete.js` — Lokalitet-autocomplete med avstand og ikoner (🏷️ super, 👤 privat, ⭐ mine)
+  - Aktivt i **begge** modi (Felt og Etterregistrering)
+  - `initAutocomplete(placeInput, onSelect, getPosition)` — getPosition gir GPS-posisjon for sortering
 
 ### Konfigurerbare Aktivitetspills (v1.18.0+)
 Brukere kan velge 0-6 aktiviteter som vises som hurtigknapper:
@@ -111,6 +136,10 @@ except Exception as e:
 - `AO_URL` (default: `https://www.artsobservasjoner.no`) — base-URL for artssøk
 - `AO_MOBILE_URL` (default: `https://mobil.artsobservasjoner.no`) — base-URL for AO-lokaliteter
 - `NOMINATIM_URL` (default: `https://nominatim.openstreetmap.org/reverse`) — reverse geokoding
+- `LOCATION_DB_PATH` (optional) — sti til SQLite-DB med AO-lokasjoner
+  - På Pi: `/mnt/ssd/docker/volumes/shared-locations/_data/locations.db`
+  - Aktiverer lokalt navnesøk og avstandssortering i autocomplete uten innlogging
+  - Fylles med `tools/import_ao_locations.py` (~487k norske lokasjoner, 78 MB)
 - `SUPABASE_URL`, `SUPABASE_KEY` (optional logging)
 - `STATS_KEY` (stats page auth, default: 'salo')
 
