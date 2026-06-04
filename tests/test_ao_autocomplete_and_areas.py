@@ -60,7 +60,7 @@ def test_ao_autocomplete_success(monkeypatch):
         {'id': 2, 'value': 'Østmarka', 'label': 'Østmarka (Oslo)'}
     ]
 
-    def fake_fetch(term, login_token=None, auth_cookie=None, user_id=None, location_db=None):
+    def fake_fetch(term, login_token=None, auth_cookie=None, user_id=None, location_db=None, lat=None, lon=None):
         return {'results': fake_results, 'refreshed_auth_cookie': None}
 
     monkeypatch.setattr('src.api_handlers.fetch_ao_autocomplete', fake_fetch)

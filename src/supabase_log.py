@@ -1,9 +1,12 @@
 # Enkel Supabase-logging for fugleobservasjoner
-# Krever: pip install supabase user-agents
 import logging
 import os
-from supabase import create_client, Client
 from src.utils import parse_user_agent
+
+try:
+    from supabase import create_client
+except ImportError:
+    create_client = None
 
 logger = logging.getLogger('fugleobs')
 
@@ -11,7 +14,7 @@ SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
 
 supabase = None
-if SUPABASE_URL and SUPABASE_KEY:
+if SUPABASE_URL and SUPABASE_KEY and create_client:
     supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 
