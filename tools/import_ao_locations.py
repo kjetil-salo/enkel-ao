@@ -39,6 +39,8 @@ LON_STEP = 0.40
 SLEEP_S = 0.2   # Pause mellom kall — etisk bruk
 MAX_SITES = 1000
 
+NOMINATIM_URL = os.getenv('NOMINATIM_URL', 'https://nominatim.openstreetmap.org/reverse')
+
 
 def _frange(start, stop, step):
     """Flytallsgenerator uten akkumulert avrundingsfeil."""
@@ -75,6 +77,22 @@ def fetch_sites_in_bbox(min_lat, min_lon, max_lat, max_lon):
     elif isinstance(data, dict):
         return data.get('sites') or data.get('Sites') or []
     return []
+
+
+def fetch_municipality(lat, lon):
+    """Hent kommune og fylke fra Nominatim for et koordinat. Returnerer (municipality, county)."""
+    try:
+        with httpx.Client(timeout=10.0) as client:
+            resp = client.get(NOMINATIM_URL, params={
+                'lat': f'{lat:.6f}', 'lon': f'{lon:.6f}', 'format': 'json'
+            }, headers={'User-Agent': 'Mozilla/5.0 (compatible; Fugleobservasjoner-Import/1.0)'})
+            resp.raise_for_status()
+            addr = resp.json().get('address', {})
+        municipality = addr.get('city') or addr.get('town') or addr.get('municipality') or addr.get('village')
+        county = addr.get('county')
+        return municipality, county
+    except Exception:
+        return None, None
 
 
 def normalize_sites(raw_sites):
@@ -146,11 +164,19 @@ def main():
             try:
                 raw = fetch_sites_in_bbox(lat, lon, max_lat, max_lon)
                 sites = normalize_sites(raw)
+                if sites:
+                    center_lat = (lat + max_lat) / 2
+                    center_lon = (lon + max_lon) / 2
+                    municipality, county = fetch_municipality(center_lat, center_lon)
+                    for s in sites:
+                        s['municipality'] = municipality
+                        s['county'] = county
                 upserted = db.upsert_locations(sites, source='bulk-import')
                 total_sites_fetched += len(sites)
                 total_upserted += upserted
                 if sites:
-                    print(f'  [{cell:4d}/{total}] ({lat:.1f},{lon:.1f})→({max_lat:.1f},{max_lon:.1f}): {len(sites):4d} lokasjoner')
+                    loc_str = f'{municipality}, {county}' if municipality else '–'
+                    print(f'  [{cell:4d}/{total}] ({lat:.1f},{lon:.1f}): {len(sites):4d} lok — {loc_str}')
             except Exception as e:
                 errors += 1
                 print(f'  [{cell:4d}/{total}] FEIL ({lat:.1f},{lon:.1f}): {e}', file=sys.stderr)

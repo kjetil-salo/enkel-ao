@@ -20,6 +20,8 @@ CREATE TABLE IF NOT EXISTS locations (
     is_private INTEGER DEFAULT 0,
     is_super INTEGER DEFAULT 0,
     parent_id INTEGER,
+    municipality TEXT,
+    county TEXT,
     source TEXT NOT NULL,
     created_at TEXT DEFAULT (datetime('now')),
     updated_at TEXT DEFAULT (datetime('now'))
@@ -36,7 +38,6 @@ class LocationDB:
     def __init__(self, db_path):
         self.db_path = db_path
         with self._connect() as conn:
-            # Migrer: fjern NOT NULL fra lat/lon hvis gammel tabell eksisterer
             row = conn.execute("SELECT sql FROM sqlite_master WHERE name='locations'").fetchone()
             if row and 'lat REAL NOT NULL' in row[0]:
                 logger.info('LocationDB: migrerer lat/lon til nullable...')
@@ -46,6 +47,12 @@ class LocationDB:
                 conn.execute('DROP TABLE locations_old')
             else:
                 conn.executescript(_SCHEMA)
+                # Legg til municipality/county hvis de mangler (eksisterende DB)
+                cols = {r[1] for r in conn.execute('PRAGMA table_info(locations)')}
+                if 'municipality' not in cols:
+                    conn.execute('ALTER TABLE locations ADD COLUMN municipality TEXT')
+                if 'county' not in cols:
+                    conn.execute('ALTER TABLE locations ADD COLUMN county TEXT')
         logger.info(f'LocationDB initialisert: {db_path}')
 
     def _connect(self):
@@ -74,8 +81,8 @@ class LocationDB:
                     continue
                 try:
                     conn.execute(
-                        """INSERT INTO locations (ao_id, name, lat, lon, is_private, is_super, parent_id, source)
-                           VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                        """INSERT INTO locations (ao_id, name, lat, lon, is_private, is_super, parent_id, municipality, county, source)
+                           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                            ON CONFLICT(ao_id) DO UPDATE SET
                                name=excluded.name,
                                lat=excluded.lat,
@@ -83,6 +90,8 @@ class LocationDB:
                                is_private=excluded.is_private,
                                is_super=excluded.is_super,
                                parent_id=excluded.parent_id,
+                               municipality=COALESCE(excluded.municipality, municipality),
+                               county=COALESCE(excluded.county, county),
                                updated_at=datetime('now')""",
                         (
                             int(ao_id),
@@ -92,6 +101,8 @@ class LocationDB:
                             1 if site.get('isPrivate') else 0,
                             1 if site.get('isSuper') else 0,
                             site.get('parentId'),
+                            site.get('municipality'),
+                            site.get('county'),
                             source,
                         )
                     )
@@ -152,7 +163,7 @@ class LocationDB:
         fetch_limit = limit * 5 if (lat is not None and lon is not None) else limit
         with self._connect() as conn:
             rows = conn.execute(
-                """SELECT ao_id, name, lat, lon, is_private, is_super, parent_id, source
+                """SELECT ao_id, name, lat, lon, is_private, is_super, parent_id, municipality, county, source
                    FROM locations
                    WHERE name LIKE ?
                      AND is_private = 0
@@ -170,6 +181,8 @@ class LocationDB:
                 'isPrivate': bool(row['is_private']),
                 'isSuper': bool(row['is_super']),
                 'parentId': row['parent_id'],
+                'municipality': row['municipality'],
+                'county': row['county'],
                 '_source': 'local_db',
             }
             if lat is not None and lon is not None and row['lat'] is not None and row['lon'] is not None:

@@ -53,11 +53,12 @@ def fetch_ao_autocomplete(term: str, login_token: str = None, auth_cookie: str =
             # Konverter til AO autocomplete-format
             local_results = []
             for site in local_sites:
+                parts = [p for p in [site.get('municipality'), site.get('county')] if p]
                 entry = {
                     'id': site['id'],
                     'value': site['name'],
                     'presentationvalue': site['name'],
-                    'subvalue': '',
+                    'subvalue': ', '.join(parts),
                     '_source': 'local_db',
                     'isSuper': site.get('isSuper', False),
                     'isPrivate': site.get('isPrivate', False),
