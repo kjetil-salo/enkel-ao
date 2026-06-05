@@ -95,6 +95,14 @@ def observations_to_csv(observations):
         place_id = obs.get('placeId')
         place_col = str(place_id) if place_id is not None else obs.get('placeName', '')
 
+        # Konverter hideUntil fra YYYY-MM-DD → DD.MM.YYYY
+        hide_until_str = ''
+        hide_until = obs.get('hideUntil', '')
+        if hide_until:
+            parts = hide_until.split('-')
+            if len(parts) == 3:
+                hide_until_str = f'{parts[2]}.{parts[1]}.{parts[0]}'
+
         row = [
             species_name,
             place_col,
@@ -112,7 +120,7 @@ def observations_to_csv(observations):
             obs.get('activity', ''),
             obs.get('comment', ''),
             '',  # Privat kommentar
-            '',  # Skjul funn til dato
+            hide_until_str,
         ]
 
         # Medobservatører (maks 10)

@@ -160,6 +160,35 @@ def test_observations_to_csv_falls_back_to_name_when_no_id():
     assert fields[1] == 'Litleholmen'
 
 
+def test_observations_to_csv_hide_until():
+    """Verifiser at hideUntil konverteres riktig til DD.MM.YYYY i kolonne 16."""
+    observations = [{
+        'species': {'taxonName': 'Hønsehauk'},
+        'timestamp': '2024-06-01T10:00:00Z',
+        'placeName': 'Oslomarka',
+        'count': '1',
+        'hideUntil': '2024-08-20',
+    }]
+    csv = observations_to_csv(observations)
+    lines = csv.split('\r\n')
+    fields = lines[1].split('\t')
+    assert fields[16] == '20.08.2024'
+
+
+def test_observations_to_csv_hide_until_empty_when_not_set():
+    """Verifiser at kolonne 16 er tom når hideUntil ikke er satt."""
+    observations = [{
+        'species': {'taxonName': 'Spurvehauk'},
+        'timestamp': '2024-06-01T10:00:00Z',
+        'placeName': 'Oslomarka',
+        'count': '1',
+    }]
+    csv = observations_to_csv(observations)
+    lines = csv.split('\r\n')
+    fields = lines[1].split('\t')
+    assert fields[16] == ''
+
+
 def test_observations_to_csv_time_omitted_when_midnight():
     """Verifiser at tid utelates hvis 00:00."""
     observations = [{
