@@ -137,7 +137,9 @@ export function setAoSiteSuggestions(sites, currentPosition, dropdown, aoSitesEl
     if ((a.isSuper ? 1 : 0) !== (b.isSuper ? 1 : 0)) return (b.isSuper ? 1 : 0) - (a.isSuper ? 1 : 0);
     // 2. Offentlig før privat
     if (isPrivateSite(a) !== isPrivateSite(b)) return isPrivateSite(a) - isPrivateSite(b);
-    // 3. Nærmest først
+    // 3. Mine egne private før andres private (innen samme kategori)
+    if ((a.isMine ? 1 : 0) !== (b.isMine ? 1 : 0)) return (b.isMine ? 1 : 0) - (a.isMine ? 1 : 0);
+    // 4. Nærmest først
     if (a._distance != null && b._distance != null) return a._distance - b._distance;
     return 0;
   });

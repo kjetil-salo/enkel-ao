@@ -195,3 +195,46 @@ def test_ao_sites_default_size(monkeypatch):
     # Default size er 600 meter
     assert 'minX=' in called_urls[0]
     assert 'maxX=' in called_urls[0]
+
+
+def test_ao_sites_super_via_local_db_parent(monkeypatch):
+    """Test at super-status utledes fra lokal DB sin parent_id når AO returnerer parentSiteId=null.
+
+    Dette er det reelle scenariet: AO ByBoundingBox returnerer parentSiteId=None for alle sites,
+    men lokal DB har parent_id satt fra importkjøring. Foreldresiten skal markeres isSuper=True.
+    """
+    from src.api_handlers import handle_ao_sites_search
+    from unittest.mock import MagicMock
+
+    # AO returnerer parentSiteId=None (slik APIet faktisk oppfører seg)
+    fake_ao_sites = [
+        {'id': 1, 'name': 'Hylkje', 'lat': 60.456, 'lon': 5.446, 'parentSiteId': None},
+        {'id': 2, 'name': 'Hylkjebukta', 'lat': 60.452, 'lon': 5.444, 'parentSiteId': None},
+    ]
+
+    class FakeResponse:
+        status_code = 200
+        def raise_for_status(self): pass
+        def json(self): return fake_ao_sites
+
+    class FakeClient:
+        def __init__(self, **kwargs): pass
+        def get(self, url, **kwargs): return FakeResponse()
+        def __enter__(self): return self
+        def __exit__(self, *args): pass
+
+    monkeypatch.setattr('httpx.Client', FakeClient)
+
+    # Lokal DB vet at site 2 (Hylkjebukta) har parent_id=1 (Hylkje)
+    mock_db = MagicMock()
+    mock_db.search_nearby.return_value = [
+        {'id': 1, 'name': 'Hylkje', 'lat': 60.456, 'lon': 5.446, 'isPrivate': False, 'isSuper': False, 'parentId': None, '_source': 'local_db', '_distance': 10},
+        {'id': 2, 'name': 'Hylkjebukta', 'lat': 60.452, 'lon': 5.444, 'isPrivate': False, 'isSuper': False, 'parentId': 1, '_source': 'local_db', '_distance': 50},
+    ]
+
+    sites, _, _ = handle_ao_sites_search(60.456, 5.446, size_m=1000, location_db=mock_db)
+
+    hylkje = next(s for s in sites if s.get('id') == 1)
+    hylkjebukta = next(s for s in sites if s.get('id') == 2)
+    assert hylkje.get('isSuper') is True, 'Hylkje skal være super via lokal DB parent_id'
+    assert not hylkjebukta.get('isSuper'), 'Hylkjebukta er underlokasjon, ikke super'

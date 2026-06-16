@@ -162,6 +162,29 @@ def test_resolve_super_sites_orphan_parent():
     assert sites[0].get('parentId') == 99
 
 
+def test_resolve_super_sites_string_vs_int_id():
+    """Test at int site-ID og string parentSiteId (eller omvendt) matches korrekt."""
+    # AO returnerer noen ganger id som int men parentSiteId som string
+    sites = [
+        {'id': 1, 'name': 'Parent', 'raw': {'id': 1}},
+        {'id': 2, 'name': 'Child', 'raw': {'id': 2, 'parentSiteId': '1'}},
+    ]
+    _resolve_super_sites(sites)
+    assert sites[0].get('isSuper') is True
+    assert sites[1].get('isSuper') is False
+
+
+def test_resolve_super_sites_pascal_case_parent():
+    """Test at PascalCase ParentSiteId gjenkjennes."""
+    sites = [
+        {'id': 10, 'name': 'Parent', 'raw': {'id': 10}},
+        {'id': 20, 'name': 'Child', 'raw': {'id': 20, 'ParentSiteId': 10}},
+    ]
+    _resolve_super_sites(sites)
+    assert sites[0].get('isSuper') is True
+    assert sites[1].get('isSuper') is False
+
+
 # --- _mark_env_owned_sites ---
 
 def test_mark_env_owned_sites(monkeypatch):

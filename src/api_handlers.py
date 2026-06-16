@@ -587,8 +587,12 @@ def _wgs84_to_mercator(lat, lon):
 
 
 def _compute_bbox(lat, lon, size_m):
-    """Beregn geografisk bounding box i WGS84."""
-    half_m = max(size_m, 1.0) / 2.0
+    """Beregn geografisk bounding box i WGS84.
+
+    Boksen strekker seg size_m meter i hver kardinalretning slik at den
+    omsluttes den haversine-sirkelen search_nearby() bruker (radius=size_m).
+    """
+    half_m = max(size_m, 1.0)
     meters_per_deg_lat = 111_320.0
     meters_per_deg_lon = meters_per_deg_lat * math.cos(math.radians(lat)) or 1.0
 
@@ -682,8 +686,10 @@ def _fetch_private_site_ids(lat, lon, size_m, ao_login, ao_auth, ao_user_id, ref
             logger.debug(f'GetSitesGeoJson: Kunne ikke hente CSRF token: {csrf_err}')
 
         # Konverter til Web Mercator bbox
+        # Mercator-skalaen ved lat φ er 1/cos(φ) — uten korreksjon dekker bbox bare ~cos(φ) × ønsket radius
         center_x, center_y = _wgs84_to_mercator(lat, lon)
-        half_size = max(size_m / 2, 100)
+        mercator_scale = 1.0 / math.cos(math.radians(lat))
+        half_size = max(size_m, 100) * mercator_scale
         bbox_str = f'{int(center_x - half_size)},{int(center_y - half_size)},{int(center_x + half_size)},{int(center_y + half_size)}'
 
         cookies_dict = {'AcceptCookies': '1', '.ASPXAUTHNO': auth_val, 'logintoken': ao_login}
@@ -831,13 +837,14 @@ def _normalize_site(item, my_site_ids):
 def _resolve_super_sites(sites):
     """Utled superlokasjoner fra parent-referanser mellom sites."""
     try:
-        id_map = {s.get('id'): s for s in sites if s.get('id') is not None}
+        # Normaliser til string for å unngå int/string-mismatch fra AO-APIet
+        id_map = {str(s.get('id')): s for s in sites if s.get('id') is not None}
         for s in sites:
             raw = s.get('raw') or {}
-            for pk in ('parentSiteId', 'parentId', 'parent', 'ParentId', 'parentSite'):
+            for pk in ('parentSiteId', 'ParentSiteId', 'parentId', 'parent', 'ParentId', 'parentSite'):
                 if pk in raw and raw.get(pk) is not None:
-                    pid = raw.get(pk)
-                    s['parentId'] = pid
+                    pid = str(raw.get(pk))
+                    s['parentId'] = raw.get(pk)
                     s['isSuper'] = False
                     if pid in id_map:
                         id_map[pid]['isSuper'] = True
@@ -921,10 +928,19 @@ def handle_ao_sites_search(lat, lon, size_m=600.0, ao_mobile_base_url='https://m
 
         # Merge lokale sites som ikke finnes i AO-resultater
         if local_sites:
-            ao_ids = {s.get('id') for s in sites if s.get('id') is not None}
+            ao_id_map = {s.get('id'): s for s in sites if s.get('id') is not None}
             for local_site in local_sites:
-                if local_site.get('id') not in ao_ids:
+                local_id = local_site.get('id')
+                if local_id not in ao_id_map:
                     sites.append(local_site)
+                elif local_site.get('isSuper') and not ao_id_map[local_id].get('isSuper'):
+                    # AO-APIet mangler isSuper — hent fra lokal DB som har fullstendig data
+                    ao_id_map[local_id]['isSuper'] = True
+            # AO-APIet returnerer parentSiteId=null — bruk lokal DB sin parent_id til å utlede super-status
+            for local_site in local_sites:
+                pid = local_site.get('parentId')
+                if pid is not None and pid in ao_id_map and not ao_id_map[pid].get('isSuper'):
+                    ao_id_map[pid]['isSuper'] = True
             logger.debug(f'Merget {len(sites)} totalt (AO + lokal DB)')
 
         # Sorter brukerens egne først
