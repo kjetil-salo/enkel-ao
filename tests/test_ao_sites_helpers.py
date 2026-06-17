@@ -72,6 +72,23 @@ def test_compute_bbox_minimum_size():
     assert bbox['max_x'] > bbox['min_x']
 
 
+def test_compute_bbox_covers_full_radius():
+    """Bbox skal dekke full søkeradius — ikke bare halvparten.
+
+    search_nearby() bruker haversine-radius = size_m. _compute_bbox() må strekke
+    seg minst size_m meter i hver kardinalretning slik at AO-resultater og lokal
+    DB-treff er konsistente (ingen sites havner i lokal DB men utenfor AO-bbox).
+    """
+    import math
+    size_m = 1000
+    bbox = _compute_bbox(60.0, 10.0, size_m)
+    meters_per_deg_lat = 111_320.0
+    half_lat_m = (bbox['max_y'] - bbox['min_y']) / 2 * meters_per_deg_lat
+    assert half_lat_m >= size_m * 0.99, (
+        f'Bbox dekker bare {half_lat_m:.0f}m nord/sør, forventet minst {size_m}m'
+    )
+
+
 # --- _normalize_site ---
 
 def test_normalize_site_standard():

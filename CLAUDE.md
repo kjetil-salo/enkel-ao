@@ -65,9 +65,9 @@ The `Handler` class routes requests:
 - `/api/species?search=X` → proxies to artsobservasjoner.no (HTML scraping + JSON extraction)
 - `/api/reverse?lat=X&lon=Y` → proxies to Nominatim for reverse geocoding
 - `/api/ao-sites?lat=X&lon=Y&size=M` → fetches nearby observation locations from Artsobservasjoner
-  - **Backend returnerer både private og offentlige** (maxSites=2000)
+  - **Backend returnerer både private og offentlige** (maxSites=1000)
   - **Frontend (map.js)**: Kun offentlige vises på kart (sparer CPU/minne, brukeren vet hvor egne er)
-  - **Frontend (location.js)**: Både offentlige og private i dropdown (offentlige sorteres først, maks 20)
+  - **Frontend (location.js)**: Både offentlige og private i dropdown, maks 20. Sortering: 🏷️ superlokasjoner → offentlige → 👤 egne private (isMine) → andres private
 - `/api/ao-autocomplete?term=X[&lat=Y&lon=Z]` → tekstsøk på lokaliteter
   - Søker lokal DB først (ingen innlogging nødvendig), deretter AO hvis innlogget
   - Med lat/lon: sorterer etter avstand, returnerer `_distance` i meters
@@ -84,8 +84,10 @@ The `Handler` class routes requests:
   - Aktiveres med `LOCATION_DB_PATH` env-var
   - Schema: `ao_id, name, lat, lon, is_private, is_super, parent_id, municipality, county, source`
   - `search_by_name(query, limit, lat, lon)` — tekstsøk, sorterer etter avstand hvis lat/lon gitt
-  - `search_nearby(lat, lon, radius_m)` — geo-søk
+  - `search_nearby(lat, lon, radius_m)` — geo-søk (haversine, radius i meter)
   - `upsert_locations(sites, source)` — idempotent insert/update
+  - **Super-deteksjon**: AO ByBoundingBox returnerer `parentSiteId=null` i sanntid. Super-status utledes i merge-steget fra lokal DB sin `parent_id` — hvis en lokal site peker på en foreldreside som finnes i AO-resultatet, markeres forelderen `isSuper=True`.
+  - **Viktig**: `is_private` i lokal DB kan være utdatert (site endret til privat etter import). Bbox-størrelse (`_compute_bbox`) dekker nå full `size_m`-radius slik at AO-APIet returnerer korrekt `isPrivate` for sites i ytterkanten.
 
 ### Frontend Modules (public/js/)
 Pure ES6 modules with no framework:

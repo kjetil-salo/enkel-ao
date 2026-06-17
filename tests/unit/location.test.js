@@ -208,6 +208,35 @@ describe('setAoSiteSuggestions', () => {
     expect(dropdown.children[2].textContent).toContain('Privat sted');
   });
 
+  it('should sort egne private (isMine) before andres private', () => {
+    const sites = [
+      { name: 'Andres private', lat: 59.91, lon: 10.81, isPrivate: true, isMine: false },
+      { name: 'Min private', lat: 59.91, lon: 10.81, isPrivate: true, isMine: true }
+    ];
+
+    setAoSiteSuggestions(sites, { lat: 59.9, lon: 10.7 }, dropdown, aoSitesEl, placeInput, setCurrentPlace);
+
+    expect(dropdown.children[1].textContent).toContain('Min private');
+    expect(dropdown.children[2].textContent).toContain('Andres private');
+  });
+
+  it('should sort: super → offentlig → egne private → andres private', () => {
+    const sites = [
+      { name: 'Andres private', lat: 59.91, lon: 10.81, isPrivate: true },
+      { name: 'Offentlig', lat: 59.91, lon: 10.81 },
+      { name: 'Min private', lat: 59.91, lon: 10.81, isPrivate: true, isMine: true },
+      { name: 'Super', lat: 59.91, lon: 10.81, isSuper: true }
+    ];
+
+    setAoSiteSuggestions(sites, { lat: 59.9, lon: 10.7 }, dropdown, aoSitesEl, placeInput, setCurrentPlace);
+
+    const names = Array.from(dropdown.children).slice(1).map(el => el.textContent);
+    expect(names[0]).toContain('Super');
+    expect(names[1]).toContain('Offentlig');
+    expect(names[2]).toContain('Min private');
+    expect(names[3]).toContain('Andres private');
+  });
+
   it('should sort by distance (nearest first)', () => {
     const sites = [
       { name: 'Langt borte', lat: 60.5, lon: 11.0 },
