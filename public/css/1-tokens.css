@@ -65,6 +65,15 @@
   --shadow-glow-accent: 0 0 0 4px rgba(59, 130, 246, 0.15);
   --shadow-glow-accent-strong: 0 0 0 4px rgba(59, 130, 246, 0.25);
 
+  /* === Light theme input bg (used in gradients) === */
+  --color-input-bg: rgba(15, 23, 42, 0.95);
+  --color-input-bg-light: rgba(248, 250, 252, 0.06);
+  --color-card-gradient-from: rgba(15, 23, 42, 0.96);
+  --color-card-gradient-to: rgba(15, 23, 42, 0.92);
+  --color-card-shadow-rgb: 15, 23, 42;
+  --color-obs-row-bg: rgba(15, 23, 42, 0.5);
+  --color-obs-row-hover: rgba(15, 23, 42, 0.8);
+
   /* === Transitions === */
   --transition-fast: 120ms ease;
   --transition-base: 200ms ease;
@@ -75,4 +84,38 @@
   --z-sticky: 20;
   --z-modal: 30;
   --z-toast: 40;
+}
+
+/* === Light Theme === */
+body.theme-light {
+  --color-bg: #ffffff;
+  --color-card-bg: #ffffff;
+  --color-border: #e2e8f0;
+  --color-accent: #2563eb;
+  --color-accent-soft: rgba(37, 99, 235, 0.1);
+  --color-text: #1a1a1a;
+  --color-muted: #64748b;
+  --color-success: #16a34a;
+  --color-success-soft: rgba(22, 163, 74, 0.1);
+  --color-error: #dc2626;
+  --color-error-soft: rgba(220, 38, 38, 0.1);
+
+  --border-color: rgba(0, 0, 0, 0.1);
+  --border-color-medium: rgba(0, 0, 0, 0.2);
+  --border-color-strong: rgba(0, 0, 0, 0.25);
+
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.12);
+  --shadow-glow-success: 0 0 0 4px rgba(22, 163, 74, 0.12);
+  --shadow-glow-accent: 0 0 0 3px rgba(37, 99, 235, 0.1);
+  --shadow-glow-accent-strong: 0 0 0 4px rgba(37, 99, 235, 0.18);
+
+  --color-input-bg: #ffffff;
+  --color-input-bg-light: rgba(0, 0, 0, 0.02);
+  --color-card-gradient-from: rgba(255, 255, 255, 0.98);
+  --color-card-gradient-to: rgba(255, 255, 255, 0.95);
+  --color-card-shadow-rgb: 0, 0, 0;
+  --color-obs-row-bg: rgba(0, 0, 0, 0.02);
+  --color-obs-row-hover: rgba(0, 0, 0, 0.05);
 }

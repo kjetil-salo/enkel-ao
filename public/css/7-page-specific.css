@@ -16,6 +16,16 @@
         --muted: #b0b8c1;
       }
 
+      body.theme-light {
+        --bg: #ffffff;
+        --card-bg: #ffffff;
+        --border: #e2e8f0;
+        --accent: #2563eb;
+        --accent-soft: rgba(37, 99, 235, 0.1);
+        --text: #1a1a1a;
+        --muted: #64748b;
+      }
+
       * {
         box-sizing: border-box;
       }
@@ -61,6 +71,16 @@
       /* On larger screens, don't bleed the card to the edges; keep it centered */
       @media (min-width: 600px) and (min-height: 600px) {
         .card { margin: 0; }
+      }
+
+      body.theme-light {
+        background: #ffffff;
+      }
+      body.theme-light .card {
+        background: #ffffff;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        border-color: #e2e8f0;
+        backdrop-filter: none;
       }
 
       header {
@@ -623,7 +643,8 @@
       }
 
       .section {
-        margin-top: 14px;
+        margin-top: 16px;
+        margin-bottom: 16px;
         padding: 10px 8px;
         border-radius: 14px;
         border: 1px solid rgba(15, 23, 42, 0.9);
@@ -632,8 +653,8 @@
 
       /* Observasjonsliste: tydelig nøytral ramme */
       .section-liste {
-        border: 2px solid rgba(100, 116, 139, 0.28);
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+        border: 2px solid rgba(100, 116, 139, 0.55);
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
         overflow: hidden;
       }
 
@@ -644,12 +665,37 @@
         justify-content: center;
       }
 
+      /* Primær innsendingsknapp: tydelig og fremtredende */
+      .btn-primary-action {
+        background: var(--accent) !important;
+        color: white !important;
+        border-color: var(--accent) !important;
+        font-weight: 600 !important;
+        font-size: 0.9rem !important;
+        padding: 10px 16px !important;
+      }
+      .btn-primary-action:hover {
+        filter: brightness(1.1);
+      }
+
+      /* Sekundær innsendingsknapp: nedtonet */
+      .btn-secondary-action {
+        opacity: 0.75;
+        font-size: 0.78rem !important;
+      }
+
+      /* Tøm-knapp: diskret, utenfor sendeseksjonen */
+      .btn-danger-muted:hover {
+        opacity: 1 !important;
+        color: #ef4444 !important;
+      }
+
       /* Handlingsseksjon: subtil amber-antydning for "action" */
       .section-handlinger {
-        background: rgba(245, 158, 11, 0.05);
-        border: 2px solid rgba(245, 158, 11, 0.2);
-        box-shadow: 0 2px 8px rgba(245, 158, 11, 0.08);
-        margin-top: 12px;
+        background: rgba(245, 158, 11, 0.10);
+        border: 2px solid rgba(245, 158, 11, 0.45);
+        box-shadow: 0 2px 10px rgba(245, 158, 11, 0.15);
+        margin-top: 24px;
         margin-bottom: 0;
       }
 
@@ -726,16 +772,16 @@
 
       /* Lokasjon: Blå tema */
       .section-lokasjon {
-        background: rgba(59, 130, 246, 0.08);
-        border: 2px solid rgba(59, 130, 246, 0.3);
-        box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15);
+        background: rgba(59, 130, 246, 0.12);
+        border: 2px solid rgba(59, 130, 246, 0.55);
+        box-shadow: 0 2px 10px rgba(59, 130, 246, 0.22);
       }
 
       /* Observasjon: Grønn tema */
       .section-observasjon {
-        background: rgba(34, 197, 94, 0.08);
-        border: 2px solid rgba(34, 197, 94, 0.3);
-        box-shadow: 0 2px 8px rgba(34, 197, 94, 0.15);
+        background: rgba(34, 197, 94, 0.10);
+        border: 2px solid rgba(34, 197, 94, 0.55);
+        box-shadow: 0 2px 10px rgba(34, 197, 94, 0.18);
       }
 
         fieldset.section-main {
@@ -755,6 +801,14 @@
         font-weight: 600;
         padding: 0 8px;
         margin-left: -4px;
+      }
+
+      .section-lokasjon legend {
+        color: rgba(99, 168, 255, 0.9);
+      }
+
+      .section-observasjon legend {
+        color: rgba(74, 222, 128, 0.9);
       }
 
       .section-optional {
@@ -872,6 +926,7 @@
         border-top: 1px solid rgba(15, 23, 42, 0.8);
         padding-top: 8px;
         font-size: 0.8rem;
+        overflow-x: hidden;
       }
 
       .obs-group {
@@ -884,7 +939,7 @@
         letter-spacing: 0.09em;
         color: var(--muted);
         margin-bottom: 3px;
-        border-top: 3px solid rgba(59, 130, 246, 0.4);
+        border-top: 3px solid rgba(100, 116, 139, 0.35);
         background: rgba(30, 41, 59, 0.6);
         padding-top: 10px !important;
         padding-bottom: 6px !important;
@@ -1289,4 +1344,241 @@
         .obs-table td:nth-child(3) { width: 25%; }
 
       }
+
+/* ============================================================================
+   LIGHT THEME OVERRIDES
+   Må ligge sist i filen for å overstyre alle hardkodede mørke farger.
+   ========================================================================= */
+
+/* --- Bakgrunner --- */
+body.theme-light {
+  background: #ffffff !important;
+}
+
+body.theme-light .card {
+  background: #ffffff !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08) !important;
+  border-color: #e2e8f0 !important;
+  backdrop-filter: none !important;
+}
+
+/* --- Inputs --- */
+body.theme-light input[type="text"],
+body.theme-light input[type="number"],
+body.theme-light input[type="date"],
+body.theme-light input[type="time"],
+body.theme-light select {
+  background: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  color: #1a1a1a !important;
+}
+
+body.theme-light input[type="text"].species-selected {
+  color: #16a34a !important;
+  background: rgba(22, 163, 74, 0.06) !important;
+}
+
+body.theme-light input::placeholder {
+  color: #94a3b8 !important;
+}
+
+/* --- Buttons --- */
+body.theme-light .btn {
+  background: #f8fafc !important;
+  border-color: #cbd5e1 !important;
+  color: #1a1a1a !important;
+}
+
+body.theme-light .btn:hover {
+  background: rgba(37, 99, 235, 0.06) !important;
+  border-color: #2563eb !important;
+}
+
+body.theme-light .icon-btn {
+  background: rgba(37, 99, 235, 0.06) !important;
+  border-color: #2563eb !important;
+  color: #1a1a1a !important;
+}
+
+/* --- Pills --- */
+body.theme-light .pill {
+  background: #f8fafc !important;
+  border-color: #cbd5e1 !important;
+}
+
+body.theme-light .activity-pill {
+  background: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  color: #1a1a1a !important;
+}
+
+body.theme-light .activity-pill.selected {
+  border-color: #2563eb !important;
+  background: rgba(37, 99, 235, 0.06) !important;
+}
+
+body.theme-light .activity-pill.last-used {
+  border-color: #16a34a !important;
+  background: rgba(22, 163, 74, 0.06) !important;
+  color: #16a34a !important;
+}
+
+body.theme-light .mode-pill.field-mode {
+  color: #16a34a !important;
+  background: rgba(22, 163, 74, 0.08) !important;
+}
+
+body.theme-light .mode-pill.after-mode {
+  color: #dc2626 !important;
+  background: rgba(220, 38, 38, 0.08) !important;
+}
+
+/* --- Seksjoner --- */
+body.theme-light .section {
+  background: #fafafa !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+body.theme-light .section-liste {
+  border-color: #94a3b8 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+}
+
+body.theme-light .section-lokasjon {
+  background: rgba(37, 99, 235, 0.06) !important;
+  border-color: rgba(37, 99, 235, 0.45) !important;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.12) !important;
+}
+
+body.theme-light .section-lokasjon legend {
+  color: rgba(29, 78, 216, 0.9) !important;
+}
+
+body.theme-light .section-observasjon {
+  background: rgba(22, 163, 74, 0.06) !important;
+  border-color: rgba(22, 163, 74, 0.45) !important;
+  box-shadow: 0 2px 8px rgba(22, 163, 74, 0.12) !important;
+}
+
+body.theme-light .section-observasjon legend {
+  color: rgba(21, 128, 61, 0.9) !important;
+}
+
+body.theme-light .section-handlinger {
+  background: rgba(245, 158, 11, 0.07) !important;
+  border-color: rgba(245, 158, 11, 0.4) !important;
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.10) !important;
+}
+
+body.theme-light .section-optional {
+  background: rgba(0, 0, 0, 0.02) !important;
+  border-color: #e2e8f0 !important;
+}
+
+/* --- Resultater og dropdowns --- */
+body.theme-light .result-item:hover,
+body.theme-light .result-item[aria-selected="true"] {
+  background: rgba(37, 99, 235, 0.06) !important;
+}
+
+body.theme-light .ao-sites-dropdown-list {
+  background: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+}
+
+body.theme-light .ao-site-suggestion:hover {
+  background: rgba(37, 99, 235, 0.06) !important;
+}
+
+body.theme-light .activity-search-results {
+  background: #ffffff !important;
+  border-color: #e2e8f0 !important;
+}
+
+body.theme-light .activity-search-item:hover,
+body.theme-light .activity-search-item.active {
+  background: rgba(37, 99, 235, 0.06) !important;
+}
+
+/* --- Observasjonsliste --- */
+body.theme-light .section-title {
+  color: #1a1a1a !important;
+}
+
+body.theme-light .tablet-list-column .section-title {
+  color: #1a1a1a !important;
+  border-top-color: #cbd5e1 !important;
+  border-bottom-color: #cbd5e1 !important;
+}
+
+.tablet-list-column .section-title {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 10px !important;
+}
+
+.obs-title-owl {
+  display: inline-block !important;
+}
+
+body.theme-light .obs-list {
+  border-top-color: #e2e8f0 !important;
+}
+
+body.theme-light .obs-group-title {
+  background: rgba(241, 245, 249, 0.8) !important;
+  border-top-color: rgba(100, 116, 139, 0.3) !important;
+}
+
+body.theme-light .obs-table th,
+body.theme-light .obs-table td {
+  border-bottom-color: #e2e8f0 !important;
+}
+
+/* --- Site pills --- */
+body.theme-light .site-pill {
+  background: #f8fafc !important;
+  border-color: #cbd5e1 !important;
+}
+
+body.theme-light .site-pill-private {
+  background: rgba(0, 0, 0, 0.04) !important;
+  border-color: #cbd5e1 !important;
+}
+
+/* --- Field highlighting --- */
+body.theme-light .field-highlight {
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.06), #ffffff) !important;
+}
+
+body.theme-light #activity.field-highlight {
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.06), #ffffff) !important;
+}
+
+/* --- Diverse --- */
+body.theme-light .kbd-hint .kbd-key {
+  background: #f1f5f9 !important;
+  border-color: #cbd5e1 !important;
+  color: #64748b !important;
+}
+
+body.theme-light .footer-credit {
+  color: #94a3b8 !important;
+}
+
+body.theme-light .slider {
+  background: #cbd5e1 !important;
+}
+
+body.theme-light input:checked + .slider {
+  background: #2563eb !important;
+}
+
+/* --- Modal --- */
+body.theme-light #create-site-modal > div {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0;
+}
 

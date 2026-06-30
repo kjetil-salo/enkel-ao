@@ -25,6 +25,10 @@ body {
   line-height: 1.6;
 }
 
+body.theme-light {
+  background: #ffffff;
+}
+
 /* === Form Elements === */
 /* KRITISK: 16px minimum for å unngå iOS zoom */
 input,

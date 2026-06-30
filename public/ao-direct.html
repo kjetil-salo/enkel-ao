@@ -383,9 +383,21 @@
       .area-selected .area-remove:hover {
         color: var(--red);
       }
+      body.theme-light {
+        --bg: #ffffff; --card-bg: #ffffff; --border: #e2e8f0;
+        --accent: #2563eb; --accent-soft: rgba(37,99,235,0.1);
+        --text: #1a1a1a; --muted: #64748b;
+        --red: #dc2626; --green: #16a34a;
+        background: #ffffff !important;
+      }
+      body.theme-light .card { background: #ffffff !important; box-shadow: 0 4px 12px rgba(0,0,0,0.08) !important; border-color: #e2e8f0 !important; backdrop-filter: none !important; }
+      body.theme-light input, body.theme-light select, body.theme-light textarea {
+        background: #ffffff !important; color: #1a1a1a !important; border-color: #cbd5e1 !important;
+      }
     </style>
   </head>
   <body>
+    <script src="/js/theme.js"></script>
     <div class="shell">
       <div class="card">
         <header>

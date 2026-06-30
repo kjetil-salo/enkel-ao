@@ -10,9 +10,29 @@
           background: var(--card-bg, #111827);
           border-radius: 16px;
           padding: 24px 18px 18px 18px;
-          max-width: 420px;
+          max-width: 680px;
+          width: calc(100% - 32px);
           margin: 32px auto 0 auto;
           box-shadow: 0 8px 32px rgba(30,40,60,0.13);
+        }
+        body.theme-light {
+          background: #ffffff !important;
+          color: #1a1a1a !important;
+        }
+        body.theme-light .settings-card {
+          background: #ffffff !important;
+          border: 1px solid #e2e8f0 !important;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.08) !important;
+        }
+        body.theme-light input[type="text"],
+        body.theme-light input[type="password"],
+        body.theme-light select {
+          background: #ffffff !important;
+          color: #1a1a1a !important;
+          border-color: #cbd5e1 !important;
+        }
+        body.theme-light .settings-label {
+          color: #1a1a1a !important;
         }
         .settings-row {
           display: flex;
@@ -61,11 +81,23 @@
       </style>
   </head>
   <body style="margin:0;min-height:100vh;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:radial-gradient(circle at top,#1f2937 0,#020617 55%);color:var(--text,#e5e7eb);padding:6px 0 0 0;">
-    <div class="settings-card" style="background:linear-gradient(145deg,rgba(15,23,42,0.96),rgba(15,23,42,0.92));border-radius:10px;border:1px solid rgba(148,163,184,0.12);box-shadow:0 12px 28px rgba(15,23,42,0.72),0 0 0 1px rgba(15,23,42,0.9);padding:24px 18px 18px 18px;max-width:420px;margin:32px auto 0 auto;overflow:visible;backdrop-filter:blur(14px);">
+    <script src="/js/theme.js"></script>
+    <div class="settings-card" style="background:linear-gradient(145deg,rgba(15,23,42,0.96),rgba(15,23,42,0.92));border-radius:10px;border:1px solid rgba(148,163,184,0.12);box-shadow:0 12px 28px rgba(15,23,42,0.72),0 0 0 1px rgba(15,23,42,0.9);padding:24px 32px 24px 32px;overflow:visible;backdrop-filter:blur(14px);">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
         <h2 style="margin:0;">Innstillinger</h2>
         <a href="/" style="color:#3b82f6;text-decoration:none;font-size:0.9rem;padding:6px 12px;border-radius:8px;">← Tilbake</a>
       </div>
+      <div class="settings-row">
+        <span class="settings-label">Lyst tema</span>
+        <label class="switch">
+          <input type="checkbox" id="theme-toggle" />
+          <span class="slider"></span>
+        </label>
+      </div>
+      <div style="font-size:0.92em;color:var(--muted,#aaa);margin-bottom:18px;">
+        Hvit bakgrunn med svart tekst. Enklere å lese i sterkt sollys.
+      </div>
+
       <div class="settings-row">
         <span class="settings-label">Vis private lokasjoner på kart</span>
         <label class="switch">
@@ -198,7 +230,7 @@
         const deleteBtn = document.createElement('button');
         deleteBtn.textContent = '🗑️';
         deleteBtn.title = 'Fjern aktivitet';
-        deleteBtn.style.cssText = 'padding: 8px 10px; background: #ef4444; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 1em; flex-shrink: 0;';
+        deleteBtn.style.cssText = 'padding: 8px 10px; background: transparent; border: 1px solid var(--border, rgba(100,116,139,0.3)); border-radius: 6px; cursor: pointer; font-size: 1em; flex-shrink: 0; opacity: 0.6; transition: opacity 0.2s;';
         deleteBtn.addEventListener('click', () => {
           row.remove();
           savePillsFromUI(container);
@@ -251,6 +283,19 @@
       initActivityPillsConfig();
     </script>
     <script>
+      // Tema
+      const themeToggle = document.getElementById('theme-toggle');
+      themeToggle.checked = localStorage.getItem('ao_theme') === 'light';
+      themeToggle.addEventListener('change', () => {
+        if (themeToggle.checked) {
+          localStorage.setItem('ao_theme', 'light');
+          document.body.classList.add('theme-light');
+        } else {
+          localStorage.removeItem('ao_theme');
+          document.body.classList.remove('theme-light');
+        }
+      });
+
       // Offline arts-søk
       const key = 'forceOfflineSpecies';
       const cb = document.getElementById('force-offline-species');
@@ -312,19 +357,24 @@
       const testLoginBtn = document.getElementById('test-ao-login');
       const loginStatus = document.getElementById('ao-login-status');
 
+      function _sc(type) {
+        const l = document.body.classList.contains('theme-light');
+        return { info: l ? '#2563eb' : '#93c5fd', success: l ? '#16a34a' : '#86efac', error: l ? '#dc2626' : '#fca5a5' }[type];
+      }
+
       testLoginBtn.addEventListener('click', async () => {
         const username = localStorage.getItem('ao_username');
         const password = localStorage.getItem('ao_password');
         if (!username || !password) {
           loginStatus.style.display = 'block';
-          loginStatus.style.cssText = 'display:block;margin-top:8px;padding:10px;border-radius:8px;font-size:0.85em;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);color:#fca5a5;';
+          loginStatus.style.cssText = `display:block;margin-top:8px;padding:10px;border-radius:8px;font-size:0.85em;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);color:${_sc('error')};`;
           loginStatus.textContent = '❌ Fyll inn brukernavn og passord først';
           return;
         }
 
         testLoginBtn.disabled = true;
         testLoginBtn.textContent = '⏳ Tester...';
-        loginStatus.style.cssText = 'display:block;margin-top:8px;padding:10px;border-radius:8px;font-size:0.85em;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.3);color:#93c5fd;';
+        loginStatus.style.cssText = `display:block;margin-top:8px;padding:10px;border-radius:8px;font-size:0.85em;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.3);color:${_sc('info')};`;
         loginStatus.textContent = '⏳ Kobler til Artsobservasjoner...';
 
         try {
@@ -335,13 +385,13 @@
           });
           const result = await resp.json();
           if (resp.ok && result.success) {
-            loginStatus.style.cssText = 'display:block;margin-top:8px;padding:10px;border-radius:8px;font-size:0.85em;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);color:#86efac;';
+            loginStatus.style.cssText = `display:block;margin-top:8px;padding:10px;border-radius:8px;font-size:0.85em;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);color:${_sc('success')};`;
             loginStatus.textContent = `✅ Innlogging OK! Bruker-ID: ${result.userId}`;
           } else {
             throw new Error(result.error || 'Innlogging feilet');
           }
         } catch (e) {
-          loginStatus.style.cssText = 'display:block;margin-top:8px;padding:10px;border-radius:8px;font-size:0.85em;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);color:#fca5a5;';
+          loginStatus.style.cssText = `display:block;margin-top:8px;padding:10px;border-radius:8px;font-size:0.85em;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);color:${_sc('error')};`;
           loginStatus.textContent = `❌ ${e.message}`;
         } finally {
           testLoginBtn.disabled = false;

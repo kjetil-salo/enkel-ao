@@ -66,7 +66,7 @@
   border: var(--border-width) solid var(--border-color-medium);
   font-size: 0.7rem;
   color: var(--color-muted);
-  background: radial-gradient(circle at top left, rgba(248, 250, 252, 0.06), rgba(15, 23, 42, 0.7));
+  background: radial-gradient(circle at top left, var(--color-input-bg-light), var(--color-input-bg));
 }
 
 .mode-pill {
@@ -83,10 +83,18 @@
   color: #4ade80;
 }
 
+body.theme-light .mode-pill.field-mode {
+  color: #16a34a;
+}
+
 .mode-pill.after-mode {
   background: var(--color-error-soft);
   border-color: var(--color-error);
   color: #fca5a5;
+}
+
+body.theme-light .mode-pill.after-mode {
+  color: #dc2626;
 }
 
 .mode-pill:hover {
@@ -146,7 +154,7 @@ select {
   padding: 7px 34px 7px 28px;
   border-radius: var(--radius-full);
   border: var(--border-width) solid var(--border-color-strong);
-  background: radial-gradient(circle at top left, rgba(248, 250, 252, 0.06), rgba(15, 23, 42, 0.95));
+  background: radial-gradient(circle at top left, var(--color-input-bg-light), var(--color-input-bg));
   color: var(--color-text);
   font-size: 16px !important; /* iOS zoom prevention */
   outline: none;
@@ -191,9 +199,13 @@ select:focus {
 /* Valgt art styling */
 input[type="text"].species-selected {
   border-color: rgba(34, 197, 94, 0.9);
-  background: radial-gradient(circle at top left, rgba(34, 197, 94, 0.15), rgba(15, 23, 42, 0.95));
+  background: radial-gradient(circle at top left, rgba(34, 197, 94, 0.15), var(--color-input-bg));
   color: #4ade80;
   font-weight: var(--font-weight-medium);
+}
+
+body.theme-light input[type="text"].species-selected {
+  color: #16a34a;
 }
 
 .chosen {
@@ -279,7 +291,7 @@ input[type="text"].species-selected {
 
 .result-item:hover,
 .result-item[aria-selected="true"] {
-  background: radial-gradient(circle at left, var(--color-accent-soft), rgba(15, 23, 42, 0.98));
+  background: radial-gradient(circle at left, var(--color-accent-soft), var(--color-input-bg));
   border-color: var(--color-accent);
 }
 

@@ -21,16 +21,22 @@
 
 .card {
   /* Glassmorphism kort med bleed-to-edge på mobil */
-  background: linear-gradient(145deg, rgba(15,23,42,0.96), rgba(15,23,42,0.92));
+  background: linear-gradient(145deg, var(--color-card-gradient-from), var(--color-card-gradient-to));
   border-radius: var(--radius-md);
   border: var(--border-width) solid var(--border-color);
   box-shadow:
     var(--shadow-md),
-    0 0 0 1px rgba(15, 23, 42, 0.9);
+    0 0 0 1px rgba(var(--color-card-shadow-rgb), 0.9);
   padding: var(--space-sm);
   margin: 0 calc(var(--space-sm) * -1); /* Bleed til viewport-kanter */
   overflow: visible;
+  overflow-x: hidden;
   backdrop-filter: blur(14px);
+}
+
+body.theme-light .card {
+  backdrop-filter: none;
+  box-shadow: var(--shadow-md);
 }
 
 @media (min-width: 600px) and (min-height: 600px) {
@@ -96,13 +102,13 @@ header {
   padding: var(--space-sm);
   margin-bottom: var(--space-xs);
   border-radius: var(--radius-sm);
-  background: rgba(15, 23, 42, 0.5);
+  background: var(--color-obs-row-bg);
   border: var(--border-width) solid var(--border-color);
   transition: background var(--transition-fast);
 }
 
 .obs-row:hover {
-  background: rgba(15, 23, 42, 0.8);
+  background: var(--color-obs-row-hover);
 }
 
 /* === Export Row === */

@@ -42,8 +42,8 @@ export function showToast(msg, options = {}) {
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%) scale(0.7);
-      background: rgba(34,34,34,0.97);
-      color: #fff;
+      background: ${document.body.classList.contains('theme-light') ? 'rgba(255,255,255,0.97)' : 'rgba(34,34,34,0.97)'};
+      color: ${document.body.classList.contains('theme-light') ? '#1a1a1a' : '#fff'};
       font-size: 1.2em;
       padding: 12px 28px;
       border-radius: 12px;

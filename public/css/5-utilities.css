@@ -69,15 +69,15 @@
    ========================================================================= */
 
 .gradient-default {
-  background: radial-gradient(circle at top left, rgba(248, 250, 252, 0.06), rgba(15, 23, 42, 0.95));
+  background: radial-gradient(circle at top left, var(--color-input-bg-light), var(--color-input-bg));
 }
 
 .gradient-success {
-  background: radial-gradient(circle at top left, rgba(34, 197, 94, 0.15), rgba(15, 23, 42, 0.95));
+  background: radial-gradient(circle at top left, rgba(34, 197, 94, 0.15), var(--color-input-bg));
 }
 
 .gradient-accent {
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.12), rgba(15, 23, 42, 0.95));
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.12), var(--color-input-bg));
 }
 
 /* ============================================================================
