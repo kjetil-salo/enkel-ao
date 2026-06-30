@@ -163,6 +163,15 @@ Kjøpt domenet ksalo.no. Skal være en enkel statisk landingsside med tiles/kort
 
 ---
 
+## 17. Stemmestyring i enkel-ao
+
+- Vurder stemmestyring for rask registrering i felt, spesielt på mobil når hendene er opptatt
+- Utforsk hvilke felter som egner seg best for taleinput først: art, antall, aktivitet og kommentar
+- Avklar om dette skal bygge på nettleserens innebygde tale-API eller en enklere trykk-for-a-snakke-løsning
+- Vurder robusthet i felt: vindstøy, dialekt, offline-begrensninger og behov for tydelig bekreftelse før lagring
+
+---
+
 ## 5. Omfattende analyse av brukervennlighet
 - Fokus på reell brukervennlighet for målgruppen: fuglekikkere i felt med mobil
 - WCAG er IKKE relevant – dette er en privat app for folk med normalt syn (fuglekikking krever godt syn)

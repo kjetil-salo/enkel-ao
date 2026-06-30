@@ -1,0 +1,97 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1350" viewBox="0 0 1080 1350" role="img" aria-labelledby="title desc">
+  <title id="title">Enkel-AO karusell 2</title>
+  <desc id="desc">Facebook-reklame med fokus pa kart, ferie og lokalitetsvalg.</desc>
+  <defs>
+    <linearGradient id="bg2" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="52%" stop-color="#14532d"/>
+      <stop offset="100%" stop-color="#0b3b66"/>
+    </linearGradient>
+    <linearGradient id="card2" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f8fafc"/>
+      <stop offset="100%" stop-color="#eefbf4"/>
+    </linearGradient>
+    <filter id="shadow2" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="20" stdDeviation="24" flood-color="#071116" flood-opacity="0.24"/>
+    </filter>
+    <filter id="softShadow2" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="12" stdDeviation="18" flood-color="#071116" flood-opacity="0.16"/>
+    </filter>
+    <clipPath id="screenClip2">
+      <rect x="614" y="154" width="370" height="792" rx="34" ry="34"/>
+    </clipPath>
+  </defs>
+
+  <rect width="1080" height="1350" fill="url(#bg2)"/>
+  <circle cx="138" cy="168" r="128" fill="#bbf7d0" opacity="0.14"/>
+  <circle cx="954" cy="1140" r="214" fill="#93c5fd" opacity="0.11"/>
+  <circle cx="968" cy="150" r="142" fill="#fde68a" opacity="0.14"/>
+
+  <rect x="74" y="72" width="288" height="56" rx="24" ry="24" fill="#f0fdf4" opacity="0.95"/>
+  <text x="218" y="109" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="25" font-weight="700" fill="#163126">For tur og ferie</text>
+
+  <text x="74" y="224" font-family="Helvetica, Arial, sans-serif" font-size="66" font-weight="800" fill="#f8fafc">
+    <tspan x="74" dy="0">Pa ferie er</tspan>
+    <tspan x="74" dy="76">lokaliteten halve jobben</tspan>
+  </text>
+
+  <text x="76" y="392" font-family="Helvetica, Arial, sans-serif" font-size="29" fill="#dcf3e4">
+    <tspan x="76" dy="0">Nar du er ny pa stedet, hjelper ikke</tspan>
+    <tspan x="76" dy="38">hukommelsen sa mye.</tspan>
+    <tspan x="76" dy="38">Kart og liste viser hvor du faktisk er</tspan>
+    <tspan x="76" dy="38">i forhold til lokalitetene i AO.</tspan>
+  </text>
+
+  <g filter="url(#softShadow2)">
+    <rect x="74" y="596" width="466" height="148" rx="30" ry="30" fill="url(#card2)"/>
+    <text x="112" y="650" font-family="Helvetica, Arial, sans-serif" font-size="29" font-weight="800" fill="#12324b">GPS finner stedene rundt deg</text>
+    <text x="112" y="692" font-family="Helvetica, Arial, sans-serif" font-size="23" fill="#4f6473">Du slipper a starte med navn du ikke kan.</text>
+
+    <rect x="74" y="776" width="466" height="148" rx="30" ry="30" fill="url(#card2)"/>
+    <text x="112" y="830" font-family="Helvetica, Arial, sans-serif" font-size="29" font-weight="800" fill="#12324b">Liste for fart. Kart for oversikt.</text>
+    <text x="112" y="872" font-family="Helvetica, Arial, sans-serif" font-size="23" fill="#4f6473">Velg det som passer best der og da.</text>
+
+    <rect x="74" y="956" width="466" height="148" rx="30" ry="30" fill="url(#card2)"/>
+    <text x="112" y="1010" font-family="Helvetica, Arial, sans-serif" font-size="29" font-weight="800" fill="#12324b">Bedre flyt inn i Artsobservasjoner</text>
+    <text x="112" y="1052" font-family="Helvetica, Arial, sans-serif" font-size="23" fill="#4f6473">Enkel-AO er laget for registreringen, ikke for mer friksjon.</text>
+  </g>
+
+  <g filter="url(#shadow2)">
+    <rect x="584" y="102" width="430" height="900" rx="56" ry="56" fill="#142033" stroke="#86efac" stroke-width="4"/>
+    <rect x="724" y="124" width="150" height="18" rx="9" ry="9" fill="#dcfce7"/>
+    <rect x="614" y="154" width="370" height="792" rx="34" ry="34" fill="#f8fafc"/>
+    <g clip-path="url(#screenClip2)">
+      <rect x="614" y="154" width="370" height="792" fill="#e5f3eb"/>
+      <rect x="614" y="154" width="370" height="86" fill="#0f172a"/>
+      <text x="648" y="208" font-family="Helvetica, Arial, sans-serif" font-size="30" font-weight="800" fill="#f8fafc">Kart</text>
+      <rect x="884" y="176" width="58" height="42" rx="14" ry="14" fill="#3b82f6"/>
+      <text x="913" y="203" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="24" fill="#ffffff">+</text>
+
+      <rect x="646" y="264" width="306" height="58" rx="20" ry="20" fill="#ffffff" opacity="0.94"/>
+      <text x="674" y="300" font-family="Helvetica, Arial, sans-serif" font-size="22" fill="#0f172a">Korshavn, Farsund</text>
+
+      <path d="M614 360 C684 330, 720 390, 784 364 S904 350, 984 400 L984 946 L614 946 Z" fill="#c7f9cc"/>
+      <path d="M614 434 C672 452, 724 422, 780 450 S894 498, 984 472 L984 946 L614 946 Z" fill="#a7f3d0"/>
+      <path d="M614 508 C688 474, 756 548, 836 520 S930 540, 984 566 L984 946 L614 946 Z" fill="#93c5fd"/>
+
+      <path d="M700 462 L744 426 L792 474 L844 438 L894 480" fill="none" stroke="#334155" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M700 462 L744 426 L792 474 L844 438 L894 480" fill="none" stroke="#f8fafc" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+
+      <circle cx="744" cy="426" r="16" fill="#ef4444"/>
+      <circle cx="792" cy="474" r="14" fill="#22c55e"/>
+      <circle cx="844" cy="438" r="14" fill="#f59e0b"/>
+      <circle cx="894" cy="480" r="14" fill="#22c55e"/>
+
+      <rect x="654" y="604" width="196" height="88" rx="24" ry="24" fill="#ffffff" stroke="#cbd5e1"/>
+      <text x="678" y="642" font-family="Helvetica, Arial, sans-serif" font-size="22" font-weight="700" fill="#0f172a">Korshavnodden</text>
+      <text x="678" y="670" font-family="Helvetica, Arial, sans-serif" font-size="18" fill="#475569">220 m unna</text>
+
+      <rect x="664" y="720" width="226" height="48" rx="16" ry="16" fill="#dbeafe"/>
+      <text x="777" y="750" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="20" font-weight="700" fill="#1d4ed8">Velg lokalitet</text>
+    </g>
+    <rect x="736" y="968" width="126" height="14" rx="7" ry="7" fill="#dcfce7" opacity="0.56"/>
+  </g>
+
+  <rect x="74" y="1198" width="932" height="94" rx="32" ry="32" fill="#22c55e"/>
+  <text x="540" y="1258" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="39" font-weight="800" fill="#f8fafc">Liste eller kart. Velg det som er enklest.</text>
+</svg>
