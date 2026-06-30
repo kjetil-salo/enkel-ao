@@ -5,6 +5,16 @@
 import { toCsv } from './observations.js';
 import { flashButton } from './ui.js';
 
+function _statusColor(type) {
+  const light = document.body.classList.contains('theme-light');
+  const colors = {
+    info:    light ? '#2563eb' : '#93c5fd',
+    success: light ? '#16a34a' : '#86efac',
+    error:   light ? '#dc2626' : '#fca5a5',
+  };
+  return colors[type];
+}
+
 export function handleExport(observations, dom) {
   const csv = toCsv(observations);
   if (!csv) return;
@@ -60,6 +70,7 @@ export async function handleCopyAndOpen(observations, dom) {
     await copyToClipboard(csv);
     window.open('https://www.artsobservasjoner.no/ImportSighting', '_blank');
     flashButton(dom.copyOpenBtn, 'Åpnet!');
+    fetch('/api/log-export', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'copy_open' }) }).catch(() => {});
   } catch (e) {
     console.warn('Kunne ikke kopiere CSV til utklippstavlen', e);
   }
@@ -74,7 +85,7 @@ export async function handleDirectSend(observations, dom, callbacks) {
 
   dom.aoDirectBtn.disabled = true;
   dom.aoDirectStatus.style.display = 'block';
-  dom.aoDirectStatus.style.cssText = 'display:block;margin-top:8px;padding:10px;border-radius:8px;font-size:0.9rem;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.3);color:#93c5fd;';
+  dom.aoDirectStatus.style.cssText = `display:block;margin-top:8px;padding:10px;border-radius:8px;font-size:0.9rem;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.3);color:${_statusColor('info')};`;
   dom.aoDirectStatus.textContent = '⏳ Logger inn på AO...';
 
   try {
@@ -114,8 +125,9 @@ export async function handleDirectSend(observations, dom, callbacks) {
         t.authCookie = importResult.refreshedAuthCookie;
         localStorage.setItem('ao_tokens', JSON.stringify(t));
       }
-      dom.aoDirectStatus.style.cssText = 'display:block;margin-top:8px;padding:10px;border-radius:8px;font-size:0.9rem;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);color:#86efac;';
+      dom.aoDirectStatus.style.cssText = `display:block;margin-top:8px;padding:10px;border-radius:8px;font-size:0.9rem;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);color:${_statusColor('success')};`;
       dom.aoDirectStatus.textContent = `✅ ${importResult.count} observasjon${importResult.count !== 1 ? 'er' : ''} sendt til AO!`;
+      fetch('/api/log-export', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'direct' }) }).catch(() => {});
 
       setTimeout(() => {
         if (confirm('Sending vellykket! Vil du tømme observasjonslisten?')) {
@@ -129,7 +141,7 @@ export async function handleDirectSend(observations, dom, callbacks) {
       throw new Error(importResult.error || 'Import feilet');
     }
   } catch (error) {
-    dom.aoDirectStatus.style.cssText = 'display:block;margin-top:8px;padding:10px;border-radius:8px;font-size:0.9rem;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);color:#fca5a5;';
+    dom.aoDirectStatus.style.cssText = `display:block;margin-top:8px;padding:10px;border-radius:8px;font-size:0.9rem;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);color:${_statusColor('error')};`;
     dom.aoDirectStatus.textContent = `❌ ${error.message}`;
     dom.aoDirectBtn.disabled = false;
   }

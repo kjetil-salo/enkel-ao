@@ -23,10 +23,10 @@ def start_server(port):
 
 def test_logview_sets_device_cookie(monkeypatch):
     """Test at /api/logview setter device_id cookie for nye enheter."""
-    from src import supabase_log
+    from src import sqlite_log
     import server as server_mod
-    monkeypatch.setattr(supabase_log, 'log_view_to_supabase', lambda ip, ua, device_id='': True)
-    monkeypatch.setattr(server_mod, 'log_view_to_supabase', lambda ip, ua, device_id='': True)
+    monkeypatch.setattr(sqlite_log, 'log_view', lambda ip, ua, device_id='': True)
+    monkeypatch.setattr(server_mod, 'log_view_to_sqlite', lambda ip, ua, device_id='': True)
 
     _stats['total'] = 0
     _stats['per_ip'] = {}
@@ -52,10 +52,10 @@ def test_logview_sets_device_cookie(monkeypatch):
 
 def test_logview_reuses_existing_cookie(monkeypatch):
     """Test at /api/logview ikke setter ny cookie hvis den allerede finnes."""
-    from src import supabase_log
+    from src import sqlite_log
     import server as server_mod
-    monkeypatch.setattr(supabase_log, 'log_view_to_supabase', lambda ip, ua, device_id='': True)
-    monkeypatch.setattr(server_mod, 'log_view_to_supabase', lambda ip, ua, device_id='': True)
+    monkeypatch.setattr(sqlite_log, 'log_view', lambda ip, ua, device_id='': True)
+    monkeypatch.setattr(server_mod, 'log_view_to_sqlite', lambda ip, ua, device_id='': True)
 
     _stats['total'] = 0
     _stats['per_ip'] = {}
@@ -84,10 +84,10 @@ def test_logview_reuses_existing_cookie(monkeypatch):
 
 def test_logview_tracks_unique_devices(monkeypatch):
     """Test at forskjellige enheter telles som unike."""
-    from src import supabase_log
+    from src import sqlite_log
     import server as server_mod
-    monkeypatch.setattr(supabase_log, 'log_view_to_supabase', lambda ip, ua, device_id='': True)
-    monkeypatch.setattr(server_mod, 'log_view_to_supabase', lambda ip, ua, device_id='': True)
+    monkeypatch.setattr(sqlite_log, 'log_view', lambda ip, ua, device_id='': True)
+    monkeypatch.setattr(server_mod, 'log_view_to_sqlite', lambda ip, ua, device_id='': True)
 
     _stats['total'] = 0
     _stats['per_ip'] = {}

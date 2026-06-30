@@ -220,7 +220,7 @@ def post_with_curl(observations, login_token=None, auth_cookie=None, area_id='')
             'refreshedAuthCookie': refreshed_auth
         }
 
-    published_count = pending if pending is not None else len(observations)
+    published_count = len(observations)
     return {
         'success': True,
         'message': f'{published_count} observasjoner importert og publisert',
