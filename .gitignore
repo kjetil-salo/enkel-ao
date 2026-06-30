@@ -5,8 +5,17 @@
 .venv
 *.pyc
 __pycache__/
+.coverage
+.DS_Store
+.claude/
+.codex/
 
 # Node.js
 node_modules/
 dist/
 *.log
+
+# Lokale Playwright-hjelpeskript
+tests/e2e_playwright/*debug*.js
+tests/e2e_playwright/screenshot-staging*.js
+tests/e2e_playwright/samsung-*.js
