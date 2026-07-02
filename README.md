@@ -5,10 +5,11 @@
 En lynrask, superenkel webapp for å registrere fugleobservasjoner direkte til Artsobservasjoner.no – alt fokus på minst mulig klikk og tastetrykk. Alt lagres kun i nettleseren din og eksporteres enkelt til AO-importskjemaet.
 
 **Live:**
-- https://ao.efugl.no – stabil produksjon (kjører på Raspberry Pi)
+- https://ao.efugl.no – hovedadresse, stabil produksjon (kjører på Raspberry Pi, raskere)
+- https://enkel-ao.fly.dev – reserve/backup (samme kode, kjører på Fly.io)
 - https://enkel-ao-staging.fly.dev – siste endringer og eksperimenter (kan være ustabil)
 
-> `enkel-ao.fly.dev` er under avvikling — flytt bokmerke/hjemskjerm-ikon til `ao.efugl.no`.
+> `ao.efugl.no` er ny hovedadresse — oppdater bokmerke/hjemskjerm-ikon. `enkel-ao.fly.dev` fortsetter å kjøre som reserve.
 
 ## Hovedfunksjoner
 - 📍 Automatisk lokalitetsfinner (AO-integrasjon)

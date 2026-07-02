@@ -58,14 +58,13 @@ Implementert: alder og kjønn ligger nå som to kompakte dropdowns side om side 
 
 ## 7. Flytte enkel-ao til Raspberry Pi
 
-- I dag kjører appen på Fly.io (enkel-ao.fly.dev)
-- Målet er å flytte den til Pi-en (samme infrastruktur som dagens-funn og efugl.no)
-- Lage en konkret migrasjonsplan:
-  - Docker Compose på Pi + Cloudflare Tunnel (samme mønster som dagens-funn)
-  - DNS-peker (ny subdomain under efugl.no, f.eks. ao.efugl.no?)
-  - Avklar om Supabase-logging skal beholdes eller droppes
-  - Avklar hva som skjer med Fly.io-appen etter migrering (slett eller behold som backup)
-  - Lag deploy-script tilsvarende dagens-funn (rsync + docker compose)
+Teknisk migrering er ferdig: appen kjører på Pi (`ao.efugl.no`, samme mønster som dagens-funn/efugl.no), Docker Compose + Cloudflare Tunnel er satt opp, deploy-script (`update-ao-pi.sh`) finnes, loggrotasjon er på plass (se #11).
+
+**Avklart:** Fly.io (`enkel-ao.fly.dev`) beholdes som reserve/backup — slettes IKKE. `ao.efugl.no` er ny hovedadresse.
+
+**Gjenstår:**
+- Varselbanner på Fly-instansen som forteller brukere at `ao.efugl.no` er raskere/ny hovedadresse (implementert i `public/js/migration-banner.js`, viser kun på `*.fly.dev`)
+- Avklar om Supabase-logging skal beholdes eller droppes
 
 ## 8. Settings-siden – responsivt design for desktop
 
