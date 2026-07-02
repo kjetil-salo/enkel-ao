@@ -49,20 +49,12 @@ Det gjør vi allerede i `mobile-layout.spec.ts`, men kun for iphone-15-prosjekte
 
 Implementert: alder og kjønn ligger nå som to kompakte dropdowns side om side under aktivitets-raden, inne i obs-seksjonen. Den separate "Tilleggsinfo"-seksjonen er fjernet.
 
-## 11. Logging på Pi – loggvisning og rotasjon
+## ~~11. Logging på Pi – loggvisning og rotasjon~~ ✅
 
-- Når appen flyttes til Pi mister vi Fly.io sin innebygde logg-visning
-- **Vurder loggvisning:** [Dozzle](https://dozzle.dev/) er et lettvekts Docker-basert loggvisningsverktøy (én container, web-UI, leser Docker-logger live, ingen lagring). Alternativ: Loki + Grafana (mye tyngre, men kjent grensesnitt).
-- **Loggrotasjon er obligatorisk** – uten rotasjon kan logger fylle opp Pi-disken. Løsning: Docker sin innebygde `json-file`-driver med `max-size` og `max-file`:
-  ```yaml
-  logging:
-    driver: "json-file"
-    options:
-      max-size: "10m"
-      max-file: "3"
-  ```
-- Legg dette inn i `docker-compose.yml` på Pi før produksjonsmigrasjon
-- Avklar om Supabase-logging (logview) erstattes, suppleres eller droppes
+~~- Når appen flyttes til Pi mister vi Fly.io sin innebygde logg-visning~~
+~~- **Vurder loggvisning:** [Dozzle](https://dozzle.dev/)~~ → Dozzle kjører på Pi (`logs.efugl.no`, container `enkel-ao-dozzle-1`)
+~~- **Loggrotasjon er obligatorisk**~~ → `json-file` med `max-size: 10m`, `max-file: 3` er satt i `docker-compose.pi.yml`
+- Gjenstår: avklar om Supabase-logging (logview) erstattes, suppleres eller droppes
 
 ## 7. Flytte enkel-ao til Raspberry Pi
 
@@ -144,22 +136,11 @@ En bruker ga tilbakemelding om at appen har for mange forskjellige farger. Vi er
 
 ---
 
-## 16. ksalo.no — landingsside for mine apper
+## ~~16. ksalo.no — landingsside for mine apper~~ ✅
 
-Kjøpt domenet ksalo.no. Skal være en enkel statisk landingsside med tiles/kort som lenker til appene som allerede kjører på Pi-en.
+~~Kjøpt domenet ksalo.no. Skal være en enkel statisk landingsside med tiles/kort som lenker til appene som allerede kjører på Pi-en.~~
 
-**Apper som skal med:**
-- Dagens funn (fugleobservasjoner)
-- Enkel AO (fugleregistrering)
-- Drivstoff
-- Keycloak
-- Simple-auth
-
-**Hva som trengs:**
-- Enkel statisk HTML/CSS-side med tiles som peker til eksisterende URL-er
-- DNS: pek ksalo.no til Pi via Cloudflare Tunnel
-- Serve landingssiden via enkel webserver (Caddy/Nginx) på Pi
-- Ingen reverse proxy nødvendig — tilene lenker direkte til appene der de allerede kjører
+ksalo.no er live (HTTP 200) med tiles for Keycloak, Quarkus-app, .NET-app, Dagens fugl, Enkel AO (→ `ao.efugl.no`) og Drivstoffprisene. Simple-auth mangler som egen tile — vurder om den fortsatt er aktuell.
 
 ---
 
