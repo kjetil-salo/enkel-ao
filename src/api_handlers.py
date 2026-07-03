@@ -219,14 +219,16 @@ def _sliding_expiration(auth_cookie: str, user_id: str, login_token: str = None)
             with _cache_lock:
                 _ao_cookie_refresh_cache[cache_key] = (new_auth or auth_cookie, now)
 
-            if new_auth:
-                logger.info(f'[SLIDING] Fikk ny auth-cookie: {mask_token(new_auth)}')
-                return new_auth
-
-            # Sjekk om vi ble redirectet til login (cookie utløpt)
+            # VIKTIG: Sjekk /LogOn-redirect FØR new_auth tolkes. Ved utløpt cookie
+            # setter AO en logout/anonym .ASPXAUTHNO (forskjellig verdi) som ellers
+            # feilaktig ville blitt returnert som en «fornyelse» og hoppet over relogin.
             if '/LogOn' in str(response.url):
                 logger.debug('[SLIDING] Cookie utløpt (redirect til /LogOn)')
                 return None
+
+            if new_auth:
+                logger.info(f'[SLIDING] Fikk ny auth-cookie: {mask_token(new_auth)}')
+                return new_auth
 
             logger.debug('[SLIDING] Cookie fortsatt gyldig, ingen fornyelse nødvendig')
             return None
@@ -337,13 +339,17 @@ def login_to_ao(username: str, password: str) -> dict:
 
 
 def _refresh_with_logintoken(login_token: str, user_id: str) -> str:
-    """Fornyer .ASPXAUTHNO via logintoken (uten credentials).
+    """Gjenoppretter .ASPXAUTHNO via logintoken (AO sin "husk meg"-auto-login).
 
-    Sender logintoken til /User/MyPages. Hvis AO redirecter til /LogOn,
-    videresendes logintoken automatisk og kan gi ny session.
+    VIKTIG — bevist mekanisme (testet mot AO):
+    - Må treffe FORSIDEN «/» (ikke [Authorize]-beskyttet). Beskyttede sider
+      (/User/MyPages, /SubmitSighting/Report) redirecter til /LogOn FØR
+      husk-meg-logikken kjører, så revival er umulig der.
+    - `logintoken_ssl=1` er PÅKREVD.
+    - Ingen .ASPXAUTHNO må sendes: en gammel/død cookie kortslutter auto-login.
 
-    VIKTIG: Cookies settes på CLIENT-nivå (ikke request-nivå) for å
-    videresendes ved redirects.
+    logintoken har ~1 års levetid, så dette gir langvarig sesjon uten passord.
+    Cookies settes på CLIENT-nivå for å videresendes ved redirects.
 
     Returns:
         Ny .ASPXAUTHNO hvis vellykket, ellers None.
@@ -351,24 +357,30 @@ def _refresh_with_logintoken(login_token: str, user_id: str) -> str:
     if not login_token:
         return None
 
-    logger.debug(f'[LOGINTOKEN-REFRESH] Prøver fornyelse med logintoken: {mask_token(login_token)}')
+    logger.debug(f'[LOGINTOKEN-REFRESH] Prøver husk-meg-revival med logintoken: {mask_token(login_token)}')
 
     try:
+        # Kun logintoken + logintoken_ssl, INGEN .ASPXAUTHNO (den ville blokkert revival)
         with httpx.Client(cookies={
             'logintoken': login_token,
             'logintoken_ssl': '1',
             'AcceptCookies': '1'
         }) as client:
-            client.get(
-                'https://www.artsobservasjoner.no/User/MyPages',
+            response = client.get(
+                'https://www.artsobservasjoner.no/',
                 headers={'User-Agent': 'Mozilla/5.0 (compatible; Fugleobservasjoner/1.0)'},
                 timeout=10,
                 follow_redirects=True
             )
 
+            # Revival mislyktes hvis vi havnet på login-siden
+            if '/LogOn' in str(response.url):
+                logger.debug('[LOGINTOKEN-REFRESH] Revival mislyktes (redirect til /LogOn)')
+                return None
+
             for cookie in client.cookies.jar:
-                if cookie.name == '.ASPXAUTHNO':
-                    logger.info(f'[LOGINTOKEN-REFRESH] Session fornyet: {mask_token(cookie.value)}')
+                if cookie.name == '.ASPXAUTHNO' and cookie.value:
+                    logger.info(f'[LOGINTOKEN-REFRESH] Session gjenopprettet via husk-meg: {mask_token(cookie.value)}')
                     return cookie.value
 
         logger.debug('[LOGINTOKEN-REFRESH] Ingen .ASPXAUTHNO mottatt')

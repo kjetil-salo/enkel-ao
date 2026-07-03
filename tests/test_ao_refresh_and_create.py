@@ -92,18 +92,23 @@ def test_ao_refresh_success(monkeypatch):
     srv.shutdown()
 
 
-def test_ao_refresh_no_new_cookie(monkeypatch):
-    """Test at /api/ao-refresh håndterer manglende ny cookie."""
+def test_ao_refresh_expired_logintoken(monkeypatch):
+    """Test at /api/ao-refresh gir feil når husk-meg-revival mislykkes.
+
+    Ved utløpt logintoken utsteder forsiden ingen .ASPXAUTHNO (og redirecter
+    ikke til /LogOn siden den er offentlig), så mangel på ny cookie = utløpt.
+    """
     class FakeResponse:
         status_code = 200
-        url = 'https://www.artsobservasjoner.no/User/MyPages'
-        text = '<html>MyPages</html>'
+        url = 'https://www.artsobservasjoner.no/'
+        text = '<html>Logg inn</html>'
 
     class FakeCookieJar:
         def __iter__(self):
+            # Ingen .ASPXAUTHNO = revival mislyktes (kun uinteressante cookies)
             cookie1 = MagicMock()
-            cookie1.name = '.ASPXAUTHNO'
-            cookie1.value = 'old-auth-cookie'  # Samme som input
+            cookie1.name = 'AcceptCookies'
+            cookie1.value = '1'
             yield cookie1
 
     class FakeClient:
@@ -137,9 +142,9 @@ def test_ao_refresh_no_new_cookie(monkeypatch):
     )
     assert r.status_code == 200
     data = r.json()
-    # Ingen ny cookie, men eksisterende kan fortsatt være gyldig
+    # Ingen ny cookie => logintoken utløpt, krever ny innlogging
     assert 'refreshedAuthCookie' not in data
-    assert 'message' in data or 'error' not in data
+    assert 'error' in data
 
     srv.shutdown()
 

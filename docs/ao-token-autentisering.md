@@ -1,3 +1,42 @@
+# ⚠️ KORREKSJON (2026-07-03): logintoken KAN gjenopprette sesjon
+
+> **Denne seksjonen opphever den tidligere konklusjonen lenger ned om at
+> «logintoken ikke kan fornye/gjenopprette .ASPXAUTHNO».** Grundig testing mot
+> AO 2026-07-03 beviste det motsatte — den tidligere testingen brukte feil URI
+> og sendte en ugyldig .ASPXAUTHNO med.
+
+## Bevist «husk meg»-revival-mekanisme
+
+`logintoken` (+`logintoken_ssl`) er AO sin «husk meg»-token med **~1 års levetid**.
+Den **kan** gi en fersk `.ASPXAUTHNO` — altså langvarig sesjon uten lagret passord —
+men **kun** under disse betingelsene (alle påkrevd, verifisert empirisk):
+
+1. **Rett URI: forsiden `/`.** Den er ikke `[Authorize]`-beskyttet, så AO sin
+   auto-login kjører. Beskyttede sider (`/User/MyPages`, `/SubmitSighting/Report`)
+   redirecter til `/LogOn` **før** husk-meg-logikken kjører → revival umulig der.
+2. **`logintoken_ssl=1` må sendes.** Uten flagget skjer ingen revival.
+3. **Ingen `.ASPXAUTHNO` må sendes.** En gammel/død auth-cookie kortslutter
+   auto-login (AO avviser den og hopper over husk-meg).
+
+Verifisert: `GET /` med kun `logintoken`+`logintoken_ssl` gir fersk `.ASPXAUTHNO`
+som gir ekte tilgang til `/User/MyPages`.
+
+### Kodefiks (2026-07-03)
+- `_refresh_with_logintoken()` traff tidligere `/User/MyPages` (beskyttet) → 0/19
+  suksess i prod. Endret til å treffe `/` uten `.ASPXAUTHNO`. Virker nå.
+- `_sliding_expiration()` returnerte `/LogOn`-logout-cookien som «fornyelse»
+  (sjekket `new_auth` før `/LogOn`-redirect) → returnerte en død cookie og hoppet
+  over relogin. `/LogOn`-sjekken kjøres nå først.
+- `_handle_ao_refresh_post()` (server.py) bruker nå `/` uten `.ASPXAUTHNO`.
+
+### Målt sesjons-timeout
+`.ASPXAUTHNO` (SESSION-scope cookie) overlevde **>77 min urørt**, men var **død
+etter ~22t** urørt. Reell timeout er altså mange timer (ikke ~30 min som antatt
+tidligere). Den reelle årsaken til token-tap er natt/time-lange gap — som nå
+dekkes av logintoken-revival.
+
+---
+
 # Oppsummering (2026-02-03, oppdatert)
 
 ## NY LØSNING: Innlogging med brukernavn/passord (2026-02-03)
@@ -25,6 +64,10 @@ Vi har nå implementert innlogging via brukernavn/passord som gir oss:
 ---
 
 ## Hvordan AO fungerer (2026-02-03, testet)
+
+> ⚠️ **DELVIS FORELDET** — påstandene om at «logintoken kun er husk-meg / ikke
+> kan gjenopprette session» er motbevist. Se korreksjonsseksjonen øverst i doc-en.
+
 - AO bruker ASP.NET Forms Authentication med sliding expiration for autentisering.
 - `.ASPXAUTHNO` er en kryptert session-cookie, ikke lesbar eller base64-dekoderbar for klienten.
 - `logintoken` er kun for "Husk meg"-funksjon ved manuell innlogging, ikke for API-autentisering.
@@ -241,10 +284,15 @@ GetSitesGeoJson: fant 4 private site-IDs
 
 ## Langvarig sesjon - ✅ LØST (brukernavn/passord)
 
+> ⚠️ **FORELDET KONKLUSJON NEDENFOR** — «logintoken kan IKKE fornye/gjenopprette
+> .ASPXAUTHNO» ble motbevist 2026-07-03. logintoken-revival mot forsiden «/» virker
+> (se korreksjonsseksjonen øverst). Testene under (2026-02) traff feil URI /
+> sendte ugyldig .ASPXAUTHNO med, og feilet derfor. Beholdt for historikk.
+
 ### Mål (opprinnelig)
 Oppnå en sesjon som varer 1 år – slik at bruker bare trenger å logge inn én gang årlig.
 
-### ❌ Konklusjon (testet 2026-02-02 og 2026-02-03)
+### ❌ Konklusjon (testet 2026-02-02 og 2026-02-03) — SE ADVARSEL OVER
 
 **logintoken + logintoken_ssl kan IKKE brukes til å fornye eller gjenopprette .ASPXAUTHNO programmatisk.**
 

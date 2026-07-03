@@ -15,7 +15,7 @@
 ### I nettleseren (localStorage):
 - **userId** - Ditt bruker-ID på Artsobservasjoner (tall, f.eks. "15969")
 - **loginToken** - Magisk nøkkel som varer i **1 år** (trygt å lagre)
-- **authCookie** - Sesjon som varer i **30 minutter** (fornyes automatisk)
+- **authCookie** - Sesjon (`.ASPXAUTHNO`) som varer i **flere timer** (målt >1t, død etter ~22t urørt); fornyes automatisk via loginToken-revival mot forsiden
 - **ao_username** - Ditt brukernavn (KLARTEKST) ⚠️
 - **ao_password** - Ditt passord (KLARTEKST) ⚠️
 

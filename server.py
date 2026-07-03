@@ -330,19 +330,13 @@ class Handler(SimpleHTTPRequestHandler):
                 self._send_json({'error': 'loginToken er påkrevd'}, status=400)
                 return
 
-            # Normaliser auth cookie
-            auth_val = auth_cookie
-            if auth_val and auth_val.startswith('.ASPXAUTHNO='):
-                auth_val = auth_val.split('=', 1)[1]
-
-            # Bygg cookies dict for httpx
+            # Husk-meg-revival: KUN logintoken + logintoken_ssl, INGEN .ASPXAUTHNO
+            # (en gammel/død cookie kortslutter AO sin auto-login), og mot FORSIDEN «/»
+            # (beskyttede sider redirecter til /LogOn før husk-meg-logikken kjører).
             cookies = {'logintoken': login_token, 'logintoken_ssl': '1', 'AcceptCookies': '1'}
-            if auth_val:
-                cookies['.ASPXAUTHNO'] = auth_val
 
-            # Prøv å refreshe ved å treffe en beskyttet AO-side
-            probe_url = 'https://www.artsobservasjoner.no/User/MyPages'
-            logger.debug(f'[AO-REFRESH] Prober: {probe_url}')
+            probe_url = 'https://www.artsobservasjoner.no/'
+            logger.debug(f'[AO-REFRESH] Husk-meg-revival mot: {probe_url}')
 
             # VIKTIG: Sett cookies på CLIENT-nivå, ikke request-nivå!
             # Per-request cookies sendes kun med første request og videresendes IKKE ved redirects.
@@ -359,7 +353,7 @@ class Handler(SimpleHTTPRequestHandler):
                 refreshed_auth = None
                 refreshed_login_token = None
                 for cookie in client.cookies.jar:
-                    if cookie.name == '.ASPXAUTHNO' and cookie.value != auth_val:
+                    if cookie.name == '.ASPXAUTHNO' and cookie.value:
                         refreshed_auth = cookie.value
                     elif cookie.name == 'logintoken' and cookie.value != login_token:
                         refreshed_login_token = cookie.value
@@ -377,12 +371,10 @@ class Handler(SimpleHTTPRequestHandler):
                 result['refreshedLoginToken'] = refreshed_login_token
 
             if not result:
-                # Sjekk om vi ble redirectet til login (token utløpt)
-                if '/LogOn' in str(response.url) or response.status_code == 302:
-                    logger.info(f'[AO-REFRESH] Token utløpt - redirect til LogOn')
-                    result['error'] = 'Token utløpt - krever ny innlogging'
-                else:
-                    result['message'] = 'Ingen ny token mottatt, eksisterende kan fortsatt være gyldig'
+                # Ingen .ASPXAUTHNO fra revival = logintoken utløpt/ugyldig (forsiden
+                # redirecter ikke til /LogOn, så vi kan ikke basere oss på det).
+                logger.info('[AO-REFRESH] Revival mislyktes - logintoken utløpt, krever ny innlogging')
+                result['error'] = 'Token utløpt - krever ny innlogging'
 
             self._send_json(result)
 
