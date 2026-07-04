@@ -5,6 +5,7 @@
 import { defaultCoObservers, loadActivityPills } from './storage.js';
 import { showToast } from './ui.js';
 import { toLocalISOString } from './utils.js';
+import { resolveVisitIdForNewObservation } from './visits.js';
 
 function getObservationTimestamp() {
   const isAfterMode = localStorage.getItem('afterRegistrationMode') === '1';
@@ -129,6 +130,8 @@ export function commitObservation(state, dom, callbacks) {
     activity,
     placeName: place,
     placeId: state.currentPlaceId || null,
+    visitId: resolveVisitIdForNewObservation(state.observations, place, state.currentPlaceId || null, new Date(timestamp)),
+    visitLocked: false,
     timestamp,
     age,
     gender,

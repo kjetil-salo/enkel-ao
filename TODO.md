@@ -149,6 +149,7 @@ ksalo.no er live (HTTP 200) med tiles for Keycloak, Quarkus-app, .NET-app, Dagen
 - Utforsk hvilke felter som egner seg best for taleinput først: art, antall, aktivitet og kommentar
 - Avklar om dette skal bygge på nettleserens innebygde tale-API eller en enklere trykk-for-a-snakke-løsning
 - Vurder robusthet i felt: vindstøy, dialekt, offline-begrensninger og behov for tydelig bekreftelse før lagring
+- Prototypebranch `codex/stemmestyring` er vurdert: ikke merge direkte, men bruk som idebank. Se `docs/stemmestyring-vurdering.md`
 
 ---
 

@@ -93,3 +93,55 @@ test('artsnavn har rimelig skriftstørrelse (maks 16px)', async ({ page }) => {
   // Forventet: ~12-14px. Over 16px indikerer at Samsung system-font skalerer opp
   expect(fontSize, `Skrift i art-kolonne er ${fontSize}px — for stor`).toBeLessThanOrEqual(16);
 });
+
+test('dato og tid i etterregistrering overflower ikke på mobil', async ({ page }) => {
+  await page.evaluate(() => {
+    localStorage.clear();
+    localStorage.setItem('afterRegistrationMode', '1');
+  });
+  await page.reload();
+
+  const overflow = await page.evaluate(() => {
+    const fields = document.querySelector('#datetime-fields') as HTMLElement;
+    const card = document.querySelector('.card') as HTMLElement;
+    if (!fields || !card) return { overflows: true, fieldsRight: 0, cardRight: 0 };
+
+    const fieldsBox = fields.getBoundingClientRect();
+    const cardBox = card.getBoundingClientRect();
+    return {
+      fieldsRight: fieldsBox.right,
+      cardRight: cardBox.right,
+      overflows: fieldsBox.right > cardBox.right + 1,
+    };
+  });
+
+  expect(
+    overflow.overflows,
+    `Dato/tid (${overflow.fieldsRight}px) stikker utenfor kortet (${overflow.cardRight}px)`
+  ).toBe(false);
+});
+
+test('lokasjonsheader viser arter uten individsummering', async ({ page }) => {
+  const headerText = await page.locator('.obs-group-title').first().innerText();
+
+  expect(headerText).toContain('3 arter');
+  expect(headerText).not.toContain('individ');
+});
+
+test('antallsknapper er avrundede firkanter, ikke sirkler', async ({ page }) => {
+  const shape = await page.evaluate(() => {
+    const btn = document.querySelector('.count-btn') as HTMLElement;
+    if (!btn) return { width: 0, height: 0, radius: 0 };
+
+    const style = window.getComputedStyle(btn);
+    const rect = btn.getBoundingClientRect();
+    return {
+      width: Math.round(rect.width),
+      height: Math.round(rect.height),
+      radius: parseFloat(style.borderRadius),
+    };
+  });
+
+  expect(shape.width, 'knappen skal være bredere enn høy').toBeGreaterThan(shape.height);
+  expect(shape.radius, 'knappen skal ha moderat radius, ikke 50% sirkel').toBeLessThan(shape.height / 2);
+});

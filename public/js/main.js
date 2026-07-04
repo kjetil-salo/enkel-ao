@@ -16,6 +16,7 @@ import { fetchResults, renderResults, chooseItem, updateSubtaxaCheckboxState } f
 import { commitObservation, renderActivityPills } from './observation-commit.js';
 import { handleExport, handleCopy, handleCopyAndOpen, handleClear, handleDirectSend } from './export-operations.js';
 import { initAutocomplete } from './autocomplete.js';
+import { initNewsSplash } from './news-splash.js';
 
 // ============================================================
 // Applikasjonstilstand
@@ -409,6 +410,7 @@ async function init() {
   }
 
   logPageView();
+  initNewsSplash();
 }
 
 /**

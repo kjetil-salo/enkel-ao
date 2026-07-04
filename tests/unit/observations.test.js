@@ -1,5 +1,14 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import { toCsv } from '../../public/js/observations.js';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { renderObservations, toCsv } from '../../public/js/observations.js';
+
+beforeEach(() => {
+  document.body.innerHTML = '';
+  window.matchMedia = window.matchMedia || (() => ({
+    matches: false,
+    addEventListener: () => {},
+    removeEventListener: () => {},
+  }));
+});
 
 describe('toCsv', () => {
   it('should return empty string for empty observations array', () => {
@@ -218,5 +227,46 @@ describe('toCsv', () => {
     expect(columns[8]).toMatch(/^\d{2}:\d{2}$/);
     expect(columns[9]).toMatch(/^\d{2}:\d{2}$/);
     expect(columns[8]).not.toBe(columns[9]); // Skal være forskjellige
+  });
+});
+
+describe('renderObservations besøk', () => {
+  it('låser bare valgt besøk og lar samme lokalitet ha flere besøk', () => {
+    const observations = [
+      {
+        species: { taxonName: 'Heilo' },
+        placeName: 'Herdla',
+        placeId: 42,
+        visitId: 'visit-kveld',
+        count: 20,
+        activity: 'Overflygende',
+        timestamp: '2026-07-03T18:00:00',
+      },
+      {
+        species: { taxonName: 'Heilo' },
+        placeName: 'Herdla',
+        placeId: 42,
+        visitId: 'visit-morgen',
+        count: 100,
+        activity: 'Næringssøkende',
+        timestamp: '2026-07-03T08:00:00',
+      },
+    ];
+    const obsListEl = document.createElement('div');
+    const saveState = vi.fn();
+
+    renderObservations(observations, obsListEl, {}, saveState);
+
+    const lockButtons = obsListEl.querySelectorAll('.obs-group-lock-btn');
+    expect(lockButtons).toHaveLength(2);
+
+    lockButtons[0].click();
+
+    expect(observations[0].visitLocked).toBe(true);
+    expect(observations[1].visitLocked).toBeFalsy();
+    expect(saveState).toHaveBeenCalled();
+    const updatedLockButtons = obsListEl.querySelectorAll('.obs-group-lock-btn');
+    expect(updatedLockButtons[0].textContent).toBe('🔒');
+    expect(updatedLockButtons[0].getAttribute('aria-label')).toBe('Besøk avsluttet');
   });
 });

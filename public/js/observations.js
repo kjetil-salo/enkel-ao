@@ -5,6 +5,7 @@
 import { defaultCoObservers, loadMedobs } from './storage.js';
 import { showToast } from './ui.js';
 import { toLocalISOString } from './utils.js';
+import { getObservationVisitKey, setVisitLocked } from './visits.js';
 
 /**
  * Vis modal for å sette fra/til-klokkeslett på alle obs i en gruppe
@@ -138,18 +139,23 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
     return;
   }
 
-  // Grupper observasjoner etter stedsnavn
+  // Grupper observasjoner etter besøk. Eldre observasjoner uten visitId
+  // faller tilbake til ett legacy-besøk per lokalitet.
   const groups = [];
   const indexByKey = new Map();
   
   observations.forEach((obs) => {
-    const key = (obs.placeName && obs.placeName.trim()) || 'Uten stedsnavn';
-    let idx = indexByKey.get(key);
+    const visitKey = getObservationVisitKey(obs);
+    let idx = indexByKey.get(visitKey);
     
     if (idx === undefined) {
       idx = groups.length;
-      indexByKey.set(key, idx);
-      groups.push({ key, items: [] });
+      indexByKey.set(visitKey, idx);
+      groups.push({
+        key: (obs.placeName && obs.placeName.trim()) || 'Uten stedsnavn',
+        visitKey,
+        items: [],
+      });
     }
     
     groups[idx].items.push(obs);
@@ -189,6 +195,7 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
         .map(obs => obs.species && obs.species.taxonName ? obs.species.taxonName.trim().toLowerCase() : null)
         .filter(Boolean)
     );
+    const visitLocked = group.items.every(obs => obs.visitLocked);
     // Finn tidligste og seneste klokkeslett i gruppen
     // TODO: Vis også dato ved stedsnavnet når obs spenner over flere dager
     let earliestMs = Infinity;
@@ -215,32 +222,71 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
       return `${hh}:${mm}`;
     };
 
-    let timeSpanHtml = '';
+    let timeSpanText = '';
     if (earliestMs < Infinity && latestMs > -Infinity) {
       const fra = fmt(new Date(earliestMs));
       const til = fmt(new Date(latestMs));
-      timeSpanHtml = fra === til
-        ? ` <span style="font-weight:normal;font-size:0.85em;color:var(--muted);margin-left:6px;">${fra}</span>`
-        : ` <span style="font-weight:normal;font-size:0.85em;color:var(--muted);margin-left:6px;">${fra}–${til}</span>`;
+      timeSpanText = fra === til ? fra : `${fra}–${til}`;
     }
 
     const groupRow = document.createElement('tr');
+    groupRow.className = 'obs-group-row';
     const groupCell = document.createElement('td');
     groupCell.colSpan = 5;
     groupCell.className = 'obs-group-title';
-    groupCell.innerHTML = `${group.key}${timeSpanHtml} <span style="font-weight:normal;font-size:0.98em;color:#3b82f6;margin-left:8px;">• ${uniqueSpecies.size} art${uniqueSpecies.size === 1 ? '' : 'er'}</span>`;
+
+    const groupHeader = document.createElement('div');
+    groupHeader.className = 'obs-group-header';
+
+    const nameWrap = document.createElement('div');
+    nameWrap.className = 'obs-group-name-wrap';
+
+    const nameSpan = document.createElement('span');
+    nameSpan.className = 'obs-group-name';
+    nameSpan.textContent = group.key;
+    nameWrap.appendChild(nameSpan);
+
+    if (timeSpanText) {
+      const timeSpan = document.createElement('span');
+      timeSpan.className = 'obs-group-time';
+      timeSpan.textContent = timeSpanText;
+      nameWrap.appendChild(timeSpan);
+    }
+
+    const metaSpan = document.createElement('span');
+    metaSpan.className = 'obs-group-meta';
+    metaSpan.textContent = `${uniqueSpecies.size} art${uniqueSpecies.size === 1 ? '' : 'er'}`;
+
+    nameWrap.appendChild(metaSpan);
+    groupHeader.appendChild(nameWrap);
+
+    const groupActions = document.createElement('div');
+    groupActions.className = 'obs-group-actions';
+
+    const lockBtn = document.createElement('button');
+    lockBtn.type = 'button';
+    lockBtn.textContent = visitLocked ? '🔒' : '🔓';
+    lockBtn.setAttribute('aria-label', visitLocked ? 'Besøk avsluttet' : 'Besøk åpent');
+    lockBtn.title = visitLocked
+      ? 'Åpne besøket igjen - nye observasjoner kan legges her'
+      : 'Avslutt besøket - nye observasjoner på samme lokalitet starter nytt besøk';
+    lockBtn.className = `obs-group-lock-btn${visitLocked ? ' is-locked' : ''}`;
+    lockBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const nextLocked = !visitLocked;
+      setVisitLocked(observations, group.visitKey, nextLocked);
+      saveState();
+      renderObservations(observations, obsListEl, buttons, saveState);
+      showToast(nextLocked ? 'Besøk avsluttet' : 'Besøk åpnet igjen', { raw: true });
+    });
+    groupActions.appendChild(lockBtn);
 
     // Klokkeikon for å sette tid på alle obs i gruppen
     const clockBtn = document.createElement('button');
     clockBtn.type = 'button';
     clockBtn.textContent = '🕐';
     clockBtn.title = 'Sett klokkeslett for alle observasjoner på dette stedet';
-    Object.assign(clockBtn.style, {
-      background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.9em',
-      marginLeft: '6px', padding: '2px 4px', verticalAlign: 'middle', opacity: '0.7',
-    });
-    clockBtn.addEventListener('mouseenter', () => { clockBtn.style.opacity = '1'; });
-    clockBtn.addEventListener('mouseleave', () => { clockBtn.style.opacity = '0.7'; });
+    clockBtn.className = 'obs-group-time-btn';
 
     const defaultFra = earliestMs < Infinity ? fmt(new Date(earliestMs)) : '';
     const defaultTil = latestMs > -Infinity ? fmt(new Date(latestMs)) : '';
@@ -250,7 +296,9 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
       e.stopPropagation();
       showTimeModal(groupItems, defaultFra, defaultTil, group.key, observations, obsListEl, buttons, saveState);
     });
-    groupCell.appendChild(clockBtn);
+    groupActions.appendChild(clockBtn);
+    groupHeader.appendChild(groupActions);
+    groupCell.appendChild(groupHeader);
 
     groupRow.appendChild(groupCell);
     tbody.appendChild(groupRow);
@@ -281,24 +329,25 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
         const isLargeScreen = window.innerWidth >= 768 && window.innerHeight >= 600;
         const isNarrow = !hasFineMouse && window.innerWidth <= 420;
 
-        // Mindre knapper på desktop/laptop med mus - noe mindre på smal mobil for å unngå overflow
-        const btnSize = hasFineMouse ? '28px' : isNarrow ? '36px' : '44px';
-        const btnFontSize = hasFineMouse ? '1em' : '1.4em';
-        countWrap.style.gap = hasFineMouse ? '3px' : isNarrow ? '4px' : '6px';
+        // Kompakte, rektangulære knapper gir bedre tabellrytme enn store sirkler.
+        const btnWidth = hasFineMouse ? '28px' : isNarrow ? '38px' : '42px';
+        const btnHeight = hasFineMouse ? '28px' : isNarrow ? '34px' : '38px';
+        const btnFontSize = hasFineMouse ? '1em' : '1.25em';
+        countWrap.style.gap = hasFineMouse ? '3px' : isNarrow ? '4px' : '5px';
 
         const btnStyle = {
-          width: btnSize,
-          height: btnSize,
-          minWidth: btnSize,
-          minHeight: btnSize,
-          maxWidth: btnSize,
-          maxHeight: btnSize,
+          width: btnWidth,
+          height: btnHeight,
+          minWidth: btnWidth,
+          minHeight: btnHeight,
+          maxWidth: btnWidth,
+          maxHeight: btnHeight,
           flexShrink: '0',
           fontSize: btnFontSize,
-          fontWeight: '600',
-          borderRadius: '50%',
-          border: '2px solid rgba(100,116,139,0.45)',
-          background: 'rgba(100,116,139,0.12)',
+          fontWeight: '700',
+          borderRadius: '8px',
+          border: '1px solid rgba(148,163,184,0.34)',
+          background: 'rgba(100,116,139,0.10)',
           color: 'var(--text, #e5e7eb)',
           alignItems: 'center',
           justifyContent: 'center',
@@ -357,9 +406,10 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
           cursor: 'pointer',
           minWidth: isNarrow ? '24px' : '36px',
           textAlign: 'center',
-          fontSize: '1.3em',
-          fontWeight: '600',
-          padding: isNarrow ? '4px 4px' : '4px 8px',
+          fontSize: isNarrow ? '1.22em' : '1.28em',
+          fontWeight: '700',
+          lineHeight: '1',
+          padding: isNarrow ? '4px 3px' : '4px 6px',
         });
         span.title = 'Klikk for å endre antall';
         span.addEventListener('click', () => {
