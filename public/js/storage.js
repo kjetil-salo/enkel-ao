@@ -140,7 +140,7 @@ export function loadAoSearchRadius() {
     if (!raw) return 1000;
 
     const radius = parseFloat(raw);
-    if (isNaN(radius) || radius < 100 || radius > 3000) return 1000;
+    if (isNaN(radius) || radius < 500 || radius > 3000) return 1000;
 
     return radius;
   } catch (e) {

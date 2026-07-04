@@ -12,6 +12,14 @@
     <script src="/js/theme.js"></script>
     <script src="/js/migration-banner.js"></script>
     <div class="shell">
+      <!-- Kompakt festet linje som viser aktiv plass (vises når plass er valgt) -->
+      <div id="loc-pinned" class="loc-pinned" style="display:none;">
+        <button type="button" id="loc-pinned-label" class="loc-pinned-label" title="Trykk for å bytte plass">
+          <span class="loc-pinned-pin" aria-hidden="true">📍</span>
+          <span id="loc-pinned-name" class="loc-pinned-name"></span>
+        </button>
+        <button type="button" id="loc-change-btn" class="loc-change-btn">Bytt plass</button>
+      </div>
       <div class="card">
         <header>
           <div class="title">
@@ -33,23 +41,18 @@
 
         <fieldset class="section-main section-lokasjon">
           <legend>① Lokasjon</legend>
+
+          <!-- Full lokasjonskontroll (skjules når plass er valgt / kollapset) -->
+          <div id="loc-full">
           <div id="loc-status-row" style="display:flex;align-items:center;gap:5px;margin-bottom:6px;min-height:16px;">
             <span class="loc-dot" id="loc-dot" style="width:8px;height:8px;"></span>
             <span id="loc-text" style="font-size:0.75em;color:var(--muted);line-height:1.2;"></span>
           </div>
           <div id="gps-controls-row" class="row" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-height:0;">
-            <button class="icon-btn" id="loc-btn" title="Oppdater lokasjon" style="font-size:0.9em;padding:6px 10px;border:1px solid var(--border);border-radius:6px;background:var(--accent-soft);color:var(--text);transition:all 0.2s;display:flex;align-items:center;gap:4px;height:32px;">
-              <span style="font-size:0.85em;font-weight:500;">Oppdater lokasjon</span>
+            <button class="icon-btn" id="loc-btn" title="Finn posisjon med GPS" style="font-size:0.9em;padding:6px 10px;border:1px solid var(--border);border-radius:6px;background:var(--accent-soft);color:var(--text);transition:all 0.2s;display:flex;align-items:center;gap:4px;height:32px;">
+              <span style="font-size:0.85em;font-weight:500;">Finn min posisjon</span>
             </button>
             <style>
-              /* Skjul spinner-piler på søkeradius (Mac/webkit) */
-              #ao-size::-webkit-inner-spin-button,
-              #ao-size::-webkit-outer-spin-button {
-                -webkit-appearance: none;
-                margin: 0;
-              }
-              #ao-size { -moz-appearance: textfield; }
-
               #loc-btn {
                 border: 2px solid var(--accent) !important;
                 border-radius: 8px !important;
@@ -62,35 +65,30 @@
                 cursor: pointer;
               }
 
-              /* Mobile: hide the text inside the button and reduce padding to save horizontal space */
+              /* Mobile: hold knapperaden på én linje uten å krympe teksten uleselig */
               @media (max-width: 420px) {
-                /* Force single-line layout */
-                .row[style] { flex-wrap: nowrap !important; }
-                #loc-btn { padding: 4px 6px !important; font-size: 0.82em !important; }
-                #loc-btn span { display: inline-block !important; font-size: 0.72em !important; }
-                /* Reduce input sizes */
-                #ao-size { width: 52px !important; font-size: 0.85em !important; padding: 6px 4px !important; height: 30px !important; }
+                #gps-controls-row { flex-wrap: nowrap !important; }
+                #loc-btn { padding: 6px 12px !important; font-size: 0.9em !important; }
+                #loc-btn span { display: inline-block !important; font-size: 0.85em !important; }
                 .loc-dot { width:8px !important; height:8px !important; margin-right:6px !important; }
-                /* Tweak other nearby elements */
-                .row .icon-btn { height:30px !important; }
+                .row .icon-btn { height:34px !important; }
               }
             </style>
-            <div style="display:flex;align-items:center;gap:3px;">
-                <label for="ao-size" style="font-size:0.7em;color:var(--muted);white-space:nowrap;margin:0;">Radius</label>
-                <input
-                  type="number"
-                  id="ao-size"
-                  min="100"
-                  max="3000"
-                  step="50"
-                  value="1000"
-                  style="width:60px;font-size:1em;padding:8px 6px;height:38px;border:2px solid var(--accent);border-radius:8px;background:var(--card-bg);color:var(--text);text-align:center;"
-                  title="Søkeradius i meter (100-3000m)"
-                />
-                <span id="unit-m" style="font-size:0.85em;color:var(--muted);cursor:default;user-select:none;">m</span>
-            </div>
             <button class="icon-btn" id="loc-map-btn" title="Åpne kart" style="font-size:1.5em;padding:6px 10px;border:2px solid var(--accent);border-radius:8px;background:var(--accent-soft);color:var(--text);height:38px;min-width:46px;transition:all 0.2s;display:none;box-shadow:0 2px 8px rgba(59,130,246,0.10);">🗺️</button>
             <button class="icon-btn" id="create-site-btn" title="Opprett ny AO-lokasjon" style="font-size:1.3em;padding:6px 10px;border:2px solid var(--accent);border-radius:8px;background:var(--accent-soft);color:var(--text);height:38px;min-width:46px;transition:all 0.2s;display:none;box-shadow:0 2px 8px rgba(59,130,246,0.10);">➕</button>
+          </div>
+          <div id="radius-row" class="radius-row">
+            <label for="ao-size">Radius</label>
+            <input
+              type="range"
+              id="ao-size"
+              min="500"
+              max="3000"
+              step="100"
+              value="1000"
+              title="Søkeradius (500 m – 3 km)"
+            />
+            <span id="ao-size-value" class="radius-value">1 km</span>
           </div>
           <div class="row" style="margin-top:10px;position:relative;">
             <!-- AO-lokasjoner custom dropdown (kun div) -->
@@ -107,6 +105,7 @@
             />
             <div class="result-empty" id="ao-sites" style="display:none; margin-top:4px;"></div>
           </div>
+          </div><!-- /loc-full -->
         </fieldset>
 
         <fieldset class="section-main section-observasjon" style="margin:0 0 16px 0;padding:0 6px 12px 6px;box-sizing:border-box;">

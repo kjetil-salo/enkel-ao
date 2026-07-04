@@ -79,7 +79,7 @@ function showHint() {
 
   const body = document.createElement('p');
   body.className = 'coachmark-body';
-  body.textContent = 'Velg lokasjon først — trykk «Oppdater lokasjon». Deretter kan du søke etter art.';
+  body.textContent = 'Velg lokasjon først — trykk «Finn min posisjon». Deretter kan du søke etter art.';
 
   const button = document.createElement('button');
   button.type = 'button';

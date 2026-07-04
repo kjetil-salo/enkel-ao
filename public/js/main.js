@@ -129,6 +129,40 @@ function commitFromActivity() {
 }
 
 // ============================================================
+// Radius-formattering (500 m – 3 km)
+// ============================================================
+function formatRadius(meters) {
+  if (meters < 1000) return `${Math.round(meters)} m`;
+  const km = meters / 1000;
+  const str = Number.isInteger(km) ? String(km) : km.toFixed(1).replace('.', ',');
+  return `${str} km`;
+}
+
+// ============================================================
+// Kollaps/utvid ① Lokasjon (festet kompakt linje når plass er valgt)
+// ============================================================
+function collapseLocation() {
+  const name = (dom.placeInput && dom.placeInput.value.trim()) || (appState.currentPlaceName || '').trim();
+  if (!name) return; // Kollaps aldri uten en valgt plass
+  const locPinned = document.getElementById('loc-pinned');
+  const locPinnedName = document.getElementById('loc-pinned-name');
+  const sectionLokasjon = document.querySelector('.section-lokasjon');
+  if (locPinnedName) locPinnedName.textContent = name;
+  if (locPinned) locPinned.style.display = 'flex';
+  if (sectionLokasjon) sectionLokasjon.style.display = 'none';
+}
+
+function expandLocation() {
+  const locPinned = document.getElementById('loc-pinned');
+  const sectionLokasjon = document.querySelector('.section-lokasjon');
+  if (locPinned) locPinned.style.display = 'none';
+  if (sectionLokasjon) sectionLokasjon.style.display = '';
+  // Scroll den gjenåpnede seksjonen til topp — ellers ser det ut som ingenting
+  // skjer når man trykker «Bytt plass» mens man er scrollet ned i obs-lista.
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ============================================================
 // Posisjonshåndtering
 // ============================================================
 function handlePositionUpdate(position, sites) {
@@ -142,6 +176,7 @@ function handlePositionUpdate(position, sites) {
       dom.placeInput.dataset.autofilled = 'true';
     }
     updateSectionStates(appState, dom);
+    collapseLocation();
     pulseSearchFieldAndFocus(appState, dom);
   }
 
@@ -163,6 +198,12 @@ function handlePositionUpdate(position, sites) {
 // Event listeners
 // ============================================================
 function setupEventListeners() {
+  // Utvid ① Lokasjon fra festet kompakt linje (ingen auto-GPS)
+  const locChangeBtn = document.getElementById('loc-change-btn');
+  const locPinnedLabel = document.getElementById('loc-pinned-label');
+  if (locChangeBtn) locChangeBtn.addEventListener('click', expandLocation);
+  if (locPinnedLabel) locPinnedLabel.addEventListener('click', expandLocation);
+
   const includeSubtaxaCheckbox = document.getElementById('include-subtaxa');
   if (includeSubtaxaCheckbox) {
     includeSubtaxaCheckbox.addEventListener('change', () => {
@@ -307,16 +348,23 @@ function updateMapBtnVisibility() {
 window.updateMapBtnVisibility = updateMapBtnVisibility;
 
   if (dom.aoSizeInput) {
+    const aoSizeValueEl = document.getElementById('ao-size-value');
+    const renderRadiusValue = (v) => {
+      if (aoSizeValueEl) aoSizeValueEl.textContent = formatRadius(v);
+    };
+
     // Last lagret radius fra localStorage
     const savedRadius = loadAoSearchRadius();
     dom.aoSizeInput.value = savedRadius;
     appState.currentAoSizeMeters = savedRadius;
+    renderRadiusValue(savedRadius);
 
     dom.aoSizeInput.addEventListener('input', () => {
       const v = parseFloat(dom.aoSizeInput.value);
       if (isNaN(v) || v <= 0) return;
       appState.currentAoSizeMeters = v;
       saveAoSearchRadius(v);
+      renderRadiusValue(v);
     });
   }
 
@@ -362,12 +410,18 @@ async function init() {
         appState.currentPlaceId = id;
         dom.placeInput.dataset.autofilled = 'true';
         updateSectionStates(appState, dom);
+        collapseLocation();
       },
       () => appState.currentPosition
     );
   }
 
   updateSectionStates(appState, dom);
+
+  // Gjenopprettet/sticky plass ved oppstart → vis festet kompakt linje
+  if (dom.placeInput && dom.placeInput.value.trim()) {
+    collapseLocation();
+  }
 
   // Hvis lokalitet ble valgt fra kart, sett fokus på art-feltet
   if (selectedLocation) {
@@ -427,6 +481,7 @@ function updateModeUI() {
   // GPS-relaterte rader
   const locStatusRow = document.getElementById('loc-status-row');
   const gpsControlsRow = document.getElementById('gps-controls-row');
+  const radiusRow = document.getElementById('radius-row');
   const aoSitesDropdown = document.getElementById('ao-sites-dropdown');
 
   if (!modePill || !datetimeFields) return;
@@ -441,6 +496,7 @@ function updateModeUI() {
     // Skjul GPS-relaterte rader
     if (locStatusRow) locStatusRow.style.display = 'none';
     if (gpsControlsRow) gpsControlsRow.style.display = 'none';
+    if (radiusRow) radiusRow.style.display = 'none';
     if (aoSitesDropdown) aoSitesDropdown.style.display = 'none';
 
     // Sett dagens dato som default
@@ -460,6 +516,7 @@ function updateModeUI() {
     // Vis GPS-relaterte rader
     if (locStatusRow) locStatusRow.style.display = 'flex';
     if (gpsControlsRow) gpsControlsRow.style.display = 'flex';
+    if (radiusRow) radiusRow.style.display = 'flex';
     // aoSitesDropdown styres av egen logikk
   }
 }

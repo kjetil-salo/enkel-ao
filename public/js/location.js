@@ -300,11 +300,11 @@ export function initLocation(elements, onPositionUpdate, aoSizeMeters = 1000) {
         }
       }
     } else {
-      setLocationStatus(locDot, locText, 'idle', 'Trykk «Oppdater lokasjon» før registrering.');
+      setLocationStatus(locDot, locText, 'idle', 'Trykk «Finn min posisjon» før registrering.');
     }
   } catch (e) {
     // Hvis localStorage feiler, bruk default
-    setLocationStatus(locDot, locText, 'idle', 'Trykk «Oppdater lokasjon» før registrering.');
+    setLocationStatus(locDot, locText, 'idle', 'Trykk «Finn min posisjon» før registrering.');
   }
 
   locBtn.addEventListener('click', () => {
