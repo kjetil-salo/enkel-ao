@@ -134,7 +134,7 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
   if (!observations.length) {
     const item = document.createElement('div');
     item.className = 'obs-empty-msg';
-    item.textContent = 'Ingen observasjoner registrert ennå.';
+    item.textContent = 'Registrerte observasjoner dukker opp her. Start med å velge lokasjon øverst, deretter art.';
     obsListEl.appendChild(item);
     return;
   }

@@ -1326,6 +1326,104 @@
         outline-offset: 2px;
       }
 
+      /* Éngangs førstegangs-coachmark: spotlight på ① Lokasjon */
+      .card.coachmark-open {
+        position: relative;
+      }
+
+      /* Dim-overlay dekker hele kortet */
+      .coachmark-dim {
+        position: absolute;
+        inset: 0;
+        z-index: 10000;
+        background: rgba(2, 6, 23, 0.74);
+        border-radius: inherit;
+        animation: coachmark-in 0.25s ease-out;
+      }
+
+      /* Løfter ① Lokasjon over dim-overlayen med en lysende ring */
+      .section-lokasjon.coachmark-spot {
+        position: relative;
+        z-index: 10001;
+        box-shadow:
+          0 0 0 3px rgba(59, 130, 246, 0.9),
+          0 0 26px rgba(59, 130, 246, 0.5) !important;
+        animation: coachmark-pulse 2s ease-in-out infinite;
+      }
+
+      .coachmark-bubble {
+        position: absolute;
+        z-index: 10002;
+        box-sizing: border-box;
+        max-width: calc(100% - 12px);
+        padding: 16px 18px;
+        border: 1px solid rgba(59, 130, 246, 0.6);
+        border-radius: 14px;
+        background: var(--card-bg, #111827);
+        color: var(--text);
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        animation: coachmark-in 0.28s ease-out;
+      }
+
+      /* Pil opp mot ① Lokasjon */
+      .coachmark-bubble::before {
+        content: '';
+        position: absolute;
+        top: -8px;
+        left: 24px;
+        width: 14px;
+        height: 14px;
+        background: var(--card-bg, #111827);
+        border-left: 1px solid rgba(59, 130, 246, 0.6);
+        border-top: 1px solid rgba(59, 130, 246, 0.6);
+        transform: rotate(45deg);
+      }
+
+      .coachmark-title {
+        display: block;
+        font-size: 1.05rem;
+        margin-bottom: 6px;
+      }
+
+      .coachmark-body {
+        margin: 0 0 14px;
+        font-size: 0.9rem;
+        line-height: 1.45;
+        color: var(--text);
+      }
+
+      .coachmark-button {
+        width: 100%;
+        min-height: 44px;
+        border: 1px solid var(--accent);
+        border-radius: 10px;
+        background: var(--accent);
+        color: #fff;
+        font-size: 1rem;
+        font-weight: 700;
+        cursor: pointer;
+      }
+
+      .coachmark-button:focus {
+        outline: 3px solid rgba(59, 130, 246, 0.32);
+        outline-offset: 2px;
+      }
+
+      @keyframes coachmark-in {
+        from { opacity: 0; transform: translateY(-6px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+
+      @keyframes coachmark-pulse {
+        0%, 100% { box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.9), 0 0 20px rgba(59, 130, 246, 0.4); }
+        50% { box-shadow: 0 0 0 4px rgba(59, 130, 246, 1), 0 0 34px rgba(59, 130, 246, 0.7); }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .section-lokasjon.coachmark-spot { animation: none; }
+        .coachmark-bubble { animation: none; }
+      }
+
       .obs-meta {
         color: var(--muted);
       }

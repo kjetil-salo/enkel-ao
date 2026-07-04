@@ -17,6 +17,7 @@ import { commitObservation, renderActivityPills } from './observation-commit.js'
 import { handleExport, handleCopy, handleCopyAndOpen, handleClear, handleDirectSend } from './export-operations.js';
 import { initAutocomplete } from './autocomplete.js';
 import { initNewsSplash } from './news-splash.js';
+import { initFirstRunHint } from './first-run-hint.js';
 
 // ============================================================
 // Applikasjonstilstand
@@ -411,6 +412,7 @@ async function init() {
 
   logPageView();
   initNewsSplash();
+  initFirstRunHint();
 }
 
 /**

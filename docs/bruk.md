@@ -4,6 +4,8 @@ Kort oppsummert flyt slik den fungerer nå.
 
 > **💡 Trenger du rask hjelp?** Det finnes også en enkel hjelpeside tilgjengelig fra hovedsiden (📖-ikonet øverst til høyre) med oversiktlig brukerveiledning.
 
+> **🧭 Følg tallene:** Hovedsiden er delt i fire nummererte seksjoner som viser rekkefølgen: **① Lokasjon → ② Observasjon → ③ Observasjoner → ④ Send inn**. Start alltid med lokasjon — art-feltet aktiveres først når en lokasjon er valgt. Så lenge lista er tom minner den deg på dette, og helt nye brukere blir guidet i gang med et fremhevet engangs-tips som løfter frem ① Lokasjon og dimmer resten (vises én gang, etter en eventuell nyhetsmelding).
+
 ## 1. Start server og åpne siden
 
 1. I prosjektmappen:

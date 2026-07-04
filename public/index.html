@@ -227,14 +227,20 @@
           </div>
 
           <!-- Dato/tid-felt for etterregistreringsmodus (skjult som default) -->
-          <div class="row" id="datetime-fields" style="display:none;margin-top:20px;padding-top:8px;clear:both;">
-            <label style="font-size:0.78rem;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:8px;">Dato og tid</label>
-            <div style="display:flex;gap:8px;align-items:center;">
-              <input type="date" id="obs-date" style="flex:1;padding:7px 10px;border-radius:999px;border:1px solid rgba(148,163,184,0.45);background:var(--card-bg,#111827);color:var(--text);font-size:16px;" />
-              <label style="font-size:0.8em;color:var(--muted);white-space:nowrap;">Fra:</label>
-              <input type="time" id="obs-time" placeholder="Valgfri" style="flex:1;padding:7px 10px;border-radius:999px;border:1px solid rgba(148,163,184,0.45);background:var(--card-bg,#111827);color:var(--text);font-size:16px;" />
-              <label style="font-size:0.8em;color:var(--muted);white-space:nowrap;">Til:</label>
-              <input type="time" id="obs-time-to" placeholder="Valgfri" style="flex:1;padding:7px 10px;border-radius:999px;border:1px solid rgba(148,163,184,0.45);background:var(--card-bg,#111827);color:var(--text);font-size:16px;" />
+          <div class="row datetime-fields" id="datetime-fields" style="display:none;">
+            <label class="datetime-title">Dato og tid</label>
+            <div class="datetime-grid">
+              <div class="datetime-field datetime-date-field">
+                <input type="date" id="obs-date" />
+              </div>
+              <div class="datetime-field">
+                <label for="obs-time">Fra</label>
+                <input type="time" id="obs-time" placeholder="Valgfri" />
+              </div>
+              <div class="datetime-field">
+                <label for="obs-time-to">Til</label>
+                <input type="time" id="obs-time-to" placeholder="Valgfri" />
+              </div>
             </div>
           </div>
         </fieldset>
@@ -243,12 +249,12 @@
 
         <div class="tablet-list-column">
         <div class="section section-liste">
-          <div class="section-title"><img src="/public/img/ugle-logo.png" alt="" class="obs-title-owl obs-title-owl-left"><span>Observasjoner</span><img src="/public/img/ugle-logo.png" alt="" class="obs-title-owl obs-title-owl-right"></div>
+          <div class="section-title"><img src="/public/img/ugle-logo.png" alt="" class="obs-title-owl obs-title-owl-left"><span>③ Observasjoner</span><img src="/public/img/ugle-logo.png" alt="" class="obs-title-owl obs-title-owl-right"></div>
           <div class="obs-list" id="obs-list"></div>
         </div>
 
         <fieldset class="section-main section-handlinger">
-          <legend>Send inn</legend>
+          <legend>④ Send inn</legend>
           <div class="export-row">
             <div id="ao-direct-row" style="display:none;">
               <button class="btn btn-primary-action" id="ao-direct-btn" disabled>
@@ -608,4 +614,3 @@
     </div>
   </body>
 </html>
-
