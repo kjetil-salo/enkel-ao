@@ -2057,12 +2057,17 @@ body.theme-light #create-site-modal > div {
   position: sticky;
   top: 0;
   z-index: 20;
-  background: var(--card-bg);
-  border: 2px solid var(--accent);
-  border-radius: var(--radius-sm);
-  padding: 8px 10px;
+  /* Samme blå tema som ① Lokasjon-seksjonen (.section-lokasjon) */
+  background: rgba(59, 130, 246, 0.12);
+  border: 2px solid rgba(59, 130, 246, 0.55);
+  box-shadow: 0 2px 10px rgba(59, 130, 246, 0.22);
+  border-radius: 12px;
+  backdrop-filter: blur(14px);
+  padding: 10px 14px;
   margin-bottom: var(--space-sm);
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.28);
+}
+body.theme-light .loc-pinned {
+  backdrop-filter: none;
 }
 .loc-pinned-label {
   flex: 1;

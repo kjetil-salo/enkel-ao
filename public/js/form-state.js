@@ -5,12 +5,6 @@
 export function updateSectionStates(state, dom) {
   const hasLocation = !!(dom.placeInput && dom.placeInput.value.trim());
 
-  // Kontekstuell knappetekst: «Finn min posisjon» før plass, «Bytt plass» etter
-  if (dom.locBtn) {
-    const span = dom.locBtn.querySelector('span');
-    if (span) span.textContent = hasLocation ? 'Bytt plass' : 'Finn min posisjon';
-  }
-
   if (dom.sectionObservasjon) {
     dom.sectionObservasjon.classList.toggle('dimmed', !hasLocation);
     dom.input.disabled = !hasLocation;
