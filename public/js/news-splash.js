@@ -3,6 +3,8 @@
  * Bytt NEWS_ID når samme bruker skal se en ny melding.
  */
 
+import { loadObservations } from './storage.js';
+
 const NEWS_ID = 'visit-locks-v1';
 const COOKIE_NAME = 'enkelAoNewsRead';
 const STORAGE_KEY = 'enkelAoNewsRead';
@@ -98,7 +100,22 @@ function createNewsSplash() {
   return { overlay, button };
 }
 
+/**
+ * Helt ny bruker = ingen registrerte observasjoner ennå.
+ * Nyhetsplashen (funksjonsnyheter) er støy for en som aldri har brukt appen —
+ * la den heller dukke opp senere når brukeren faktisk har observasjoner og
+ * forstår konteksten. Markeres derfor IKKE som lest her.
+ */
+function isFirstTimer() {
+  try {
+    return loadObservations().length === 0;
+  } catch (e) {
+    return false;
+  }
+}
+
 export function initNewsSplash() {
+  if (isFirstTimer()) return;
   if (hasReadNews()) return;
   if (document.querySelector('.news-splash')) return;
 
