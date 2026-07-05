@@ -1345,10 +1345,17 @@
       .section-lokasjon.coachmark-spot {
         position: relative;
         z-index: 10001;
+        /* Solid bakgrunn så den mørke dim-overlayen ikke skinner gjennom
+           den halvgjennomsiktige seksjonen — spotlighten skal poppe. */
+        background: #111c33;
         box-shadow:
           0 0 0 3px rgba(59, 130, 246, 0.9),
           0 0 26px rgba(59, 130, 246, 0.5) !important;
         animation: coachmark-pulse 2s ease-in-out infinite;
+      }
+
+      body.theme-light .section-lokasjon.coachmark-spot {
+        background: #eef4ff !important;
       }
 
       .coachmark-bubble {
