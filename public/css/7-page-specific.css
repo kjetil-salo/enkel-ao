@@ -656,6 +656,9 @@
         border: 2px solid rgba(100, 116, 139, 0.55);
         box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
         background: radial-gradient(circle at top left, rgba(15, 23, 42, 0.96), rgba(15, 23, 42, 0.9));
+      }
+      /* Høyere spesifisitet enn .section-main slik at topp-paddingen ikke overstyres */
+      fieldset.section-liste {
         padding-top: 6px;
       }
 
