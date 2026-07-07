@@ -117,6 +117,11 @@
 ### 🟡 Middels prioritet
 
 #### UX-forbedringer:
+- **Forkortelser på aktivitets-pills** (tips fra Espen): La aktivitets-hurtigknappene kunne vise et kort navn (maks ~5 tegn) i stedet for fullt navn. Motivasjon: kompakte pills → flere hurtigknapper får plass på skjermen. Hører hjemme i **innstillinger** (av som default — de fleste vil ikke ha det, men de ivrigste vil).
+  - **Foreslått løsning (hybrid):** Legg til valgfritt `short`-felt (maxlength 5) per pill i `activityPills_v1`-konfigen. Tomt felt → vis fullt navn. Pills på hovedsiden viser `short` når satt.
+  - **Kuraterte standarder:** Ship en «Foreslå forkortelser»-knapp som fyller inn fornuftige forkortelser for de 6 standard-aktivitetene (Stasjonær→«Stasj», Rastende→«Rast», osv.). Brukeren kan redigere.
+  - **Åpen beslutning:** Skal vi kuratere forkortelsene (fast liste), la brukeren velge selv (fritekst-kortnavn), eller hybrid (kuraterte forslag + redigerbart)? Espens poeng om «maks 5 bokstaver» peker mot brukerstyrt kortnavn — anbefaling: hybrid.
+  - **Berører:** `storage.js` (utvid pill-format + migrering), `settings.html` (kortnavn-felt i pill-liste), `observation-commit.js` (render `short` på pills). Bakoverkompatibel migrering fra dagens `{label, value}`.
 - **Dropdown uten layout-forskyvning**: Vurder å vise søkeresultater med `position: absolute` så de ligger over innholdet under i stedet for å forskyve det ned. Gir mer stabil layout under søk.
 - **Performance optimaliseringer**: Raskere artsøk og lokalitetshenting
 - **Optimaliser dropdown-design**: Grupper alder-valg logisk (Egg | Ungfugl: 1K-serie | Voksen: Adult)
