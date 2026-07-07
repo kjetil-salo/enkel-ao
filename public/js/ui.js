@@ -55,6 +55,7 @@ export function showToast(msg, options = {}) {
       display: flex;
       align-items: center;
       gap: 16px;
+      pointer-events: none;
     `;
     document.body.appendChild(toast);
   }
@@ -94,6 +95,7 @@ export function showToast(msg, options = {}) {
       font-size: 0.9em;
       font-weight: 600;
       transition: all 0.15s;
+      pointer-events: auto;
     `;
     undoBtn.addEventListener('mousedown', () => {
       undoBtn.style.background = 'rgba(255,255,255,0.3)';

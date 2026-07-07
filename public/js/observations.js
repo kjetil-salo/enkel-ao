@@ -377,8 +377,8 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
               obs.count = 1;
             }
             obs.tilKlokkeslett = toLocalISOString(new Date());
+            span.textContent = String(obs.count);
             saveState();
-            renderObservations(observations, obsListEl, buttons, saveState);
           });
         }
 
@@ -394,8 +394,8 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
           if (obs.count > 1) {
             obs.count--;
             obs.tilKlokkeslett = toLocalISOString(new Date());
+            span.textContent = String(obs.count);
             saveState();
-            renderObservations(observations, obsListEl, buttons, saveState);
           }
         });
 
@@ -427,8 +427,8 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
           e.stopPropagation();
           obs.count++;
           obs.tilKlokkeslett = toLocalISOString(new Date());
+          span.textContent = String(obs.count);
           saveState();
-          renderObservations(observations, obsListEl, buttons, saveState);
         });
 
         // Pluss 10-knapp (kun på stor skjerm)
@@ -444,8 +444,8 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
             e.stopPropagation();
             obs.count += 10;
             obs.tilKlokkeslett = toLocalISOString(new Date());
+            span.textContent = String(obs.count);
             saveState();
-            renderObservations(observations, obsListEl, buttons, saveState);
           });
         }
 

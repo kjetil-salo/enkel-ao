@@ -15,6 +15,19 @@ function _statusColor(type) {
   return colors[type];
 }
 
+// Viser stegvis progresjon med animert linje under «Publiser til AO».
+// Gir brukeren trygghet om at noe faktisk skjer under sending.
+function _renderProgress(dom, step, totalSteps, text) {
+  dom.aoDirectStatus.style.display = 'block';
+  dom.aoDirectStatus.style.cssText = `display:block;margin-top:8px;padding:10px;border-radius:8px;font-size:0.9rem;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.3);color:${_statusColor('info')};`;
+  dom.aoDirectStatus.innerHTML = `
+    <div class="ao-progress-head">
+      <span class="ao-progress-step">${step}/${totalSteps}</span>
+      <span>${text}</span>
+    </div>
+    <div class="ao-progress-track"><div class="ao-progress-bar"></div></div>`;
+}
+
 export function handleExport(observations, dom) {
   const csv = toCsv(observations);
   if (!csv) return;
@@ -83,10 +96,10 @@ export async function handleDirectSend(observations, dom, callbacks) {
   const password = localStorage.getItem('ao_password');
   if (!username || !password) return;
 
+  const total = observations.length;
+
   dom.aoDirectBtn.disabled = true;
-  dom.aoDirectStatus.style.display = 'block';
-  dom.aoDirectStatus.style.cssText = `display:block;margin-top:8px;padding:10px;border-radius:8px;font-size:0.9rem;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.3);color:${_statusColor('info')};`;
-  dom.aoDirectStatus.textContent = '⏳ Logger inn på AO...';
+  _renderProgress(dom, 1, 2, 'Logger inn på AO…');
 
   try {
     const loginResp = await fetch('/api/ao-login', {
@@ -105,7 +118,7 @@ export async function handleDirectSend(observations, dom, callbacks) {
     tokens.userId = tokens.mapUserId || loginResult.userId;
     localStorage.setItem('ao_tokens', JSON.stringify(tokens));
 
-    dom.aoDirectStatus.textContent = '⏳ Sender observasjoner...';
+    _renderProgress(dom, 2, 2, `Sender ${total} observasjon${total !== 1 ? 'er' : ''} …`);
 
     const importResp = await fetch('/api/ao-import', {
       method: 'POST',
