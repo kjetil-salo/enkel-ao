@@ -724,7 +724,7 @@
       /* Tydelig skille før observasjonslisten på mobil */
       @media (max-width: 767px) {
         .tablet-list-column .section-liste {
-          margin-top: 32px;
+          margin-top: 16px;
         }
 
         .tablet-list-column .section-title {
