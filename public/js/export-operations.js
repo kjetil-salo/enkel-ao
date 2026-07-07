@@ -17,15 +17,19 @@ function _statusColor(type) {
 
 // Viser stegvis progresjon med animert linje under «Publiser til AO».
 // Gir brukeren trygghet om at noe faktisk skjer under sending.
-function _renderProgress(dom, step, totalSteps, text) {
+function _renderProgress(dom, step, totalSteps, text, pct = null) {
   dom.aoDirectStatus.style.display = 'block';
   dom.aoDirectStatus.style.cssText = `display:block;margin-top:8px;padding:10px;border-radius:8px;font-size:0.9rem;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.3);color:${_statusColor('info')};`;
+  // pct === null → indeterminert animert linje; ellers determinat bredde
+  const bar = pct == null
+    ? '<div class="ao-progress-bar"></div>'
+    : `<div class="ao-progress-bar ao-progress-bar-det" style="width:${Math.max(4, Math.min(100, pct))}%"></div>`;
   dom.aoDirectStatus.innerHTML = `
     <div class="ao-progress-head">
       <span class="ao-progress-step">${step}/${totalSteps}</span>
       <span>${text}</span>
     </div>
-    <div class="ao-progress-track"><div class="ao-progress-bar"></div></div>`;
+    <div class="ao-progress-track">${bar}</div>`;
 }
 
 export function handleExport(observations, dom) {
@@ -99,7 +103,7 @@ export async function handleDirectSend(observations, dom, callbacks) {
   const total = observations.length;
 
   dom.aoDirectBtn.disabled = true;
-  _renderProgress(dom, 1, 2, 'Logger inn på AO…');
+  _renderProgress(dom, 1, 3, 'Logger inn på AO…');
 
   try {
     const loginResp = await fetch('/api/ao-login', {
@@ -118,9 +122,9 @@ export async function handleDirectSend(observations, dom, callbacks) {
     tokens.userId = tokens.mapUserId || loginResult.userId;
     localStorage.setItem('ao_tokens', JSON.stringify(tokens));
 
-    _renderProgress(dom, 2, 2, `Sender ${total} observasjon${total !== 1 ? 'er' : ''} …`);
+    _renderProgress(dom, 2, 3, `Sender ${total} observasjon${total !== 1 ? 'er' : ''} …`, 0);
 
-    const importResp = await fetch('/api/ao-import', {
+    const importResp = await fetch('/api/ao-import-stream', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -130,29 +134,70 @@ export async function handleDirectSend(observations, dom, callbacks) {
         areaId: localStorage.getItem('ao_area') ? JSON.parse(localStorage.getItem('ao_area')).id : '',
       }),
     });
-    const importResult = await importResp.json();
 
-    if (importResp.ok && importResult.success) {
-      if (importResult.refreshedAuthCookie) {
-        const t = JSON.parse(localStorage.getItem('ao_tokens') || '{}');
-        t.authCookie = importResult.refreshedAuthCookie;
-        localStorage.setItem('ao_tokens', JSON.stringify(t));
-      }
-      dom.aoDirectStatus.style.cssText = `display:block;margin-top:8px;padding:10px;border-radius:8px;font-size:0.9rem;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);color:${_statusColor('success')};`;
-      dom.aoDirectStatus.textContent = `✅ ${importResult.count} observasjon${importResult.count !== 1 ? 'er' : ''} sendt til AO!`;
-      fetch('/api/log-export', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'direct' }) }).catch(() => {});
-
-      setTimeout(() => {
-        if (confirm('Sending vellykket! Vil du tømme observasjonslisten?')) {
-          observations.splice(0, observations.length);
-          callbacks.doRenderObservations();
-          callbacks.saveState();
-          dom.aoDirectStatus.style.display = 'none';
-        }
-      }, 1500);
-    } else {
-      throw new Error(importResult.error || 'Import feilet');
+    // Feil før strømmen starter (f.eks. 400-validering) kommer som vanlig JSON
+    if (!importResp.ok || !importResp.body) {
+      let msg = 'Import feilet';
+      try { const j = await importResp.json(); msg = j.error || msg; } catch (_) { /* ignorer */ }
+      throw new Error(msg);
     }
+
+    // Les SSE-strømmen og oppdater fremdrift i sanntid
+    const reader = importResp.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let importResult = null;
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      let sep;
+      while ((sep = buffer.indexOf('\n\n')) >= 0) {
+        const rawEvent = buffer.slice(0, sep);
+        buffer = buffer.slice(sep + 2);
+        const dataLine = rawEvent.split('\n').find((l) => l.startsWith('data:'));
+        if (!dataLine) continue;
+        let evt;
+        try { evt = JSON.parse(dataLine.slice(5).trim()); } catch (_) { continue; }
+
+        if (evt.phase === 'importing') {
+          const t = evt.total || total;
+          const behandlet = Math.max(0, t - (evt.remaining || 0));
+          const pct = t ? Math.round((behandlet / t) * 100) : null;
+          _renderProgress(dom, 2, 3, `Behandler ${behandlet} av ${t} …`, pct);
+        } else if (evt.phase === 'publishing') {
+          const t = evt.total || total;
+          _renderProgress(dom, 3, 3, `Publiserer ${t} observasjon${t !== 1 ? 'er' : ''} …`, null);
+        } else if (evt.phase === 'done') {
+          importResult = evt;
+        } else if (evt.phase === 'error') {
+          throw new Error(evt.error || 'Import feilet');
+        }
+      }
+    }
+
+    if (!importResult || !importResult.success) {
+      throw new Error((importResult && importResult.error) || 'Import feilet');
+    }
+
+    if (importResult.refreshedAuthCookie) {
+      const t = JSON.parse(localStorage.getItem('ao_tokens') || '{}');
+      t.authCookie = importResult.refreshedAuthCookie;
+      localStorage.setItem('ao_tokens', JSON.stringify(t));
+    }
+    dom.aoDirectStatus.style.cssText = `display:block;margin-top:8px;padding:10px;border-radius:8px;font-size:0.9rem;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);color:${_statusColor('success')};`;
+    dom.aoDirectStatus.textContent = `✅ ${importResult.count} observasjon${importResult.count !== 1 ? 'er' : ''} sendt til AO!`;
+    fetch('/api/log-export', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'direct' }) }).catch(() => {});
+
+    setTimeout(() => {
+      if (confirm('Sending vellykket! Vil du tømme observasjonslisten?')) {
+        observations.splice(0, observations.length);
+        callbacks.doRenderObservations();
+        callbacks.saveState();
+        dom.aoDirectStatus.style.display = 'none';
+      }
+    }, 1500);
   } catch (error) {
     dom.aoDirectStatus.style.cssText = `display:block;margin-top:8px;padding:10px;border-radius:8px;font-size:0.9rem;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);color:${_statusColor('error')};`;
     dom.aoDirectStatus.textContent = `❌ ${error.message}`;

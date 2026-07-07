@@ -96,7 +96,83 @@ def fetch_csrf_tokens(login_token, auth_cookie):
     return form_token, cookie_token, refreshed_auth
 
 
-def post_with_curl(observations, login_token=None, auth_cookie=None, area_id=''):
+def _post_count(url, login_token, auth_cookie):
+    """
+    POST til et AO count-endepunkt (body: JSON null) og returner Count som int.
+
+    AOs egen web-UI poller disse for å vise importfremdrift:
+    - /ImportSighting/NumberOfSightingsImporting  → hvor mange som fortsatt behandles
+    - /ReviewSighting/NumberOfSightingsSubmitted   → hvor mange som ligger i gjennomgang
+
+    Returnerer None hvis endepunktet er utilgjengelig eller svaret ikke kan tolkes.
+    """
+    cookies = {
+        'logintoken': login_token,
+        '.ASPXAUTHNO': auth_cookie,
+        'AcceptCookies': '1',
+    }
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:147.0) Gecko/20100101 Firefox/147.0',
+        'Content-Type': 'application/json; charset=UTF-8',
+        'X-Requested-With': 'XMLHttpRequest',
+        'Accept': '*/*',
+    }
+    try:
+        with httpx.Client() as client:
+            resp = client.post(url, content='null', cookies=cookies, headers=headers, timeout=10)
+        if resp.status_code != 200:
+            return None
+        return int(resp.json().get('Count'))
+    except Exception:
+        return None
+
+
+def number_of_sightings_importing(login_token, auth_cookie):
+    """Antall observasjoner AO fortsatt behandler (teller ned til 0 = ferdig parset)."""
+    return _post_count(
+        'https://www.artsobservasjoner.no/ImportSighting/NumberOfSightingsImporting',
+        login_token, auth_cookie,
+    )
+
+
+def number_of_sightings_submitted(login_token, auth_cookie):
+    """Antall observasjoner klargjort til gjennomgang (i review-køen)."""
+    return _post_count(
+        'https://www.artsobservasjoner.no/ReviewSighting/NumberOfSightingsSubmitted',
+        login_token, auth_cookie,
+    )
+
+
+def _poll_importing_done(login_token, auth_cookie, total, progress_cb=None,
+                         timeout=30.0, interval=0.7):
+    """
+    Poll NumberOfSightingsImporting til AO er ferdig med å parse (Count == 0).
+
+    Erstatter tidligere blind time.sleep(3). Kaller progress_cb underveis med reell
+    fremdrift. Faller tilbake til kort blind venting hvis endepunktet ikke svarer.
+    """
+    deadline = time.time() + timeout
+    first = True
+    while time.time() < deadline:
+        remaining = number_of_sightings_importing(login_token, auth_cookie)
+        if remaining is None:
+            # Endepunkt utilgjengelig — blind fallback, og la publish-retry ta resten
+            logger.debug('[AO-HTTPX] Progress-endepunkt svarte ikke — faller tilbake til venting')
+            time.sleep(3)
+            return
+        if progress_cb and remaining > 0:
+            progress_cb({'phase': 'importing', 'remaining': remaining, 'total': total})
+        # Krev to påfølgende avlesninger for å unngå å publisere før AO har startet
+        if remaining == 0 and not first:
+            if progress_cb:
+                progress_cb({'phase': 'importing', 'remaining': 0, 'total': total})
+            return
+        first = False
+        time.sleep(interval)
+    logger.warning('[AO-HTTPX] Poll-timeout nådd — fortsetter til publisering')
+
+
+def post_with_curl(observations, login_token=None, auth_cookie=None, area_id='', progress_cb=None):
     """
     Post til AO med httpx - med korrekt CSRF token-håndtering.
 
@@ -179,9 +255,13 @@ def post_with_curl(observations, login_token=None, auth_cookie=None, area_id='')
         logger.error(f'[AO-HTTPX] Feil: HTTP {response.status_code}')
         raise ValueError(f'HTTP {response.status_code}')
 
-    # Steg 2: Vent på at AO prosesserer importen (asynkron)
-    logger.debug('[AO-HTTPX] Venter 3 sekunder på at AO prosesserer importen...')
-    time.sleep(3)
+    # Steg 2: Vent på at AO er ferdig med å parse importen — poll ekte fremdrift
+    total = len(observations)
+    if progress_cb:
+        progress_cb({'phase': 'importing', 'remaining': total, 'total': total})
+    _poll_importing_done(login_token, auth_cookie, total, progress_cb)
+    if progress_cb:
+        progress_cb({'phase': 'publishing', 'total': total})
 
     # Steg 3: Publiser observasjonene (med retry)
     logger.info('[AO-HTTPX] Starter publisering...')

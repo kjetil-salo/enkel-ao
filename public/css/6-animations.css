@@ -150,3 +150,10 @@
     left: 100%;
   }
 }
+
+/* Determinat variant: fast bredde som vokser med reell fremdrift */
+.ao-progress-bar-det {
+  left: 0;
+  animation: none;
+  transition: width 0.3s ease;
+}

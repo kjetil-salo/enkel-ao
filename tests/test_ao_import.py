@@ -19,7 +19,13 @@ REPO_ROOT = os.path.dirname(os.path.dirname(__file__))
 sys.path.insert(0, REPO_ROOT)
 
 from src.ao_import import observations_to_csv
-from src.ao_import_httpx import fetch_csrf_tokens, post_with_curl, publish_all
+from src.ao_import_httpx import (
+    fetch_csrf_tokens,
+    number_of_sightings_importing,
+    number_of_sightings_submitted,
+    post_with_curl,
+    publish_all,
+)
 from server import Handler
 
 
@@ -577,5 +583,145 @@ def test_ao_login_endpoint_missing_params():
         )
         assert r.status_code == 400
 
+    finally:
+        srv.shutdown()
+
+
+# ============================================================================
+# Del 5: Import-fremdrift (poll-endepunkter + progress_cb)
+# ============================================================================
+
+def _mock_count_client(monkeypatch, count_value, status=200, raise_exc=False):
+    """Mock httpx.Client så .post().json() gir {'Count': count_value}."""
+    resp = Mock()
+    resp.status_code = status
+    resp.json = Mock(return_value={'Count': count_value})
+
+    client = Mock()
+    client.__enter__ = Mock(return_value=client)
+    client.__exit__ = Mock(return_value=None)
+    if raise_exc:
+        client.post = Mock(side_effect=Exception('nettverksfeil'))
+    else:
+        client.post = Mock(return_value=resp)
+
+    monkeypatch.setattr('httpx.Client', lambda: client)
+    return client
+
+
+def test_number_of_sightings_importing_parses_count(monkeypatch):
+    _mock_count_client(monkeypatch, 7)
+    assert number_of_sightings_importing('LOGIN', 'AUTH') == 7
+
+
+def test_number_of_sightings_submitted_parses_count(monkeypatch):
+    _mock_count_client(monkeypatch, 15)
+    assert number_of_sightings_submitted('LOGIN', 'AUTH') == 15
+
+
+def test_number_of_sightings_returns_none_on_error(monkeypatch):
+    _mock_count_client(monkeypatch, 0, raise_exc=True)
+    assert number_of_sightings_importing('LOGIN', 'AUTH') is None
+
+
+def test_number_of_sightings_returns_none_on_non_200(monkeypatch):
+    _mock_count_client(monkeypatch, 3, status=500)
+    assert number_of_sightings_importing('LOGIN', 'AUTH') is None
+
+
+def test_post_with_curl_emits_progress(monkeypatch):
+    """post_with_curl skal kalle progress_cb med importing- og publishing-faser."""
+    monkeypatch.setattr(
+        'src.ao_import_httpx.fetch_csrf_tokens',
+        lambda lt, ac: ('FORM', 'COOKIE', None),
+    )
+
+    # ParseObservations-POST mockes til 200
+    resp = Mock()
+    resp.status_code = 200
+    resp.text = '<html>ok</html>'
+    client = Mock()
+    client.__enter__ = Mock(return_value=client)
+    client.__exit__ = Mock(return_value=None)
+    client.post = Mock(return_value=resp)
+    monkeypatch.setattr('httpx.Client', lambda: client)
+
+    monkeypatch.setattr('time.sleep', lambda x: None)
+    monkeypatch.setattr('src.ao_import_httpx.publish_all', lambda lt, ac: {'status': 200})
+
+    # Simuler nedtelling: 2 igjen → 0 ferdig
+    counts = iter([2, 0])
+    monkeypatch.setattr(
+        'src.ao_import_httpx.number_of_sightings_importing',
+        lambda lt, ac: next(counts, 0),
+    )
+
+    events = []
+    observations = [
+        {'species': {'taxonName': 'Gråspurv'}, 'count': '1', 'timestamp': '2024-01-15T14:00:00Z', 'placeName': 'Oslo'},
+        {'species': {'taxonName': 'Kjøttmeis'}, 'count': '2', 'timestamp': '2024-01-15T14:00:00Z', 'placeName': 'Oslo'},
+    ]
+    result = post_with_curl(observations, 'LOGIN', 'AUTH', progress_cb=events.append)
+
+    assert result['success'] is True
+    phases = [e['phase'] for e in events]
+    assert 'importing' in phases
+    assert 'publishing' in phases
+    # Minst én importing-event skal ha korrekt total
+    importing = [e for e in events if e['phase'] == 'importing']
+    assert all(e['total'] == 2 for e in importing)
+
+
+def test_ao_import_stream_emits_sse(monkeypatch):
+    """SSE-endepunktet skal streame progress_cb-events som data:-linjer + done."""
+    import server as server_module
+
+    def fake_post(observations, login_token, auth_cookie, area_id='', progress_cb=None):
+        if progress_cb:
+            progress_cb({'phase': 'importing', 'remaining': 2, 'total': 2})
+            progress_cb({'phase': 'importing', 'remaining': 0, 'total': 2})
+            progress_cb({'phase': 'publishing', 'total': 2})
+        return {'success': True, 'count': 2, 'published': True, 'refreshedAuthCookie': None}
+
+    monkeypatch.setattr(server_module, 'post_with_curl', fake_post)
+
+    port = 8199
+    srv = start_server(port)
+    time.sleep(0.05)
+    try:
+        r = requests.post(
+            f'http://127.0.0.1:{port}/api/ao-import-stream',
+            json={'observations': [{'x': 1}, {'x': 2}], 'loginToken': 'L', 'authCookie': 'A'},
+            stream=True,
+            timeout=5,
+        )
+        assert r.status_code == 200
+        assert 'text/event-stream' in r.headers.get('Content-Type', '')
+        events = []
+        for line in r.iter_lines():
+            if line and line.startswith(b'data:'):
+                events.append(json.loads(line[5:].strip()))
+        phases = [e['phase'] for e in events]
+        assert 'importing' in phases
+        assert 'publishing' in phases
+        assert phases[-1] == 'done'
+        assert events[-1]['count'] == 2
+    finally:
+        srv.shutdown()
+
+
+def test_ao_import_stream_validates_before_streaming(monkeypatch):
+    """Manglende observasjoner → vanlig 400 JSON, ikke event-stream."""
+    port = 8198
+    srv = start_server(port)
+    time.sleep(0.05)
+    try:
+        r = requests.post(
+            f'http://127.0.0.1:{port}/api/ao-import-stream',
+            json={'observations': [], 'loginToken': 'L', 'authCookie': 'A'},
+            timeout=5,
+        )
+        assert r.status_code == 400
+        assert 'error' in r.json()
     finally:
         srv.shutdown()

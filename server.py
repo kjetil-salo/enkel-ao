@@ -79,6 +79,10 @@ class Handler(SimpleHTTPRequestHandler):
             self._handle_ao_import_post()
             return
 
+        if parsed.path == '/api/ao-import-stream':
+            self._handle_ao_import_stream_post()
+            return
+
         if parsed.path == '/api/ao-login':
             self._handle_ao_login_post()
             return
@@ -276,6 +280,64 @@ class Handler(SimpleHTTPRequestHandler):
             # Uventet feil
             logger.error(f'[AO-IMPORT] Uventet feil: {e}')
             self._send_json({'error': f'Server-feil: {str(e)}'}, status=500)
+
+    def _handle_ao_import_stream_post(self):
+        """
+        Som _handle_ao_import_post, men streamer fremdrift til klienten via SSE.
+
+        Sender events (data: {json}\\n\\n) med fasene: importing → publishing → done/error.
+        Fremdriften polles fra AO (NumberOfSightingsImporting) i post_with_curl.
+        """
+        # Valider request FØR vi bytter til event-stream (så vi kan svare med vanlig JSON-feil)
+        try:
+            content_length = int(self.headers.get('Content-Length', 0))
+            body = self.rfile.read(content_length).decode('utf-8')
+            data = json.loads(body)
+            observations = data.get('observations', [])
+            login_token = data.get('loginToken')
+            auth_cookie = data.get('authCookie')
+            area_id = data.get('areaId', '')
+
+            if not observations:
+                self._send_json({'error': 'Ingen observasjoner å importere'}, status=400)
+                return
+            if not login_token or not auth_cookie:
+                self._send_json({'error': 'Mangler loginToken eller authCookie'}, status=400)
+                return
+        except Exception as e:
+            self._send_json({'error': f'Ugyldig forespørsel: {e}'}, status=400)
+            return
+
+        # Start SSE-strøm
+        self.send_response(200)
+        self.send_header('Content-Type', 'text/event-stream; charset=utf-8')
+        self.send_header('Cache-Control', 'no-cache')
+        self.send_header('X-Accel-Buffering', 'no')
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.end_headers()
+
+        def emit(event):
+            try:
+                self.wfile.write(f'data: {json.dumps(event)}\n\n'.encode('utf-8'))
+                self.wfile.flush()
+            except Exception:
+                pass  # Klienten kan ha koblet fra — la importen fullføre uansett
+
+        logger.info(f'[AO-IMPORT-STREAM] Mottatt {len(observations)} observasjoner, area={area_id}')
+        try:
+            result = post_with_curl(observations, login_token, auth_cookie,
+                                    area_id=area_id, progress_cb=emit)
+            if result.get('success'):
+                emit({'phase': 'done', **result})
+            else:
+                emit({'phase': 'error', **result})
+            logger.info(f'[AO-IMPORT-STREAM] Ferdig: {result}')
+        except ValueError as e:
+            logger.error(f'[AO-IMPORT-STREAM] Feil: {e}')
+            emit({'phase': 'error', 'error': str(e)})
+        except Exception as e:
+            logger.error(f'[AO-IMPORT-STREAM] Uventet feil: {e}')
+            emit({'phase': 'error', 'error': f'Server-feil: {str(e)}'})
 
     def _handle_ao_login_post(self):
         """Håndter innlogging til AO med brukernavn/passord."""
