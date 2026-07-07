@@ -72,6 +72,14 @@ The `Handler` class routes requests:
   - Søker lokal DB først (ingen innlogging nødvendig), deretter AO hvis innlogget
   - Med lat/lon: sorterer etter avstand, returnerer `_distance` i meters
   - Returnerer `isSuper`, `isPrivate`, `subvalue` (kommune, fylke) per resultat
+- `/api/ao-login` (POST) → logger inn på AO med brukernavn/passord, returnerer `loginToken` + `authCookie`
+- `/api/ao-import` (POST) → direkte publisering av observasjoner til AO (CSV-import + publish). Enkelt JSON-svar.
+- `/api/ao-import-stream` (POST) → som `ao-import`, men **streamer fremdrift via SSE** (`text/event-stream`)
+  - Fase-events: `importing {remaining, total}` → `publishing {total}` → `done {count}` / `error`
+  - Fremdriften polles fra AOs egne endepunkter (se `docs/ao-import-fremdrift.md`):
+    - `POST /ImportSighting/NumberOfSightingsImporting` (body `null`) → `{"Count":N}`, teller ned til 0 = ferdig parset
+    - `POST /ReviewSighting/NumberOfSightingsSubmitted` (body `null`) → `{"Count":N}` i review-kø
+  - Erstatter tidligere blind `sleep(3)` i `src/ao_import_httpx.py` med reell polling
 - `/api/logview` (POST) → logs page views to Supabase
 - `/stats?key=X` → displays analytics (key-protected)
 - `/health` → health check endpoint
