@@ -12,14 +12,6 @@
     <script src="/js/theme.js"></script>
     <script src="/js/migration-banner.js"></script>
     <div class="shell">
-      <!-- Kompakt festet linje som viser aktiv plass (vises når plass er valgt) -->
-      <div id="loc-pinned" class="loc-pinned" style="display:none;">
-        <button type="button" id="loc-pinned-label" class="loc-pinned-label" title="Trykk for å bytte plass">
-          <span class="loc-pinned-pin" aria-hidden="true">📍</span>
-          <span id="loc-pinned-name" class="loc-pinned-name"></span>
-        </button>
-        <button type="button" id="loc-change-btn" class="loc-change-btn">Bytt plass</button>
-      </div>
       <div class="card">
         <header>
           <div class="title">
@@ -35,6 +27,15 @@
             </div>
           </div>
         </header>
+
+        <!-- Kompakt festet linje som viser aktiv plass (vises når plass er valgt) -->
+        <div id="loc-pinned" class="loc-pinned" style="display:none;">
+          <button type="button" id="loc-pinned-label" class="loc-pinned-label" title="Trykk for å bytte plass">
+            <span class="loc-pinned-pin" aria-hidden="true">📍</span>
+            <span id="loc-pinned-name" class="loc-pinned-name"></span>
+          </button>
+          <button type="button" id="loc-change-btn" class="loc-change-btn">Bytt plass</button>
+        </div>
 
         <div class="tablet-layout">
         <div class="tablet-input-column">
