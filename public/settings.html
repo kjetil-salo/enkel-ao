@@ -160,6 +160,10 @@
                   style="padding: 8px 16px; background: transparent; color: var(--text); border: 1px solid var(--accent); border-radius: 6px; cursor: pointer; font-size: 0.95em;">
             Foreslå forkortelser
           </button>
+          <span id="pills-saved-indicator"
+                style="align-self: center; font-size: 0.9em; color: #22c55e; opacity: 0; transition: opacity 0.25s;">
+            ✓ Lagret
+          </span>
         </div>
       </div>
 
@@ -194,6 +198,7 @@
       import { loadActivities } from './js/api.js';
 
       let availableActivities = []; // Lastes inn ved init
+      let isInitializing = true;    // Undertrykk «✓ Lagret» under første render
 
       async function initActivityPillsConfig() {
         // Last alle aktiviteter fra JSON
@@ -207,6 +212,7 @@
         savedPills.forEach(pill => {
           addPillRow(container, pill);
         });
+        isInitializing = false; // Fra nå av er lagringer brukerinitierte
 
         // Oppdater add-knapp state
         updateAddButtonState(addBtn, container);
@@ -310,6 +316,20 @@
         });
 
         saveActivityPills(pills);
+        flashSaved();
+      }
+
+      // Diskret «✓ Lagret»-bekreftelse. Debounces slik at rask skriving
+      // i kortnavn-feltet ikke blinker – indikatoren holdes synlig og
+      // fader først ut ~1,2s etter siste lagring.
+      let savedTimer = null;
+      function flashSaved() {
+        if (isInitializing) return; // Ikke blink ved sidelasting
+        const el = document.getElementById('pills-saved-indicator');
+        if (!el) return;
+        el.style.opacity = '1';
+        if (savedTimer) clearTimeout(savedTimer);
+        savedTimer = setTimeout(() => { el.style.opacity = '0'; }, 1200);
       }
 
       function updateAddButtonState(addBtn, container) {
