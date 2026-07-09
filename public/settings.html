@@ -160,6 +160,10 @@
                   style="padding: 8px 16px; background: transparent; color: var(--text); border: 1px solid var(--accent); border-radius: 6px; cursor: pointer; font-size: 0.95em;">
             Foreslå forkortelser
           </button>
+          <button id="save-activity-pills"
+                  style="padding: 8px 16px; background: var(--accent); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.95em;">
+            💾 Lagre
+          </button>
           <span id="pills-saved-indicator"
                 style="align-self: center; font-size: 0.9em; color: #22c55e; opacity: 0; transition: opacity 0.25s;">
             ✓ Lagret
@@ -237,6 +241,12 @@
               shortInput.value = suggestion;
             }
           });
+          savePillsFromUI(container);
+        });
+
+        // Eksplisitt «Lagre»-knapp. Autolagring skjer allerede løpende, men
+        // knappen gir en tydelig manuell bekreftelse for de som vil ha det.
+        document.getElementById('save-activity-pills').addEventListener('click', () => {
           savePillsFromUI(container);
         });
       }
