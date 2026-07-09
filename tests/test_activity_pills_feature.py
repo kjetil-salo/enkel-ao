@@ -53,7 +53,7 @@ def test_settings_imports_correct_modules():
     with open('public/settings.html', 'r') as f:
         content = f.read()
 
-    assert 'import { loadActivityPills, saveActivityPills } from' in content
+    assert 'import { loadActivityPills, saveActivityPills, ACTIVITY_SHORT_SUGGESTIONS } from' in content
     assert 'import { loadActivities } from' in content
 
 

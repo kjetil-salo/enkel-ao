@@ -144,16 +144,23 @@
         <span class="settings-label">Aktivitets-hurtigknapper (0-6)</span>
         <div style="font-size:0.92em;color:var(--muted,#aaa);margin-bottom:8px;">
           Velg hvilke aktiviteter som vises som hurtigknapper. Maks 6. Rekkefølgen i lista bestemmer rekkefølgen på skjermen.
+          Skriv eventuelt et kort navn (maks 5 tegn) i «Kort»-feltet for mer kompakte knapper – tomt felt viser fullt navn.
         </div>
 
         <div id="activity-pills-config" style="width: 100%; display: flex; flex-direction: column; gap: 8px;">
           <!-- Genereres dynamisk via JavaScript -->
         </div>
 
-        <button id="add-activity-pill"
-                style="padding: 8px 16px; background: var(--accent); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.95em;">
-          + Legg til aktivitet
-        </button>
+        <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:8px;">
+          <button id="add-activity-pill"
+                  style="padding: 8px 16px; background: var(--accent); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.95em;">
+            + Legg til aktivitet
+          </button>
+          <button id="suggest-short-names"
+                  style="padding: 8px 16px; background: transparent; color: var(--text); border: 1px solid var(--accent); border-radius: 6px; cursor: pointer; font-size: 0.95em;">
+            Foreslå forkortelser
+          </button>
+        </div>
       </div>
 
       <div class="settings-row">
@@ -183,7 +190,7 @@
       </div>
     </div>
     <script type="module">
-      import { loadActivityPills, saveActivityPills } from './js/storage.js';
+      import { loadActivityPills, saveActivityPills, ACTIVITY_SHORT_SUGGESTIONS } from './js/storage.js';
       import { loadActivities } from './js/api.js';
 
       let availableActivities = []; // Lastes inn ved init
@@ -211,6 +218,21 @@
             updateAddButtonState(addBtn, container);
           }
         });
+
+        // «Foreslå forkortelser»: fyll inn kuraterte kortnavn for standard-aktiviteter.
+        // Fyller kun tomme felt, så egne kortnavn ikke overskrives.
+        document.getElementById('suggest-short-names').addEventListener('click', () => {
+          container.querySelectorAll('.pill-config-row').forEach(row => {
+            const select = row.querySelector('select');
+            const shortInput = row.querySelector('.pill-short-input');
+            const value = select.options[select.selectedIndex].value;
+            const suggestion = ACTIVITY_SHORT_SUGGESTIONS[value];
+            if (suggestion && !shortInput.value.trim()) {
+              shortInput.value = suggestion;
+            }
+          });
+          savePillsFromUI(container);
+        });
       }
 
       function addPillRow(container, pill) {
@@ -232,6 +254,21 @@
           select.appendChild(option);
         });
 
+        // Kortnavn-felt (valgfritt, maks 5 tegn)
+        const shortInput = document.createElement('input');
+        shortInput.type = 'text';
+        shortInput.className = 'pill-short-input';
+        shortInput.maxLength = 5;
+        shortInput.placeholder = 'Kort';
+        shortInput.title = 'Kort navn på knappen (maks 5 tegn). Tomt = fullt navn.';
+        shortInput.style.cssText = 'width: 72px; flex-shrink: 0; padding: 8px; border-radius: 6px; border: 1px solid rgba(148,163,184,0.45); background: rgba(15,23,42,0.95); color: var(--text); font-size: 1em;';
+        if (pill && pill.short) {
+          shortInput.value = pill.short;
+        }
+        shortInput.addEventListener('input', () => {
+          savePillsFromUI(container);
+        });
+
         // Slett-knapp
         const deleteBtn = document.createElement('button');
         deleteBtn.textContent = '🗑️';
@@ -249,6 +286,7 @@
         });
 
         row.appendChild(select);
+        row.appendChild(shortInput);
         row.appendChild(deleteBtn);
         container.appendChild(row);
 
@@ -260,11 +298,15 @@
         const rows = container.querySelectorAll('.pill-config-row');
         const pills = Array.from(rows).map(row => {
           const select = row.querySelector('select');
+          const shortInput = row.querySelector('.pill-short-input');
           const selectedOption = select.options[select.selectedIndex];
-          return {
+          const pill = {
             label: selectedOption.textContent,
             value: selectedOption.value
           };
+          const short = (shortInput.value || '').trim().slice(0, 5);
+          if (short) pill.short = short;
+          return pill;
         });
 
         saveActivityPills(pills);

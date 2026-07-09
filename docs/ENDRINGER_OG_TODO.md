@@ -122,6 +122,7 @@
   - **Kuraterte standarder:** Ship en «Foreslå forkortelser»-knapp som fyller inn fornuftige forkortelser for de 6 standard-aktivitetene (Stasjonær→«Stasj», Rastende→«Rast», osv.). Brukeren kan redigere.
   - **Beslutning (valgt):** ✅ **Hybrid** — vi kuraterer forslag for standard-aktivitetene («Foreslå forkortelser»-knapp), men brukeren kan redigere/skrive egne kortnavn (maks 5 tegn). Tomt felt = fullt navn.
   - **Berører:** `storage.js` (utvid pill-format + migrering), `settings.html` (kortnavn-felt i pill-liste), `observation-commit.js` (render `short` på pills). Bakoverkompatibel migrering fra dagens `{label, value}`.
+  - **✅ IMPLEMENTERT (2026-07-09):** Valgfritt `short`-felt (maks 5 tegn) i `activityPills_v1`, kortnavn-input per rad i innstillinger, «Foreslå forkortelser»-knapp (`ACTIVITY_SHORT_SUGGESTIONS`, fyller kun tomme felt), pills viser `short` med fullt navn som tooltip. Klikk matcher fortsatt på fullt `label`. Bakoverkompatibelt.
 - **Dropdown uten layout-forskyvning**: Vurder å vise søkeresultater med `position: absolute` så de ligger over innholdet under i stedet for å forskyve det ned. Gir mer stabil layout under søk.
 - **Performance optimaliseringer**: Raskere artsøk og lokalitetshenting
 - **Optimaliser dropdown-design**: Grupper alder-valg logisk (Egg | Ungfugl: 1K-serie | Voksen: Adult)

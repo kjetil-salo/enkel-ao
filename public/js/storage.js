@@ -150,14 +150,33 @@ export function loadAoSearchRadius() {
 }
 
 /**
+ * Kuraterte forkortelses-forslag for standard-aktivitetene, nøklet på value.
+ * Brukes av «Foreslå forkortelser»-knappen i innstillinger. Maks 5 tegn.
+ */
+export const ACTIVITY_SHORT_SUGGESTIONS = {
+  '23': 'Stasj', // Stasjonær
+  '22': 'Rast',  // Rastende
+  '24': 'Overf', // Overflygende
+  '25': 'Nær',   // Næringssøkende
+  '32': 'Trekk', // Trekkende
+  '52': 'Sang'   // Sang/spill
+};
+
+/**
  * Lagre konfigurasjon av aktivitetspills
- * @param {Array<{label: string, value: string}>} pills - Array av pill-objekter
+ * @param {Array<{label: string, value: string, short?: string}>} pills - Array av pill-objekter.
+ *   `short` er valgfritt kortnavn (maks 5 tegn) som vises på hurtigknappen i stedet for fullt navn.
  */
 export function saveActivityPills(pills) {
   try {
     const config = {
       version: 1,
-      pills: pills.slice(0, 6) // max 6
+      pills: pills.slice(0, 6).map(p => {
+        const pill = { label: p.label, value: p.value };
+        const short = (p.short || '').trim().slice(0, 5);
+        if (short) pill.short = short; // tomt kortnavn utelates → vis fullt navn
+        return pill;
+      })
     };
     localStorage.setItem(ACTIVITY_PILLS_KEY, JSON.stringify(config));
   } catch (e) {
@@ -167,7 +186,7 @@ export function saveActivityPills(pills) {
 
 /**
  * Last konfigurasjon av aktivitetspills
- * @returns {Array<{label: string, value: string}>}
+ * @returns {Array<{label: string, value: string, short?: string}>}
  */
 export function loadActivityPills() {
   try {

@@ -68,8 +68,7 @@ function getObservationTimestampTo() {
 }
 
 function getActivePills() {
-  const pills = loadActivityPills();
-  return pills.map(p => p.label); // Returner kun labels
+  return loadActivityPills(); // Fulle objekter {label, value, short?}
 }
 
 export function commitObservation(state, dom, callbacks) {
@@ -193,15 +192,21 @@ export function renderActivityPills(dom, commitFn) {
   if (!dom.activityPillsEl) return;
   dom.activityPillsEl.innerHTML = '';
 
-  getActivePills().forEach(act => {
+  getActivePills().forEach(p => {
+    const label = p.label;
+    const short = (p.short || '').trim();
+    const display = short || label;
+
     const pill = document.createElement('div');
     pill.className = 'activity-pill';
-    pill.textContent = act;
+    pill.textContent = display;
+    if (display !== label) pill.title = label; // fullt navn ved forkortelse
     pill.role = 'button';
     pill.addEventListener('click', () => {
       if (dom.activitySelect) {
+        // Match på fullt navn – kortnavnet er kun visning
         for (let i = 0; i < dom.activitySelect.options.length; i++) {
-          if (dom.activitySelect.options[i].text === act) {
+          if (dom.activitySelect.options[i].text === label) {
             dom.activitySelect.selectedIndex = i;
             break;
           }

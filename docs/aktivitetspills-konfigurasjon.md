@@ -69,7 +69,7 @@ Rastende
 {
   "version": 1,
   "pills": [
-    { "label": "Stasjonær", "value": "23" },
+    { "label": "Stasjonær", "value": "23", "short": "Stasj" },
     { "label": "Rastende", "value": "22" },
     { "label": "Overflygende", "value": "24" }
   ]
@@ -77,8 +77,17 @@ Rastende
 ```
 
 **Felter:**
-- `label`: Aktivitetens visningsnavn (brukes til pill-tekst)
+- `label`: Aktivitetens visningsnavn (brukes til matching mot `<select>`)
 - `value`: Aktivitetens ID-verdi i activities.json (brukes til `<select>`)
+- `short` *(valgfritt)*: Kort visningsnavn på pill-knappen (maks 5 tegn). Tomt/utelatt → vis fullt `label`. Gir mer kompakte knapper slik at flere får plass på skjermen.
+
+### Forkortelser (hybrid, v1.30.0+)
+
+Pill-knappene kan vise et kort navn i stedet for fullt aktivitetsnavn:
+- Kortnavnet er **kun visning** – klikk matcher fortsatt på fullt `label` mot `<select>`.
+- Ved forkortelse settes `title` = fullt navn (tooltip).
+- I innstillinger finnes en **«Foreslå forkortelser»**-knapp som fyller inn kuraterte kortnavn for standard-aktivitetene (`ACTIVITY_SHORT_SUGGESTIONS` i `storage.js`, nøklet på `value`). Den fyller kun **tomme** felt, så egne kortnavn overskrives ikke.
+- Brukeren kan når som helst redigere eller skrive egne kortnavn.
 
 ### Migrering
 

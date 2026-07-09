@@ -112,7 +112,7 @@ Pure ES6 modules with no framework:
 ### Konfigurerbare Aktivitetspills (v1.18.0+)
 Brukere kan velge 0-6 aktiviteter som vises som hurtigknapper:
 - **localStorage-nøkkel:** `activityPills_v1`
-- **Format:** `{version: 1, pills: [{label: "Stasjonær", value: "23"}, ...]}`
+- **Format:** `{version: 1, pills: [{label: "Stasjonær", value: "23", short: "Stasj"}, ...]}` (`short` valgfritt, maks 5 tegn — kortnavn på pill; tomt = fullt navn)
 - **Funksjoner:** `saveActivityPills()`, `loadActivityPills()` i `storage.js`
 - **UI:** Settings-side med dynamisk liste og +/- knapper
 - **Migrering:** Automatisk fra gammelt `activityPillCount` format
