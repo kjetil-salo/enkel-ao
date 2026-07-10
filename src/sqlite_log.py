@@ -124,6 +124,17 @@ def get_stats() -> dict:
                     trend_map[d] = row["cnt"]
             trend_30d = list(trend_map.items())
 
+            # Unike enheter (device_id fra UUID-cookie) per dag – mer nyttig enn sidevisninger
+            unique_map = {(today - timedelta(days=i)).isoformat(): 0 for i in range(29, -1, -1)}
+            for row in conn.execute(
+                "SELECT DATE(ts) as dato, COUNT(DISTINCT device_id) as cnt FROM stats "
+                "WHERE device_id != '' AND ts >= DATE('now', '-29 days') GROUP BY dato ORDER BY dato"
+            ).fetchall():
+                d = row["dato"]
+                if d in unique_map:
+                    unique_map[d] = row["cnt"]
+            unique_devices_per_day = list(unique_map.items())
+
         return {
             "total": total,
             "total_unique_ips": total_unique_ips,
@@ -133,6 +144,7 @@ def get_stats() -> dict:
             "per_os": per_os,
             "exports": exports,
             "trend_30d": trend_30d,
+            "unique_devices_per_day": unique_devices_per_day,
         }
     except Exception as e:
         logger.warning(f"[SQLite] Feil ved henting av stats: {e}")

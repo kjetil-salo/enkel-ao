@@ -557,6 +557,7 @@ class Handler(SimpleHTTPRequestHandler):
                 total_unique_devices=stats["total_unique_devices"],
                 exports=stats["exports"],
                 trend_30d=stats.get("trend_30d"),
+                unique_devices_per_day=stats.get("unique_devices_per_day"),
             )
         else:
             # Fallback til in-memory statistikk

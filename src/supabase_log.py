@@ -62,6 +62,15 @@ def get_stats_from_supabase():
                 trend_map[d] = r.get("cnt", 0)
         trend_30d = list(trend_map.items())
 
+        # Unike enheter per dag (krever oppdatert get_stats-RPC i Supabase; tom hvis ikke)
+        raw_unique = data.get("unique_devices_per_day") or []
+        unique_map = {(today - timedelta(days=i)).isoformat(): 0 for i in range(29, -1, -1)}
+        for r in raw_unique:
+            d = str(r.get("dato", ""))[:10]
+            if d in unique_map:
+                unique_map[d] = r.get("cnt", 0)
+        unique_devices_per_day = list(unique_map.items()) if raw_unique else []
+
         return {
             "total": data.get("total", 0),
             "total_unique_ips": data.get("unique_ips", 0),
@@ -71,6 +80,7 @@ def get_stats_from_supabase():
             "per_os": data.get("per_os") or {},
             "exports": data.get("exports") or {},
             "trend_30d": trend_30d,
+            "unique_devices_per_day": unique_devices_per_day,
         }
     except Exception as e:
         logger.warning(f"[Supabase] Feil ved henting av stats: {e}")

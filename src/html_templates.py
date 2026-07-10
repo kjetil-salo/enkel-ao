@@ -35,7 +35,7 @@ def generate_stats_login_page():
 """
 
 
-def generate_stats_page(recent_ips, per_ua, total, per_device=None, per_os=None, per_browser=None, total_unique_ips=0, source="Supabase", total_unique_devices=0, exports=None, trend_30d=None, trend_7d=None):
+def generate_stats_page(recent_ips, per_ua, total, per_device=None, per_os=None, per_browser=None, total_unique_ips=0, source="Supabase", total_unique_devices=0, exports=None, trend_30d=None, trend_7d=None, unique_devices_per_day=None):
     """Generer statistikk-side med data fra enten Supabase eller in-memory."""
     per_device = per_device or {}
     per_os = per_os or {}
@@ -99,6 +99,44 @@ def generate_stats_page(recent_ips, per_ua, total, per_device=None, per_os=None,
             '''
         device_section += '</div>'
 
+    # Unike enheter per dag (basert på UUID-cookie) – den viktigste metrikken
+    unique_devices_per_day = unique_devices_per_day or []
+    unique_today = unique_devices_per_day[-1][1] if unique_devices_per_day else 0
+    unique_section = ""
+    if unique_devices_per_day:
+        u_labels = [dato for dato, _ in unique_devices_per_day]
+        u_values = [cnt for _, cnt in unique_devices_per_day]
+        unique_section = f'''
+        <div class="section-title">Unike enheter per dag (siste 30 dager)</div>
+        <canvas id="uniqueChart" style="width:100%;max-height:220px;"></canvas>
+        <script>
+        (function() {{
+            var ctx = document.getElementById('uniqueChart').getContext('2d');
+            new Chart(ctx, {{
+                type: 'bar',
+                data: {{
+                    labels: {u_labels},
+                    datasets: [{{
+                        label: 'Unike enheter',
+                        data: {u_values},
+                        backgroundColor: 'rgba(34, 197, 94, 0.6)',
+                        borderColor: 'rgba(34, 197, 94, 1)',
+                        borderWidth: 1
+                    }}]
+                }},
+                options: {{
+                    responsive: true,
+                    plugins: {{ legend: {{ display: false }} }},
+                    scales: {{
+                        x: {{ ticks: {{ maxRotation: 45, font: {{ size: 10 }} }} }},
+                        y: {{ beginAtZero: true, ticks: {{ stepSize: 1 }} }}
+                    }}
+                }}
+            }});
+        }})();
+        </script>
+        '''
+
     trend_section = ""
     if trend_30d:
         labels = [dato for dato, _ in trend_30d]
@@ -106,7 +144,6 @@ def generate_stats_page(recent_ips, per_ua, total, per_device=None, per_os=None,
         trend_section = f'''
         <div class="section-title">Sidevisninger siste 30 dager</div>
         <canvas id="trendChart" style="width:100%;max-height:220px;"></canvas>
-        <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
         <script>
         (function() {{
             var ctx = document.getElementById('trendChart').getContext('2d');
@@ -135,6 +172,11 @@ def generate_stats_page(recent_ips, per_ua, total, per_device=None, per_os=None,
         </script>
         '''
 
+    # Chart.js lastes én gang hvis noen av grafene skal vises
+    chartjs_load = ''
+    if unique_section or trend_section:
+        chartjs_load = '<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>'
+
     return f"""
 <html>
 <head>
@@ -160,9 +202,9 @@ def generate_stats_page(recent_ips, per_ua, total, per_device=None, per_os=None,
     <div class="container">
         <h1>Brukerstatistikk</h1>
         <div class="stat-row">
+            <span>🟢 {unique_today} unike enheter i dag</span>
+            <span>{total_unique_devices} unike enheter totalt</span>
             <span>{total} sidevisninger</span>
-            <span>{total_unique_ips} unike IP-er</span>
-            <span>{total_unique_devices} unike enheter</span>
         </div>
         <div class="stat-row" style="font-size:1.1em;">
             <span>📤 {export_total} eksporter totalt</span>
@@ -170,6 +212,8 @@ def generate_stats_page(recent_ips, per_ua, total, per_device=None, per_os=None,
             <span>📡 {export_direct} direkte til AO</span>
         </div>
 
+        {chartjs_load}
+        {unique_section}
         {trend_section}
         <div class="section-title">Siste 10 IP-adresser</div>
         <table>
