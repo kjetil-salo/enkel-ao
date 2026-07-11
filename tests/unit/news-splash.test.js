@@ -1,5 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+// Ikke førstegangsbruker — hen har observasjoner, så splashen får lov å vises.
+vi.mock('../../public/js/storage.js', () => ({
+  loadObservations: () => [{ id: 1 }],
+}));
+
 import { hasReadNews, initNewsSplash, markNewsRead } from '../../public/js/news-splash.js';
 
 const store = {};
@@ -18,7 +23,7 @@ beforeEach(() => {
 });
 
 describe('news-splash', () => {
-  it('viser nyhet når den ikke er lest', () => {
+  it('viser nyheter når ingenting er lest', () => {
     initNewsSplash();
 
     expect(document.querySelector('.news-splash')).toBeTruthy();
@@ -26,7 +31,7 @@ describe('news-splash', () => {
     expect(document.body.textContent).toContain('Besøk på samme lokalitet');
   });
 
-  it('skjuler nyhet etter at den er lest', () => {
+  it('skjuler nyheter etter at nyeste er lest', () => {
     markNewsRead();
     initNewsSplash();
 
@@ -41,5 +46,14 @@ describe('news-splash', () => {
 
     expect(hasReadNews()).toBe(true);
     expect(document.querySelector('.news-splash')).toBeFalsy();
+  });
+
+  it('viser bare nyheter som er nyere enn sist leste', () => {
+    markNewsRead('visit-locks-v1');
+    initNewsSplash();
+
+    expect(document.querySelector('.news-splash')).toBeTruthy();
+    expect(document.body.textContent).toContain('Kortnavn på hurtigknapper');
+    expect(document.body.textContent).not.toContain('Besøk på samme lokalitet');
   });
 });

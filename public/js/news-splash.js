@@ -1,20 +1,38 @@
 /**
- * Éngangs nyhetsplash for viktige UX-endringer.
- * Bytt NEWS_ID når samme bruker skal se en ny melding.
+ * Generell nyhetsplash for Enkel-AO.
+ *
+ * Slik legger du til en nyhet: legg en ny post ØVERST i NEWS_FEED med en unik id.
+ * En bruker ser kun nyheter som er nyere enn sist hen trykket «Skjønner». Kommer
+ * en bruker tilbake etter flere oppdateringer, vises alle de nye samlet (opptil
+ * MAX_VISIBLE).
+ *
+ * VIKTIG: Ikke fjern eller endre id-en på gamle poster — id-en brukes som
+ * «lest-grense». Nye poster legges bare til på toppen.
  */
 
 import { loadObservations } from './storage.js';
 
-const NEWS_ID = 'visit-locks-v1';
 const COOKIE_NAME = 'enkelAoNewsRead';
 const STORAGE_KEY = 'enkelAoNewsRead';
 
-const NEWS_ITEMS = [
+// Maks antall nyheter som vises samtidig. Hindrer en vegg av tekst for brukere
+// som har vært borte over mange oppdateringer. Nyeste vises først.
+const MAX_VISIBLE = 4;
+
+// Kronologisk feed — NYESTE ØVERST. Hver post: { id, title, body }.
+const NEWS_FEED = [
   {
+    id: 'activity-abbreviations-v1',
+    title: 'Kortnavn på hurtigknapper',
+    body: 'Aktivitets-hurtigknappene kan nå vise et kort navn (maks 5 tegn) i stedet for fullt navn, så flere knapper får plass på skjermen. Sett ditt eget kortnavn i innstillinger, eller trykk «Foreslå forkortelser».',
+  },
+  {
+    id: 'visit-locks-v1',
     title: 'Besøk på samme lokalitet',
     body: 'Observasjonslista grupperer nå på besøk. Lås et besøk når du er ferdig, så starter appen et nytt besøk hvis du kommer tilbake til samme lokalitet senere.',
   },
   {
+    id: 'visit-locks-legend-v1',
     title: 'Hengelås i lista',
     body: 'Grønn åpen lås betyr aktivt besøk. Rød lukket lås betyr avsluttet besøk.',
   },
@@ -29,18 +47,37 @@ function getCookieValue(name) {
     ?.slice(prefix.length) || '';
 }
 
-export function hasReadNews(newsId = NEWS_ID) {
+/**
+ * Id-en for den nyeste nyheten brukeren har kvittert ut. Tom streng = har aldri
+ * lukket splashen. Cookie er hovedkilden, localStorage er fallback.
+ */
+function getLastReadId() {
   const cookieValue = decodeURIComponent(getCookieValue(COOKIE_NAME));
-  if (cookieValue === newsId) return true;
+  if (cookieValue) return cookieValue;
 
   try {
-    return window.localStorage?.getItem(STORAGE_KEY) === newsId;
+    return window.localStorage?.getItem(STORAGE_KEY) || '';
   } catch (e) {
-    return false;
+    return '';
   }
 }
 
-export function markNewsRead(newsId = NEWS_ID) {
+/**
+ * Nyheter som er nyere enn sist leste, nyeste først, begrenset til MAX_VISIBLE.
+ * Ukjent/manglende lest-grense = vis alt (capped).
+ */
+function unreadItems() {
+  const lastId = getLastReadId();
+  const idx = lastId ? NEWS_FEED.findIndex((item) => item.id === lastId) : -1;
+  const unread = idx === -1 ? NEWS_FEED : NEWS_FEED.slice(0, idx);
+  return unread.slice(0, MAX_VISIBLE);
+}
+
+export function hasReadNews(newsId = NEWS_FEED[0]?.id) {
+  return getLastReadId() === newsId;
+}
+
+export function markNewsRead(newsId = NEWS_FEED[0]?.id) {
   const maxAge = 60 * 60 * 24 * 365;
   document.cookie = `${encodeURIComponent(COOKIE_NAME)}=${encodeURIComponent(newsId)}; Max-Age=${maxAge}; Path=/; SameSite=Lax`;
 
@@ -51,7 +88,7 @@ export function markNewsRead(newsId = NEWS_ID) {
   }
 }
 
-function createNewsSplash() {
+function createNewsSplash(items) {
   const overlay = document.createElement('div');
   overlay.className = 'news-splash';
   overlay.setAttribute('role', 'dialog');
@@ -68,7 +105,7 @@ function createNewsSplash() {
   const list = document.createElement('div');
   list.className = 'news-splash-list';
 
-  NEWS_ITEMS.forEach((item) => {
+  items.forEach((item) => {
     const row = document.createElement('div');
     row.className = 'news-splash-item';
 
@@ -116,10 +153,12 @@ function isFirstTimer() {
 
 export function initNewsSplash() {
   if (isFirstTimer()) return;
-  if (hasReadNews()) return;
   if (document.querySelector('.news-splash')) return;
 
-  const { overlay, button } = createNewsSplash();
+  const items = unreadItems();
+  if (items.length === 0) return;
+
+  const { overlay, button } = createNewsSplash(items);
   document.body.appendChild(overlay);
   button.focus({ preventScroll: true });
 }
