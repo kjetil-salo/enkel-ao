@@ -12,6 +12,12 @@ vi.stubGlobal('localStorage', localStorageMock);
 // Dynamisk import etter mock er satt opp
 const { loadMedobs, saveMedobs, defaultCoObservers, saveObservations, loadObservations } = await import('../../public/js/storage.js');
 
+// Speiler todayStr() i storage.js — medobs lagres med dagens dato.
+function todayStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
 beforeEach(() => {
   Object.keys(store).forEach(k => delete store[k]);
   vi.clearAllMocks();
@@ -27,20 +33,32 @@ describe('loadMedobs', () => {
     expect(loadMedobs()).toEqual([]);
   });
 
-  it('should load object format correctly', () => {
-    const data = [
+  it('should load object format correctly and keep active state same day', () => {
+    const list = [
       { name: 'Ola', active: true },
       { name: 'Kari', active: false }
     ];
-    store['medobs_list_v1'] = JSON.stringify(data);
-    expect(loadMedobs()).toEqual(data);
+    store['medobs_list_v1'] = JSON.stringify({ date: todayStr(), list });
+    expect(loadMedobs()).toEqual(list);
   });
 
-  it('should migrate old string format to object format', () => {
-    store['medobs_list_v1'] = JSON.stringify(['Ola', 'Kari']);
-    expect(loadMedobs()).toEqual([
+  it('should deactivate all co-observers on a new day', () => {
+    const list = [
       { name: 'Ola', active: true },
       { name: 'Kari', active: true }
+    ];
+    store['medobs_list_v1'] = JSON.stringify({ date: '2000-01-01', list });
+    expect(loadMedobs()).toEqual([
+      { name: 'Ola', active: false },
+      { name: 'Kari', active: false }
+    ]);
+  });
+
+  it('should migrate old string format to inactive object format', () => {
+    store['medobs_list_v1'] = JSON.stringify(['Ola', 'Kari']);
+    expect(loadMedobs()).toEqual([
+      { name: 'Ola', active: false },
+      { name: 'Kari', active: false }
     ]);
   });
 
@@ -62,16 +80,19 @@ describe('loadMedobs', () => {
 });
 
 describe('saveMedobs', () => {
-  it('should save list to localStorage', () => {
+  it('should save list wrapped with today\'s date', () => {
     const list = [{ name: 'Ola', active: true }];
     saveMedobs(list);
-    expect(localStorageMock.setItem).toHaveBeenCalledWith('medobs_list_v1', JSON.stringify(list));
+    expect(localStorageMock.setItem).toHaveBeenCalledWith(
+      'medobs_list_v1',
+      JSON.stringify({ date: todayStr(), list })
+    );
   });
 
   it('should overwrite existing data', () => {
     saveMedobs([{ name: 'Ola', active: true }]);
     saveMedobs([{ name: 'Kari', active: false }]);
-    expect(JSON.parse(store['medobs_list_v1'])).toEqual([
+    expect(JSON.parse(store['medobs_list_v1']).list).toEqual([
       { name: 'Kari', active: false }
     ]);
   });
@@ -85,11 +106,11 @@ describe('defaultCoObservers', () => {
   });
 
   it('should include only active co-observers', () => {
-    store['medobs_list_v1'] = JSON.stringify([
+    store['medobs_list_v1'] = JSON.stringify({ date: todayStr(), list: [
       { name: 'Ola', active: true },
       { name: 'Kari', active: false },
       { name: 'Per', active: true }
-    ]);
+    ] });
 
     const result = defaultCoObservers();
     expect(result[0]).toBe('Ola');
@@ -99,12 +120,12 @@ describe('defaultCoObservers', () => {
   });
 
   it('should skip entries without name', () => {
-    store['medobs_list_v1'] = JSON.stringify([
+    store['medobs_list_v1'] = JSON.stringify({ date: todayStr(), list: [
       { name: '', active: true },
       { name: 'Ola', active: true },
       { active: true },
       null
-    ]);
+    ] });
 
     const result = defaultCoObservers();
     expect(result[0]).toBe('Ola');
@@ -112,8 +133,8 @@ describe('defaultCoObservers', () => {
   });
 
   it('should cap at 10 co-observers', () => {
-    const data = Array.from({ length: 12 }, (_, i) => ({ name: `P${i}`, active: true }));
-    store['medobs_list_v1'] = JSON.stringify(data);
+    const list = Array.from({ length: 12 }, (_, i) => ({ name: `P${i}`, active: true }));
+    store['medobs_list_v1'] = JSON.stringify({ date: todayStr(), list });
 
     const result = defaultCoObservers();
     expect(result).toHaveLength(10);
