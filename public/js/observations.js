@@ -328,30 +328,30 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
           primaryLine.appendChild(rest);
         }
       }
+      // Skjul-hengelås rett etter arten/aktiviteten på hovedlinja, ikke på
+      // egen linje – ren låsen alene under ser forlatt ut.
+      if (obs.hideUntil) {
+        const parts = obs.hideUntil.split('-'); // YYYY-MM-DD
+        const full = parts.length === 3 ? `${parts[2]}.${parts[1]}.${parts[0]}` : obs.hideUntil;
+        const badge = document.createElement('span');
+        badge.className = 'obs-hide-badge';
+        badge.textContent = '🔒';
+        badge.title = `Skjult for offentligheten til ${full}. Endre via blyant-ikonet.`;
+        primaryLine.appendChild(badge);
+      }
       primaryTd.appendChild(primaryLine);
 
-      // Underlinje: skjul-badge + alder/kjønn, kun når noe faktisk er satt.
+      // Underlinje: kun alder/kjønn, og kun når noe faktisk er satt.
       const subParts = [];
       if (obs.age) subParts.push(obs.age);
       if (obs.gender) subParts.push(obs.gender);
-      if (obs.hideUntil || subParts.length) {
+      if (subParts.length) {
         const subline = document.createElement('div');
         subline.className = 'obs-subline';
-        if (obs.hideUntil) {
-          const parts = obs.hideUntil.split('-'); // YYYY-MM-DD
-          const full = parts.length === 3 ? `${parts[2]}.${parts[1]}.${parts[0]}` : obs.hideUntil;
-          const badge = document.createElement('span');
-          badge.className = 'obs-hide-badge';
-          badge.textContent = '🔒';
-          badge.title = `Skjult for offentligheten til ${full}. Endre via blyant-ikonet.`;
-          subline.appendChild(badge);
-        }
-        if (subParts.length) {
-          const meta = document.createElement('span');
-          meta.className = 'obs-subline-meta';
-          meta.textContent = subParts.join(', ');
-          subline.appendChild(meta);
-        }
+        const meta = document.createElement('span');
+        meta.className = 'obs-subline-meta';
+        meta.textContent = subParts.join(', ');
+        subline.appendChild(meta);
         primaryTd.appendChild(subline);
       }
       tr.appendChild(primaryTd);
