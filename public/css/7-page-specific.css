@@ -668,9 +668,13 @@ body.theme-light #search:disabled::placeholder {
         box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
         background: radial-gradient(circle at top left, rgba(15, 23, 42, 0.96), rgba(15, 23, 42, 0.9));
       }
-      /* Høyere spesifisitet enn .section-main slik at topp-paddingen ikke overstyres */
+      /* Høyere spesifisitet enn .section-main slik at topp-paddingen ikke overstyres.
+         Strammere sidepadding enn input-seksjonene: obs-lista er en tabell som
+         tåler å gå nærmere kanten, så det blir mindre tomrom til høyre for knappene. */
       fieldset.section-liste {
         padding-top: 6px;
+        padding-left: 8px;
+        padding-right: 8px;
       }
 
       /* Alle handlingsknapper full bredde og sentrert */
@@ -1243,7 +1247,7 @@ body.theme-light #search:disabled::placeholder {
       .obs-table td.action-td {
         white-space: nowrap;
         text-align: right;
-        padding-right: 8px;
+        padding-right: 2px;
       }
 
       .footer-credit {
