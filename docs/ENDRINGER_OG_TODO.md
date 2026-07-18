@@ -131,6 +131,7 @@
   - Lagre brukerens preferanse i localStorage
 
 #### Tekniske oppgaver:
+- **Staging-miljø på Pi**: Lag en staging-instans på Raspberry Pi (f.eks. egen container på annen port + `staging-ao-pi.efugl.no`, eller en `update-ao-pi.sh staging`-modus). **Motivasjon:** Fly-deploy tar for lang tid når man vil se en endring raskt i felt-lignende miljø. Pi er primær prod, så en Pi-staging gir rask iterasjon uten å røre prod. Vurder delt vs. separat LocationDB-volum og at staging ikke logger til prod-Supabase.
 - **OpenSSL warnings**: Fikse urllib3/OpenSSL-advarsel i Python-miljø (lav prioritet)
 - **Cloudflare cache-flush i deploy (Pi)**: `update-ao-pi.sh` bør purge Cloudflare-cachen for `ao-pi.efugl.no` etter deploy. **Problem observert 2026-07-09:** Cloudflare cachet gammel `storage.js`/`version.js` (4t edge-TTL, `cf-cache-status: HIT`) selv om origin sender `max-age=300`. Ny `settings.html` importerte `ACTIVITY_SHORT_SUGGESTIONS` fra en gammel cachet `storage.js` uten eksporten → ES-modul-import kastet → hele settings-scriptet stoppet (ingen pill-rader). Fly har ikke dette problemet.
   - **Løsning:** Legg til et purge-kall på slutten av `update-ao-pi.sh`, f.eks. `curl -X POST "https://api.cloudflare.com/client/v4/zones/$CF_ZONE_ID/purge_cache" -H "Authorization: Bearer $CF_API_TOKEN" -H "Content-Type: application/json" --data '{"purge_everything":true}'`. Krever `CF_ZONE_ID` + scoped `CF_API_TOKEN` (Cache Purge-rettighet), lagret utenfor repo.

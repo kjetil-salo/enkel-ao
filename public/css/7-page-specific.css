@@ -421,8 +421,19 @@
 
 /* Dempet seksjon (progressiv flyt) */
 .dimmed {
-  opacity: 0.5;
+  opacity: 0.6;
   pointer-events: none;
+}
+
+/* Låst art-felt: gjør «Velg lokasjon først»-teksten tydelig sterkere enn en
+   vanlig dempet placeholder, så den skiller seg ut i den dempede seksjonen. */
+#search:disabled::placeholder {
+  color: var(--color-accent);
+  opacity: 1;
+  font-weight: 700;
+}
+body.theme-light #search:disabled::placeholder {
+  color: var(--color-accent);
 }
 
       input[type="text"]::placeholder {
@@ -1144,40 +1155,21 @@
         padding-right: 12px;
       }
 
-      /* Make the first column (Art) expand, shrink the middle columns */
-      .obs-table th:first-child,
-      .obs-table td:first-child { width: 40%; }
-      .obs-table th:nth-child(2),
-      .obs-table td:nth-child(2) { width: 28%; min-width: 150px; }
-      .obs-table th:nth-child(3),
-      .obs-table td:nth-child(3) { width: 18%; }
-      .obs-table th:nth-last-child(2),
-      .obs-table td:nth-last-child(2) {
-        width: 8%;
-        font-size: 0.75em;
-      }
+      /* 3 kolonner: bred primærkolonne (art–aktivitet) · antall · handlinger */
+      .obs-table td.obs-cell-primary { width: 52%; }
+      .obs-table td.obs-cell-count { width: 30%; min-width: 160px; }
 
       @media (max-width: 480px) {
         /* Colgroup definert i JS gir fixed-layout korrekte bredder selv med colspan-header */
         .obs-table { table-layout: fixed; }
         .obs-table th, .obs-table td { padding: 4px 6px; }
 
-        .obs-table th:first-child,
-        .obs-table td:first-child { width: 23%; }
+        .obs-table td.obs-cell-primary { width: 45%; }
+        .obs-table td.obs-cell-count { width: 33%; min-width: unset; }
 
-        .obs-table th:nth-child(2),
-        .obs-table td:nth-child(2) { width: 38%; min-width: unset; }
-
-        .obs-table th:nth-child(3),
-        .obs-table td:nth-child(3) { width: 20%; }
-
-        /* Skjul alder/kjønn-kolonne — nesten alltid tom */
-        .obs-table th:nth-last-child(2),
-        .obs-table td:nth-last-child(2) { display: none; }
-
-        /* 19% = ~62px på typisk mobil — akkurat nok til to emoji-knapper */
+        /* handlinger — ~22% = plass til edit + slett uten overflow på smal mobil */
         .obs-table th:last-child,
-        .obs-table td:last-child { width: 19%; padding-right: 4px; }
+        .obs-table td:last-child { width: 22%; padding-right: 4px; }
 
         /* Kompakte action-knapper på smal skjerm */
         .edit-obs-btn, .delete-obs-btn { padding: 1px 2px; }
@@ -1190,6 +1182,32 @@
           width: 100%;
           display: block;
         }
+      }
+
+      /* Primærlinje i obs-lista: art (fet) – aktivitet (dempet), bred bruk av rada */
+      .obs-primary {
+        line-height: 1.25;
+        word-break: break-word;
+      }
+      .obs-species {
+        font-weight: 600;
+        color: var(--text);
+        font-size: 0.92rem;
+      }
+      .obs-activity-inline {
+        color: var(--muted);
+        font-weight: 400;
+      }
+      .obs-subline {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+        margin-top: 3px;
+      }
+      .obs-subline-meta {
+        font-size: 0.85em;
+        color: var(--muted);
       }
 
       /* Pluss/minus-knapper for antall i observasjonslisten */

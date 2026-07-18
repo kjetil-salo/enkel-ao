@@ -178,7 +178,8 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
   // hindrer fixed layout i å beregne korrekte bredder.
   if (window.innerWidth <= 480) {
     const colgroup = document.createElement('colgroup');
-    ['23%', '38%', '20%', '0%', '19%'].forEach(w => {
+    // 3 kolonner: art–aktivitet (bred) · antall · handlinger
+    ['45%', '33%', '22%'].forEach(w => {
       const col = document.createElement('col');
       col.style.width = w;
       colgroup.appendChild(col);
@@ -232,7 +233,7 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
     const groupRow = document.createElement('tr');
     groupRow.className = 'obs-group-row';
     const groupCell = document.createElement('td');
-    groupCell.colSpan = 5;
+    groupCell.colSpan = 3;
     groupCell.className = 'obs-group-title';
 
     const groupHeader = document.createElement('div');
@@ -309,23 +310,60 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
       // Alternerende bakgrunn (settes på td-er for full bredde)
       const altBg = obsIndex % 2 === 1 ? 'rgba(100,116,139,0.08)' : null;
 
-      const artTd = document.createElement('td');
-      artTd.textContent = obs.species && obs.species.taxonName ? obs.species.taxonName : '';
-      // Marker funn som er skjult for offentligheten til en gitt dato (settes på edit-siden).
-      if (obs.hideUntil) {
-        const parts = obs.hideUntil.split('-'); // YYYY-MM-DD
-        const short = parts.length === 3 ? `${parts[2]}.${parts[1]}` : obs.hideUntil;
-        const full = parts.length === 3 ? `${parts[2]}.${parts[1]}.${parts[0]}` : obs.hideUntil;
-        const badge = document.createElement('span');
-        badge.className = 'obs-hide-badge';
-        badge.textContent = `🔒 ${short}`;
-        badge.title = `Skjult for offentligheten til ${full}. Endre via blyant-ikonet.`;
-        artTd.appendChild(badge);
+      // Primærcelle: art (fet) – aktivitet (dempet) på én bred linje.
+      // Bedre bruk av bredden enn egne smale kolonner for aktivitet/detaljer.
+      const primaryTd = document.createElement('td');
+      primaryTd.className = 'obs-cell-primary';
+
+      const primaryLine = document.createElement('div');
+      primaryLine.className = 'obs-primary';
+
+      const speciesSpan = document.createElement('span');
+      speciesSpan.className = 'obs-species';
+      speciesSpan.textContent = obs.species && obs.species.taxonName ? obs.species.taxonName : '';
+      primaryLine.appendChild(speciesSpan);
+
+      if (obs.activity) {
+        const actSpan = document.createElement('span');
+        actSpan.className = 'obs-activity-inline';
+        // Bryt kun foran «–», og hold «– aktivitet» samlet (nbsp) så det aldri
+        // blir en foreldreløs bindestrek sist på linje 1.
+        primaryLine.appendChild(document.createTextNode(' '));
+        actSpan.textContent = `– ${obs.activity}`;
+        primaryLine.appendChild(actSpan);
       }
-      tr.appendChild(artTd);
+      primaryTd.appendChild(primaryLine);
+
+      // Underlinje: skjul-badge + alder/kjønn, kun når noe faktisk er satt.
+      const subParts = [];
+      if (obs.age) subParts.push(obs.age);
+      if (obs.gender) subParts.push(obs.gender);
+      if (obs.hideUntil || subParts.length) {
+        const subline = document.createElement('div');
+        subline.className = 'obs-subline';
+        if (obs.hideUntil) {
+          const parts = obs.hideUntil.split('-'); // YYYY-MM-DD
+          const short = parts.length === 3 ? `${parts[2]}.${parts[1]}` : obs.hideUntil;
+          const full = parts.length === 3 ? `${parts[2]}.${parts[1]}.${parts[0]}` : obs.hideUntil;
+          const badge = document.createElement('span');
+          badge.className = 'obs-hide-badge';
+          badge.textContent = `🔒 ${short}`;
+          badge.title = `Skjult for offentligheten til ${full}. Endre via blyant-ikonet.`;
+          subline.appendChild(badge);
+        }
+        if (subParts.length) {
+          const meta = document.createElement('span');
+          meta.className = 'obs-subline-meta';
+          meta.textContent = subParts.join(', ');
+          subline.appendChild(meta);
+        }
+        primaryTd.appendChild(subline);
+      }
+      tr.appendChild(primaryTd);
 
       const countTd = document.createElement('td');
-      
+      countTd.className = 'obs-cell-count';
+
       // Render count cell med pluss/minus knapper
       function renderCountCell() {
         countTd.innerHTML = '';
@@ -341,10 +379,12 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
         const isNarrow = !hasFineMouse && window.innerWidth <= 420;
 
         // Kompakte, rektangulære knapper gir bedre tabellrytme enn store sirkler.
-        const btnWidth = hasFineMouse ? '28px' : isNarrow ? '38px' : '42px';
-        const btnHeight = hasFineMouse ? '28px' : isNarrow ? '34px' : '38px';
+        const btnWidth = hasFineMouse ? '28px' : isNarrow ? '34px' : '40px';
+        const btnHeight = hasFineMouse ? '28px' : isNarrow ? '32px' : '36px';
         const btnFontSize = hasFineMouse ? '1em' : '1.25em';
-        countWrap.style.gap = hasFineMouse ? '3px' : isNarrow ? '4px' : '5px';
+        countWrap.style.gap = hasFineMouse ? '3px' : isNarrow ? '3px' : '5px';
+        // Klyng antall-knappene mot høyre, nær handlingsknappene (mindre dødrom)
+        countWrap.style.justifyContent = 'flex-end';
 
         const btnStyle = {
           width: btnWidth,
@@ -415,7 +455,7 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
         span.textContent = obs.count != null ? String(obs.count) : '';
         Object.assign(span.style, {
           cursor: 'pointer',
-          minWidth: isNarrow ? '24px' : '36px',
+          minWidth: isNarrow ? '22px' : '36px',
           textAlign: 'center',
           fontSize: isNarrow ? '1.22em' : '1.28em',
           fontWeight: '700',
@@ -511,24 +551,6 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
       renderCountCell();
       tr.appendChild(countTd);
 
-      const activityTd = document.createElement('td');
-      const activitySpan = document.createElement('span');
-      activitySpan.className = 'obs-activity-text';
-      activitySpan.textContent = obs.activity || '';
-      activitySpan.style.fontSize = '0.85em';
-      activitySpan.style.color = '#b0b8c1';
-      activityTd.appendChild(activitySpan);
-      tr.appendChild(activityTd);
-
-      const detailsTd = document.createElement('td');
-      const details = [];
-      if (obs.age) details.push(obs.age);
-      if (obs.gender) details.push(obs.gender);
-      detailsTd.textContent = details.join(', ');
-      detailsTd.style.fontSize = '0.85em';
-      detailsTd.style.color = 'var(--muted)';
-      tr.appendChild(detailsTd);
-
       const actionTd = document.createElement('td');
       actionTd.className = 'action-td';
       actionTd.style.textAlign = 'center';
@@ -550,7 +572,7 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
       deleteBtn.className = 'delete-obs-btn';
       deleteBtn.textContent = '🗑️';
       deleteBtn.title = 'Slett observasjon';
-      deleteBtn.style.marginLeft = '6px';
+      deleteBtn.style.marginLeft = '4px';
       deleteBtn.addEventListener('click', () => {
         if (globalIndex === -1) return;
 

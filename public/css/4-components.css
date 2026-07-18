@@ -77,11 +77,14 @@
   cursor: pointer;
 }
 
-/* Liten bytte-pil signaliserer at pillen er en klikkbar modus-bryter. */
+/* Bytte-pil signaliserer tydelig at pillen er en klikkbar modus-bryter. */
 .mode-pill::after {
   content: ' ⇄';
-  opacity: 0.65;
-  font-weight: var(--font-weight-normal);
+  opacity: 1;
+  font-weight: var(--font-weight-bold);
+  font-size: 1.25em;
+  margin-left: 3px;
+  vertical-align: -1px;
 }
 
 .mode-pill.field-mode {
