@@ -2082,6 +2082,10 @@ body.theme-light #create-site-modal > div {
 }
 body.theme-light .loc-pinned {
   backdrop-filter: none;
+  /* Uten blur i lyst tema må bakgrunnen være ugjennomsiktig, ellers skinner
+     art-/antall-feltene gjennom den sticky linja når man scroller. */
+  background: #e8f0fe;
+  border-color: rgba(37, 99, 235, 0.5);
 }
 .loc-pinned-label {
   flex: 1;
