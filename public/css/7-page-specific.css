@@ -1149,39 +1149,24 @@ body.theme-light #search:disabled::placeholder {
 
       .obs-table th:last-child,
       .obs-table td:last-child {
-        width: 56px;
         text-align: center;
         padding-left: 6px;
         padding-right: 12px;
       }
 
-      /* 3 kolonner: bred primærkolonne (art–aktivitet) · antall · handlinger */
-      .obs-table td.obs-cell-primary { width: 52%; }
-      .obs-table td.obs-cell-count { width: 30%; min-width: 160px; }
+      /* Art–aktivitet fyller all ledig plass; antall + handlinger krymper til
+         innhold og klumper seg mot høyre. Ingen dødrom, ingen faste prosenter,
+         og art-linja wrapper (aldri overflow) når plassen blir for liten. */
+      .obs-table td.obs-cell-primary { width: 100%; }
+      .obs-table td.obs-cell-count,
+      .obs-table td.action-td { width: 1%; white-space: nowrap; }
 
       @media (max-width: 480px) {
-        /* Colgroup definert i JS gir fixed-layout korrekte bredder selv med colspan-header */
-        .obs-table { table-layout: fixed; }
         .obs-table th, .obs-table td { padding: 4px 6px; }
-
-        .obs-table td.obs-cell-primary { width: 45%; }
-        .obs-table td.obs-cell-count { width: 33%; min-width: unset; }
-
-        /* handlinger — ~22% = plass til edit + slett uten overflow på smal mobil */
-        .obs-table th:last-child,
-        .obs-table td:last-child { width: 22%; padding-right: 4px; }
+        .obs-table td:last-child { padding-right: 4px; }
 
         /* Kompakte action-knapper på smal skjerm */
         .edit-obs-btn, .delete-obs-btn { padding: 1px 2px; }
-
-        /* Aktivitetstekst avkortet via div-wrapper (fungerer uten table-layout:fixed) */
-        .obs-activity-text {
-          overflow: hidden;
-          white-space: nowrap;
-          text-overflow: ellipsis;
-          width: 100%;
-          display: block;
-        }
       }
 
       /* Primærlinje i obs-lista: art (fet) – aktivitet (dempet), bred bruk av rada */
@@ -1699,13 +1684,6 @@ body.theme-light #search:disabled::placeholder {
           width: 100%;
           margin-left: 0;
         }
-
-        .obs-table th:first-child,
-        .obs-table td:first-child { width: 35%; }
-        .obs-table th:nth-child(2),
-        .obs-table td:nth-child(2) { width: 22%; }
-        .obs-table th:nth-child(3),
-        .obs-table td:nth-child(3) { width: 25%; }
 
       }
 

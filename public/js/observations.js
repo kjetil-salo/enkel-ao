@@ -173,20 +173,8 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
   const table = document.createElement('table');
   table.className = 'obs-table';
 
-  // På smal skjerm: colgroup definerer kolonnebredder for table-layout:fixed.
-  // Nødvendig fordi første rad er en gruppe-header med colSpan=5, som ellers
-  // hindrer fixed layout i å beregne korrekte bredder.
-  if (window.innerWidth <= 480) {
-    const colgroup = document.createElement('colgroup');
-    // 3 kolonner: art–aktivitet (bred) · antall · handlinger
-    ['45%', '33%', '22%'].forEach(w => {
-      const col = document.createElement('col');
-      col.style.width = w;
-      colgroup.appendChild(col);
-    });
-    table.appendChild(colgroup);
-  }
-
+  // Auto table-layout: art-kolonnen (width:100%) tar all ledig plass, mens
+  // antall- og handlings-kolonnene krymper til innhold og klumper mot høyre.
   const tbody = document.createElement('tbody');
 
   groups.forEach((group) => {
