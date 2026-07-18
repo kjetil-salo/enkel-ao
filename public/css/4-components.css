@@ -77,6 +77,13 @@
   cursor: pointer;
 }
 
+/* Liten bytte-pil signaliserer at pillen er en klikkbar modus-bryter. */
+.mode-pill::after {
+  content: ' ⇄';
+  opacity: 0.65;
+  font-weight: var(--font-weight-normal);
+}
+
 .mode-pill.field-mode {
   background: var(--color-success-soft);
   border-color: var(--color-success);
@@ -137,6 +144,25 @@ body.theme-light .mode-pill.after-mode {
 
 .activity-pill:active {
   transform: scale(0.98);
+}
+
+/* Badge i obs-lista for funn som er skjult til en dato (Skjul funn til dato). */
+.obs-hide-badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: var(--radius-full);
+  font-size: 0.72em;
+  font-weight: var(--font-weight-medium);
+  color: #fbbf24;
+  background: rgba(251, 191, 36, 0.14);
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+body.theme-light .obs-hide-badge {
+  color: #b45309;
+  background: rgba(180, 83, 9, 0.12);
 }
 
 /* ============================================================================
@@ -275,6 +301,27 @@ body.theme-light input[type="text"].species-selected {
   overflow-y: auto;
   padding: 2px 0 0;
   pointer-events: none;
+}
+
+/* Trefflista flyter oppå innholdet under i stedet for å dytte det ned,
+   slik at layouten står stille mens man søker. Ankeret er 0 høyt i flyten. */
+.results-anchor {
+  position: relative;
+}
+
+#results:not(:empty) {
+  position: absolute;
+  top: 4px;
+  left: 0;
+  right: 0;
+  z-index: var(--z-sticky);
+  margin-top: 0;
+  padding: 4px;
+  background: var(--color-card-bg);
+  border: var(--border-width) solid var(--border-color-medium);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  pointer-events: auto;
 }
 
 .result-item {

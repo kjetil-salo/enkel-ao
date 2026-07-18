@@ -2,12 +2,18 @@
  * Skjematilstand-modul for progressiv aktivering av felter
  */
 
+// Placeholder i art-feltet forklarer hvorfor det er låst før lokasjon er valgt.
+const SEARCH_PLACEHOLDER_LOCKED = 'Velg lokasjon først ↑';
+const SEARCH_PLACEHOLDER_READY = 'Skriv artsnavn her …';
+
 export function updateSectionStates(state, dom) {
   const hasLocation = !!(dom.placeInput && dom.placeInput.value.trim());
 
   if (dom.sectionObservasjon) {
     dom.sectionObservasjon.classList.toggle('dimmed', !hasLocation);
     dom.input.disabled = !hasLocation;
+    // Selvforklarende låst tilstand: feltet forteller hva som mangler.
+    dom.input.placeholder = hasLocation ? SEARCH_PLACEHOLDER_READY : SEARCH_PLACEHOLDER_LOCKED;
     dom.countInput.disabled = !hasLocation || !state.selectedSpecies;
     dom.activitySelect.disabled = !hasLocation || !state.selectedSpecies || !dom.countInput.value.trim();
     dom.activitySubmitBtn.disabled = dom.activitySelect.disabled;

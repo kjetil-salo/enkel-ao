@@ -193,6 +193,27 @@
         Aktiver for å registrere observasjoner med egen dato/tid (ikke sanntid).
       </div>
 
+      <div style="margin-top:24px;padding-top:18px;border-top:1px solid rgba(148,163,184,0.12);">
+        <h3 style="margin:0 0 4px 0;font-size:1em;color:var(--text,#e5e7eb);">Sikkerhetskopi</h3>
+        <p style="font-size:0.82em;color:var(--muted,#aaa);margin:0 0 14px 0;">
+          Observasjonene dine lagres bare i denne nettleseren. Last ned en sikkerhetskopi (JSON-fil)
+          før du tømmer nettleserdata eller bytter enhet – og gjenopprett den ved behov.
+          Gjenoppretting <strong>erstatter</strong> lista som ligger i appen nå.
+        </p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button type="button" id="backup-download"
+            style="padding:10px 16px;border-radius:8px;border:none;background:#3b82f6;color:white;font-size:0.95em;cursor:pointer;">
+            ⬇️ Last ned sikkerhetskopi
+          </button>
+          <button type="button" id="backup-restore"
+            style="padding:10px 16px;border-radius:8px;border:1px solid rgba(148,163,184,0.3);background:transparent;color:var(--text,#e5e7eb);font-size:0.95em;cursor:pointer;">
+            ⬆️ Gjenopprett fra fil
+          </button>
+          <input type="file" id="backup-file" accept="application/json,.json" style="display:none;" />
+        </div>
+        <div id="backup-status" style="display:none;margin-top:8px;padding:10px;border-radius:8px;font-size:0.85em;"></div>
+      </div>
+
       <div style="margin-top:32px;text-align:center;">
         <a href="/" style="color:#3b82f6;text-decoration:none;font-size:1.05em;">← Tilbake</a>
       </div>
@@ -475,6 +496,89 @@
           testLoginBtn.disabled = false;
           testLoginBtn.textContent = '🔐 Test innlogging';
         }
+      });
+
+      // Sikkerhetskopi (backup/gjenoppretting av observasjoner)
+      const OBS_KEY = 'fugleobservasjoner_v1';
+      const backupDownloadBtn = document.getElementById('backup-download');
+      const backupRestoreBtn = document.getElementById('backup-restore');
+      const backupFileInput = document.getElementById('backup-file');
+      const backupStatus = document.getElementById('backup-status');
+
+      function showBackupStatus(msg, type) {
+        const bg = { info: 'rgba(59,130,246,0.1)', success: 'rgba(34,197,94,0.1)', error: 'rgba(239,68,68,0.1)' }[type];
+        const bd = { info: 'rgba(59,130,246,0.3)', success: 'rgba(34,197,94,0.3)', error: 'rgba(239,68,68,0.3)' }[type];
+        backupStatus.style.cssText = `display:block;margin-top:8px;padding:10px;border-radius:8px;font-size:0.85em;background:${bg};border:1px solid ${bd};color:${_sc(type)};`;
+        backupStatus.textContent = msg;
+      }
+
+      function currentObsCount() {
+        try {
+          const p = JSON.parse(localStorage.getItem(OBS_KEY) || '{}');
+          return Array.isArray(p.observations) ? p.observations.length : 0;
+        } catch (e) { return 0; }
+      }
+
+      backupDownloadBtn.addEventListener('click', () => {
+        let payload;
+        try {
+          const raw = localStorage.getItem(OBS_KEY);
+          payload = raw ? JSON.parse(raw) : { version: 1, observations: [] };
+        } catch (e) {
+          payload = { version: 1, observations: [] };
+        }
+        const backup = {
+          app: 'enkel-ao',
+          type: 'observations-backup',
+          exportedAt: new Date().toISOString(),
+          data: payload,
+        };
+        const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const d = new Date();
+        const stamp = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `enkel-ao-backup-${stamp}.json`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+        const n = currentObsCount();
+        showBackupStatus(`✅ Lastet ned sikkerhetskopi med ${n} observasjon${n === 1 ? '' : 'er'}.`, 'success');
+      });
+
+      backupRestoreBtn.addEventListener('click', () => backupFileInput.click());
+
+      backupFileInput.addEventListener('change', () => {
+        const file = backupFileInput.files && backupFileInput.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+          try {
+            const parsed = JSON.parse(reader.result);
+            // Godta både vårt backup-format og rått payload-format
+            let payload = null;
+            if (parsed && parsed.type === 'observations-backup' && parsed.data) payload = parsed.data;
+            else if (parsed && Array.isArray(parsed.observations)) payload = parsed;
+            if (!payload || !Array.isArray(payload.observations)) {
+              showBackupStatus('❌ Ugyldig fil – fant ingen observasjoner.', 'error');
+              return;
+            }
+            const count = payload.observations.length;
+            const existing = currentObsCount();
+            if (!confirm(`Gjenopprette ${count} observasjon${count === 1 ? '' : 'er'}? Dette erstatter de ${existing} som ligger i appen nå.`)) {
+              return;
+            }
+            localStorage.setItem(OBS_KEY, JSON.stringify({ version: 1, observations: payload.observations }));
+            showBackupStatus(`✅ Gjenopprettet ${count} observasjon${count === 1 ? '' : 'er'}. Gå tilbake til appen for å se dem.`, 'success');
+          } catch (e) {
+            showBackupStatus('❌ Kunne ikke lese fila. Er det en gyldig JSON-sikkerhetskopi?', 'error');
+          } finally {
+            backupFileInput.value = ''; // tillat ny gjenoppretting av samme fil
+          }
+        };
+        reader.readAsText(file);
       });
     </script>
   </body>

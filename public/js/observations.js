@@ -311,6 +311,17 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
 
       const artTd = document.createElement('td');
       artTd.textContent = obs.species && obs.species.taxonName ? obs.species.taxonName : '';
+      // Marker funn som er skjult for offentligheten til en gitt dato (settes på edit-siden).
+      if (obs.hideUntil) {
+        const parts = obs.hideUntil.split('-'); // YYYY-MM-DD
+        const short = parts.length === 3 ? `${parts[2]}.${parts[1]}` : obs.hideUntil;
+        const full = parts.length === 3 ? `${parts[2]}.${parts[1]}.${parts[0]}` : obs.hideUntil;
+        const badge = document.createElement('span');
+        badge.className = 'obs-hide-badge';
+        badge.textContent = `🔒 ${short}`;
+        badge.title = `Skjult for offentligheten til ${full}. Endre via blyant-ikonet.`;
+        artTd.appendChild(badge);
+      }
       tr.appendChild(artTd);
 
       const countTd = document.createElement('td');
