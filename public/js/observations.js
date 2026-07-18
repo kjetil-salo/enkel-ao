@@ -312,13 +312,21 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
       primaryLine.appendChild(speciesSpan);
 
       if (obs.activity) {
-        const actSpan = document.createElement('span');
-        actSpan.className = 'obs-activity-inline';
-        // Bryt kun foran «–», og hold «– aktivitet» samlet (nbsp) så det aldri
-        // blir en foreldreløs bindestrek sist på linje 1.
+        // «– førsteord» bindes sammen (nowrap) så en tankestrek aldri blir
+        // stående alene sist på linja; resten av lange aktiviteter kan brytes.
         primaryLine.appendChild(document.createTextNode(' '));
-        actSpan.textContent = `– ${obs.activity}`;
-        primaryLine.appendChild(actSpan);
+        const words = obs.activity.split(' ');
+        const dashUnit = document.createElement('span');
+        dashUnit.className = 'obs-activity-inline';
+        dashUnit.style.whiteSpace = 'nowrap';
+        dashUnit.textContent = `– ${words[0]}`;
+        primaryLine.appendChild(dashUnit);
+        if (words.length > 1) {
+          const rest = document.createElement('span');
+          rest.className = 'obs-activity-inline';
+          rest.textContent = ' ' + words.slice(1).join(' ');
+          primaryLine.appendChild(rest);
+        }
       }
       primaryTd.appendChild(primaryLine);
 

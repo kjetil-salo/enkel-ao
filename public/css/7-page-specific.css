@@ -62,7 +62,7 @@
         box-shadow:
           0 12px 28px rgba(15, 23, 42, 0.72),
           0 0 0 1px rgba(15, 23, 42, 0.9);
-        padding: 6px 6px 6px 6px;
+        padding: 6px 3px 6px 3px;
         margin: 0 -6px; /* bleed to the viewport edges */
         overflow: visible;
         backdrop-filter: blur(14px);
@@ -673,8 +673,8 @@ body.theme-light #search:disabled::placeholder {
          tåler å gå nærmere kanten, så det blir mindre tomrom til høyre for knappene. */
       fieldset.section-liste {
         padding-top: 6px;
-        padding-left: 8px;
-        padding-right: 8px;
+        padding-left: 6px;
+        padding-right: 6px;
       }
 
       /* Alle handlingsknapper full bredde og sentrert */
@@ -1176,7 +1176,9 @@ body.theme-light #search:disabled::placeholder {
       /* Primærlinje i obs-lista: art (fet) – aktivitet (dempet), bred bruk av rada */
       .obs-primary {
         line-height: 1.25;
-        word-break: break-word;
+        /* overflow-wrap (ikke word-break) så nbsp mellom «–» og aktivitet
+           respekteres — bryter kun lange enkeltord ved reelt behov. */
+        overflow-wrap: break-word;
       }
       .obs-species {
         font-weight: 600;
