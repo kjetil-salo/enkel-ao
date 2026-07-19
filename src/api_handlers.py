@@ -230,7 +230,7 @@ def _sliding_expiration(auth_cookie: str, user_id: str, login_token: str = None)
                 logger.info(f'[SLIDING] Fikk ny auth-cookie: {mask_token(new_auth)}')
                 return new_auth
 
-            logger.debug('[SLIDING] Cookie fortsatt gyldig, ingen fornyelse nødvendig')
+            logger.info('[SLIDING] Cookie fortsatt gyldig, ingen fornyelse nødvendig')
             return None
     except Exception as e:
         logger.error(f'[SLIDING] Feil: {e}')
@@ -541,15 +541,25 @@ def _epsg3857_to_wgs84(x, y):
     return round(lat, 6), round(lon, 6)
 
 
-def handle_ao_private_sites(auth_cookie: str, ao_base_url: str = 'https://www.artsobservasjoner.no', login_token: str = None) -> list:
+def handle_ao_private_sites(auth_cookie: str, ao_base_url: str = 'https://www.artsobservasjoner.no', login_token: str = None, user_id: str = None) -> tuple:
     """
     Hent alle brukerens private lokasjoner via BindUserSitesGrid.
 
-    Returnerer liste med dicts: { id, name, lat, lon, acc }
+    Returnerer tuple: (sites, refreshed_auth_cookie)
+    hvor sites er liste med dicts: { id, name, lat, lon, acc }
+    og refreshed_auth_cookie er ny .ASPXAUTHNO hvis sesjonen ble fornyet (ellers None).
     Koordinater er konvertert fra EPSG:3857 til WGS84.
 
     BindUserSitesGrid er et Kendo-grid-endepunkt som krever X-Requested-With: XMLHttpRequest.
+
+    Med user_id + login_token sikres gyldig sesjon (sliding → logintoken-revival →
+    credentials) FØR kallet, slik at en utløpt .ASPXAUTHNO ikke gir tom liste.
     """
+    # Sørg for gyldig auth (sliding expiration → logintoken → credentials)
+    refreshed_auth_cookie = None
+    if user_id and login_token:
+        auth_cookie, refreshed_auth_cookie = _ensure_auth(auth_cookie, user_id, login_token)
+
     url_grid = f'{ao_base_url}/Site/BindUserSitesGrid?UserSitesGrid-size=500'
     seed_cookies = {'.ASPXAUTHNO': auth_cookie, 'AcceptCookies': '1'}
     if login_token:
@@ -587,7 +597,7 @@ def handle_ao_private_sites(auth_cookie: str, ao_base_url: str = 'https://www.ar
         sites.append({'id': site_id, 'name': name, 'lat': lat, 'lon': lon, 'acc': acc})
 
     logger.info(f'[AO-PRIVATE-SITES] Hentet {len(sites)} private lokasjoner')
-    return sites
+    return sites, refreshed_auth_cookie
 
 
 def _wgs84_to_mercator(lat, lon):

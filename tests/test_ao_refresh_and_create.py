@@ -248,3 +248,90 @@ def test_ao_create_site_invalid_coords():
     assert r.status_code == 400
 
     srv.shutdown()
+
+
+# --- handle_ao_private_sites: auto-revival av utløpt sesjon ---
+
+def test_private_sites_revives_expired_session(monkeypatch):
+    """Utløpt .ASPXAUTHNO skal revitaliseres via _ensure_auth før BindUserSitesGrid,
+    og den fornyede cookien skal returneres til frontend."""
+    from src import api_handlers
+
+    calls = {}
+
+    def fake_ensure_auth(auth, user_id, login_token):
+        calls['ensure_auth'] = (auth, user_id, login_token)
+        return 'ny-gyldig-cookie', 'ny-gyldig-cookie'
+
+    class FakeResponse:
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {'data': [
+                {'SiteId': 1, 'Name': 'Myra', 'SiteXCoord': 600000,
+                 'SiteYCoord': 8400000, 'Accuracy': 10},
+            ]}
+
+    class FakeClient:
+        def __init__(self, **kwargs):
+            calls['seed_cookies'] = kwargs.get('cookies')
+
+        def post(self, url, **kwargs):
+            return FakeResponse()
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            pass
+
+    monkeypatch.setattr(api_handlers, '_ensure_auth', fake_ensure_auth)
+    monkeypatch.setattr('httpx.Client', FakeClient)
+
+    sites, refreshed = api_handlers.handle_ao_private_sites(
+        'utlopt-cookie', login_token='123:abc', user_id='123')
+
+    # _ensure_auth ble kalt med den utløpte cookien
+    assert calls['ensure_auth'] == ('utlopt-cookie', '123', '123:abc')
+    # Den fornyede cookien brukes i selve kallet og returneres til frontend
+    assert calls['seed_cookies']['.ASPXAUTHNO'] == 'ny-gyldig-cookie'
+    assert refreshed == 'ny-gyldig-cookie'
+    assert len(sites) == 1 and sites[0]['name'] == 'Myra'
+
+
+def test_private_sites_without_user_id_skips_ensure_auth(monkeypatch):
+    """Uten user_id (bakoverkompatibel sti) skal _ensure_auth ikke kalles,
+    og refreshed skal være None."""
+    from src import api_handlers
+
+    def fail_ensure_auth(*args, **kwargs):
+        raise AssertionError('_ensure_auth skal ikke kalles uten user_id')
+
+    class FakeResponse:
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {'data': []}
+
+    class FakeClient:
+        def __init__(self, **kwargs):
+            pass
+
+        def post(self, url, **kwargs):
+            return FakeResponse()
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            pass
+
+    monkeypatch.setattr(api_handlers, '_ensure_auth', fail_ensure_auth)
+    monkeypatch.setattr('httpx.Client', FakeClient)
+
+    sites, refreshed = api_handlers.handle_ao_private_sites('cookie', login_token='123:abc')
+
+    assert sites == []
+    assert refreshed is None

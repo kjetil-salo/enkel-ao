@@ -660,13 +660,18 @@ class Handler(SimpleHTTPRequestHandler):
         from src.api_handlers import handle_ao_private_sites
         auth_cookie = self.headers.get('X-AO-Auth-Cookie', '').strip() or None
         login_token = self.headers.get('X-AO-Login-Token', '').strip() or None
+        user_id = self.headers.get('X-AO-User-Id', '').strip() or None
         if not auth_cookie:
             self._send_json({'error': 'Ikke innlogget'}, status=401)
             return
         ao_base = os.environ.get('AO_URL', 'https://www.artsobservasjoner.no')
         try:
-            sites = handle_ao_private_sites(auth_cookie, ao_base, login_token=login_token)
-            self._send_json({'sites': sites})
+            sites, refreshed_auth_cookie = handle_ao_private_sites(
+                auth_cookie, ao_base, login_token=login_token, user_id=user_id)
+            response_data = {'sites': sites}
+            if refreshed_auth_cookie:
+                response_data['refreshedAuthCookie'] = refreshed_auth_cookie
+            self._send_json(response_data)
         except Exception as e:
             logger.warning(f'[AO-PRIVATE-SITES] Feil: {e}')
             self._send_json({'error': 'Kunne ikke hente private lokasjoner'}, status=500)

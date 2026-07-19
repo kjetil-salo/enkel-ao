@@ -36,9 +36,15 @@ export async function fetchAndCachePrivateSites() {
     if (!tokens.authCookie) return;
     const headers = { 'X-AO-Auth-Cookie': tokens.authCookie };
     if (tokens.loginToken) headers['X-AO-Login-Token'] = tokens.loginToken;
+    if (tokens.userId) headers['X-AO-User-Id'] = tokens.userId;
     const resp = await fetch('/api/ao-private-sites', { headers });
     if (!resp.ok) return;
     const data = await resp.json();
+    // Persister fornyet auth-cookie hvis sesjonen ble revitalisert server-side
+    if (data.refreshedAuthCookie) {
+      tokens.authCookie = data.refreshedAuthCookie;
+      localStorage.setItem('ao_tokens', JSON.stringify(tokens));
+    }
     if (!Array.isArray(data.sites)) return;
     localStorage.setItem(PRIVATE_SITES_KEY, JSON.stringify({ ts: Date.now(), sites: data.sites }));
     console.log(`[AO] Cachet ${data.sites.length} private lokasjoner`);
