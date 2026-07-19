@@ -26,6 +26,13 @@
         --muted: #64748b;
       }
 
+      /* Clean arver lys-familiens legacy-tokens, men gjør aksenten monokrom.
+         Fanger alt som bruker --accent/--accent-soft (bl.a. .loc-change-btn). */
+      body.theme-clean {
+        --accent: #111111;
+        --accent-soft: rgba(0, 0, 0, 0.06);
+      }
+
       * {
         box-sizing: border-box;
       }
@@ -2010,6 +2017,144 @@ body.theme-light #create-site-modal > div {
 }
 
 /* ============================================================
+   Clean-tema (ren monokrom) — striper lys-familiens fargeflater
+   og aksenter til svart/grå. Alt strukturelt arves fra .theme-light.
+   Eneste bevarte varselfarge er rød på «låst»-tilstanden.
+   Må stå ETTER .theme-light-reglene over (lik spesifisitet).
+   ============================================================ */
+
+/* --- Blå aksenter → svart/grå --- */
+body.theme-clean .btn:hover {
+  background: rgba(0, 0, 0, 0.05) !important;
+  border-color: #111111 !important;
+}
+
+body.theme-clean .icon-btn {
+  background: rgba(0, 0, 0, 0.05) !important;
+  border-color: #cbd5e1 !important;
+}
+
+body.theme-clean .result-item:hover,
+body.theme-clean .result-item[aria-selected="true"],
+body.theme-clean .ao-site-suggestion:hover,
+body.theme-clean .activity-search-item:hover,
+body.theme-clean .activity-search-item.active {
+  background: rgba(0, 0, 0, 0.05) !important;
+}
+
+body.theme-clean .field-highlight,
+body.theme-clean #activity.field-highlight {
+  background: #f4f4f5 !important;
+}
+
+body.theme-clean input:checked + .slider {
+  background: #111111 !important;
+}
+
+/* --- Fokus-ring og felt-fremheving (art-feltet) → grå --- */
+body.theme-clean input[type="text"]:focus {
+  border-color: rgba(0, 0, 0, 0.55) !important;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35), 0 0 0 6px rgba(0, 0, 0, 0.08) !important;
+}
+
+body.theme-clean .field-highlight {
+  border-color: #111111 !important;
+  box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.08) !important;
+}
+
+body.theme-clean .field-highlight::placeholder {
+  color: rgba(0, 0, 0, 0.45) !important;
+}
+
+body.theme-clean #search.field-highlight {
+  animation: field-pulse-clean 1.5s ease-in-out infinite !important;
+  outline-color: rgba(0, 0, 0, 0.35) !important;
+}
+
+@keyframes field-pulse-clean {
+  0%, 100% { outline: 3px solid rgba(0, 0, 0, 0.25); outline-offset: 0; }
+  50% { outline: 5px solid rgba(0, 0, 0, 0.5); outline-offset: 3px; }
+}
+
+/* --- Inline-stylede blå primærknapper (omgår tokens) → svart --- */
+body.theme-clean #test-ao-login,
+body.theme-clean #backup-download {
+  background: #111111 !important;
+}
+
+/* --- Fargede seksjoner (blå/grønn/gul) → nøytral grå.
+       Dette er den store synlige forskjellen fra Lyst. --- */
+body.theme-clean .section-lokasjon,
+body.theme-clean .section-observasjon,
+body.theme-clean .section-handlinger {
+  background: #f7f7f8 !important;
+  border-color: rgba(0, 0, 0, 0.18) !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+}
+
+body.theme-clean .section-lokasjon legend,
+body.theme-clean .section-observasjon legend {
+  color: #111111 !important;
+}
+
+/* --- Pills: grønn/blå aksent → grå --- */
+body.theme-clean .activity-pill.selected {
+  border-color: #111111 !important;
+  background: rgba(0, 0, 0, 0.06) !important;
+  color: #000000 !important;
+}
+
+body.theme-clean .activity-pill.last-used {
+  border-color: #111111 !important;
+  background: rgba(0, 0, 0, 0.05) !important;
+  color: #111111 !important;
+}
+
+body.theme-clean input[type="text"].species-selected {
+  color: #111111 !important;
+  background: rgba(0, 0, 0, 0.04) !important;
+}
+
+/* --- Modus-pill: behold funksjonell forskjell, men i gråtone --- */
+body.theme-clean .mode-pill.field-mode {
+  color: #000000 !important;
+  background: rgba(0, 0, 0, 0.07) !important;
+}
+
+body.theme-clean .mode-pill.after-mode {
+  color: #555555 !important;
+  background: rgba(0, 0, 0, 0.03) !important;
+}
+
+/* --- Obs-gruppe: blå/grønn → grå (rød «låst» beholdes som varsel) --- */
+body.theme-clean .obs-group-title {
+  background: #f4f4f5 !important;
+  box-shadow: inset 4px 0 0 rgba(0, 0, 0, 0.55) !important;
+}
+
+body.theme-clean .obs-group-meta {
+  background: rgba(0, 0, 0, 0.05) !important;
+  border-color: rgba(0, 0, 0, 0.20) !important;
+  color: #111111 !important;
+}
+
+body.theme-clean .obs-group-time-btn {
+  background: rgba(0, 0, 0, 0.06) !important;
+  border-color: rgba(0, 0, 0, 0.45) !important;
+  color: #111111 !important;
+}
+
+body.theme-clean .obs-group-lock-btn,
+body.theme-clean .obs-group-lock-btn:hover,
+body.theme-clean .obs-group-lock-btn:focus,
+body.theme-clean .obs-group-lock-btn:active {
+  background: rgba(0, 0, 0, 0.05) !important;
+  border-color: rgba(0, 0, 0, 0.35) !important;
+  color: #111111 !important;
+  box-shadow: none !important;
+}
+
+/* ============================================================
    ① Lokasjon — radius-slider og festet kompakt lokasjonslinje
    ============================================================ */
 
@@ -2100,6 +2245,12 @@ body.theme-light .loc-pinned {
      art-/antall-feltene gjennom den sticky linja når man scroller. */
   background: #e8f0fe;
   border-color: rgba(37, 99, 235, 0.5);
+}
+/* Clean: den kompakte stedsboksen (vises når sted er valgt) → nøytral grå. */
+body.theme-clean .loc-pinned {
+  background: #f0f0f1;
+  border-color: rgba(0, 0, 0, 0.28);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
 }
 .loc-pinned-label {
   flex: 1;

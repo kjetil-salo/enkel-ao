@@ -62,7 +62,7 @@ if (sites && Array.isArray(sites)) {
   sites.forEach(site => {
     // Sjekk om site er privat
     const isPrivate = isPrivateSite(site);
-    const showPrivateSites = localStorage.getItem('showPrivateSitesOnMap') !== '0';
+    const showPrivateSites = localStorage.getItem('showPrivateSitesOnMap') === '1'; // av som standard
     // Private lokasjoner vises på kartet hvis de er mine, eller hvis innstillingen er på
     if (isPrivate && !site.isMine && !showPrivateSites) {
       return; // Hopp over private som ikke er mine (med mindre innstillingen er på)

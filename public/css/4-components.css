@@ -151,9 +151,10 @@ body.theme-light .mode-pill.after-mode {
 
 /* Badge i obs-lista for funn som er skjult til en dato (Skjul funn til dato). */
 .obs-hide-badge {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
   margin-left: 6px;
-  padding: 1px 6px;
+  padding: 2px 6px;
   border-radius: var(--radius-full);
   font-size: 0.72em;
   font-weight: var(--font-weight-medium);

@@ -119,3 +119,30 @@ body.theme-light {
   --color-obs-row-bg: rgba(0, 0, 0, 0.02);
   --color-obs-row-hover: rgba(0, 0, 0, 0.05);
 }
+
+/* === Clean Theme (ren monokrom) ===
+   Clean bærer også .theme-light, så den arver hele lys-familien og
+   overstyrer kun det som skal være monokromt: blå aksent → nær-svart,
+   flate skygger, tekst i rent svart. Semantiske farger (grønn = gyldig,
+   rød = fare) beholdes fra lys-familien fordi de bærer mening.
+   Må stå ETTER .theme-light for å vinne på kildeorden (lik spesifisitet). */
+body.theme-clean {
+  --color-accent: #111111;
+  --color-accent-soft: rgba(0, 0, 0, 0.05);
+  --color-text: #000000;
+
+  --border-color: rgba(0, 0, 0, 0.12);
+  --border-color-medium: rgba(0, 0, 0, 0.22);
+  --border-color-strong: rgba(0, 0, 0, 0.30);
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 2px 6px rgba(0, 0, 0, 0.07);
+  --shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.09);
+  --shadow-glow-success: 0 0 0 3px rgba(0, 0, 0, 0.08);
+  --shadow-glow-accent: 0 0 0 3px rgba(0, 0, 0, 0.08);
+  --shadow-glow-accent-strong: 0 0 0 4px rgba(0, 0, 0, 0.12);
+
+  --color-card-gradient-from: #ffffff;
+  --color-card-gradient-to: #ffffff;
+  --color-card-shadow-rgb: 0, 0, 0;
+}
