@@ -885,8 +885,14 @@ body.theme-light #search:disabled::placeholder {
       }
 
       .datetime-field input {
+        /* iOS gir date/time-inputs en fast intrinsic bredde som ignorerer
+           width:100%, slik at de flommer ut av cellen sin. appearance:none
+           tvinger dem til å respektere box-modellen. Vi styler boksen selv. */
+        -webkit-appearance: none;
+        appearance: none;
         width: 100%;
         min-width: 0;
+        max-width: 100%;
         box-sizing: border-box;
         padding: 7px 10px;
         border-radius: 999px;
@@ -894,6 +900,11 @@ body.theme-light #search:disabled::placeholder {
         background: var(--card-bg, #111827);
         color: var(--text);
         font-size: 16px;
+      }
+
+      /* iOS sentrerer ikke innholdet i date/time når appearance er fjernet */
+      .datetime-field input[type="date"]::-webkit-date-and-time-value {
+        text-align: left;
       }
 
       @media (max-width: 480px) {
@@ -1062,13 +1073,16 @@ body.theme-light #search:disabled::placeholder {
 
       .obs-group-lock-btn,
       .obs-group-time-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
         width: 34px;
         height: 34px;
         min-width: 34px;
         min-height: 34px;
         padding: 0;
         border: 1px solid rgba(148, 163, 184, 0.28);
-        border-radius: 999px;
+        border-radius: 10px;
         background: rgba(15, 23, 42, 0.35);
         color: var(--text);
         cursor: pointer;
@@ -1091,6 +1105,16 @@ body.theme-light #search:disabled::placeholder {
         background: rgba(239, 68, 68, 0.18);
         color: #fca5a5;
         box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.20);
+      }
+
+      /* Klokka fikk anonym grå kant ved siden av den kraftige lås-badgen.
+         Gi den appens aksentfarge (blå) så den leser som en tydelig,
+         likeverdig handlingsknapp – uten å stjele lås-badgens statusfarger. */
+      .obs-group-time-btn {
+        border-color: rgba(59, 130, 246, 0.60);
+        background: rgba(59, 130, 246, 0.14);
+        color: var(--accent);
+        opacity: 1;
       }
 
       .obs-group-time-btn:hover {
@@ -1882,6 +1906,12 @@ body.theme-light .obs-group-lock-btn,
 body.theme-light .obs-group-time-btn {
   background: #ffffff !important;
   border-color: #cbd5e1 !important;
+}
+
+body.theme-light .obs-group-time-btn {
+  background: rgba(37, 99, 235, 0.10) !important;
+  border-color: rgba(37, 99, 235, 0.60) !important;
+  color: #1d4ed8 !important;
 }
 
 body.theme-light .obs-group-lock-btn {

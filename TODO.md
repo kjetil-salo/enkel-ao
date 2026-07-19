@@ -164,3 +164,13 @@ ksalo.no er live (HTTP 200) med tiles for Keycloak, Quarkus-app, .NET-app, Dagen
   - Er det unødvendige steg eller klikk som kan fjernes?
   - Fungerer appen godt i sterkt sollys (kontrast)?
   - Er feilmeldinger og feedback tydelige nok i stressede situasjoner (fuglen flyr snart!)?
+
+---
+
+## 18. Stedsnavn-søk må virke for både innlogget og ikke-innlogget bruker
+
+- Søk på stedsnavn (lokalitet-autocomplete) må fungere uavhengig av innlogging – spesielt i etterregistrering
+- I dag: `/api/ao-autocomplete` søker lokal DB først (ingen innlogging nødvendig), deretter AO hvis innlogget
+- Krav: en bruker som ikke er innlogget skal fortsatt kunne finne og velge et sted via navnesøk (lokal LocationDB)
+- Verifiser at flyten faktisk gir treff uten innlogging – både i Felt- og Etterregistreringsmodus
+- Sjekk at LocationDB (`LOCATION_DB_PATH`) er aktiv i prod (Pi) slik at ikke-innlogget søk har data å søke i

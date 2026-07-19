@@ -273,7 +273,10 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
     // Klokkeikon for å sette tid på alle obs i gruppen
     const clockBtn = document.createElement('button');
     clockBtn.type = 'button';
-    clockBtn.textContent = '🕐';
+    // Tydelig SVG-klokke (visere mot 10:10) i stedet for 🕐-emoji, som blir
+    // utydelig og plattformavhengig i småformat.
+    clockBtn.innerHTML = '<svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3.2 1.9"/></svg>';
+    clockBtn.setAttribute('aria-label', 'Sett klokkeslett');
     clockBtn.title = 'Sett klokkeslett for alle observasjoner på dette stedet';
     clockBtn.className = 'obs-group-time-btn';
 
