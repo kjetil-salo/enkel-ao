@@ -147,6 +147,10 @@
           🔐 Test innlogging
         </button>
         <div id="ao-login-status" style="display:none;margin-top:8px;padding:10px;border-radius:8px;font-size:0.85em;"></div>
+        <button type="button" id="clear-ao-login"
+          style="display:none;margin-top:10px;width:100%;padding:9px;border-radius:8px;border:1px solid rgba(239,68,68,0.35);background:transparent;color:var(--muted,#aaa);font-size:0.92em;cursor:pointer;">
+          🚪 Fjern innlogging fra denne enheten
+        </button>
       </div>
 
       <div class="settings-row" style="flex-direction: column; align-items: flex-start; gap: 10px;">
@@ -478,12 +482,14 @@
         const val = aoUsernameInput.value.trim();
         if (val) localStorage.setItem('ao_username', val);
         else localStorage.removeItem('ao_username');
+        updateClearLoginVisibility();
       });
 
       aoPasswordInput.addEventListener('input', () => {
         const val = aoPasswordInput.value;
         if (val) localStorage.setItem('ao_password', val);
         else localStorage.removeItem('ao_password');
+        updateClearLoginVisibility();
       });
 
       togglePasswordBtn.addEventListener('click', () => {
@@ -539,8 +545,35 @@
         } finally {
           testLoginBtn.disabled = false;
           testLoginBtn.textContent = '🔐 Test innlogging';
+          updateClearLoginVisibility();
         }
       });
+
+      // Fjern innlogging (tømmer legitimasjon OG aktiv sesjon fra denne enheten)
+      const clearLoginBtn = document.getElementById('clear-ao-login');
+
+      function hasStoredLogin() {
+        if (localStorage.getItem('ao_username') || localStorage.getItem('ao_password')) return true;
+        const t = JSON.parse(localStorage.getItem('ao_tokens') || '{}');
+        return !!(t.loginToken || t.authCookie);
+      }
+
+      function updateClearLoginVisibility() {
+        clearLoginBtn.style.display = hasStoredLogin() ? 'block' : 'none';
+      }
+
+      clearLoginBtn.addEventListener('click', () => {
+        localStorage.removeItem('ao_username');
+        localStorage.removeItem('ao_password');
+        localStorage.removeItem('ao_tokens');
+        aoUsernameInput.value = '';
+        aoPasswordInput.value = '';
+        loginStatus.style.cssText = `display:block;margin-top:8px;padding:10px;border-radius:8px;font-size:0.85em;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.3);color:${_sc('info')};`;
+        loginStatus.textContent = 'ℹ️ Innlogging fjernet fra denne enheten';
+        updateClearLoginVisibility();
+      });
+
+      updateClearLoginVisibility();
 
       // Sikkerhetskopi (backup/gjenoppretting av observasjoner)
       const OBS_KEY = 'fugleobservasjoner_v1';

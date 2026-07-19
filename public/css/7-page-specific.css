@@ -901,6 +901,13 @@ body.theme-light #search:disabled::placeholder {
         min-width: 0;
         max-width: 100%;
         box-sizing: border-box;
+        /* min-height sikrer lik høyde: iOS gir tomme type="time"-felt en
+           lavere intrinsic høyde enn type="date", så uten dette blir
+           Fra/Til-feltene lavere enn datofeltet. display:flex sentrerer
+           verdien vertikalt når boksen vokser til min-height. */
+        min-height: 44px;
+        display: flex;
+        align-items: center;
         padding: 7px 10px;
         border-radius: 999px;
         border: 1px solid rgba(148, 163, 184, 0.45);
