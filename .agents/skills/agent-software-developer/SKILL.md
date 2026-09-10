@@ -37,6 +37,7 @@ Prosjektet er **enkel-ao** — Python 3.12 ThreadingHTTPServer, vanilla JS ES6-m
    - Ekstern API-kall: `except Exception as e: print(...); return graceful_response`
    - SQL: alltid parameterisert (`?`) — aldri f-strings i queries
    - Frontend-endringer: bump `VERSION` i `public/js/version.js`
+   - Synlig endringslogg: skriv bare brukerrettede nyheter, nye muligheter og merkbare arbeidsflytendringer. Tekniske vedlikeholdsendringer som cache/SW-bump, intern refaktor, testoppsett og deploy-teknikk hører normalt ikke hjemme i `public/changelog.html`
    - Input-validering på serversiden — ikke stol på frontend
 3. Kjør tester — alle MÅ bestå:
    ```bash
@@ -64,6 +65,7 @@ Prosjektet er **enkel-ao** — Python 3.12 ThreadingHTTPServer, vanilla JS ES6-m
 2. Sjekk for regresjoner i tilgrensende funksjonalitet
 3. Full testkjøring: `python3 -m pytest --maxfail=3`
 4. Hvis frontend-endringer: bekreft at `VERSION` er bumped
+5. Hvis `public/changelog.html` endres: bekreft at teksten er nyttig for vanlige brukere og ikke bare beskriver intern teknikk
 
 ## Kvalitetskrav
 

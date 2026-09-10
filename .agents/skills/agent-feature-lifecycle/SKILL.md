@@ -97,7 +97,8 @@ For HVER fase, gjenta dette mønsteret:
 1. Verifiser at alle faser fungerer sammen
 2. Sjekk for regresjoner i tilgrensende funksjonalitet
 3. Hvis frontend-endringer: bekreft at VERSION er bumped i `public/js/version.js`
-4. Full testkjøring: `python3 -m pytest --maxfail=3`
+4. Hvis `public/changelog.html` endres: bekreft at teksten handler om nye muligheter, merkbare arbeidsflytendringer eller feil brukeren faktisk merker. Tekniske vedlikeholdsendringer som cache/SW-bump, intern refaktor, testoppsett og deploy-teknikk skal normalt ikke inn i synlig endringslogg.
+5. Full testkjøring: `python3 -m pytest --maxfail=3`
 
 ### Steg 5: Deploy
 

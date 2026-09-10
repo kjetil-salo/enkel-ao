@@ -1,5 +1,115 @@
 # TODO
 
+## 21. Ønskeliste fra Espen (testar), 2026-09-09
+
+Samla tilbakemelding frå Espen, som testar appen aktivt i felt. «FL» viser til
+ei anna fugle-app han samanliknar med (ukjend akronym, spurt ikkje avklart).
+Ikkje prioritert/implementert enno — sjå plan under kvar gruppe.
+
+**Kart-visning:**
+1. ~~Fjern namn på lokalitetane i kartvisninga (som i FL) – dei forkludrar
+   heile GUI. Ev. ein knapp for å skru av/på lokalitetsnamn. Innstillinga bør
+   hugsast (localStorage) til neste gong kartet opnast.~~ ✅ Implementert
+   2026-09-09: `🏷️`-knapp øverst til høgre på kartsida. Default PÅ (viderefører
+   dagens oppførsel for dei fleste — Kjetil sitt val, framfor å endre default
+   for alle basert på éin testar sin tilbakemelding), hugsa i
+   `localStorage['mapShowLabels_v1']`.
+   **Oppfølging same dag:** med namn skrudd av var det ingen måte å sjå kva
+   ein trykte på FØR ein blei send tilbake til hovudsida med lokaliteten
+   valt — eit klikk på markør/polygon kalla `selectLocation()` direkte og
+   navigerte vekk momentant. Fiksa ved å fjerne den direkte klikk-handleren
+   og la Leaflets innebygde popup (namn + avstand + eksplisitt «Velg denne
+   lokaliteten»-knapp, fanst frå før men blei aldri synleg pga. momentan
+   navigasjon) vere einaste vegen til å velje. Polygon og markør deler no
+   same popup-innhald.
+2. ~~Alltid ha kartknappen tilgjengeleg, i tillegg til GPS-knappen (som i
+   FL).~~ ✅ Implementert 2026-09-09: kartknappen (🗺️) er no alltid synleg.
+   Har du ikkje GPS-fix enno, hentar han posisjonen først (som «Bruk
+   GPS»-knappen) og opnar kartet automatisk når han er klar.
+3. Last nye lokalitetar etter kvart som ein panorerer i kartet (som i FL) –
+   i dag hentast lokalitetar berre rundt eitt fast punkt/radius.
+4. ~~Gjer det mogleg å velja polygon-lokalitetar ved å trykkja kor som helst
+   inne i polygonet, ikkje berre på «pinnen» (som i FL).~~ ✅ Implementert
+   2026-09-09: polygon-laget i `map.js` har no ein eigen klikk-handler som
+   vel lokaliteten, i tillegg til senter-markøren.
+
+**Redigering av observasjonar:**
+5. Ved redigering av enkeltobs: gjer det enkelt å endra til annan lokalitet.
+   Treng ein kartknapp i edit.html. Lokalitetssøk med prioritet på nærleik
+   til aktuell GPS-posisjon kan vurderast i tillegg til kartsøk.
+6. Gjer redigering av *alle* obsar på éin lokalitet mogleg (som i FL) –
+   nyttig når mange fuglar er registrert på feil lokalitet ved eit uhell.
+
+**Småting:**
+7. ~~Avkryssingsboks for at antalet er estimert – legg automatisk til ein
+   kommentar, t.d. «Estimert antal».~~ ✅ Implementert 2026-09-09: boks ved
+   sida av «Vis underarter» i ② Observasjon. Legg til kommentaren «Estimert
+   antal» ved registrering, hukast av ned igjen etter kvar registrering (eit
+   val per observasjon, ikkje ei sesjonsinnstilling).
+8. Knapp for å aktivera kommentarfelt direkte i observasjonsvindauget
+   (② Observasjon), slik at ein slepp å opna redigering på nytt for å
+   leggja inn kommentar. (FL har eit tannhjul for dette.)
+9. Symbol/åtvaring for sparsame og sjeldne artar – fangar t.d. at fiskeørn
+   er lagt inn ved eit uhell i staden for fiskemåse.
+
+**Større, meir spekulative ønske:**
+- Kunne registrera andre artsgrupper enn fugl.
+- Nynorsk språk i grensesnittet, og nynorske artsnamn (finst under kvar art
+  i Artsdatabanken – uavklart om dei enkelt kan hentast inn i appen via API).
+
+**Status:** dei fire «kjappe vinn» (#1, #2, #4, #7) er implementert og
+verifisert 2026-09-09 (sjå ✅-merka punkt over) — kun lokalt/staging så
+langt, ikkje deployet til produksjon enno. Testdekning: nye unit-testar i
+`tests/unit/observation-commit.test.js` (checkbox → kommentar), samt
+manuell Playwright-verifisering av kartknapp-synlighet, polygonklikk og
+label-toggle (localStorage-persistens bekrefta med reload).
+
+**Grovplan for resten (kode faktisk sjekka, ikkje starta):**
+- *Middels*: #8 (kommentar-knapp i obs-vindauget – ny UI-tilstand i
+  observations.js), #3 (pan-basert lasting av lokalitetar – debounced
+  `moveend`-lytting på Leaflet-kartet mot `/api/ao-sites`, går utover
+  dagens faste GPS-punkt+radius-modell).
+- *Større*: #5 (kartvel-knapp + nærleikssøk i edit.html), #6 (bulk-rediger
+  alle obsar på ein lokalitet), #9 (treng ei datakjelde for
+  sjeldenheit/rarity per art – uavklart om AO eller Artsdatabanken har dette
+  tilgjengeleg via API).
+- *Eigne prosjekt* (ikkje del av vanleg feature-arbeid): nynorsk (stort
+  omsetjingsarbeid + éin ny datakjelde for artsnamn) og andre artsgrupper
+  (grunnleggande arkitekturendring – artssøk/lokal artsliste er i dag
+  fugle-spesifikk).
+
+Neste steg: avklar med Kjetil kva for punkt som skal inn i neste
+feature-runde, og kva «FL» faktisk er (for å sjå konkret korleis dei har
+løyst #1–4/#6/#8).
+
+## ~~20. Sett opp staging på Pi-en også~~ ✅
+
+~~I dag kjører staging (`enkel-ao-staging.fly.dev`) kun på Fly.io. Produksjon
+(`ao.efugl.no`) kjører derimot på Raspberry Pi-en (se #7) — miljøene er
+altså ulike, og det har allerede bitt oss: staging manglet `LOCATION_DB_PATH`
+(stedssøk uten AO-innlogging virker derfor ikke der, men fungerer på Pi-en),
+og staging kjørte en periode på 2 maskiner uten delt lagring (SQLite-data
+ble usynlig avhengig av hvilken maskin som svarte).~~
+
+→ Opprettet 2026-08-31: **`https://ao-staging.efugl.no`**, port 3015 på Pi-en.
+Egen mappe (`~/enkel-ao-staging`), egen database (bind-mounted `./data`,
+atskilt fra produksjonens navngitte volum), deler kun den skrivebeskyttede
+`shared-locations`-volumet med produksjon (så `LOCATION_DB_PATH` faktisk
+virker — bekreftet med treff på "Herdla" uten AO-innlogging). Deploy:
+`./deploy-staging-pi.sh` (kjører tester, rsync, `docker compose -f
+docker-compose.staging.yml up -d --build`). Cloudflare Tunnel-ingress lagt
+til i `/etc/cloudflared/config.yml` på Pi-en, DNS-CNAME opprettet via
+`cloudflared tunnel route dns`. Fly-staging (`enkel-ao-staging.fly.dev`)
+beholdes som i dag — ingen endring der.
+
+**Gotcha oppdaget under oppsettet:** `cloudflared tunnel route dns <navn>
+<hostname>` uten `--config` kan plukke opp feil tunnel hvis
+`~/.cloudflared/config.yml` (brukerens default) peker på en annen tunnel enn
+den som faktisk kjører fra `/etc/cloudflared/config.yml`. Bruk tunnelens
+fulle UUID (fra `cloudflared tunnel list`) i stedet for navnet for å unngå
+tvetydighet, og verifiser alltid `tunnelID=...` i kommandoens output stemmer
+med den tiltenkte tunnelen før du går videre.
+
 ## 15. Fjern kråke-unntak i toCsv (~juli 2026)
 
 AO slo sammen kråke og svartkråke – begge fikk norsk navn "kråke" i navnebasen, noe som gir feil ved Excel-import.

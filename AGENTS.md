@@ -169,5 +169,5 @@ AO_URL=http://localhost:8080 AO_MOBILE_URL=http://localhost:8080 python3 server.
 ### Versjonering
 Ved ny versjon (git tag), gjør alltid følgende:
 1. Oppdater `VERSION` i `public/js/version.js` (brukes av index.html og help.html footers)
-2. Oppdater `public/changelog.html` med kort beskrivelse av hva som er nytt
+2. Oppdater `public/changelog.html` bare med brukerrettede nyheter: nye muligheter, tydelige endringer i arbeidsflyt eller feilrettinger brukeren faktisk merker. Tekniske vedlikeholdsendringer som cache/SW-bump, intern refaktor, testoppsett og deploy-teknikk skal som hovedregel ikke inn i synlig endringslogg.
 3. Oppdater relevant dokumentasjon i `docs/` hvis funksjonalitet er endret

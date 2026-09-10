@@ -213,6 +213,9 @@ Brukere kan velge 0-6 aktiviteter som vises som hurtigknapper:
 ### Language
 All code comments, docs, and UI text in **Norwegian** (`nb`). Maintain this consistency.
 
+Claude skal alltid svare på norsk bokmål i denne samtalen/dette repoet, med mindre brukeren
+eksplisitt ber om et annet språk.
+
 ### External API Error Handling
 External API failures return graceful degraded responses (empty arrays, status 200) rather than 500 errors:
 ```python
