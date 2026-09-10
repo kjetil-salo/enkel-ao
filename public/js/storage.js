@@ -1,12 +1,15 @@
 /**
  * Storage-modul for localStorage-håndtering
  */
+import { hentAktivFellestur } from './fellestur-client.js';
+import { lastSpeil, lagreSpeilOgSynk, hentTurMedobservatorer } from './fellestur-sync.js';
 
 const STORAGE_KEY = 'fugleobservasjoner_v1';
 const MEDOBS_KEY = 'medobs_list_v1';
 const AO_SIZE_KEY = 'ao_search_radius_v1';
 const ACTIVITY_PILLS_KEY = 'activityPills_v1';
 const SENT_KEY = 'sent_observations_v1';
+const LOCATION_SORT_KEY = 'location_sort_mode_v1';
 
 /**
  * Teknisk beskrivelse av siste feilede saveObservations()-kall (f.eks.
@@ -83,6 +86,17 @@ export function saveMedobs(list) {
 export function defaultCoObservers() {
   const l = loadMedobs();
   const active = (l || []).filter((it) => it && it.name && it.active).map((it) => it.name);
+
+  // Aktiv fellestur: gruppa krediteres automatisk på hver nye observasjon,
+  // uten at man må huke dem av som medobs hver gang. Lokale aktive medobs
+  // (huket av manuelt) går foran, innenfor samme 10-plasser-tak.
+  if (hentAktivFellestur()) {
+    const turMedobs = hentTurMedobservatorer();
+    (turMedobs || []).forEach((navn) => {
+      if (navn && !active.includes(navn)) active.push(navn);
+    });
+  }
+
   const res = Array(10).fill('');
   for (let i = 0; i < Math.min(10, active.length); i++) {
     res[i] = active[i];
@@ -99,6 +113,8 @@ export function defaultCoObservers() {
  *   bilde kunne forsvinne uten at brukeren fikk vite det.
  */
 export function saveObservations(observations) {
+  if (hentAktivFellestur()) return lagreSpeilOgSynk(observations);
+
   if (!window.localStorage) return false;
 
   try {
@@ -121,6 +137,8 @@ export function saveObservations(observations) {
  * @returns {Array} - Liste med observasjoner
  */
 export function loadObservations() {
+  if (hentAktivFellestur()) return lastSpeil();
+
   if (!window.localStorage) return [];
 
   try {
@@ -239,6 +257,35 @@ export function loadAoSearchRadius() {
   } catch (e) {
     console.warn('Kunne ikke lese søkeradius', e);
     return 1000;
+  }
+}
+
+/**
+ * Lagre valgt sorteringsmodus for lokasjonsforslag
+ * @param {string} mode - 'standard' eller 'avstand'
+ */
+export function saveLocationSortMode(mode) {
+  if (!window.localStorage) return;
+
+  try {
+    window.localStorage.setItem(LOCATION_SORT_KEY, mode);
+  } catch (e) {
+    console.warn('Kunne ikke lagre sorteringsmodus', e);
+  }
+}
+
+/**
+ * Last valgt sorteringsmodus for lokasjonsforslag
+ * @returns {string} - 'standard' eller 'avstand' (default 'standard')
+ */
+export function loadLocationSortMode() {
+  if (!window.localStorage) return 'standard';
+
+  try {
+    const raw = window.localStorage.getItem(LOCATION_SORT_KEY);
+    return raw === 'avstand' ? 'avstand' : 'standard';
+  } catch (e) {
+    return 'standard';
   }
 }
 

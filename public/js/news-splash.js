@@ -1,42 +1,35 @@
 /**
- * Generell nyhetsplash for Enkel-AO.
+ * Manuelt styrt nyhetsplash for Enkel-AO.
  *
- * Slik legger du til en nyhet: legg en ny post ØVERST i NEWS_FEED med en unik id.
- * En bruker ser kun nyheter som er nyere enn sist hen trykket «Skjønner». Kommer
- * en bruker tilbake etter flere oppdateringer, vises alle de nye samlet (opptil
- * MAX_VISIBLE).
+ * Slik publiseres en nyhet:
+ * 1. Sett enabled: true.
+ * 2. Sett en ny, unik id.
+ * 3. Skriv punktene i items.
  *
- * VIKTIG: Ikke fjern eller endre id-en på gamle poster — id-en brukes som
- * «lest-grense». Nye poster legges bare til på toppen.
+ * Versjonsbump og changelog gir aldri splash alene. Den vises bare når denne
+ * konfigen bevisst endres.
  */
 
-import { loadObservations } from './storage.js';
-
 const COOKIE_NAME = 'enkelAoNewsRead';
-const STORAGE_KEY = 'enkelAoNewsRead';
+export const STORAGE_KEY = 'enkelAoNewsRead';
 
-// Maks antall nyheter som vises samtidig. Hindrer en vegg av tekst for brukere
-// som har vært borte over mange oppdateringer. Nyeste vises først.
+// Maks antall punkter som vises samtidig. Hindrer en vegg av tekst.
 const MAX_VISIBLE = 4;
 
-// Kronologisk feed — NYESTE ØVERST. Hver post: { id, title, body }.
-const NEWS_FEED = [
-  {
-    id: 'activity-abbreviations-v1',
-    title: 'Kortnavn på hurtigknapper',
-    body: 'Aktivitets-hurtigknappene kan nå vise et kort navn (maks 5 tegn) i stedet for fullt navn, så flere knapper får plass på skjermen. Sett ditt eget kortnavn i innstillinger, eller trykk «Foreslå forkortelser».',
-  },
-  {
-    id: 'visit-locks-v1',
-    title: 'Besøk på samme lokalitet',
-    body: 'Observasjonslista grupperer nå på besøk. Lås et besøk når du er ferdig, så starter appen et nytt besøk hvis du kommer tilbake til samme lokalitet senere.',
-  },
-  {
-    id: 'visit-locks-legend-v1',
-    title: 'Hengelås i lista',
-    body: 'Grønn åpen lås betyr aktivt besøk. Rød lukket lås betyr avsluttet besøk.',
-  },
-];
+export const CURRENT_NEWS_SPLASH = {
+  enabled: true,
+  id: 'september-2026-fellestur-fikset-v1',
+  items: [
+    {
+      title: '👥 Fellestur',
+      body: 'Flere fuglefolk kan dele registreringsarbeidet på samme tur – start under «Fellestur», del koden. Synkroniseringen mot den delte loggen er nå gjort mer robust.',
+    },
+    {
+      title: 'Fortsatt en tidlig versjon',
+      body: 'Fellestur er ny og ikke grundig testet i praktisk bruk ennå. Meld gjerne fra hvis noe oppfører seg rart – se tilbakemelding-lenken i innstillinger.',
+    },
+  ],
+};
 
 function getCookieValue(name) {
   const prefix = `${encodeURIComponent(name)}=`;
@@ -62,22 +55,21 @@ function getLastReadId() {
   }
 }
 
-/**
- * Nyheter som er nyere enn sist leste, nyeste først, begrenset til MAX_VISIBLE.
- * Ukjent/manglende lest-grense = vis alt (capped).
- */
-function unreadItems() {
-  const lastId = getLastReadId();
-  const idx = lastId ? NEWS_FEED.findIndex((item) => item.id === lastId) : -1;
-  const unread = idx === -1 ? NEWS_FEED : NEWS_FEED.slice(0, idx);
-  return unread.slice(0, MAX_VISIBLE);
+function activeNewsItems() {
+  if (!CURRENT_NEWS_SPLASH.enabled) return [];
+  if (!CURRENT_NEWS_SPLASH.id) return [];
+  if (!Array.isArray(CURRENT_NEWS_SPLASH.items)) return [];
+  if (getLastReadId() === CURRENT_NEWS_SPLASH.id) return [];
+  return CURRENT_NEWS_SPLASH.items.slice(0, MAX_VISIBLE);
 }
 
-export function hasReadNews(newsId = NEWS_FEED[0]?.id) {
+export function hasReadNews(newsId = CURRENT_NEWS_SPLASH.id) {
   return getLastReadId() === newsId;
 }
 
-export function markNewsRead(newsId = NEWS_FEED[0]?.id) {
+export function markNewsRead(newsId = CURRENT_NEWS_SPLASH.id) {
+  if (!newsId) return;
+
   const maxAge = 60 * 60 * 24 * 365;
   document.cookie = `${encodeURIComponent(COOKIE_NAME)}=${encodeURIComponent(newsId)}; Max-Age=${maxAge}; Path=/; SameSite=Lax`;
 
@@ -125,37 +117,28 @@ function createNewsSplash(items) {
   button.className = 'news-splash-button';
   button.textContent = 'Skjønner';
   button.addEventListener('click', () => {
-    markNewsRead();
+    markNewsRead(CURRENT_NEWS_SPLASH.id);
     overlay.remove();
   });
+
+  const changelog = document.createElement('a');
+  changelog.className = 'news-splash-link';
+  changelog.href = '/changelog.html';
+  changelog.textContent = 'Se endringslogg';
 
   panel.appendChild(title);
   panel.appendChild(list);
   panel.appendChild(button);
+  panel.appendChild(changelog);
   overlay.appendChild(panel);
 
   return { overlay, button };
 }
 
-/**
- * Helt ny bruker = ingen registrerte observasjoner ennå.
- * Nyhetsplashen (funksjonsnyheter) er støy for en som aldri har brukt appen —
- * la den heller dukke opp senere når brukeren faktisk har observasjoner og
- * forstår konteksten. Markeres derfor IKKE som lest her.
- */
-function isFirstTimer() {
-  try {
-    return loadObservations().length === 0;
-  } catch (e) {
-    return false;
-  }
-}
-
 export function initNewsSplash() {
-  if (isFirstTimer()) return;
   if (document.querySelector('.news-splash')) return;
 
-  const items = unreadItems();
+  const items = activeNewsItems();
   if (items.length === 0) return;
 
   const { overlay, button } = createNewsSplash(items);

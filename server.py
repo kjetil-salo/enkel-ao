@@ -58,6 +58,7 @@ from src.html_templates import (generate_stats_login_page, generate_stats_page, 
 from src import stats_store
 from src import feedback_store
 from src import share_store
+from src import fellestur_store
 from src import email_notify
 from src.utils import parse_user_agent
 from src.ao_import_httpx import post_with_curl
@@ -96,6 +97,16 @@ FEEDBACK_WINDOW_SEC = 600
 _share_hits = {}
 SHARE_MAX_PER_WINDOW = 10
 SHARE_WINDOW_SEC = 600
+
+# Fellestur er skrive-tung av natur (flere personer legger inn og retter
+# fortløpende gjennom en hel feltøkt, hver +/- 1-endring er ett synk-kall) —
+# og flere deltakere deler ofte samme WiFi/mobilnett og dermed samme IP mot
+# denne kvoten. 60/10 min viste seg i praksis for stramt for to enheter som
+# testet sammen (ingen server-feil i loggen, bare stille 429 — den avvisningen
+# logges ikke). Romsligere kvote enn deling/tilbakemelding.
+_fellestur_hits = {}
+FELLESTUR_MAX_PER_WINDOW = 600
+FELLESTUR_WINDOW_SEC = 600
 
 
 def _rate_ok(hits, ip, max_per_window, window_sec):
@@ -177,6 +188,18 @@ class Handler(SimpleHTTPRequestHandler):
 
         if parsed.path == '/api/feedback-status':
             self._handle_feedback_status_post(parsed)
+            return
+
+        if parsed.path == '/api/fellestur':
+            self._handle_fellestur_post()
+            return
+
+        if parsed.path == '/api/fellestur-oppdater':
+            self._handle_fellestur_oppdater_post()
+            return
+
+        if parsed.path == '/api/fellestur-sync':
+            self._handle_fellestur_sync_post()
             return
 
         # For alt annet, returner 404
@@ -399,6 +422,95 @@ class Handler(SimpleHTTPRequestHandler):
         except Exception as e:
             logger.error(f'[SHARE] Feil ved sletting: {e}')
             self._send_json({'error': 'Kunne ikke slette deling'}, status=500)
+
+    def _read_json_body(self):
+        content_length = int(self.headers.get('Content-Length', 0))
+        body = self.rfile.read(content_length).decode('utf-8') if content_length else '{}'
+        return json.loads(body)
+
+    def _handle_fellestur_post(self):
+        """Opprett en ny fellestur — delt kladdebok for en gruppe på samme tur."""
+        try:
+            data = self._read_json_body()
+
+            if not _rate_ok(_fellestur_hits, self._client_ip(), FELLESTUR_MAX_PER_WINDOW, FELLESTUR_WINDOW_SEC):
+                self._send_json({'error': 'For mange forespørsler — prøv igjen om litt.'}, status=429)
+                return
+
+            result = fellestur_store.create_fellestur(
+                navn=data.get('navn', ''),
+                medobservatorer=data.get('medobservatorer', []),
+            )
+            if not result:
+                self._send_json({'error': 'Kunne ikke opprette fellestur'}, status=500)
+                return
+
+            logger.info(f"[FELLESTUR] Ny fellestur {result['kode']}")
+            self._send_json({'ok': True, 'kode': result['kode'], 'expiresTs': result['expiresTs']})
+        except Exception as e:
+            logger.error(f'[FELLESTUR] Feil ved oppretting: {e}')
+            self._send_json({'error': 'Kunne ikke opprette fellestur'}, status=500)
+
+    def _handle_fellestur_oppdater_post(self):
+        """Oppdater turnavn og/eller medobservatører — alle med koden kan gjøre dette."""
+        try:
+            data = self._read_json_body()
+
+            if not _rate_ok(_fellestur_hits, self._client_ip(), FELLESTUR_MAX_PER_WINDOW, FELLESTUR_WINDOW_SEC):
+                self._send_json({'error': 'For mange forespørsler — prøv igjen om litt.'}, status=429)
+                return
+
+            ok = fellestur_store.update_fellestur(
+                data.get('kode', ''),
+                navn=data.get('navn'),
+                medobservatorer=data.get('medobservatorer'),
+            )
+            self._send_json({'ok': ok}, status=200 if ok else 404)
+        except Exception as e:
+            logger.error(f'[FELLESTUR] Feil ved oppdatering av tur: {e}')
+            self._send_json({'error': 'Kunne ikke oppdatere fellesturen'}, status=500)
+
+    def _handle_fellestur_sync_post(self):
+        """
+        Anvend en batch med endringer (upserts + deletes) mot den delte
+        loggen og returner hele turen. Erstatter de tidligere per-rad-
+        endepunktene (fellestur-obs/-oppdater/-slett) — klienten sender nå
+        en diff mot sist bekreftede server-tilstand i stedet.
+        """
+        try:
+            data = self._read_json_body()
+
+            if not _rate_ok(_fellestur_hits, self._client_ip(), FELLESTUR_MAX_PER_WINDOW, FELLESTUR_WINDOW_SEC):
+                # Logges eksplisitt — i motsetning til andre feil her skrives denne
+                # ALDRI til logger andre steder, og var usynlig da vi feilsøkte den
+                # første gangen kvoten faktisk ble truffet i praksis.
+                logger.warning(f"[FELLESTUR] Rate-limit truffet for {self._client_ip()} på fellestur-sync")
+                self._send_json({'error': 'For mange forespørsler — prøv igjen om litt.'}, status=429)
+                return
+
+            resultat = fellestur_store.apply_sync(
+                data.get('kode', ''),
+                upserts=data.get('upserts', []),
+                deletes=data.get('deletes', []),
+                registrert_av=data.get('registrertAv', ''),
+            )
+            if not resultat:
+                self._send_json({'error': 'Fant ikke fellesturen, eller den er utløpt'}, status=404)
+                return
+            self._send_json({'ok': True, **resultat})
+        except Exception as e:
+            logger.error(f'[FELLESTUR] Feil ved synk: {e}')
+            self._send_json({'error': 'Kunne ikke synke fellesturen'}, status=500)
+
+    def _handle_fellestur_get(self, parsed):
+        """Hent turnavn, medobservatører og alle oppføringer — brukes til polling."""
+        qs = parse_qs(parsed.query)
+        kode = qs.get('kode', [''])[0].upper()
+        tur = fellestur_store.get_fellestur(kode)
+        if not tur:
+            self._send_json({'error': 'Fant ikke fellesturen, eller den er utløpt'}, status=404)
+            return
+        self._send_json({'ok': True, **tur})
 
     def _handle_share_page(self, parsed):
         """Vis en delt observasjonsliste. Ukjent og utløpt lenke gir samme side."""
@@ -774,6 +886,8 @@ class Handler(SimpleHTTPRequestHandler):
                 self._handle_ao_areas_api(parsed)
             elif parsed.path == '/api/ao-autocomplete':
                 self._handle_ao_autocomplete_api(parsed)
+            elif parsed.path == '/api/fellestur':
+                self._handle_fellestur_get(parsed)
             else:
                 self._handle_static_files(parsed)
         except Exception as e:
@@ -1072,12 +1186,21 @@ class Handler(SimpleHTTPRequestHandler):
         super().end_headers()
 
     def _send_json(self, data, status=200):
-        """Send JSON-respons til klient."""
+        """Send JSON-respons til klient.
+
+        API-svar skal aldri lagres i nettleserens HTTP-cache — uten no-store
+        her arver de end_headers() sin default (max-age=3600 for alt som ikke
+        er .html/.js/.css), og et endepunkt som polles med identisk URL (f.eks.
+        /api/fellestur?kode=X) ville da servert samme svar fra cache i en hel
+        time uansett hva som faktisk skjer på serveren.
+        """
         payload = json.dumps(data).encode('utf-8')
         self.send_response(status)
         self.send_header('Content-Type', 'application/json; charset=utf-8')
         self.send_header('Content-Length', str(len(payload)))
         self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Cache-Control', 'no-store')
+        self._cache_header_set = True
         self.end_headers()
         self.wfile.write(payload)
     

@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="nb">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Fellestur</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/style.css" />
+    <style>
+      body { font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+             background: var(--bg, #0f172a); color: var(--text, #e5e7eb); padding: 16px; margin: 0; }
+      .shell { max-width: 640px; margin: 0 auto; padding-bottom: 60px; }
+      header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 4px; }
+      h1 { font-size: 1.25rem; margin: 0; }
+      .back-link { color: var(--accent, #3b82f6); text-decoration: none; font-size: 0.9rem; }
+      .ingress { color: var(--muted, #9ca3af); font-size: 0.85rem; line-height: 1.4; margin: 0 0 18px; }
+
+      .kort { background: rgba(255,255,255,0.04); border: 1px solid rgba(148,163,184,0.15);
+              border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+      .valg { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+      @media (max-width: 480px) { .valg { grid-template-columns: 1fr; } }
+      .valg-btn { padding: 20px 14px; border-radius: 12px; border: 1px solid rgba(148,163,184,0.25);
+                  background: transparent; color: var(--text, #e5e7eb); font-size: 1rem; cursor: pointer;
+                  text-align: center; }
+      .valg-btn:hover { border-color: var(--accent, #3b82f6); }
+
+      label { display: block; font-size: 0.8rem; color: var(--muted, #9ca3af); margin: 10px 0 4px; }
+      input[type=text], input[type=number] {
+        width: 100%; box-sizing: border-box; padding: 10px 12px; border-radius: 8px;
+        border: 1px solid rgba(148,163,184,0.25); background: rgba(255,255,255,0.03);
+        color: var(--text, #e5e7eb); font-size: 1rem;
+      }
+      .btn { padding: 10px 16px; border-radius: 8px; font-size: 0.95rem; cursor: pointer;
+             border: 1px solid rgba(148,163,184,0.25); background: transparent; color: var(--text, #e5e7eb); }
+      .btn.primar { background: var(--accent, #3b82f6); border-color: transparent; color: #fff; }
+      .btn.liten { padding: 6px 10px; font-size: 0.8rem; }
+      .btn:disabled { opacity: 0.5; cursor: default; }
+      .rad-btn { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+
+      .kode-visning { font-size: 1.8rem; font-weight: 700; letter-spacing: 0.15em; text-align: center;
+                      padding: 14px; background: rgba(59,130,246,0.12); border-radius: 10px; margin: 10px 0; }
+
+      .medobs-liste { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 4px; }
+      .medobs-chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px;
+                     border-radius: 999px; background: rgba(148,163,184,0.15); font-size: 0.85rem; }
+      .medobs-chip button { border: none; background: none; color: inherit; cursor: pointer; font-size: 0.85rem;
+                             padding: 0; line-height: 1; opacity: 0.7; }
+      .medobs-legg-til { display: flex; gap: 6px; margin-top: 6px; }
+      .medobs-legg-til input { flex: 1; }
+
+      .liste-header { display: flex; justify-content: space-between; align-items: center; margin: 18px 0 8px; }
+      .liste-header h2 { font-size: 1rem; margin: 0; }
+      .oppdater-status { font-size: 0.8rem; color: var(--muted, #9ca3af); }
+
+      .obs-rad { display: flex; align-items: center; gap: 8px; padding: 10px 4px;
+                 border-bottom: 1px solid rgba(148,163,184,0.12); }
+      .obs-rad:last-child { border-bottom: none; }
+      .obs-art { flex: 1; min-width: 0; }
+      .obs-art-navn { font-weight: 600; }
+      .obs-meta { font-size: 0.78rem; color: var(--muted, #9ca3af); }
+      input.obs-antall { width: 56px; flex-shrink: 0; text-align: center; padding: 6px 4px; }
+      .obs-slett { border: none; background: none; color: var(--muted, #9ca3af); cursor: pointer; font-size: 1rem; }
+
+      .tom { text-align: center; color: var(--muted, #9ca3af); padding: 30px 16px; line-height: 1.5; }
+      .nye-badge { background: rgba(34,197,94,0.15); color: #4ade80; border-radius: 999px;
+                   padding: 2px 10px; font-size: 0.8rem; cursor: pointer; border: none; }
+      .feilmelding { color: #f87171; font-size: 0.9rem; margin-top: 8px; }
+
+      body.theme-light { background: #ffffff !important; color: #1a1a1a !important; }
+      body.theme-light .kort { background: #f8fafc !important; border-color: #e2e8f0 !important; }
+      body.theme-light input[type=text], body.theme-light input[type=number] {
+        background: #fff !important; border-color: #d1d5db !important; color: #1a1a1a !important; }
+      body.theme-light .ac-liste { background: #fff !important; border-color: #d1d5db !important; color: #1a1a1a !important; }
+      body.theme-light .kode-visning { background: #dbeafe !important; }
+    </style>
+  </head>
+  <body>
+    <script src="/js/theme.js"></script>
+    <div class="shell">
+      <header>
+        <h1>👥 Fellestur</h1>
+        <a href="/" class="back-link">← Tilbake</a>
+      </header>
+      <p class="ingress">
+        En delt kladdebok for turen. Start eller bli med her med en kort kode —
+        selve registreringen skjer på den vanlige hovedsiden, med samme skjema
+        som ellers. Her kan alle rette tall og slette feilregistreringer, og
+        når turen er over henter én av dere hele lista inn i arbeidslista og
+        sender til AO.
+      </p>
+
+      <div id="app"></div>
+    </div>
+
+    <script type="module" src="/js/fellestur.js"></script>
+  </body>
+</html>
