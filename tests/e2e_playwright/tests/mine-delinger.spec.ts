@@ -1,4 +1,5 @@
-import { test, expect, Page, Route } from '@playwright/test';
+import { test, expect } from '../fixtures';
+import type { Page, Route } from '@playwright/test';
 
 /**
  * «Mine delinger»-siden (Fase F3).

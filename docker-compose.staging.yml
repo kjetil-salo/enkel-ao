@@ -1,0 +1,23 @@
+services:
+  enkel-ao-staging:
+    build: .
+    restart: always
+    ports:
+      - "3015:3015"
+    env_file:
+      - .env
+    environment:
+      - LOCATION_DB_PATH=/shared/locations.db
+      - LOG_DIR=/data/logs
+    volumes:
+      - ./data:/data
+      - shared-locations:/shared
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  shared-locations:
+    external: true

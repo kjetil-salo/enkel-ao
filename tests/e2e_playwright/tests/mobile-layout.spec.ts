@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../fixtures';
 
 /**
  * Layout-tester for mobil (iPhone og Samsung Galaxy).
