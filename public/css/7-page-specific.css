@@ -221,6 +221,34 @@
   left: -12px;
 }
 
+/* «✎ Flere felt før registrering» — samme knapp-form som ✓, men nøytral farge
+   siden den ikke er hovedhandlingen (registrer + åpne edit.html med én gang). */
+.activity-submit-btn-secondary {
+  border-color: var(--border-color-medium);
+  background: var(--color-card-bg);
+  color: var(--color-text);
+}
+
+.activity-submit-btn-secondary:hover {
+  background: var(--color-accent-soft);
+  border-color: var(--color-accent);
+}
+
+/* Nøytral knapp og skjul-hjelper — brukt av bilde-velgeren (photo-picker.js) i
+   både «✎ Flere felt»-modalen og redigerings-modalen. */
+.btn-ghost {
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  background: transparent;
+  border: 1px solid var(--border-color-medium);
+  color: var(--color-text);
+}
+
+.skjult {
+  display: none !important;
+}
+
 .activity-pills {
   display: flex;
   flex-wrap: wrap;
@@ -1374,6 +1402,21 @@ body.theme-light #search:disabled::placeholder {
         outline-offset: 2px;
       }
 
+      .news-splash-link {
+        display: block;
+        margin-top: 12px;
+        color: var(--accent);
+        font-size: 0.9rem;
+        font-weight: 600;
+        text-align: center;
+        text-decoration: none;
+      }
+
+      .news-splash-link:focus {
+        outline: 3px solid rgba(59, 130, 246, 0.32);
+        outline-offset: 3px;
+      }
+
       /* Éngangs førstegangs-coachmark: spotlight på ① Lokasjon */
       .card.coachmark-open {
         position: relative;
@@ -2211,6 +2254,41 @@ body.theme-clean .obs-group-lock-btn:active {
   text-align: right;
   font-variant-numeric: tabular-nums;
   font-weight: 600;
+}
+
+/* --- Sorteringsvalg for lokasjonsforslag --- */
+.loc-sort-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+.loc-sort-label {
+  font-size: 0.8em;
+  color: var(--muted);
+  white-space: nowrap;
+  text-transform: uppercase;
+  letter-spacing: var(--letter-spacing-wide, 0.11em);
+}
+.loc-sort-btn {
+  font-size: 0.8em;
+  padding: 5px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.loc-sort-btn[aria-checked="true"] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+  font-weight: 600;
+}
+.loc-sort-btn:not([aria-checked="true"]):hover {
+  border-color: var(--accent);
 }
 
 /* Stor, touch-vennlig thumb for kalde hender/hansker */

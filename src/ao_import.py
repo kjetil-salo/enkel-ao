@@ -6,6 +6,10 @@ Brukes av ao_import_httpx.py for direkte import til Artsobservasjoner.no.
 
 from datetime import datetime
 
+# Empirisk verifisert 2026-09-10 — se samme kommentar ved AO_BOOL_TRUE i
+# public/js/observations.js. Oppdater BEGGE steder hvis dette noensinne endrer seg.
+AO_BOOL_TRUE = 'true'
+
 
 def observations_to_csv(observations):
     """
@@ -103,6 +107,17 @@ def observations_to_csv(observations):
             if len(parts) == 3:
                 hide_until_str = f'{parts[2]}.{parts[1]}.{parts[0]}'
 
+        # Privat kommentar deler kolonne med _photoMarker (se toppkommentar i
+        # _upload_pending_images i ao_import_httpx.py) — markøren må fortsatt kunne
+        # gjenfinnes som substreng i AO sin PrivateCommentLong, så den legges til i
+        # tillegg til brukerens tekst i stedet for å overskrive den.
+        private_comment = obs.get('privateComment', '')
+        photo_marker = obs.get('_photoMarker', '')
+        if photo_marker:
+            private_comment_col = f'{private_comment} {photo_marker}'.strip() if private_comment else photo_marker
+        else:
+            private_comment_col = private_comment
+
         row = [
             species_name,
             place_col,
@@ -119,7 +134,7 @@ def observations_to_csv(observations):
             obs.get('gender', ''),
             obs.get('activity', ''),
             obs.get('comment', ''),
-            obs.get('_photoMarker', ''),  # Privat kommentar (markør for bildematching)
+            private_comment_col,
             hide_until_str,
         ]
 
@@ -136,9 +151,16 @@ def observations_to_csv(observations):
             else:
                 row.append('')
 
-        # Ekstra kolonner (alle tomme)
-        for _ in extra_cols:
-            row.append('')
+        # Ekstra kolonner — kun «Usikker artsbestemming», «Ikke spontan», «Interessant
+        # observasjon», «Ikke gjenfunnet» og «Ikke funnet» fylles ut (indeks 12-16 i
+        # extra_cols), resten er fortsatt tomme (se AO_BOOL_TRUE-kommentaren over).
+        extra_values = [''] * len(extra_cols)
+        extra_values[12] = AO_BOOL_TRUE if obs.get('uncertain') else ''
+        extra_values[13] = AO_BOOL_TRUE if obs.get('notSpontaneous') else ''
+        extra_values[14] = AO_BOOL_TRUE if obs.get('interesting') else ''
+        extra_values[15] = AO_BOOL_TRUE if obs.get('notRefound') else ''
+        extra_values[16] = AO_BOOL_TRUE if obs.get('notFound') else ''
+        row.extend(extra_values)
 
         lines.append('\t'.join(row))
 

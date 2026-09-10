@@ -5,7 +5,7 @@
 
 // Eksisterende moduler
 import { logPageView, loadActivities, fetchAoSites, fetchAndCachePrivateSites, getCachedPrivateSites } from './api.js';
-import { loadObservations, saveObservations, loadAoSearchRadius, saveAoSearchRadius } from './storage.js';
+import { loadObservations, saveObservations, loadAoSearchRadius, saveAoSearchRadius, loadLocationSortMode, saveLocationSortMode } from './storage.js';
 import { setStatus, setLocationStatus, showToast } from './ui.js';
 import { setAoSiteSuggestions, initLocation, openMap, openMapPage, updateCreateSiteBtnVisibility, initCreateSite } from './location.js';
 import { renderObservations } from './observations.js';
@@ -20,6 +20,8 @@ import { openShareDialog } from './share.js';
 import { initAutocomplete } from './autocomplete.js';
 import { initNewsSplash } from './news-splash.js';
 import { initFirstRunHint } from './first-run-hint.js';
+import { hentAktivFellestur, forlatFellestur } from './fellestur-client.js';
+import { oppdaterSpeilFraServer, hentSpeilVersjon } from './fellestur-sync.js';
 
 // ============================================================
 // Applikasjonstilstand
@@ -41,6 +43,7 @@ const appState = {
   etterregVisitKey: null,
   currentAoSites: [],
   currentAoSizeMeters: 1000,
+  locationSortMode: loadLocationSortMode(),
   _callbacks: null, // settes i init()
 };
 
@@ -78,11 +81,23 @@ const dom = {
   aoSitesEl: document.getElementById('ao-sites'),
   aoSitesDropdown: document.getElementById('ao-sites-dropdown'),
   aoSizeInput: document.getElementById('ao-size'),
+  locSortStandardBtn: document.getElementById('loc-sort-standard'),
+  locSortAvstandBtn: document.getElementById('loc-sort-avstand'),
   sectionLokasjon: document.querySelector('.section-main:nth-of-type(1)'),
   sectionObservasjon: document.querySelector('.section-main:nth-of-type(2)'),
   sectionAktivitet: document.querySelector('.row .activity-input-row'),
   ageSelect: document.getElementById('age'),
   genderSelect: document.getElementById('gender'),
+  countEstimatedCheckbox: document.getElementById('count-estimated'),
+  extraUncertain: document.getElementById('extra-uncertain'),
+  extraNotSpontaneous: document.getElementById('extra-not-spontaneous'),
+  extraInteresting: document.getElementById('extra-interesting'),
+  extraNotRefound: document.getElementById('extra-not-refound'),
+  extraNotFound: document.getElementById('extra-not-found'),
+  extraPrivateComment: document.getElementById('extra-private-comment'),
+  extraComment: document.getElementById('extra-comment'),
+  extraHideUntil: document.getElementById('extra-hide-until'),
+  extraPhotoValue: document.getElementById('extra-photo-value'),
 };
 
 // ============================================================
@@ -150,6 +165,116 @@ function updateAoDirectVisibility() {
 
 function commitFromActivity() {
   commitObservation(appState, dom, callbacks);
+}
+
+// ============================================================
+// Fellestur-banner (vises når en fellestur er aktiv på denne enheten)
+// ============================================================
+function updateFellesturBanner() {
+  const banner = document.getElementById('fellestur-banner');
+  if (!banner) return;
+  const fellestur = hentAktivFellestur();
+  banner.style.display = fellestur ? 'flex' : 'none';
+  if (fellestur) {
+    const navnEl = document.getElementById('fellestur-banner-navn');
+    if (navnEl) navnEl.textContent = fellestur.navn || fellestur.kode;
+  }
+}
+
+/**
+ * Forlat fellesturen på denne enheten. Spør først om den delte lista skal
+ * kopieres inn i den private arbeidslista — trygg exit også om turen skulle
+ * være utløpt eller slettet på serveren, siden vi bare leser speilet.
+ */
+function forlatFellesturMedValg() {
+  const kopier = confirm('Vil du kopiere fellestur-lista inn i din egen lokale liste før du forlater?');
+
+  if (kopier) {
+    const turObs = loadObservations(); // speilet — vi er fortsatt i fellestur-modus her
+    forlatFellestur(); // fra nå av ruter loadObservations/saveObservations til den private lista
+    const privatListe = loadObservations();
+    turObs.forEach((obs) => {
+      const { obsId, ...uten } = obs;
+      privatListe.push(uten);
+    });
+    saveObservations(privatListe);
+  } else {
+    forlatFellestur();
+  }
+
+  stopFellesturPolling();
+  loadState();
+  doRenderObservations();
+  updateFellesturBanner();
+}
+
+function setupFellesturBanner() {
+  const forlatBtn = document.getElementById('fellestur-forlat-btn');
+  if (forlatBtn) {
+    forlatBtn.addEventListener('click', forlatFellesturMedValg);
+  }
+  updateFellesturBanner();
+  startFellesturPollingHvisAktiv();
+}
+
+// ============================================================
+// Fellestur-polling: så lenge en fellestur er aktiv, hent den delte lista
+// jevnlig og speil den inn i appState.observations — andre deltakeres
+// registreringer dukker da opp i den vanlige ③-lista, uten noe eget panel.
+// ============================================================
+const FELLESTUR_POLL_MS = 12000;
+let fellesturPollHandle = null;
+
+async function pollFellestur() {
+  const fellestur = hentAktivFellestur();
+  if (!fellestur) return;
+
+  // Tas før GET-en sendes: brukes til å oppdage at speilet ble skrevet til
+  // (f.eks. en synk som fullførte) mens denne pollen var underveis — svaret
+  // kan da være eldre enn det vi allerede har fått inn lokalt. Uten dette
+  // kunne en treg poll som startet før en nyregistrert observasjon ble lagt
+  // til, men svarte etterpå, overskrive og fjerne den igjen.
+  const versjonVedStart = hentSpeilVersjon();
+
+  let r;
+  try {
+    r = await fetch(`/api/fellestur?kode=${encodeURIComponent(fellestur.kode)}`);
+  } catch (_) {
+    return; // nettverksfeil — prøv igjen neste runde
+  }
+
+  if (r.status === 404) {
+    stopFellesturPolling();
+    showToast('Fellesturen er utløpt eller slettet', { raw: true, borderColor: '#f59e0b', duration: 3500 });
+    return;
+  }
+  if (!r.ok) return;
+
+  const data = await r.json().catch(() => null);
+  if (!data || !data.ok) return;
+
+  const flettet = oppdaterSpeilFraServer(data, versjonVedStart);
+  if (JSON.stringify(flettet) !== JSON.stringify(appState.observations)) {
+    appState.observations.splice(0, appState.observations.length, ...flettet);
+    doRenderObservations();
+  }
+}
+
+function startFellesturPollingHvisAktiv() {
+  if (!hentAktivFellestur()) return;
+  stopFellesturPolling();
+  pollFellestur(); // umiddelbar første runde — lista skal være fersk med en gang
+  fellesturPollHandle = setInterval(() => {
+    if (document.hidden) return;
+    pollFellestur();
+  }, FELLESTUR_POLL_MS);
+}
+
+function stopFellesturPolling() {
+  if (fellesturPollHandle) {
+    clearInterval(fellesturPollHandle);
+    fellesturPollHandle = null;
+  }
 }
 
 // ============================================================
@@ -243,10 +368,8 @@ function expandLocation() {
 // ============================================================
 // Posisjonshåndtering
 // ============================================================
-function handlePositionUpdate(position, sites) {
-  appState.currentPosition = position;
-
-  function setCurrentPlaceAndUpdate(name, siteId = null) {
+function makeSetCurrentPlaceAndUpdate() {
+  return (name, siteId = null) => {
     avsluttEtterregistrering();
     appState.currentPlaceName = name;
     appState.currentPlaceId = siteId;
@@ -257,7 +380,16 @@ function handlePositionUpdate(position, sites) {
     updateSectionStates(appState, dom);
     collapseLocation();
     pulseSearchFieldAndFocus(appState, dom);
-  }
+  };
+}
+
+// Satt av kartknappen når den trigger GPS-henting selv (ingen posisjon fra
+// før) — så kartet kan åpnes automatisk så snart posisjonen er klar, i
+// stedet for at brukeren må trykke «Bruk GPS» og så kartknappen på nytt.
+let apneKartEtterGps = false;
+
+function handlePositionUpdate(position, sites) {
+  appState.currentPosition = position;
 
   appState.currentAoSites = setAoSiteSuggestions(
     (sites && sites.length) ? sites : [],
@@ -265,12 +397,44 @@ function handlePositionUpdate(position, sites) {
     dom.aoSitesDropdown,
     dom.aoSitesEl,
     dom.placeInput,
-    setCurrentPlaceAndUpdate,
-    appState.currentAoSizeMeters
+    makeSetCurrentPlaceAndUpdate(),
+    appState.currentAoSizeMeters,
+    appState.locationSortMode
   );
   updateSectionStates(appState, dom);
   updateMapBtnVisibility();
   updateCreateSiteBtnVisibility(appState.currentPosition);
+
+  if (apneKartEtterGps) {
+    apneKartEtterGps = false;
+    if (position && typeof position.lat === 'number') {
+      openMapPage(appState.currentPosition, appState.currentAoSites);
+    }
+  }
+}
+
+// Bytt sorteringsmodus for lokasjonsforslaget. Gjenbruker allerede hentede
+// sites (appState.currentAoSites) — trenger ikke ny GPS-runde for å sortere om.
+function setLocationSortMode(mode) {
+  if (mode !== 'standard' && mode !== 'avstand') return;
+  appState.locationSortMode = mode;
+  saveLocationSortMode(mode);
+
+  if (dom.locSortStandardBtn) dom.locSortStandardBtn.setAttribute('aria-checked', String(mode === 'standard'));
+  if (dom.locSortAvstandBtn) dom.locSortAvstandBtn.setAttribute('aria-checked', String(mode === 'avstand'));
+
+  if (appState.currentAoSites && appState.currentAoSites.length) {
+    appState.currentAoSites = setAoSiteSuggestions(
+      appState.currentAoSites,
+      appState.currentPosition,
+      dom.aoSitesDropdown,
+      dom.aoSitesEl,
+      dom.placeInput,
+      makeSetCurrentPlaceAndUpdate(),
+      appState.currentAoSizeMeters,
+      appState.locationSortMode
+    );
+  }
 }
 
 // ============================================================
@@ -282,6 +446,17 @@ function setupEventListeners() {
   const locPinnedLabel = document.getElementById('loc-pinned-label');
   if (locChangeBtn) locChangeBtn.addEventListener('click', expandLocation);
   if (locPinnedLabel) locPinnedLabel.addEventListener('click', expandLocation);
+
+  // Sorteringsvalg for lokasjonsforslaget: standard (type + avstand) eller
+  // kun avstand
+  if (dom.locSortStandardBtn) {
+    dom.locSortStandardBtn.setAttribute('aria-checked', String(appState.locationSortMode === 'standard'));
+    dom.locSortStandardBtn.addEventListener('click', () => setLocationSortMode('standard'));
+  }
+  if (dom.locSortAvstandBtn) {
+    dom.locSortAvstandBtn.setAttribute('aria-checked', String(appState.locationSortMode === 'avstand'));
+    dom.locSortAvstandBtn.addEventListener('click', () => setLocationSortMode('avstand'));
+  }
 
   // Blyant i gruppeoverskrifta i ③: bytt aktiv lokalitet tilbake til den
   // gruppens sted, uten å måtte søke det opp på nytt. Observasjons-modulen
@@ -439,18 +614,30 @@ function setupEventListeners() {
   }
 
   if (dom.locMapBtn) {
-    dom.locMapBtn.style.display = 'none'; // Skjul som default
-    dom.locMapBtn.addEventListener('click', () => openMapPage(appState.currentPosition, appState.currentAoSites));
+    // Alltid synlig — trenger ikke posisjon fra før. Har vi ikke GPS-fix
+    // ennå, henter vi det først (som ved «Bruk GPS»-knappen) og åpner
+    // kartet automatisk når posisjonen er klar.
+    dom.locMapBtn.style.display = '';
+    dom.locMapBtn.addEventListener('click', () => {
+      if (appState.currentPosition && typeof appState.currentPosition.lat === 'number') {
+        openMapPage(appState.currentPosition, appState.currentAoSites);
+        return;
+      }
+      apneKartEtterGps = true;
+      if (dom.locBtn) dom.locBtn.click();
+    });
   }
 
 
 
 
-// Oppdater synlighet og stil på kart-ikonet basert på posisjon
+// Oppdater stil på kart-ikonet basert på posisjon. Knappen er alltid synlig
+// (se setup over) — her styres kun den «aktive» glødende stilen som viser om
+// vi faktisk har et GPS-fix å vise i kartet.
 function updateMapBtnVisibility() {
   if (!dom.locMapBtn) return;
+  dom.locMapBtn.style.display = '';
   if (appState.currentPosition && typeof appState.currentPosition.lat === 'number' && typeof appState.currentPosition.lon === 'number') {
-    dom.locMapBtn.style.display = '';
     dom.locMapBtn.style.background = 'var(--accent)';
     dom.locMapBtn.style.color = 'white';
     dom.locMapBtn.style.borderColor = 'var(--accent)';
@@ -460,7 +647,13 @@ function updateMapBtnVisibility() {
     dom.locMapBtn.title = 'Vis posisjon og AO-lokaliteter i kart';
     dom.locMapBtn.classList.add('map-btn-active');
   } else {
-    dom.locMapBtn.style.display = 'none';
+    dom.locMapBtn.style.background = '';
+    dom.locMapBtn.style.color = '';
+    dom.locMapBtn.style.borderColor = '';
+    dom.locMapBtn.style.boxShadow = '';
+    dom.locMapBtn.style.fontWeight = '';
+    dom.locMapBtn.style.fontSize = '';
+    dom.locMapBtn.title = 'Åpne kart (henter posisjon først)';
     dom.locMapBtn.classList.remove('map-btn-active');
   }
 }
@@ -670,6 +863,7 @@ window.addEventListener('DOMContentLoaded', () => {
   updateModeUI();
   setupModeToggle();
   updateAoDirectVisibility();
+  setupFellesturBanner();
 
   // Hent private lokasjoner i bakgrunnen hvis cache mangler eller er utdatert
   if (getCachedPrivateSites().length === 0) {

@@ -1,8 +1,13 @@
 // Service Worker for offline-støtte
-const CACHE_NAME = 'fugleobs-v87';
+const CACHE_NAME = 'fugleobs-v116';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
+  '/fellestur.html',
+  '/js/fellestur.js',
+  '/js/fellestur-client.js',
+  '/js/fellestur-sync.js',
+  '/js/autocomplete.js',
   '/style.css',
   '/js/theme.js',
   '/js/main.js',
@@ -21,6 +26,10 @@ const STATIC_ASSETS = [
   '/js/first-run-hint.js',
   '/js/species_offline.js',
   '/js/version.js',
+  '/js/photo-picker.js',
+  '/js/coobserver-picker.js',
+  '/js/datetime-helpers.js',
+  '/js/edit-modal.js',
   '/data/activities.json',
   '/data/norske_arter.json',
   '/favicon.svg'

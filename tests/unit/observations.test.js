@@ -209,6 +209,72 @@ describe('toCsv', () => {
     }
   });
 
+  it('should place privateComment in column 15 (Privat kommentar)', () => {
+    const observations = [{
+      species: { taxonName: 'Toppand' },
+      placeName: 'Østensjøvannet',
+      count: 1,
+      timestamp: '2026-01-22T12:00:00Z',
+      privateComment: 'Sett sammen med Kari',
+    }];
+
+    const csv = toCsv(observations);
+    const columns = csv.split('\n')[1].split('\t');
+    expect(columns[15]).toBe('Sett sammen med Kari');
+  });
+
+  it('should leave privateComment column empty when not set', () => {
+    const observations = [{
+      species: { taxonName: 'Toppand' },
+      placeName: 'Østensjøvannet',
+      count: 1,
+      timestamp: '2026-01-22T12:00:00Z',
+    }];
+
+    const csv = toCsv(observations);
+    const columns = csv.split('\n')[1].split('\t');
+    expect(columns[15]).toBe('');
+  });
+
+  it('should mark uncertain/notSpontaneous/interesting/notRefound/notFound in columns 39-43', () => {
+    const observations = [{
+      species: { taxonName: 'Fiskemåke' },
+      placeName: 'Nes',
+      count: 1,
+      timestamp: '2026-01-22T12:00:00Z',
+      uncertain: true,
+      notSpontaneous: true,
+      interesting: true,
+      notRefound: true,
+      notFound: true,
+    }];
+
+    const csv = toCsv(observations);
+    const columns = csv.split('\n')[1].split('\t');
+    expect(columns[39]).not.toBe(''); // Usikker artsbestemming
+    expect(columns[40]).not.toBe(''); // Ikke spontan
+    expect(columns[41]).not.toBe(''); // Interessant observasjon
+    expect(columns[42]).not.toBe(''); // Ikke gjenfunnet
+    expect(columns[43]).not.toBe(''); // Ikke funnet
+  });
+
+  it('should leave columns 39-43 empty when none of the flags are set', () => {
+    const observations = [{
+      species: { taxonName: 'Fiskemåke' },
+      placeName: 'Nes',
+      count: 1,
+      timestamp: '2026-01-22T12:00:00Z',
+    }];
+
+    const csv = toCsv(observations);
+    const columns = csv.split('\n')[1].split('\t');
+    expect(columns[39]).toBe('');
+    expect(columns[40]).toBe('');
+    expect(columns[41]).toBe('');
+    expect(columns[42]).toBe('');
+    expect(columns[43]).toBe('');
+  });
+
   it('should use tilKlokkeslett as end time when provided', () => {
     const observations = [{
       species: { taxonName: 'Toppand' },

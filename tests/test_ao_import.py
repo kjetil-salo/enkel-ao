@@ -18,7 +18,7 @@ import httpx
 REPO_ROOT = os.path.dirname(os.path.dirname(__file__))
 sys.path.insert(0, REPO_ROOT)
 
-from src.ao_import import observations_to_csv
+from src.ao_import import observations_to_csv, AO_BOOL_TRUE
 from src.ao_import_httpx import (
     _decode_data_url,
     _upload_pending_images,
@@ -251,6 +251,80 @@ def test_observations_to_csv_no_marker_when_no_photo():
     csv = observations_to_csv(observations)
     fields = csv.split('\r\n')[1].split('\t')
     assert fields[15] == ''
+
+
+def test_observations_to_csv_private_comment_without_photo():
+    """Uten bilde skal privateComment havne alene i «Privat kommentar»-kolonnen."""
+    observations = [{
+        'species': {'taxonName': 'Låvesvale'},
+        'timestamp': '2024-06-01T08:00:00Z',
+        'placeName': 'Nes',
+        'count': '1',
+        'privateComment': 'Sett sammen med Kari',
+    }]
+
+    csv = observations_to_csv(observations)
+    fields = csv.split('\r\n')[1].split('\t')
+    assert fields[15] == 'Sett sammen med Kari'
+
+
+def test_observations_to_csv_private_comment_coexists_with_photo_marker():
+    """Med bilde MÅ markøren fortsatt finnes igjen som substreng i kolonnen, ellers
+    mislykkes bildematching i _upload_pending_images — se ao_import_httpx.py."""
+    observations = [{
+        'species': {'taxonName': 'Låvesvale'},
+        'timestamp': '2024-06-01T08:00:00Z',
+        'placeName': 'Nes',
+        'count': '1',
+        'privateComment': 'Sett sammen med Kari',
+        '_photoMarker': '#pic-abc12345',
+    }]
+
+    csv = observations_to_csv(observations)
+    fields = csv.split('\r\n')[1].split('\t')
+    assert 'Sett sammen med Kari' in fields[15]
+    assert '#pic-abc12345' in fields[15]
+
+
+def test_observations_to_csv_flere_felt_kolonner():
+    """De fem nye avkrysningsfeltene skal havne i riktig kolonne (39-43, 0-indeksert)."""
+    observations = [{
+        'species': {'taxonName': 'Fiskemåke'},
+        'timestamp': '2024-06-01T08:00:00Z',
+        'placeName': 'Nes',
+        'count': '1',
+        'uncertain': True,
+        'notSpontaneous': True,
+        'interesting': True,
+        'notRefound': True,
+        'notFound': True,
+    }]
+
+    csv = observations_to_csv(observations)
+    fields = csv.split('\r\n')[1].split('\t')
+    assert fields[39] == AO_BOOL_TRUE
+    assert fields[40] == AO_BOOL_TRUE
+    assert fields[41] == AO_BOOL_TRUE
+    assert fields[42] == AO_BOOL_TRUE
+    assert fields[43] == AO_BOOL_TRUE
+
+
+def test_observations_to_csv_flere_felt_kolonner_tomme_som_default():
+    """Uten noen av de nye feltene satt skal kolonnene fortsatt være tomme."""
+    observations = [{
+        'species': {'taxonName': 'Fiskemåke'},
+        'timestamp': '2024-06-01T08:00:00Z',
+        'placeName': 'Nes',
+        'count': '1',
+    }]
+
+    csv = observations_to_csv(observations)
+    fields = csv.split('\r\n')[1].split('\t')
+    assert fields[39] == ''
+    assert fields[40] == ''
+    assert fields[41] == ''
+    assert fields[42] == ''
+    assert fields[43] == ''
 
 
 # ============================================================================
@@ -495,6 +569,51 @@ def test_post_with_curl_uploads_photo_via_marker_matching(monkeypatch):
     assert upload_calls[0][0] == 999888
     assert upload_calls[0][1] == b'ABC'
     assert observations[0]['_photoMarker'].startswith('#pic-')
+
+
+def test_post_with_curl_uploads_photo_when_marker_shares_column_with_private_comment(monkeypatch):
+    """Markøren deler kolonne med en ekte privat kommentar (se ao_import.py) — matching
+    må fortsatt finne raden selv om PrivateCommentLong ikke er markøren alene."""
+    monkeypatch.setattr('src.ao_import_httpx.fetch_csrf_tokens',
+                        lambda lt, ac: ('FORM123', 'COOKIE456', None))
+
+    mock_response = Mock()
+    mock_response.text = '<html></html>'
+    mock_response.status_code = 200
+    mock_client = Mock()
+    mock_client.__enter__ = Mock(return_value=mock_client)
+    mock_client.__exit__ = Mock(return_value=None)
+    mock_client.post = Mock(return_value=mock_response)
+    monkeypatch.setattr('httpx.Client', lambda: mock_client)
+    monkeypatch.setattr('time.sleep', lambda x: None)
+    monkeypatch.setattr('src.ao_import_httpx.publish_all', lambda lt, ac: {'status': 200})
+
+    observations = [{
+        'species': {'taxonName': 'Fiskemåke'}, 'count': '1',
+        'timestamp': '2024-01-15T14:00:00Z', 'placeName': 'Oslo',
+        'photo': 'data:image/jpeg;base64,QUJD',  # b'ABC'
+        'privateComment': 'Sett sammen med Kari',
+    }]
+
+    def fake_review_rows(login_token, auth_cookie, size=200):
+        marker = observations[0].get('_photoMarker', '')
+        return [{'SightingId': 999888, 'PrivateCommentLong': f'Sett sammen med Kari {marker}'}]
+
+    upload_calls = []
+
+    def fake_upload_image(sighting_id, image_bytes, filename, login_token, auth_cookie, media_license='10'):
+        upload_calls.append((sighting_id, image_bytes))
+        return {'id': 123}
+
+    monkeypatch.setattr('src.ao_import_httpx.review_queue_rows', fake_review_rows)
+    monkeypatch.setattr('src.ao_import_httpx.upload_image', fake_upload_image)
+
+    result = post_with_curl(observations, 'LOGIN123', 'AUTH456')
+
+    assert result['success'] is True
+    assert 'imagesFailed' not in result
+    assert len(upload_calls) == 1
+    assert upload_calls[0][0] == 999888
 
 
 def test_post_with_curl_reports_failed_image_without_blocking_publish(monkeypatch):

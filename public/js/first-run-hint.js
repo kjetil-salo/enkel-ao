@@ -10,9 +10,9 @@
 
 import { loadObservations } from './storage.js';
 
-const HINT_ID = 'start-with-location-v1';
+export const HINT_ID = 'start-with-location-v1';
 const COOKIE_NAME = 'enkelAoHintRead';
-const STORAGE_KEY = 'enkelAoHintRead';
+export const STORAGE_KEY = 'enkelAoHintRead';
 
 function getCookieValue(name) {
   const prefix = `${encodeURIComponent(name)}=`;

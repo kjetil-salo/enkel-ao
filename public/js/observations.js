@@ -6,6 +6,7 @@ import { defaultCoObservers, loadMedobs } from './storage.js';
 import { showToast } from './ui.js';
 import { toLocalISOString } from './utils.js';
 import { getObservationVisitKey, setVisitLocked } from './visits.js';
+import { openEditModal } from './edit-modal.js';
 
 /**
  * Vis modal for å sette fra/til-klokkeslett på alle obs i en gruppe
@@ -603,7 +604,10 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
       editBtn.title = 'Rediger observasjon';
       editBtn.addEventListener('click', () => {
         if (globalIndex === -1) return;
-        window.location.href = `/public/edit.html?id=${encodeURIComponent(globalIndex)}`;
+        openEditModal(observations, globalIndex, () => {
+          renderObservations(observations, obsListEl, buttons, saveState);
+          saveState();
+        });
       });
       actionTd.appendChild(editBtn);
 
@@ -665,9 +669,19 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
  * @param {Array} observations - Liste med observasjoner
  * @returns {string} - CSV-streng
  */
+// Empirisk verifisert 2026-09-10 mot AOs egen «Importer observasjoner»-side (samme
+// CSV-mekanisme som ao_import.py bruker): '1', 'X' og 'Ja' ble riktignok tolket som
+// avkrysset for «Ikke gjenfunnet»/«Interessant observasjon», men IKKE for «Usikker
+// artsbestemming» (artsnavnet fikk ingen [?]-markering) — og 'Sant' feilet for alle
+// tre. Kun 'true' ga korrekt avkrysning på tvers av alle testede felt. «Ikke spontan»
+// kunne ikke observeres direkte (vises ikke i kontroller-siden), men antas å følge
+// samme koding som «Usikker artsbestemming» siden de vises sammen i AOs skjema.
+// Oppdater samme konstant i src/ao_import.py hvis dette noensinne endrer seg.
+const AO_BOOL_TRUE = 'true';
+
 export function toCsv(observations) {
   if (!observations.length) return '';
-  
+
   const SEP = '\t';
   const header = [
     'Artsnavn',
@@ -745,6 +759,7 @@ export function toCsv(observations) {
     const age = (obs.age || '').replace(/[;\t]/g, ',');
     const gender = (obs.gender || '').replace(/[;\t]/g, ',');
     const comment = (obs.comment || '').replace(/[;\t]/g, ',');
+    const privateComment = (obs.privateComment || '').replace(/[;\t]/g, ',');
 
     // Dato (Fra/til = samme dag) – format DD.MM.YYYY
     let dateStr = '';
@@ -798,6 +813,7 @@ export function toCsv(observations) {
     cols[12] = gender;
     cols[13] = activity;
     cols[14] = comment;
+    cols[15] = privateComment;
 
     // Skjul funn til dato (kolonne 16, index 16) — konverter YYYY-MM-DD → DD.MM.YYYY
     if (obs.hideUntil) {
@@ -806,6 +822,13 @@ export function toCsv(observations) {
         cols[16] = `${parts[2]}.${parts[1]}.${parts[0]}`;
       }
     }
+
+    // Flere felt-modalen (kolonne 39-43) — se AO_BOOL_TRUE-kommentaren over
+    if (obs.uncertain) cols[39] = AO_BOOL_TRUE;
+    if (obs.notSpontaneous) cols[40] = AO_BOOL_TRUE;
+    if (obs.interesting) cols[41] = AO_BOOL_TRUE;
+    if (obs.notRefound) cols[42] = AO_BOOL_TRUE;
+    if (obs.notFound) cols[43] = AO_BOOL_TRUE;
 
     // Medobservatører (10 kolonner)
     if (Array.isArray(obs.coObservers)) {

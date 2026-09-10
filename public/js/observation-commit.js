@@ -168,6 +168,31 @@ export function commitObservation(state, dom, callbacks) {
     coObservers: defaultCoObservers(),
   };
 
+  // Kommentar: fritekst fra flere felt-modalen, med «Estimert antal» lagt til på slutten
+  // hvis ca-boksen er hukket av (kan begge være satt samtidig).
+  let comment = (dom.extraComment && dom.extraComment.value.trim()) || '';
+  if (dom.countEstimatedCheckbox && dom.countEstimatedCheckbox.checked) {
+    comment = comment ? `${comment}. Estimert antal` : 'Estimert antal';
+  }
+  if (comment) obs.comment = comment;
+
+  // Flere felt-modalen (✎-knappen i ② Observasjon) — sjeldent brukte AO-felt.
+  // Kun satt når faktisk huket av/utfylt, samme sparsomme mønster som obs.comment over.
+  if (dom.extraUncertain && dom.extraUncertain.checked) obs.uncertain = true;
+  if (dom.extraNotSpontaneous && dom.extraNotSpontaneous.checked) obs.notSpontaneous = true;
+  if (dom.extraInteresting && dom.extraInteresting.checked) obs.interesting = true;
+  if (dom.extraNotRefound && dom.extraNotRefound.checked) obs.notRefound = true;
+  if (dom.extraNotFound && dom.extraNotFound.checked) obs.notFound = true;
+  if (dom.extraHideUntil && dom.extraHideUntil.value) {
+    obs.hideUntil = dom.extraHideUntil.value;
+  }
+  if (dom.extraPrivateComment && dom.extraPrivateComment.value.trim()) {
+    obs.privateComment = dom.extraPrivateComment.value.trim();
+  }
+  if (dom.extraPhotoValue && dom.extraPhotoValue.value) {
+    obs.photo = dom.extraPhotoValue.value;
+  }
+
   // Legg til tilKlokkeslett hvis det finnes
   if (tilKlokkeslett) {
     obs.tilKlokkeslett = tilKlokkeslett;
@@ -198,6 +223,19 @@ export function commitObservation(state, dom, callbacks) {
   dom.genderSelect.disabled = false; // Hold aktivert
   dom.ageSelect.value = '';
   dom.genderSelect.value = '';
+  if (dom.countEstimatedCheckbox) dom.countEstimatedCheckbox.checked = false;
+
+  // Nullstill flere felt-modalen — feltene gjelder kun én registrering
+  if (dom.extraUncertain) dom.extraUncertain.checked = false;
+  if (dom.extraNotSpontaneous) dom.extraNotSpontaneous.checked = false;
+  if (dom.extraInteresting) dom.extraInteresting.checked = false;
+  if (dom.extraNotRefound) dom.extraNotRefound.checked = false;
+  if (dom.extraNotFound) dom.extraNotFound.checked = false;
+  if (dom.extraHideUntil) dom.extraHideUntil.value = '';
+  if (dom.extraPrivateComment) dom.extraPrivateComment.value = '';
+  if (dom.extraComment) dom.extraComment.value = '';
+  // Modalens egen inline-script (index.html) oppdaterer knappens badge ved dette eventet.
+  document.dispatchEvent(new CustomEvent('obs:extra-felt-nullstilt'));
 
   if (dom.activitySubmitBtn) {
     dom.activitySubmitBtn.disabled = true;

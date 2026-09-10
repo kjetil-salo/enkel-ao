@@ -42,6 +42,15 @@
           </div>
         </header>
 
+        <!-- Vises kun når en fellestur er aktiv på denne enheten -->
+        <div id="fellestur-banner" style="display:none;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;background:var(--accent-soft);border:1px solid var(--accent);border-radius:10px;padding:8px 12px;margin-bottom:10px;font-size:0.85em;">
+          <span>👥 På fellestur: <strong id="fellestur-banner-navn"></strong> — det du registrerer havner i den delte loggen</span>
+          <span style="display:flex;gap:10px;align-items:center;white-space:nowrap;">
+            <a href="/fellestur.html" style="color:var(--accent);text-decoration:none;font-weight:600;">Se logg</a>
+            <button type="button" id="fellestur-forlat-btn" style="background:none;border:none;color:var(--muted);text-decoration:underline;cursor:pointer;font-size:1em;padding:0;">Forlat</button>
+          </span>
+        </div>
+
         <!-- Kompakt festet linje som viser aktiv plass (vises når plass er valgt) -->
         <div id="loc-pinned" class="loc-pinned" style="display:none;">
           <button type="button" id="loc-pinned-label" class="loc-pinned-label" title="Trykk for å bytte plass">
@@ -90,7 +99,7 @@
                 .row .icon-btn { height:34px !important; }
               }
             </style>
-            <button class="icon-btn" id="loc-map-btn" aria-label="Åpne kart" title="Åpne kart" style="font-size:1.5em;padding:6px 10px;border:2px solid var(--accent);border-radius:8px;background:var(--accent-soft);color:var(--text);height:38px;min-width:46px;transition:all 0.2s;display:none;box-shadow:0 2px 8px rgba(59,130,246,0.10);">🗺️</button>
+            <button class="icon-btn" id="loc-map-btn" aria-label="Åpne kart" title="Åpne kart" style="font-size:1.5em;padding:6px 10px;border:2px solid var(--accent);border-radius:8px;background:var(--accent-soft);color:var(--text);height:38px;min-width:46px;transition:all 0.2s;box-shadow:0 2px 8px rgba(59,130,246,0.10);">🗺️</button>
             <button class="icon-btn" id="create-site-btn" aria-label="Opprett ny AO-lokasjon" title="Opprett ny AO-lokasjon" style="font-size:1.3em;padding:6px 10px;border:2px solid var(--accent);border-radius:8px;background:var(--accent-soft);color:var(--text);height:38px;min-width:46px;transition:all 0.2s;display:none;box-shadow:0 2px 8px rgba(59,130,246,0.10);">➕</button>
           </div>
           <div id="radius-row" class="radius-row">
@@ -105,6 +114,11 @@
               title="Søkeradius (500 m – 3 km)"
             />
             <span id="ao-size-value" class="radius-value">1 km</span>
+          </div>
+          <div class="loc-sort-row" role="radiogroup" aria-label="Sortering av lokasjonsforslag">
+            <span class="loc-sort-label">Sortering</span>
+            <button type="button" id="loc-sort-standard" class="loc-sort-btn" role="radio" aria-checked="true" title="Gruppert etter type: egne private, superlokasjon, offentlig, andres private — nærmest først innad i hver gruppe">Gruppert</button>
+            <button type="button" id="loc-sort-avstand" class="loc-sort-btn" role="radio" aria-checked="false" title="Kun avstand, uansett type lokasjon">Avstand</button>
           </div>
           <div class="row" style="margin-top:10px;position:relative;">
             <!-- AO-lokasjoner custom dropdown (kun div) -->
@@ -166,6 +180,15 @@
                 autocomplete="off"
                 style="width:100%;"
               />
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:2px;">
+            <div style="flex:1;min-width:0;"></div>
+            <div style="width:80px;flex-shrink:0;">
+              <label style="font-size:0.75em;color:#b0b0b0;display:flex;align-items:center;gap:2px;user-select:none;margin:0;" title="Legger automatisk til kommentaren «Estimert antal»">
+                <input type="checkbox" id="count-estimated" style="margin:0 2px 0 0;vertical-align:middle;" />
+                ca
+              </label>
             </div>
           </div>
           <div style="display:flex;align-items:center;gap:8px;margin-top:4px;flex-wrap:wrap;">
@@ -237,6 +260,14 @@
               >
                 ✓
               </button>
+              <button
+                type="button"
+                id="extra-fields-open-btn"
+                class="activity-submit-btn activity-submit-btn-secondary"
+                title="Flere felt (usikker artsbestemming, privat kommentar m.m.) for neste registrering"
+              >
+                ✎
+              </button>
             </div>
           </div>
           <div class="row" style="margin-top:10px;">
@@ -297,6 +328,7 @@
           <div style="margin-top:10px;text-align:center;display:flex;gap:14px;justify-content:center;">
             <a href="/sendt.html" style="color:var(--muted);font-size:0.8em;text-decoration:none;">📤 Tidligere sendt</a>
             <a href="/mine-delinger.html" style="color:var(--muted);font-size:0.8em;text-decoration:none;">🔗 Mine delinger</a>
+            <a href="/fellestur.html" style="color:var(--muted);font-size:0.8em;text-decoration:none;">👥 Fellestur</a>
           </div>
         </fieldset>
         <div style="margin-top:8px;text-align:center;">
@@ -311,20 +343,20 @@
 
     </div>
 
-    <script type="module" src="/js/main.js?v=v1.45.4"></script>
+    <script type="module" src="/js/main.js?v=v1.50.0"></script>
     <script type="module">
       // Registrer Service Worker for offline-støtte.
       // Versjonert URL: Cloudflare overstyrer origin sin max-age=300 med 4 timer, så
       // en endret /sw.js kan bli liggende i edge-cachen og aldri nå installerte apper.
       // Bruk inline versjon her: /js/version.js kan selv være cachet i gammel versjon.
-      const VERSION = 'v1.45.4';
+      const VERSION = 'v1.50.0';
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register(`/sw.js?v=${VERSION}`).catch(() => {});
       }
     </script>
     <footer class="footer-credit">Versjon <span id="version"></span>  |  <a href="/changelog.html" style="color:var(--accent);text-decoration:none;">Endringslogg</a>  |  <a href="/feedback.html" style="color:var(--accent);text-decoration:none;">Gi tilbakemelding</a>  |  © 2026 Kjetil Salomonsen</footer>
     <script type="module">
-      const VERSION = 'v1.45.4';
+      const VERSION = 'v1.50.0';
       document.getElementById('version').textContent = VERSION;
     </script>
 
@@ -588,6 +620,269 @@
         setTimeout(() => { applyAllBtn.textContent = 'Legg til på alle obs'; applyAllBtn.style.background = ''; }, 2500);
       });
     </script>
+
+    <!-- Modal: Flere felt (✎-knappen ved siden av ✓ i ② Observasjon). AO-felt appen
+         ellers ikke fanger: usikker artsbestemming, ikke spontan, privat kommentar,
+         interessant observasjon, ikke gjenfunnet/funnet. Gjelder neste registrering —
+         feltene lever i DOM-en uavhengig av om modalen er åpen (samme prinsipp som
+         #count-estimated), så observation-commit.js leser dem direkte ved ✓. -->
+    <div id="extra-fields-modal" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,0.5);align-items:center;justify-content:center;">
+      <div style="background:var(--card-bg);border-radius:12px;padding:20px;max-width:380px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,0.3);max-height:85vh;overflow-y:auto;">
+        <h3 style="margin:0 0 12px 0;font-size:1.1em;">✎ Flere felt</h3>
+        <p style="margin:0 0 12px 0;font-size:0.85em;color:var(--muted);">Gjelder neste registrering.</p>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <label style="display:block;color:var(--muted);font-size:0.85em;margin:0;">
+            Kommentar <span style="opacity:0.8;">(synlig for alle)</span>
+            <textarea id="extra-comment" rows="2" style="width:100%;margin-top:4px;padding:8px;border-radius:8px;border:1px solid rgba(148,163,184,0.15);background:rgba(255,255,255,0.02);color:var(--text);box-sizing:border-box;"></textarea>
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;font-weight:normal;margin:0;color:var(--text);">
+            <input type="checkbox" id="extra-uncertain" style="width:18px;height:18px;" />
+            <span>Usikker artsbestemming</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;font-weight:normal;margin:0;color:var(--text);">
+            <input type="checkbox" id="extra-not-spontaneous" style="width:18px;height:18px;" />
+            <span>Ikke spontan</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;font-weight:normal;margin:0;color:var(--text);">
+            <input type="checkbox" id="extra-interesting" style="width:18px;height:18px;" />
+            <span>Interessant kommentar</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;font-weight:normal;margin:0;color:var(--text);">
+            <input type="checkbox" id="extra-not-refound" style="width:18px;height:18px;" />
+            <span>Ikke gjenfunnet</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;font-weight:normal;margin:0;color:var(--text);">
+            <input type="checkbox" id="extra-not-found" style="width:18px;height:18px;" />
+            <span>Ikke funnet</span>
+          </label>
+          <label style="display:block;color:var(--muted);font-size:0.85em;margin:4px 0 0 0;">
+            Skjul funn til dato
+            <input type="date" id="extra-hide-until" style="width:100%;margin-top:4px;padding:8px;border-radius:8px;border:1px solid rgba(148,163,184,0.15);background:rgba(255,255,255,0.02);color:var(--text);box-sizing:border-box;" />
+          </label>
+          <label style="display:block;color:var(--muted);font-size:0.85em;margin:0;">
+            Privat kommentar <span style="opacity:0.8;">(kun synlig for deg selv)</span>
+            <textarea id="extra-private-comment" rows="3" style="width:100%;margin-top:4px;padding:8px;border-radius:8px;border:1px solid rgba(148,163,184,0.15);background:rgba(255,255,255,0.02);color:var(--text);box-sizing:border-box;"></textarea>
+          </label>
+          <div>
+            <label style="display:block;color:var(--muted);font-size:0.85em;margin:0 0 4px 0;">Bilde</label>
+            <input id="extra-photo" type="file" accept="image/*" hidden />
+            <!-- Speiler photo-picker.js sin verdi, slik at observation-commit.js kan lese
+                 den på samme måte som de andre feltene (dom.X.value) uten å avhenge av
+                 modul-instansen direkte. -->
+            <input type="hidden" id="extra-photo-value" />
+            <div style="display:flex;gap:8px;">
+              <button type="button" id="extra-photo-pick-btn" class="btn-ghost" style="flex:1;">📁 Velg bilde</button>
+              <button type="button" id="extra-photo-paste-btn" class="btn-ghost skjult" style="flex:1;">📋 Lim inn</button>
+            </div>
+            <div id="extra-photo-preview-wrap" style="display:none;margin-top:8px;">
+              <img id="extra-photo-preview" style="max-width:100%;border-radius:8px;display:block;" alt="Valgt bilde" />
+              <button type="button" id="extra-photo-remove-btn" class="btn-ghost" style="margin-top:6px;">Fjern bilde</button>
+            </div>
+          </div>
+        </div>
+        <div style="margin-top:14px;display:flex;justify-content:flex-end;">
+          <button type="button" id="extra-fields-close-btn" style="padding:8px 16px;border:1px solid var(--border);border-radius:6px;background:transparent;color:var(--text);cursor:pointer;font-size:0.9em;">Lukk</button>
+        </div>
+      </div>
+    </div>
+
+    <style>
+      /* Liten prikk på ✎-knappen når ett eller flere «flere felt»-felt er satt */
+      #extra-fields-open-btn { position: relative; }
+      #extra-fields-open-btn.has-extra::after {
+        content: '';
+        position: absolute;
+        top: -2px;
+        right: -2px;
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        background: #f59e0b;
+        border: 1.5px solid var(--card-bg, #111827);
+      }
+    </style>
+    <script type="module">
+      import { initPhotoPicker } from './js/photo-picker.js';
+
+      const extraModal = document.getElementById('extra-fields-modal');
+      const extraOpenBtn = document.getElementById('extra-fields-open-btn');
+      const extraCloseBtn = document.getElementById('extra-fields-close-btn');
+      const extraFieldEls = [
+        document.getElementById('extra-uncertain'),
+        document.getElementById('extra-not-spontaneous'),
+        document.getElementById('extra-interesting'),
+        document.getElementById('extra-not-refound'),
+        document.getElementById('extra-not-found'),
+      ];
+      const extraPrivateComment = document.getElementById('extra-private-comment');
+      const extraComment = document.getElementById('extra-comment');
+      const extraHideUntil = document.getElementById('extra-hide-until');
+      const extraPhotoValue = document.getElementById('extra-photo-value');
+
+      const extraPhotoPicker = initPhotoPicker({
+        fileInput: document.getElementById('extra-photo'),
+        pickBtn: document.getElementById('extra-photo-pick-btn'),
+        pasteBtn: document.getElementById('extra-photo-paste-btn'),
+        previewWrap: document.getElementById('extra-photo-preview-wrap'),
+        previewImg: document.getElementById('extra-photo-preview'),
+        removeBtn: document.getElementById('extra-photo-remove-btn'),
+      }, () => extraModal.style.display === 'flex', (value) => {
+        extraPhotoValue.value = value || '';
+        updateExtraFieldsBadge();
+      });
+
+      function updateExtraFieldsBadge() {
+        const antallSatt = extraFieldEls.filter((el) => el.checked).length
+          + (extraPrivateComment.value.trim() ? 1 : 0)
+          + (extraComment.value.trim() ? 1 : 0)
+          + (extraHideUntil.value ? 1 : 0)
+          + (extraPhotoValue.value ? 1 : 0);
+        extraOpenBtn.classList.toggle('has-extra', antallSatt > 0);
+      }
+
+      extraFieldEls.forEach((el) => el.addEventListener('change', updateExtraFieldsBadge));
+      extraPrivateComment.addEventListener('input', updateExtraFieldsBadge);
+      extraComment.addEventListener('input', updateExtraFieldsBadge);
+      extraHideUntil.addEventListener('change', updateExtraFieldsBadge);
+
+      // observation-commit.js nullstiller feltene ved ✓ og varsler via dette eventet.
+      document.addEventListener('obs:extra-felt-nullstilt', () => {
+        extraPhotoPicker.resetToUntouched();
+        updateExtraFieldsBadge();
+      });
+
+      function openModal() {
+        extraModal.style.display = 'flex';
+      }
+      function closeModal() {
+        extraModal.style.display = 'none';
+      }
+
+      extraOpenBtn.addEventListener('click', openModal);
+      extraCloseBtn.addEventListener('click', closeModal);
+      extraModal.addEventListener('click', (e) => {
+        if (e.target === extraModal) closeModal();
+      });
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && extraModal.style.display === 'flex') closeModal();
+      });
+    </script>
+
+    <!-- Modal: Rediger observasjon (✎-knappen i observasjonslisten). Erstatter tidligere
+         navigering til edit.html — samme felt, men som modal i stedet for egen side.
+         Logikken bor i js/edit-modal.js, som gjenbruker photo-picker.js og
+         coobserver-picker.js (delt med ✎ Flere felt-modalen over). -->
+    <div id="observation-edit-modal" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,0.5);align-items:center;justify-content:center;">
+      <div style="background:var(--card-bg);border-radius:12px;padding:20px;max-width:440px;width:92%;box-shadow:0 8px 32px rgba(0,0,0,0.3);max-height:88vh;overflow-y:auto;">
+        <h3 style="margin:0 0 12px 0;font-size:1.1em;">✎ Rediger observasjon</h3>
+        <form id="em-form">
+          <label style="display:block;color:var(--muted);font-size:0.85em;margin:8px 0 0 0;">Art
+            <input id="em-species" type="text" required style="width:100%;margin-top:4px;padding:8px;border-radius:8px;border:1px solid rgba(148,163,184,0.15);background:rgba(255,255,255,0.02);color:var(--text);box-sizing:border-box;" />
+          </label>
+          <label style="display:block;color:var(--muted);font-size:0.85em;margin:8px 0 0 0;">Antall
+            <input id="em-count" type="number" min="1" required style="width:100%;margin-top:4px;padding:8px;border-radius:8px;border:1px solid rgba(148,163,184,0.15);background:rgba(255,255,255,0.02);color:var(--text);box-sizing:border-box;" />
+          </label>
+          <label style="display:block;color:var(--muted);font-size:0.85em;margin:8px 0 0 0;">Aktivitet
+            <select id="em-activity" style="width:100%;margin-top:4px;padding:8px;border-radius:8px;border:1px solid rgba(148,163,184,0.15);background:rgba(255,255,255,0.02);color:var(--text);box-sizing:border-box;"></select>
+          </label>
+          <div style="display:flex;gap:8px;">
+            <label style="display:block;flex:1;color:var(--muted);font-size:0.85em;margin:8px 0 0 0;">Alder
+              <select id="em-age" style="width:100%;margin-top:4px;padding:8px;border-radius:8px;border:1px solid rgba(148,163,184,0.15);background:rgba(255,255,255,0.02);color:var(--text);box-sizing:border-box;">
+                <option value="">Ikke oppgitt</option>
+                <option value="Adult">Adult</option>
+                <option value="Egg">Egg</option>
+                <option value="Pulli">Pulli</option>
+                <option value="1K">1K</option><option value="1K+">1K+</option>
+                <option value="2K">2K</option><option value="2K+">2K+</option><option value="2K-">2K-</option>
+                <option value="3K">3K</option><option value="3K+">3K+</option><option value="3K-">3K-</option>
+                <option value="4K">4K</option><option value="4K+">4K+</option><option value="4K-">4K-</option>
+                <option value="5K">5K</option><option value="5K+">5K+</option><option value="5K-">5K-</option>
+                <option value="6K">6K</option><option value="6K+">6K+</option><option value="6K-">6K-</option>
+                <option value="7K">7K</option><option value="7K+">7K+</option><option value="7K-">7K-</option>
+              </select>
+            </label>
+            <label style="display:block;flex:1;color:var(--muted);font-size:0.85em;margin:8px 0 0 0;">Kjønn
+              <select id="em-gender" style="width:100%;margin-top:4px;padding:8px;border-radius:8px;border:1px solid rgba(148,163,184,0.15);background:rgba(255,255,255,0.02);color:var(--text);box-sizing:border-box;">
+                <option value="">Ikke oppgitt</option>
+                <option value="Hann">Hann</option>
+                <option value="Hunn">Hunn</option>
+                <option value="Hunnfarget">Hunnfarget</option>
+                <option value="I par">I par</option>
+              </select>
+            </label>
+          </div>
+          <label style="display:block;color:var(--muted);font-size:0.85em;margin:8px 0 0 0;">Sted
+            <input id="em-place" type="text" style="width:100%;margin-top:4px;padding:8px;border-radius:8px;border:1px solid rgba(148,163,184,0.15);background:rgba(255,255,255,0.02);color:var(--text);box-sizing:border-box;" />
+          </label>
+          <label style="display:block;color:var(--muted);font-size:0.85em;margin:8px 0 0 0;">Dato
+            <input id="em-date" type="date" style="width:100%;margin-top:4px;padding:8px;border-radius:8px;border:1px solid rgba(148,163,184,0.15);background:rgba(255,255,255,0.02);color:var(--text);box-sizing:border-box;" />
+          </label>
+          <div style="display:flex;gap:8px;">
+            <label style="display:block;flex:1;color:var(--muted);font-size:0.85em;margin:8px 0 0 0;">Fra klokkeslett
+              <input id="em-time-from" type="time" style="width:100%;margin-top:4px;padding:8px;border-radius:8px;border:1px solid rgba(148,163,184,0.15);background:rgba(255,255,255,0.02);color:var(--text);box-sizing:border-box;" />
+            </label>
+            <label style="display:block;flex:1;color:var(--muted);font-size:0.85em;margin:8px 0 0 0;">Til klokkeslett
+              <input id="em-time-to" type="time" style="width:100%;margin-top:4px;padding:8px;border-radius:8px;border:1px solid rgba(148,163,184,0.15);background:rgba(255,255,255,0.02);color:var(--text);box-sizing:border-box;" />
+            </label>
+          </div>
+          <label style="display:block;color:var(--muted);font-size:0.85em;margin:8px 0 0 0;">Kommentar <span style="opacity:0.8;">(synlig for alle)</span>
+            <textarea id="em-comment" rows="2" style="width:100%;margin-top:4px;padding:8px;border-radius:8px;border:1px solid rgba(148,163,184,0.15);background:rgba(255,255,255,0.02);color:var(--text);box-sizing:border-box;"></textarea>
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;font-weight:normal;margin:10px 0 0 0;color:var(--text);">
+            <input type="checkbox" id="em-uncertain" style="width:18px;height:18px;" />
+            <span>Usikker artsbestemming</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;font-weight:normal;margin:8px 0 0 0;color:var(--text);">
+            <input type="checkbox" id="em-not-spontaneous" style="width:18px;height:18px;" />
+            <span>Ikke spontan</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;font-weight:normal;margin:8px 0 0 0;color:var(--text);">
+            <input type="checkbox" id="em-interesting" style="width:18px;height:18px;" />
+            <span>Interessant kommentar</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;font-weight:normal;margin:8px 0 0 0;color:var(--text);">
+            <input type="checkbox" id="em-not-refound" style="width:18px;height:18px;" />
+            <span>Ikke gjenfunnet</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;font-weight:normal;margin:8px 0 0 0;color:var(--text);">
+            <input type="checkbox" id="em-not-found" style="width:18px;height:18px;" />
+            <span>Ikke funnet</span>
+          </label>
+          <label style="display:block;color:var(--muted);font-size:0.85em;margin:8px 0 0 0;">Skjul funn til dato
+            <input id="em-hide-until" type="date" style="width:100%;margin-top:4px;padding:8px;border-radius:8px;border:1px solid rgba(148,163,184,0.15);background:rgba(255,255,255,0.02);color:var(--text);box-sizing:border-box;" />
+          </label>
+          <label style="display:block;color:var(--muted);font-size:0.85em;margin:8px 0 0 0;">Privat kommentar <span style="opacity:0.8;">(kun synlig for deg selv)</span>
+            <textarea id="em-private-comment" rows="2" style="width:100%;margin-top:4px;padding:8px;border-radius:8px;border:1px solid rgba(148,163,184,0.15);background:rgba(255,255,255,0.02);color:var(--text);box-sizing:border-box;"></textarea>
+          </label>
+
+          <label style="display:block;color:var(--muted);font-size:0.85em;margin:10px 0 4px 0;">Bilde</label>
+          <input id="em-photo" type="file" accept="image/*" hidden />
+          <div style="display:flex;gap:8px;">
+            <button type="button" id="em-photo-pick-btn" class="btn-ghost" style="flex:1;">📁 Velg bilde</button>
+            <button type="button" id="em-photo-paste-btn" class="btn-ghost skjult" style="flex:1;">📋 Lim inn</button>
+          </div>
+          <div id="em-photo-preview-wrap" style="display:none;margin-top:8px;">
+            <img id="em-photo-preview" style="max-width:100%;border-radius:8px;display:block;" alt="Valgt bilde" />
+            <button type="button" id="em-photo-remove-btn" class="btn-ghost" style="margin-top:6px;">Fjern bilde</button>
+          </div>
+          <div style="font-size:0.8em;color:var(--muted);margin-top:4px;">
+            Bildet lastes opp til Artsobservasjoner når observasjonen er sendt — ikke før.
+          </div>
+
+          <label style="display:block;color:var(--muted);font-size:0.85em;margin:10px 0 4px 0;">Medobservatører</label>
+          <div id="em-medobs-picker" style="display:flex;flex-direction:column;gap:6px;"></div>
+          <div style="display:flex;gap:6px;margin-top:6px;">
+            <input id="em-medobs-new-name" type="text" placeholder="Legg til navn…" autocomplete="off" style="flex:1;padding:8px;border-radius:8px;border:1px solid rgba(148,163,184,0.15);background:rgba(255,255,255,0.02);color:var(--text);box-sizing:border-box;" />
+            <button type="button" id="em-medobs-new-add-btn" class="btn-ghost" style="flex-shrink:0;">Legg til</button>
+          </div>
+
+          <div style="margin-top:16px;display:flex;gap:8px;justify-content:flex-end;">
+            <button type="button" id="em-cancel-btn" style="padding:8px 16px;border:1px solid var(--border);border-radius:6px;background:transparent;color:var(--text);cursor:pointer;font-size:0.9em;">Lukk</button>
+            <button type="submit" style="padding:8px 16px;border:1px solid rgba(59,130,246,1);border-radius:6px;background:#3b82f6;color:white;cursor:pointer;font-size:0.9em;">Lagre</button>
+          </div>
+        </form>
+      </div>
+    </div>
 
     <!-- Modal: Opprett ny AO-lokasjon -->
     <div id="create-site-modal" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,0.5);align-items:center;justify-content:center;">

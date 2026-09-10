@@ -59,6 +59,15 @@ def test_ukjente_felt_forkastes():
     assert 'coObservers' not in lagret
 
 
+def test_privat_kommentar_deles_aldri():
+    """privateComment er eksplisitt privat (Flere felt-skjemaet i edit.html) — skal
+    aldri overleve hvitelistingen, selv om det generelle ukjent-felt-vernet
+    (test_ukjente_felt_forkastes) allerede dekker dette indirekte."""
+    share = share_store.create_share([_obs(privateComment='Sett sammen med Kari')])
+    lagret = share_store.get_share(share['slug'])['observations'][0]
+    assert 'privateComment' not in lagret
+
+
 def test_tom_liste_gir_none():
     assert share_store.create_share([]) is None
     assert share_store.create_share('ikke en liste') is None

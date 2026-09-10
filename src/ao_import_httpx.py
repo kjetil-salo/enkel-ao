@@ -332,16 +332,20 @@ def _upload_pending_images(observations, login_token, auth_cookie, progress_cb=N
     if progress_cb:
         progress_cb({'phase': 'uploading-images', 'done': 0, 'total': total})
 
-    rows = review_queue_rows(login_token, auth_cookie)
-    rows_by_marker = {}
-    for row in (rows or []):
-        marker = (row.get('PrivateCommentLong') or '').strip()
-        if marker:
-            rows_by_marker[marker] = row
+    # Markøren kan nå dele kolonnen med brukerens egen private kommentar (se
+    # ao_import.py) — den er ikke nødvendigvis hele PrivateCommentLong-verdien lenger,
+    # så vi må lete etter den som substreng i stedet for eksakt match.
+    rows = review_queue_rows(login_token, auth_cookie) or []
+
+    def _find_row_for_marker(marker):
+        for row in rows:
+            if marker in (row.get('PrivateCommentLong') or ''):
+                return row
+        return None
 
     failed = []
     for i, obs in enumerate(photo_obs):
-        row = rows_by_marker.get(obs['_photoMarker'])
+        row = _find_row_for_marker(obs['_photoMarker'])
         if not row:
             logger.warning(f'[AO-HTTPX] Fant ikke gjennomgangsrad for bilde ({_obs_label(obs)}) — hopper over')
             failed.append(_obs_label(obs))

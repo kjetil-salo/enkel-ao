@@ -421,6 +421,7 @@
           <a href="#registrere">✓ Registrere</a>
           <a href="#sende">📤 Sende til AO</a>
           <a href="#dele">🔗 Del med venner</a>
+          <a href="#fellestur">👥 Fellestur</a>
           <a href="#innstillinger">⚙️ Innstillinger</a>
           <a href="#installer">📱 Installer app</a>
           <a href="#feilsoking">🩹 Feilsøking</a>
@@ -556,7 +557,7 @@
         </div>
 
         <h3>Bilde</h3>
-        <p>Trykk blyant-ikonet på en observasjon for å åpne «Rediger» – der kan du legge ved ett bilde per funn:</p>
+        <p>Trykk blyant-ikonet på en observasjon for å åpne «Rediger» (et lite vindu rett over lista) – der kan du legge ved ett bilde per funn. Du kan også legge ved bilde <em>før</em> du registrerer, via ✎ Flere felt (se under):</p>
         <ul>
           <li><strong>Velg fil</strong>, eller <strong>lim inn</strong> (Ctrl/Cmd+V, eller «📋 Lim inn bilde»-knappen på mobil) – begge deler virker med både skjermbilder og kopierte bildefiler</li>
           <li>Bildet skaleres ned automatisk før lagring</li>
@@ -564,7 +565,10 @@
         <div class="tip">
           <strong>Bildet lastes ikke opp med én gang.</strong> Artsobservasjoner krever en ekte observasjons-ID før et bilde kan kobles til – den får funnet først når du trykker «Publiser til AO». Bildet ligger derfor lagret i appen inntil da, og lastes opp automatisk som siste steg i sendingen. Skulle opplastingen svikte, sendes observasjonen likevel – du får beskjed om at bildet må lastes opp på nytt direkte på AO.
         </div>
-        <p style="font-size:0.9em;color:var(--muted);">Teknisk detalj: appen setter en liten, usynlig markør i det <strong>private</strong> kommentarfeltet (kun synlig for deg selv på AO) for å koble bildet til riktig funn. Den fjernes ikke etterpå, men er ufarlig – ingen andre ser den.</p>
+        <p style="font-size:0.9em;color:var(--muted);">Teknisk detalj: appen setter en liten, usynlig markør i det <strong>private</strong> kommentarfeltet (kun synlig for deg selv på AO) for å koble bildet til riktig funn. Den fjernes ikke etterpå, men er ufarlig – ingen andre ser den. Har du selv skrevet noe i privat kommentar (se under), står markøren sammen med din egen tekst i det samme feltet.</p>
+
+        <h3>Flere felt</h3>
+        <p>Det finnes felt på AO du sjelden trenger: en åpen <strong>kommentar</strong> (synlig for alle), <strong>Usikker artsbestemming</strong>, <strong>Ikke spontan</strong>, <strong>Interessant kommentar</strong>, <strong>Ikke gjenfunnet</strong>, <strong>Ikke funnet</strong>, <strong>Skjul funn til dato</strong>, <strong>bilde</strong>, og en egen <strong>privat kommentar</strong> (kun synlig for deg selv på AO – atskilt fra den åpne kommentaren). Trykk ✎ ved siden av den grønne ✓-knappen i ② for å sette dem <em>før</em> du registrerer – de gjelder da for neste art du legger inn. Vil du rette dem i etterkant på en observasjon som allerede er registrert, ligger de samme feltene (pluss art, antall, alder, kjønn, sted, dato/tid og medobservatører) i «Rediger» (blyant-ikonet i observasjonslisten) – en liten modal, ikke en egen side.</p>
 
         <h2 id="sende">📤 Sende til Artsobservasjoner</h2>
 
@@ -599,6 +603,27 @@
         <div class="tip">
           <strong>Tips:</strong> Delingene lagres kun lokalt på enheten din, akkurat som resten av arbeidslista. En deling laget på mobilen dukker ikke opp i «Mine delinger» på PC-en.
         </div>
+
+        <h2 id="fellestur">👥 Fellestur</h2>
+        <div class="note">
+          <strong>Tidlig versjon.</strong> Fellestur er splitter ny og ikke grundig testet i praktisk bruk ennå. Meld gjerne fra om noe oppfører seg rart – lenke til tilbakemelding finner du under <a href="#innstillinger" style="color:var(--accent);text-decoration:none;">Innstillinger</a> og i footeren.
+        </div>
+        <p>Er dere flere fuglefolk på samme tur, kan dere dele på registreringsarbeidet i stedet for at hver enkelt fører sin egen liste.</p>
+        <ol>
+          <li>Åpne <strong>«👥 Fellestur»</strong> og trykk <strong>«🆕 Start ny fellestur»</strong>, eller <strong>«🔑 Bli med (har kode)»</strong> hvis noen andre allerede har startet en.</li>
+          <li>Del den 6-tegns koden (eller lenken «🔗 Kopier delbar lenke») med resten av gruppa.</li>
+          <li>Så lenge fellesturen er aktiv, registrerer alle på <strong>hovedsiden akkurat som vanlig</strong> – art, sted, antall, aktivitet. Et blått bånd øverst viser at dere er på fellestur.</li>
+          <li>Det som registreres havner i en <strong>delt logg</strong>: alle deltakerne ser hverandres funn dukke opp i løpet av noen sekunder, kan rette tall og slette feilregistreringer.</li>
+        </ol>
+        <p>Ingen kontoer – koden er hemmelig, ikke privat, akkurat som en delingslenke. Alle med koden kan se og redigere loggen.</p>
+
+        <h3>Avslutte turen</h3>
+        <p>Det finnes ingen «avslutt for alle»-knapp. Hver deltaker forlater individuelt, på sin egen enhet:</p>
+        <ul>
+          <li><strong>«📥 Hent inn i min lokale liste og forlat»</strong> – kopierer hele den delte loggen inn i din private arbeidsliste, klar til å sende til AO, og forlater turen på denne enheten. Den vanlige veien når turen er ferdig.</li>
+          <li><strong>«Forlat»</strong> – i banneret på hovedsiden eller på fellestur-siden. Spør om du vil kopiere lista inn lokalt først.</li>
+        </ul>
+        <p>Å forlate gjelder kun din egen enhet – den delte loggen består og er fortsatt tilgjengelig med koden for de andre. Fellesturen utløper uansett automatisk etter <strong>48 timer</strong>.</p>
 
         <h2 id="innstillinger">⚙️ Innstillinger</h2>
         <p>Åpne innstillinger med tannhjulet (⚙️) øverst.</p>
