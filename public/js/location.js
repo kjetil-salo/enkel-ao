@@ -71,6 +71,14 @@ export function getSiteMunicipality(site) {
 }
 
 /**
+ * Sjekk om brukeren vil se andres private lokasjoner (i kart og lokasjonsforslag)
+ * @returns {boolean}
+ */
+export function shouldShowOthersPrivateSites() {
+  return localStorage.getItem('showPrivateSitesOnMap') === '1'; // av som standard
+}
+
+/**
  * Sett AO-site forslag i dropdown
  * @param {Array} sites - Liste med sites
  * @param {Object} currentPosition - Nåværende posisjon {lat, lon}
@@ -78,9 +86,12 @@ export function getSiteMunicipality(site) {
  * @param {HTMLElement} aoSitesEl - AO-sites info-element
  * @param {HTMLInputElement} placeInput - Stedsnavn input-felt
  * @param {Function} setCurrentPlace - Callback for å sette nåværende sted
+ * @param {number} searchRadiusMeters - Søkeradius i meter
+ * @param {string} sortMode - 'standard' (mine → super → offentlig → andres private, så avstand)
+ *   eller 'avstand' (kun avstand, uavhengig av type)
  * @returns {Array} - Oppdatert liste med sites
  */
-export function setAoSiteSuggestions(sites, currentPosition, dropdown, aoSitesEl, placeInput, setCurrentPlace, searchRadiusMeters) {
+export function setAoSiteSuggestions(sites, currentPosition, dropdown, aoSitesEl, placeInput, setCurrentPlace, searchRadiusMeters, sortMode = 'standard') {
   console.log('currentPosition:', currentPosition);
   
   // Slå sammen bbox-sites med cachet liste over mine private lokasjoner
@@ -113,7 +124,11 @@ export function setAoSiteSuggestions(sites, currentPosition, dropdown, aoSitesEl
     .sort((a, b) => (a._distance ?? Infinity) - (b._distance ?? Infinity))
     .slice(0, 5);
 
-  const currentAoSites = [...markedBbox, ...extraPrivate];
+  // Andres private lokasjoner vises kun hvis brukeren har skrudd det på — samme
+  // valg som styrer kartet (settings.html). Egne private (isMine) vises alltid.
+  const showOthersPrivate = shouldShowOthersPrivateSites();
+  const currentAoSites = [...markedBbox, ...extraPrivate]
+    .filter(s => s.isMine || !isPrivateSite(s) || showOthersPrivate);
 
   if (!dropdown) return currentAoSites;
   
@@ -148,6 +163,11 @@ export function setAoSiteSuggestions(sites, currentPosition, dropdown, aoSitesEl
   });
   
   withDist.sort((a, b) => {
+    if (sortMode === 'avstand') {
+      // Kun avstand, uavhengig av type — filteret over har allerede tatt
+      // stilling til om andres private skal være med i det hele tatt
+      return (a._distance ?? Infinity) - (b._distance ?? Infinity);
+    }
     // 1. Mine egne private først
     if ((a.isMine ? 1 : 0) !== (b.isMine ? 1 : 0)) return (b.isMine ? 1 : 0) - (a.isMine ? 1 : 0);
     // 2. Superlokasjon først
@@ -159,8 +179,9 @@ export function setAoSiteSuggestions(sites, currentPosition, dropdown, aoSitesEl
     return 0;
   });
 
-  // Maks 20 elementer
-  const visibleSites = withDist.filter(s => s && typeof s.name === 'string' && s.name.trim()).slice(0, 20);
+  // Maks 40 elementer — dropdownen scroller (max-height i CSS), så en høyere
+  // grense her koster kun mer scrolling, ikke layout-brudd
+  const visibleSites = withDist.filter(s => s && typeof s.name === 'string' && s.name.trim()).slice(0, 40);
 
   
   if (!visibleSites.length) {
@@ -193,7 +214,6 @@ export function setAoSiteSuggestions(sites, currentPosition, dropdown, aoSitesEl
 
     let label = getSiteLabel(site) || site.name;
     if (site.isMine) label = '⭐ ' + label;
-    if (site.isSuper) label = '🏷️ ' + label;
     if (isPrivateSite(site)) label = '👤 ' + label;
 
     let distStr = '';
@@ -205,6 +225,7 @@ export function setAoSiteSuggestions(sites, currentPosition, dropdown, aoSitesEl
 
     label = label + distStr;
     textSpan.textContent = label;
+    if (site.isSuper) textSpan.style.fontWeight = '700';
     textSpan.tabIndex = 0;
 
     // Kommune som undertekst — skiller lokaliteter med samme navn
@@ -212,7 +233,7 @@ export function setAoSiteSuggestions(sites, currentPosition, dropdown, aoSitesEl
     if (municipality) {
       const subText = document.createElement('div');
       subText.textContent = municipality;
-      subText.style.cssText = 'font-size: 0.75em; color: var(--muted);';
+      subText.style.cssText = 'font-size: 0.75em; font-weight: 400; color: var(--muted);';
       textSpan.appendChild(subText);
     }
 
@@ -381,6 +402,11 @@ export function initLocation(elements, onPositionUpdate, aoSizeMeters = 1000) {
       }
 
       try {
+        // Sikre at ao_tokens er satt før stedssøket, ikke bare lagrede credentials —
+        // ellers sender fetchAoSites() ingen auth-headere, og AO returnerer kun
+        // offentlige lokaliteter selv om brukeren har logget inn i innstillingene.
+        // No-op umiddelbart hvis ingen credentials er lagret.
+        await ensureAoTokens();
         const sites = await fetchAoSites(lat, lon, effectiveAoSize);
         onPositionUpdate(bestPosition, sites);
       } catch (err) {
@@ -536,8 +562,10 @@ export function openMapPage(userPosition, sites) {
 
   localStorage.setItem('mapData', JSON.stringify(mapData));
 
-  // Åpne kartside
-  window.open('/map.html', '_blank');
+  // Naviger til kartsiden i samme fane — map.html har egen «← Tilbake»-lenke.
+  // window.open('_blank') brøt ut av PWA-en på iOS (åpnet Safari i stedet for
+  // å bli værende i den installerte app-konteksten).
+  window.location.href = '/map.html';
 }
 
 /**

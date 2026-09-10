@@ -17,6 +17,15 @@ vi.mock('../../public/js/ui.js', () => ({
   }),
 }));
 
+// Mock localStorage — brukes av shouldShowOthersPrivateSites()
+const localStorageStore = {};
+const localStorageMock = {
+  getItem: vi.fn((key) => localStorageStore[key] ?? null),
+  setItem: vi.fn((key, value) => { localStorageStore[key] = String(value); }),
+  removeItem: vi.fn((key) => { delete localStorageStore[key]; }),
+};
+vi.stubGlobal('localStorage', localStorageMock);
+
 const { isPrivateSite, getSiteLabel, setAoSiteSuggestions, openMap } = await import('../../public/js/location.js');
 
 // ─── isPrivateSite ────────────────────────────────────────────
@@ -152,6 +161,7 @@ describe('setAoSiteSuggestions', () => {
     aoSitesEl = document.createElement('div');
     placeInput = document.createElement('input');
     setCurrentPlace = vi.fn();
+    localStorage.removeItem('showPrivateSitesOnMap');
   });
 
   it('should return empty array for null sites', () => {
@@ -197,6 +207,7 @@ describe('setAoSiteSuggestions', () => {
   });
 
   it('should sort public before private', () => {
+    localStorage.setItem('showPrivateSitesOnMap', '1');
     const sites = [
       { name: 'Privat sted', lat: 59.91, lon: 10.81, isPrivate: true },
       { name: 'Offentlig sted', lat: 59.91, lon: 10.81, isPrivate: false }
@@ -209,6 +220,7 @@ describe('setAoSiteSuggestions', () => {
   });
 
   it('should sort egne private (isMine) before andres private', () => {
+    localStorage.setItem('showPrivateSitesOnMap', '1');
     const sites = [
       { name: 'Andres private', lat: 59.91, lon: 10.81, isPrivate: true, isMine: false },
       { name: 'Min private', lat: 59.91, lon: 10.81, isPrivate: true, isMine: true }
@@ -221,6 +233,7 @@ describe('setAoSiteSuggestions', () => {
   });
 
   it('should sort: egne private → super → offentlig → andres private', () => {
+    localStorage.setItem('showPrivateSitesOnMap', '1');
     const sites = [
       { name: 'Andres private', lat: 59.91, lon: 10.81, isPrivate: true },
       { name: 'Offentlig', lat: 59.91, lon: 10.81 },
@@ -269,14 +282,15 @@ describe('setAoSiteSuggestions', () => {
     expect(dropdown.children[1].textContent).toMatch(/[\d.]+ km\)/);
   });
 
-  it('should prefix superlokasjoner with emoji', () => {
+  it('should show superlokasjoner with bold text', () => {
     const sites = [
       { name: 'Superlokasjon', lat: 59.91, lon: 10.81, isSuper: true }
     ];
 
     setAoSiteSuggestions(sites, { lat: 59.9, lon: 10.7 }, dropdown, aoSitesEl, placeInput, setCurrentPlace);
 
-    expect(dropdown.children[1].textContent).toContain('🏷️');
+    expect(dropdown.children[1].textContent).not.toContain('🏷️');
+    expect(dropdown.children[1].querySelector('.ao-site-text')?.style.fontWeight).toBe('700');
   });
 
   it('should show kommune from AO-respons under lokalitetsnavnet', () => {
@@ -311,7 +325,7 @@ describe('setAoSiteSuggestions', () => {
 
   it('should prefix private sites with lock emoji', () => {
     const sites = [
-      { name: 'Privat', lat: 59.91, lon: 10.81, isPrivate: true }
+      { name: 'Privat', lat: 59.91, lon: 10.81, isPrivate: true, isMine: true }
     ];
 
     setAoSiteSuggestions(sites, { lat: 59.9, lon: 10.7 }, dropdown, aoSitesEl, placeInput, setCurrentPlace);
@@ -319,15 +333,15 @@ describe('setAoSiteSuggestions', () => {
     expect(dropdown.children[1].textContent).toContain('👤');
   });
 
-  it('should limit to 20 sites', () => {
-    const sites = Array.from({ length: 30 }, (_, i) => ({
+  it('should limit to 40 sites', () => {
+    const sites = Array.from({ length: 50 }, (_, i) => ({
       name: `Sted ${i}`, lat: 59.9 + i * 0.001, lon: 10.7
     }));
 
     setAoSiteSuggestions(sites, { lat: 59.9, lon: 10.7 }, dropdown, aoSitesEl, placeInput, setCurrentPlace);
 
-    // 1 "Velg lokasjon" + 20 sites
-    expect(dropdown.children).toHaveLength(21);
+    // 1 "Velg lokasjon" + 40 sites
+    expect(dropdown.children).toHaveLength(41);
   });
 
   it('should filter out sites without name', () => {
@@ -372,5 +386,110 @@ describe('setAoSiteSuggestions', () => {
     // Skal fortsatt rendre, men uten avstand
     expect(dropdown.children.length).toBeGreaterThan(1);
     expect(aoSitesEl.textContent).toContain('posisjon');
+  });
+});
+
+// ─── Filter: andres private lokasjoner ────────────────────────
+
+describe('setAoSiteSuggestions — andres private-filter', () => {
+  let dropdown, aoSitesEl, placeInput, setCurrentPlace;
+
+  beforeEach(() => {
+    dropdown = document.createElement('div');
+    aoSitesEl = document.createElement('div');
+    placeInput = document.createElement('input');
+    setCurrentPlace = vi.fn();
+    localStorage.removeItem('showPrivateSitesOnMap');
+  });
+
+  it('should hide andres private by default (setting av)', () => {
+    const sites = [
+      { name: 'Andres private', lat: 59.91, lon: 10.81, isPrivate: true, isMine: false },
+      { name: 'Offentlig', lat: 59.91, lon: 10.81 }
+    ];
+
+    setAoSiteSuggestions(sites, { lat: 59.9, lon: 10.7 }, dropdown, aoSitesEl, placeInput, setCurrentPlace);
+
+    const names = Array.from(dropdown.children).slice(1).map(el => el.textContent);
+    expect(names.some(t => t.includes('Andres private'))).toBe(false);
+    expect(names.some(t => t.includes('Offentlig'))).toBe(true);
+  });
+
+  it('should show andres private når settingen er på', () => {
+    localStorage.setItem('showPrivateSitesOnMap', '1');
+    const sites = [
+      { name: 'Andres private', lat: 59.91, lon: 10.81, isPrivate: true, isMine: false },
+      { name: 'Offentlig', lat: 59.91, lon: 10.81 }
+    ];
+
+    setAoSiteSuggestions(sites, { lat: 59.9, lon: 10.7 }, dropdown, aoSitesEl, placeInput, setCurrentPlace);
+
+    const names = Array.from(dropdown.children).slice(1).map(el => el.textContent);
+    expect(names.some(t => t.includes('Andres private'))).toBe(true);
+  });
+
+  it('should always vise egne private lokasjoner, uansett setting', () => {
+    const sites = [
+      { name: 'Min private', lat: 59.91, lon: 10.81, isPrivate: true, isMine: true }
+    ];
+
+    setAoSiteSuggestions(sites, { lat: 59.9, lon: 10.7 }, dropdown, aoSitesEl, placeInput, setCurrentPlace);
+
+    expect(dropdown.children[1].textContent).toContain('Min private');
+  });
+});
+
+// ─── sortMode: 'avstand' ────────────────────────────────────────
+
+describe('setAoSiteSuggestions — sortMode avstand', () => {
+  let dropdown, aoSitesEl, placeInput, setCurrentPlace;
+
+  beforeEach(() => {
+    dropdown = document.createElement('div');
+    aoSitesEl = document.createElement('div');
+    placeInput = document.createElement('input');
+    setCurrentPlace = vi.fn();
+    localStorage.removeItem('showPrivateSitesOnMap');
+  });
+
+  it('should sort kun på avstand, uavhengig av type', () => {
+    const sites = [
+      { name: 'Nærmest men offentlig', lat: 59.9005, lon: 10.7005 },
+      { name: 'Lengre unna men super', lat: 59.95, lon: 10.75, isSuper: true },
+      { name: 'Lengst unna og min private', lat: 60.5, lon: 11.5, isPrivate: true, isMine: true }
+    ];
+
+    setAoSiteSuggestions(sites, { lat: 59.9, lon: 10.7 }, dropdown, aoSitesEl, placeInput, setCurrentPlace, undefined, 'avstand');
+
+    const names = Array.from(dropdown.children).slice(1).map(el => el.textContent);
+    expect(names[0]).toContain('Nærmest men offentlig');
+    expect(names[1]).toContain('Lengre unna men super');
+    expect(names[2]).toContain('Lengst unna og min private');
+  });
+
+  it('should fortsatt respektere andres private-filter i avstand-modus', () => {
+    const sites = [
+      { name: 'Andres private, nærmest', lat: 59.9005, lon: 10.7005, isPrivate: true, isMine: false },
+      { name: 'Offentlig, lenger unna', lat: 59.95, lon: 10.75 }
+    ];
+
+    setAoSiteSuggestions(sites, { lat: 59.9, lon: 10.7 }, dropdown, aoSitesEl, placeInput, setCurrentPlace, undefined, 'avstand');
+
+    const names = Array.from(dropdown.children).slice(1).map(el => el.textContent);
+    expect(names.some(t => t.includes('Andres private'))).toBe(false);
+    expect(names[0]).toContain('Offentlig, lenger unna');
+  });
+
+  it('standard-modus skal fortsatt gruppere før avstand (regresjonsvern)', () => {
+    const sites = [
+      { name: 'Nærmest men offentlig', lat: 59.9005, lon: 10.7005 },
+      { name: 'Lengre unna men min private', lat: 59.95, lon: 10.75, isPrivate: true, isMine: true }
+    ];
+
+    setAoSiteSuggestions(sites, { lat: 59.9, lon: 10.7 }, dropdown, aoSitesEl, placeInput, setCurrentPlace, undefined, 'standard');
+
+    const names = Array.from(dropdown.children).slice(1).map(el => el.textContent);
+    expect(names[0]).toContain('Lengre unna men min private');
+    expect(names[1]).toContain('Nærmest men offentlig');
   });
 });

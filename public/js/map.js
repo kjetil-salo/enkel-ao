@@ -48,6 +48,38 @@ L.control.layers({
   'Kartverket Gråtone': kartverketGrayscaleLayer
 }, null, { position: 'bottomleft', collapsed: true }).addTo(map);
 
+// Vis/skjul navn på lokalitetene — permanente tooltips kan forkludre kartet
+// når det er mange lokaliteter tett i tett. Husket per enhet.
+// Default PÅ: viderefører dagens oppførsel for de fleste. Den som synes
+// navnene er i veien skrur dem av med ett trykk, og valget huskes til neste
+// gang kartet åpnes.
+const SHOW_LABELS_KEY = 'mapShowLabels_v1';
+let showLabels = localStorage.getItem(SHOW_LABELS_KEY) !== '0';
+const labelMarkers = [];
+
+const toggleLabelsBtn = document.getElementById('toggle-labels-btn');
+function updateToggleLabelsBtnText() {
+  if (!toggleLabelsBtn) return;
+  toggleLabelsBtn.textContent = showLabels ? '🏷️ Skjul navn' : '🏷️ Vis navn';
+}
+function setShowLabels(value) {
+  showLabels = value;
+  try {
+    localStorage.setItem(SHOW_LABELS_KEY, value ? '1' : '0');
+  } catch (e) {
+    // Ikke kritisk om preferansen ikke lar seg lagre
+  }
+  labelMarkers.forEach((marker) => {
+    if (value) marker.openTooltip();
+    else marker.closeTooltip();
+  });
+  updateToggleLabelsBtnText();
+}
+if (toggleLabelsBtn) {
+  updateToggleLabelsBtnText();
+  toggleLabelsBtn.addEventListener('click', () => setShowLabels(!showLabels));
+}
+
 // Marker for brukerens posisjon
 const userMarker = L.circleMarker([userPosition.lat, userPosition.lon], {
   color: '#3b82f6',
@@ -108,6 +140,32 @@ if (sites && Array.isArray(sites)) {
       polygonColor = '#22c55e';  // Grønn
     }
 
+    // Navn for visning
+    const siteName = site.name || 'Ukjent lokalitet';
+    let displayName = siteName;
+    if (site.isMine) displayName = `★ ${siteName}`;
+
+    // Beregn avstand
+    const distance = haversine(userPosition.lat, userPosition.lon, lat, lon);
+    let distStr = '';
+    if (distance !== null) {
+      distStr = distance < 1000
+        ? `${Math.round(distance)} m`
+        : `${(distance / 1000).toFixed(1)} km`;
+    }
+
+    // Popup med navn, avstand og en eksplisitt velg-knapp. Deles av både
+    // polygonet og senter-markøren under, slik at et trykk ALLTID viser
+    // hvilken lokalitet du er i ferd med å velge først — nyttig især med
+    // stedsnavn skrudd av på kartet (se toggle-labels-btn), der man ellers
+    // ikke ville visst hva man trykket på før det var for sent å angre.
+    const siteIdStr = site.id != null ? String(site.id) : '';
+    let popupHtml = `<strong>${displayName}</strong>`;
+    if (distStr) {
+      popupHtml += `<br>Avstand: ${distStr}`;
+    }
+    popupHtml += `<br><br><button onclick="selectLocation('${siteName.replace(/'/g, "\\'")}', '${siteIdStr}')">Velg denne lokaliteten</button>`;
+
     // Tegn polygon hvis det er en polygon-lokalitet
     if (site.raw && site.raw.isPolygon && site.raw.polygonCoordinates) {
       const coords = site.raw.polygonCoordinates;
@@ -115,13 +173,22 @@ if (sites && Array.isArray(sites)) {
         // ByBoundingBox returnerer [lon, lat], Leaflet trenger [lat, lon] - må bytte om
         const leafletCoords = coords.map(coord => [coord[1], coord[0]]);
 
-        L.polygon(leafletCoords, {
+        // Er navn synlig på kartet, vet du allerede hva du trykker på — da
+        // går valget rett gjennom uten en ekstra bekreftelse. Er navn
+        // skrudd av, spiller Leaflets standard popup-på-klikk (bindPopup)
+        // inn i stedet: navn + avstand + en eksplisitt velg-knapp. Sjekkes
+        // ved hvert klikk (ikke ved oppretting), så toggling av navn
+        // underveis endrer oppførselen med en gang.
+        const polygon = L.polygon(leafletCoords, {
           color: polygonColor,
           weight: 2,
           opacity: 0.8,
           fillColor: polygonColor,
           fillOpacity: 0.15
-        }).addTo(map);
+        }).addTo(map).bindPopup(popupHtml);
+        polygon.on('click', () => {
+          if (showLabels) selectLocation(site.name || 'Ukjent lokalitet', site.id ?? null);
+        });
       }
     }
 
@@ -137,42 +204,26 @@ if (sites && Array.isArray(sites)) {
         shadowSize: [41, 41]
       })
     }).addTo(map);
-
-    // Navn for visning
-    const siteName = site.name || 'Ukjent lokalitet';
-    let displayName = site.isSuper ? `🏷️ ${siteName}` : siteName;
-    if (site.isMine) displayName = `★ ${siteName}`;
-
-    // Beregn avstand
-    const distance = haversine(userPosition.lat, userPosition.lon, lat, lon);
-    let distStr = '';
-    if (distance !== null) {
-      distStr = distance < 1000
-        ? `${Math.round(distance)} m`
-        : `${(distance / 1000).toFixed(1)} km`;
-    }
-
-    // Popup med detaljert info (vises ved klikk)
-    let popupHtml = `<strong>${displayName}</strong>`;
-    if (distStr) {
-      popupHtml += `<br>Avstand: ${distStr}`;
-    }
-    const siteIdStr = site.id != null ? String(site.id) : '';
-    popupHtml += `<br><br><button onclick="selectLocation('${siteName.replace(/'/g, "\\'")}', '${siteIdStr}')">Velg denne lokaliteten</button>`;
     marker.bindPopup(popupHtml);
 
     // Tooltip med navn (vises permanent)
     const tooltipText = distStr ? `${siteName} (${distStr})` : siteName;
+    const tooltipClasses = ['site-label'];
+    if (site.isMine) tooltipClasses.push('mine-label');
+    if (site.isSuper) tooltipClasses.push('super-label');
     marker.bindTooltip(tooltipText, {
       permanent: true,
       direction: 'top',
-      className: site.isMine ? 'site-label mine-label' : 'site-label',
+      className: tooltipClasses.join(' '),
       offset: [0, -35]
     });
+    if (!showLabels) marker.closeTooltip();
+    labelMarkers.push(marker);
 
-    // Klikk på markør velger lokalitet
+    // Samme logikk som polygonet over: navn synlig → velg direkte, navn
+    // skrudd av → popup med bekreftelse (Leaflets standard popup-på-klikk).
     marker.on('click', () => {
-      selectLocation(siteName, site.id ?? null);
+      if (showLabels) selectLocation(siteName, site.id ?? null);
     });
 
     // Legg til i bounds
@@ -349,6 +400,8 @@ function addNewSiteMarker(name, lat, lon) {
     className: 'site-label mine-label',
     offset: [0, -35]
   });
+  if (!showLabels) marker.closeTooltip();
+  labelMarkers.push(marker);
   marker.bindPopup(`<strong>★ ${name}</strong><br><em>Nettopp opprettet</em>`);
 }
 

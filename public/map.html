@@ -124,6 +124,10 @@
       display: none; /* Fjern tooltip-pilen */
     }
 
+    .site-label.super-label {
+      font-weight: 700;
+    }
+
     /* Styling for velg-knapp i popup */
     .leaflet-popup-content button {
       background: #22c55e;
@@ -285,6 +289,7 @@
 <body>
   <script src="/js/theme.js"></script>
   <a href="/" class="back-btn">← Tilbake</a>
+  <button type="button" class="back-btn" id="toggle-labels-btn" style="top:76px;right:10px;left:auto;" title="Vis eller skjul navn på lokaliteter">🏷️ Skjul navn</button>
 
   <div id="map"></div>
 

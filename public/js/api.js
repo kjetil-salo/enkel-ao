@@ -161,7 +161,10 @@ async function tryAutoRelogin() {
       }
       localStorage.setItem('ao_tokens', JSON.stringify(savedTokens));
       console.log('[Auto-relogin] Vellykket! Nye tokens lagret.');
-      fetchAndCachePrivateSites();
+      // Ventet på — se samme begrunnelse i ensureAoTokens(). Kalleren her
+      // (fetchAoSites) gjør et nytt fetchAoSites-kall rett etter relogin, som
+      // igjen leser denne cachen synkront for isMine-merking.
+      await fetchAndCachePrivateSites();
       return true;
     }
   } catch (e) {
@@ -260,26 +263,43 @@ export async function fetchAoSites(lat, lon, sizeMeters = 1000, isRetry = false)
  */
 export async function ensureAoTokens() {
   const tokens = JSON.parse(localStorage.getItem('ao_tokens') || '{}');
-  if (tokens.loginToken && tokens.authCookie) return true;
+  let ok = !!(tokens.loginToken && tokens.authCookie);
 
-  const username = localStorage.getItem('ao_username');
-  const password = localStorage.getItem('ao_password');
-  if (!username || !password) return false;
+  if (!ok) {
+    const username = localStorage.getItem('ao_username');
+    const password = localStorage.getItem('ao_password');
+    if (!username || !password) return false;
 
-  const resp = await fetch('/api/ao-login', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username, password }),
-  });
-  const result = await resp.json();
-  if (!resp.ok || !result.success) return false;
+    const resp = await fetch('/api/ao-login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password }),
+    });
+    const result = await resp.json();
+    if (!resp.ok || !result.success) return false;
 
-  const saved = JSON.parse(localStorage.getItem('ao_tokens') || '{}');
-  saved.loginToken = result.loginToken;
-  saved.authCookie = result.authCookie;
-  if (!saved.userId) saved.userId = result.userId;
-  localStorage.setItem('ao_tokens', JSON.stringify(saved));
-  return true;
+    const saved = JSON.parse(localStorage.getItem('ao_tokens') || '{}');
+    saved.loginToken = result.loginToken;
+    saved.authCookie = result.authCookie;
+    if (!saved.userId) saved.userId = result.userId;
+    localStorage.setItem('ao_tokens', JSON.stringify(saved));
+    ok = true;
+  }
+
+  // Både «tokens akkurat etablert» og «tokens fantes fra før, men cachen med
+  // private lokasjoner er fortsatt tom» skal utløse henting — ellers ser en
+  // bruker som logget inn et helt annet sted (f.eks. Innstillinger, som ikke
+  // selv lagrer tokens) ingen private lokaliteter før neste sideinnlasting.
+  //
+  // MÅ ventes på (ikke fire-and-forget): kalleren gjør typisk fetchAoSites()
+  // rett etter ensureAoTokens() returnerer, og setAoSiteSuggestions() leser
+  // cachen synkront for å markere isMine. Uten await var dette en race —
+  // kartet kunne rekke å tegne markørene (som grå «privat», ikke gul «min»)
+  // før nettverkskallet til /api/ao-private-sites var ferdig.
+  if (ok && getCachedPrivateSites().length === 0) {
+    await fetchAndCachePrivateSites();
+  }
+  return ok;
 }
 
 export async function createAoSite(name, lat, lon, accuracy) {

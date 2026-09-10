@@ -183,13 +183,13 @@ export function initAutocomplete(placeInput, onSelect, getPosition = null) {
       // Ikon + navn
       let icon = '';
       if (isMine) icon = '⭐ ';
-      else if (isSuper) icon = '🏷️ ';
       else if (isPrivate) icon = '👤 ';
 
       const mainText = document.createElement('div');
       mainText.textContent = icon + (result.presentationvalue || result.value);
       mainText.style.cssText = `
         font-size: 0.95em;
+        font-weight: ${isSuper ? '700' : '400'};
         color: var(--text);
         margin-bottom: 2px;
       `;
