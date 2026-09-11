@@ -189,6 +189,16 @@ body.theme-light .obs-sent-badge {
   background: rgba(21, 128, 61, 0.12);
 }
 
+/* Merke for at en kommentar (offentlig og/eller privat) er lagt inn på obsen */
+.obs-comment-badge {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 6px;
+  font-size: 0.85em;
+  vertical-align: middle;
+  cursor: default;
+}
+
 /* ============================================================================
    INPUTS
    ========================================================================= */

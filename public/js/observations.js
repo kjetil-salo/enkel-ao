@@ -385,6 +385,19 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
         sendtMerke.setAttribute('aria-label', 'Allerede sendt til Artsobservasjoner');
         primaryLine.appendChild(sendtMerke);
       }
+      // Viser at det er lagt inn en kommentar (offentlig og/eller privat) —
+      // ellers er det usynlig i lista at noen har skrevet noe via blyant-ikonet.
+      if (obs.comment || obs.privateComment) {
+        const kommentarMerke = document.createElement('span');
+        kommentarMerke.className = 'obs-comment-badge';
+        kommentarMerke.textContent = '💬';
+        const titleParts = [];
+        if (obs.comment) titleParts.push(`Kommentar: ${obs.comment}`);
+        if (obs.privateComment) titleParts.push(`Privat kommentar: ${obs.privateComment}`);
+        kommentarMerke.title = titleParts.join('\n');
+        kommentarMerke.setAttribute('aria-label', 'Kommentar lagt inn');
+        primaryLine.appendChild(kommentarMerke);
+      }
       primaryTd.appendChild(primaryLine);
 
       // Underlinje: kun alder/kjønn, og kun når noe faktisk er satt.
