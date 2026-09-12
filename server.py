@@ -59,6 +59,7 @@ from src import stats_store
 from src import feedback_store
 from src import share_store
 from src import fellestur_store
+from src import fellestur_peer
 from src import email_notify
 from src.utils import parse_user_agent
 from src.ao_import_httpx import post_with_curl
@@ -107,6 +108,13 @@ SHARE_WINDOW_SEC = 600
 _fellestur_hits = {}
 FELLESTUR_MAX_PER_WINDOW = 600
 FELLESTUR_WINDOW_SEC = 600
+
+# Fellestur-peer er internett-eksponert uten kontoer (kun bearer-token) —
+# egen, strammere kvote enn den vanlige fellestur-trafikken siden dette kun
+# skal treffes av konfigurerte servere, ikke ekte brukere.
+_fellestur_peer_hits = {}
+FELLESTUR_PEER_MAX_PER_WINDOW = 200
+FELLESTUR_PEER_WINDOW_SEC = 600
 
 
 def _rate_ok(hits, ip, max_per_window, window_sec):
@@ -200,6 +208,11 @@ class Handler(SimpleHTTPRequestHandler):
 
         if parsed.path == '/api/fellestur-sync':
             self._handle_fellestur_sync_post()
+            return
+
+        if parsed.path.startswith('/api/fellestur-peer/') and parsed.path.endswith('/events'):
+            kode = parsed.path[len('/api/fellestur-peer/'):-len('/events')]
+            self._handle_fellestur_peer_events_post(kode)
             return
 
         # For alt annet, returner 404
@@ -488,19 +501,56 @@ class Handler(SimpleHTTPRequestHandler):
                 self._send_json({'error': 'For mange forespørsler — prøv igjen om litt.'}, status=429)
                 return
 
+            kode = data.get('kode', '')
+            registrert_av = data.get('registrertAv', '')
+            peer_endringer = []
             resultat = fellestur_store.apply_sync(
-                data.get('kode', ''),
+                kode,
                 upserts=data.get('upserts', []),
                 deletes=data.get('deletes', []),
-                registrert_av=data.get('registrertAv', ''),
+                registrert_av=registrert_av,
+                on_event=lambda t, oid, obs: peer_endringer.append((t, oid, obs)),
             )
             if not resultat:
                 self._send_json({'error': 'Fant ikke fellesturen, eller den er utløpt'}, status=404)
                 return
+
+            # Forwarding til konfigurerte providere (Feltlogg m.fl.) — no-op
+            # uten providers-fil, kjører uansett på egen bakgrunnstråd og
+            # blokkerer aldri dette svaret. Se src/fellestur_peer.py.
+            if peer_endringer:
+                try:
+                    fellestur_peer.fan_out(kode, peer_endringer, resultat, registrert_av)
+                except Exception as e:
+                    logger.warning(f'[FELLESTUR-PEER] Feil ved fan-out: {e}')
+
             self._send_json({'ok': True, **resultat})
         except Exception as e:
             logger.error(f'[FELLESTUR] Feil ved synk: {e}')
             self._send_json({'error': 'Kunne ikke synke fellesturen'}, status=500)
+
+    def _handle_fellestur_peer_events_post(self, kode):
+        """
+        Motta en batch federasjons-events fra en peer-server (f.eks.
+        Feltlogg). Se src/fellestur_peer.py for kontraktsdetaljer.
+        """
+        try:
+            if not _rate_ok(_fellestur_peer_hits, self._client_ip(), FELLESTUR_PEER_MAX_PER_WINDOW, FELLESTUR_PEER_WINDOW_SEC):
+                self._send_json({'error': 'For mange forespørsler'}, status=429)
+                return
+
+            if not fellestur_peer.verify_inbound_token(self.headers.get('Authorization', '')):
+                self._send_json({'error': 'Ugyldig eller manglende token'}, status=401)
+                return
+
+            data = self._read_json_body()
+            body, status = fellestur_peer.apply_peer_batch(kode, data.get('events'))
+            self._send_json(body, status=status)
+        except json.JSONDecodeError:
+            self._send_json({'error': 'Ugyldig JSON'}, status=400)
+        except Exception as e:
+            logger.error(f'[FELLESTUR-PEER] Feil ved mottak: {e}')
+            self._send_json({'error': 'Intern feil'}, status=500)
 
     def _handle_fellestur_get(self, parsed):
         """Hent turnavn, medobservatører og alle oppføringer — brukes til polling."""

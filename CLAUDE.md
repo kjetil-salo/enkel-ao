@@ -107,6 +107,15 @@ The `Handler` class routes requests:
 - `/d/<slug>` → offentlig delingsside. Ukjent og utløpt slug gir **samme** 404-side (ingen enumerering)
 - `/mine-delinger.html` → frittstående side som lister brukerens delinger fra `myShares_v1`
   (localStorage, kun lokalt — ikke et serverendepunkt), med oppdater- og trekk tilbake-knapp per rad
+- `/api/fellestur` (POST) → oppretter en ny fellestur (delt, skrivbar loggbok for en gruppe i felt),
+  returnerer `{kode, expiresTs}`. 5-sifret kode (`_KODE_LENGTH`/`_KODE_ALPHABET` i `fellestur_store.py`)
+- `/api/fellestur?kode=X` (GET) → henter turnavn, medobservatører og alle oppføringer (polling)
+- `/api/fellestur-oppdater` (POST) → endrer turnavn/medobservatører — alle med koden kan gjøre dette
+- `/api/fellestur-sync` (POST) → klienten sender en diff (`upserts`+`deletes`) mot sist bekreftede
+  server-tilstand, får hele turen tilbake. Se `src/fellestur_store.py` for synk-modellen
+- `/api/fellestur-peer/<kode>/events` (POST) → **kryss-app-føderasjon**: mottar en batch events fra
+  en peer-server (f.eks. Feltlogg) som følger samme delte kode. Se `src/fellestur_peer.py` og
+  `docs/ANALYSIS_FELLESTUR_FODERASJON.md` for full kontrakt og designvalg
 - `/stats?key=X` → displays analytics (key-protected)
 - `/health` → health check endpoint
 
@@ -127,6 +136,26 @@ The `Handler` class routes requests:
   - `create_share()`/`get_share()`/`update_share()`/`delete_share()`. `update_share()` overskriver
     `payload`/`display_name`/`email` på samme rad, urørt `expires_ts`
   - Bevisst **ikke** Redis: SQLite gir persistens, backup og «utløpt»-melding gratis. Se `docs/deling-av-observasjoner-plan.md`
+- `fellestur_store.py` — SQLite-lagring av fellesturer (samme `stats.db`). Delt kladdebok — alle
+  med koden kan legge til, rette og slette. 5-sifret kode. Full observasjonsmodell gjenbrukes
+  (samme felt som arbeidslista), koordinater aldri lagret (`sanitize_observasjon()`). `apply_sync()`
+  tar en valgfri `on_event(type, obs_id, obs)`-callback — brukt av `fellestur_peer.py` til å bygge
+  utgående federasjons-events uten å forurense det vanlige klient-svaret
+- `fellestur_peer.py` — Kryss-app-føderasjon for Fellestur (v1: Feltlogg). Tynn oversettelsesbro,
+  IKKE en egen datamodell — peer-events anvendes på samme `fellestur_obs`-tabell via
+  `fellestur_store.apply_sync()`. Se `docs/ANALYSIS_FELLESTUR_FODERASJON.md` for full analyse
+  - Eget inbound-secret på `FELLESTUR_PEER_SECRET_PATH` (default `/data/fellestur_peer_secret.txt`,
+    docker-volum — IKKE i repo-mappen, overlever ikke en rebuild ellers), generert automatisk
+    første gang, `hmac.compare_digest` mot innkommende `Authorization: Bearer`
+  - Providere (den andre partens URL + DERES hemmelighet vi skal sende) i
+    `FELLESTUR_PEER_PROVIDERS_PATH` (default `/data/fellestur_peer_providers.json`). Manglende fil
+    = ingen peers = funksjonen er et rent no-op
+  - `count`-events fra en peer anvendes som delta (`max(1, lokal+delta)`); utgående fra oss er
+    alltid `add`/`update`/`delete` (aldri en ekte delta) — akseptert forenkling, se analysen
+  - **Automatisk forwarding av ALLE fellesturer i v1** (ingen opt-in), bevisst besluttet av
+    produkteier. Avgjørelsen sitter i `skal_forwardes(tur)` — endre KUN den funksjonen om dette
+    skal bli betinget senere
+  - Idempotens på mottatte peer-event-ider i egen tabell `fellestur_peer_seen`, ryddet etter 7 dager
 - `location_db.py` — SQLite-cache for AO-lokasjoner (delt mellom containere via Docker-volum)
   - Aktiveres med `LOCATION_DB_PATH` env-var
   - Schema: `ao_id, name, lat, lon, is_private, is_super, parent_id, municipality, county, source`
@@ -246,6 +275,12 @@ except Exception as e:
   - `SMTP_HOST`, `SMTP_PORT` (default 2525), `SMTP_USER`, `SMTP_PASS` — SMTP-utsending (prioriteres)
   - alternativt `RESEND_API_KEY` eller `SMTP2GO_API_KEY` for HTTP-API-utsending
   - Prod (Pi) og staging (Fly) bruker SMTP2GO SMTP; ligger som secrets/`.env` utenfor repo
+- **Fellestur-føderasjon** (begge valgfrie — uten dem virker Fellestur som før, ingen forwarding):
+  - `FELLESTUR_PEER_SECRET_PATH` (default `/data/fellestur_peer_secret.txt`) — vårt eget
+    inbound-secret, auto-generert. Gi denne filens innhold til en peer som skal kunne kalle OSS
+  - `FELLESTUR_PEER_PROVIDERS_PATH` (default `/data/fellestur_peer_providers.json`) — liste over
+    `[{name, url, secret}]` der `secret` er DEN ANDRE partens inbound-secret. Manglende fil = ingen
+    peers konfigurert
 
 For å teste med mock (simulere AO-timeout):
 ```bash

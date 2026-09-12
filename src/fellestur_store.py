@@ -45,10 +45,11 @@ logger = logging.getLogger('fugleobs')
 DB_PATH = os.environ.get('DB_PATH', '/data/stats.db')
 _lock = threading.Lock()
 
-# Samme entydige alfabet som share-slug/saksnummer — utelater tegn som lett
-# forveksles (0/O, 1/I/L). Kort nok til å tastes inn for hånd.
-_KODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'
-_KODE_LENGTH = 6
+# 5 sifre — matcher kodeformatet i Feltloggs kryss-app-kontrakt (Appendix A.1)
+# nøyaktig, slik at en enkel-ao-kode er en syntaktisk gyldig Feltlogg-kode uten
+# oversettelse. Se src/fellestur_peer.py og docs/ANALYSIS_FELLESTUR_FODERASJON.md.
+_KODE_ALPHABET = '0123456789'
+_KODE_LENGTH = 5
 
 FELLESTUR_TTL_HOURS = 48
 MAX_OBS_PER_TUR = 300
@@ -295,7 +296,7 @@ def update_fellestur(kode: str, navn=None, medobservatorer=None) -> bool:
         return False
 
 
-def apply_sync(kode: str, upserts=None, deletes=None, registrert_av: str = '') -> dict | None:
+def apply_sync(kode: str, upserts=None, deletes=None, registrert_av: str = '', on_event=None) -> dict | None:
     """
     Anvend en batch med endringer fra klienten mot den delte loggen:
 
@@ -309,6 +310,12 @@ def apply_sync(kode: str, upserts=None, deletes=None, registrert_av: str = '') -
     Ugyldige enkeltrader (manglende artsnavn, for stor payload, ugyldig
     obs_id) hoppes stille over — resten av batchen anvendes likevel.
     `MAX_OBS_PER_TUR` håndheves per ny rad, også innad i samme batch.
+
+    `on_event(type, obs_id, obs)` — valgfri callback kalt for hver faktisk
+    anvendt endring (`'add'`/`'update'`/`'delete'`), brukt av
+    `fellestur_peer.py` til å bygge utgående federasjons-events uten at denne
+    funksjonens returverdi (brukt direkte som JSON-svar til klienten) må
+    forurenses med peer-interne detaljer. Rører aldri lagringen selv.
 
     Returnerer hele turen (`get_fellestur()`-format), eller None hvis turen
     ikke finnes eller er utløpt.
@@ -371,13 +378,17 @@ def apply_sync(kode: str, upserts=None, deletes=None, registrert_av: str = '') -
                         "payload = excluded.payload, updated_ts = excluded.updated_ts",
                         (kode, obs_id, payload, registrert_av, now, now)
                     )
+                    if on_event:
+                        on_event('add' if ny_rad else 'update', obs_id, rein_obs)
 
                 for obs_id in deletes:
                     if not isinstance(obs_id, str):
                         continue
-                    conn.execute(
+                    cur = conn.execute(
                         "DELETE FROM fellestur_obs WHERE kode = ? AND obs_id = ?", (kode, obs_id)
                     )
+                    if on_event and cur.rowcount:
+                        on_event('delete', obs_id, None)
 
                 conn.commit()
     except Exception as e:

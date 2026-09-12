@@ -1,6 +1,14 @@
 # Ignorer miljøvariabler og lokale hemmeligheter
 .env
 
+# Fellestur-føderasjon: eget inbound-secret og peer-config.
+# Prod/staging lagrer disse på /data (docker-volum) uansett, ikke i
+# repo-mappen — men ekskludert her også i tilfelle noen kjører lokalt
+# uten env-override og filene havner i repo-roten.
+.fellestur_peer_secret
+fellestur_peer_secret.txt
+fellestur_peer_providers.json
+
 # IDE / venv / caches
 .venv
 *.pyc
