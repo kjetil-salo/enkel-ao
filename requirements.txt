@@ -9,3 +9,6 @@ user-agents>=2.2
 
 # HTTP client (erstatter subprocess curl)
 httpx>=0.27
+
+# zoneinfo (Europe/Oslo) i python:3.12-slim mangler OS-tzdata
+tzdata>=2024.1

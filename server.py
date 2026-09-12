@@ -936,6 +936,8 @@ class Handler(SimpleHTTPRequestHandler):
                 self._handle_ao_areas_api(parsed)
             elif parsed.path == '/api/ao-autocomplete':
                 self._handle_ao_autocomplete_api(parsed)
+            elif parsed.path == '/api/ao-rarity':
+                self._handle_ao_rarity_api(parsed)
             elif parsed.path == '/api/fellestur':
                 self._handle_fellestur_get(parsed)
             else:
@@ -1009,6 +1011,22 @@ class Handler(SimpleHTTPRequestHandler):
         html = generate_feedback_admin_page(items, counts, provided_key, status_filter)
         self._send_html_response(html)
 
+    def _read_ao_auth_headers(self):
+        """Les AO-auth fra request-headers (sendt fra frontend).
+
+        Kun loginToken trengs i praksis (userId ekstraheres derfra hvis
+        ikke sendt separat); authCookie hentes automatisk server-side ved behov.
+
+        Returns:
+            tuple: (login_token, auth_cookie, user_id) — hver None hvis ikke satt.
+        """
+        login_token = self.headers.get('X-AO-Login-Token', '').strip() or None
+        auth_cookie = self.headers.get('X-AO-Auth-Cookie', '').strip() or None
+        user_id = self.headers.get('X-AO-User-Id', '').strip() or None
+        if login_token and not user_id and ':' in login_token:
+            user_id = login_token.split(':')[0]
+        return login_token, auth_cookie, user_id
+
     def _handle_species_api(self, parsed):
         """Håndter arts-søk API."""
         params = parse_qs(parsed.query)
@@ -1050,18 +1068,7 @@ class Handler(SimpleHTTPRequestHandler):
         size_raw = params.get('size', ['600'])[0].strip()
         
         # Hent bruker-auth fra headers (sendt fra frontend)
-        # Ny enkel måte: kun loginToken trengs (userId ekstraheres, authCookie hentes automatisk)
-        login_token = self.headers.get('X-AO-Login-Token', '').strip() or None
-        
-        # Bakoverkompatibilitet: godta fortsatt separate verdier
-        user_id = self.headers.get('X-AO-User-Id', '').strip() or None
-        auth_cookie = self.headers.get('X-AO-Auth-Cookie', '').strip() or None
-        
-        # Hvis vi har loginToken men ikke user_id, ekstraher fra loginToken
-        if login_token and not user_id and ':' in login_token:
-            user_id = login_token.split(':')[0]
-            logger.debug(f'ao-sites: Ekstraherte user_id={user_id} fra loginToken')
-
+        login_token, auth_cookie, user_id = self._read_ao_auth_headers()
         logger.debug(f'ao-sites mottok auth: user_id={user_id is not None}, login_token={login_token is not None}, auth_cookie={auth_cookie is not None}')
         
         ao_mobile_base = os.environ.get(
@@ -1171,6 +1178,39 @@ class Handler(SimpleHTTPRequestHandler):
         except Exception as e:
             logger.error(f'[AO-AUTOCOMPLETE] Feil: {e}')
             self._send_json({'results': [], 'refreshed_auth_cookie': None})
+
+    def _handle_ao_rarity_api(self, parsed):
+        """Sjeldenhetsvarsel: proxy for AOs sanntidsvalidering (art x lokalitet x dato).
+
+        Stille no-op (tomt objekt) for uinnlogget bruker eller ved AO-feil —
+        aldri en feil brukeren merker mens skjemaet fylles ut.
+        """
+        from src.api_handlers import get_ao_rarity
+
+        params = parse_qs(parsed.query)
+        taxon_id = params.get('taxonId', [''])[0].strip()
+        site_id = params.get('siteId', [''])[0].strip()
+        date_str = params.get('date', [''])[0].strip()
+
+        login_token, auth_cookie, user_id = self._read_ao_auth_headers()
+
+        if not taxon_id or not site_id or not date_str:
+            self._send_json({})
+            return
+
+        try:
+            result, refreshed_auth_cookie = get_ao_rarity(
+                taxon_id, site_id, date_str,
+                user_id=user_id, login_token=login_token, auth_cookie=auth_cookie,
+                location_db=_location_db,
+            )
+            response_data = result or {}
+            if refreshed_auth_cookie:
+                response_data['refreshedAuthCookie'] = refreshed_auth_cookie
+            self._send_json(response_data)
+        except Exception as e:
+            logger.warning(f'[AO-RARITY] Feil: {e}')
+            self._send_json({})
 
     def _handle_static_files(self, parsed):
         """Håndter statiske filer."""

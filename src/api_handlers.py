@@ -11,8 +11,10 @@ import re
 import os
 import threading
 import time
+from datetime import datetime, timezone
 from html import unescape
 from urllib.parse import urlencode
+from zoneinfo import ZoneInfo
 
 import httpx
 
@@ -996,3 +998,148 @@ def handle_ao_sites_search(lat, lon, size_m=600.0, ao_mobile_base_url='https://m
             logger.info(f'AO feilet, returnerer {len(local_sites)} lokale resultater')
             return local_sites, refreshed_auth_cookie, auth_failed
         raise
+
+
+_OSLO_TZ = ZoneInfo('Europe/Oslo')
+
+
+def _oslo_midnight_utc_iso(date_str: str) -> str:
+    """Konverter en dato (YYYY-MM-DD) til UTC ISO-streng for norsk lokal midnatt.
+
+    Matcher formatet AO sin egen Report-side sender til ValidateTaxonAndArea
+    (verifisert ved nettverksinstrumentering: 12.09.2026 sommertid ble sendt
+    som "2026-09-11T22:00:00.000Z").
+    """
+    y, m, d = (int(p) for p in date_str.split('-'))
+    local_midnight = datetime(y, m, d, tzinfo=_OSLO_TZ)
+    return local_midnight.astimezone(timezone.utc).strftime('%Y-%m-%dT%H:%M:%S.000Z')
+
+
+def fetch_site_areas(site_id, auth_cookie: str, login_token: str = None) -> str:
+    """Hent AOs interne Areas-ID-er (fylke/kommune) for en lokalitet.
+
+    Kaller AO sitt eget /SubmitSighting/GetSite — samme kall AOs
+    rapporteringsskjema gjør når en lokalitet velges (verifisert ved
+    nettverksinstrumentering). Krever innlogget sesjon.
+
+    Returns:
+        Kommaseparert streng med area-ID-er, eller None ved feil/manglende data.
+    """
+    cookies = {'.ASPXAUTHNO': auth_cookie, 'AcceptCookies': '1'}
+    if login_token:
+        cookies['logintoken'] = login_token
+
+    try:
+        with httpx.Client(cookies=cookies) as client:
+            response = client.post(
+                'https://www.artsobservasjoner.no/SubmitSighting/GetSite',
+                headers={
+                    'User-Agent': 'Mozilla/5.0 (compatible; Fugleobservasjoner/1.0)',
+                    'Accept': 'application/json, text/plain, */*',
+                    'Content-Type': 'application/json; charset=UTF-8',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Referer': 'https://www.artsobservasjoner.no/SubmitSighting/Report',
+                },
+                json={'SiteId': int(site_id)},
+                timeout=10,
+            )
+            response.raise_for_status()
+            data = response.json()
+        areas = data.get('Areas')
+        # Forventet format er en kommaseparert streng (verifisert ved
+        # nettverksinstrumentering) — behandle alt annet som «ingen data»
+        # i stedet for å la det lekke inn i check_taxon_rarity() sin split().
+        return areas if isinstance(areas, str) and areas else None
+    except Exception as e:
+        logger.warning(f'[AO-RARITY] Kunne ikke hente Areas for site {site_id}: {e}')
+        return None
+
+
+def check_taxon_rarity(taxon_id, areas_csv: str, date_str: str, auth_cookie: str, login_token: str = None) -> dict:
+    """Sjekk AO sin sanntids sjeldenhetsvurdering for art x lokalitet x dato.
+
+    Kaller AO sitt eget /SubmitSighting/ValidateTaxonAndArea — samme
+    validering AOs rapporteringsskjema kjører før publisering. Krever
+    innlogget sesjon.
+
+    Returns:
+        Dict med 'warning' og 'information' (hver {Header, Body} eller None),
+        eller None ved feil.
+    """
+    areas = [a.strip() for a in areas_csv.split(',') if a.strip()]
+    if not areas:
+        return None
+
+    cookies = {'.ASPXAUTHNO': auth_cookie, 'AcceptCookies': '1'}
+    if login_token:
+        cookies['logintoken'] = login_token
+
+    try:
+        from_to = _oslo_midnight_utc_iso(date_str)
+        with httpx.Client(cookies=cookies) as client:
+            response = client.post(
+                'https://www.artsobservasjoner.no/SubmitSighting/ValidateTaxonAndArea',
+                headers={
+                    'User-Agent': 'Mozilla/5.0 (compatible; Fugleobservasjoner/1.0)',
+                    'Accept': 'application/json, text/plain, */*',
+                    'Content-Type': 'application/json; charset=UTF-8',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Referer': 'https://www.artsobservasjoner.no/SubmitSighting/Report',
+                },
+                json={
+                    'Taxon': str(taxon_id),
+                    'Areas': areas,
+                    'fromDate': from_to,
+                    'toDate': from_to,
+                },
+                timeout=10,
+            )
+            response.raise_for_status()
+            data = response.json()
+        return {'warning': data.get('Warning'), 'information': data.get('Information')}
+    except Exception as e:
+        logger.warning(f'[AO-RARITY] ValidateTaxonAndArea feilet for taxon={taxon_id}: {e}')
+        return None
+
+
+def get_ao_rarity(taxon_id, site_id, date_str: str, user_id: str = None, login_token: str = None,
+                   auth_cookie: str = None, location_db=None) -> tuple:
+    """Sjekk om en art er uvanlig på en gitt lokalitet/dato (AO sin sjeldenhetsvarsling).
+
+    Henter Areas-ID-er for lokaliteten (cachet i location_db med lang TTL —
+    administrative grenseendringer er sjeldne), deretter AOs sanntidsvurdering.
+
+    Stille no-op ved uinnlogget bruker eller manglende data — aldri en feil
+    brukeren merker, jf. «External API Error Handling»-konvensjonen.
+
+    Returns:
+        tuple: (result_dict_eller_None, refreshed_auth_cookie_eller_None)
+    """
+    is_logged_in = bool(login_token and (auth_cookie or user_id))
+    if not is_logged_in or not taxon_id or not site_id or not date_str:
+        return None, None
+
+    auth_cookie, refreshed_auth_cookie = _ensure_auth(auth_cookie, user_id, login_token)
+    if not auth_cookie:
+        return None, refreshed_auth_cookie
+
+    areas_csv = None
+    if location_db:
+        try:
+            areas_csv = location_db.get_cached_areas(site_id)
+        except Exception as e:
+            logger.warning(f'[AO-RARITY] Cache-oppslag feilet for site {site_id}: {e}')
+
+    if not areas_csv:
+        areas_csv = fetch_site_areas(site_id, auth_cookie, login_token)
+        if areas_csv and location_db:
+            try:
+                location_db.set_areas(site_id, areas_csv)
+            except Exception as e:
+                logger.warning(f'[AO-RARITY] Kunne ikke cache Areas for site {site_id}: {e}')
+
+    if not areas_csv:
+        return None, refreshed_auth_cookie
+
+    result = check_taxon_rarity(taxon_id, areas_csv, date_str, auth_cookie, login_token)
+    return result, refreshed_auth_cookie

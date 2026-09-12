@@ -8,8 +8,13 @@ Aktiveres med miljøvariabel LOCATION_DB_PATH.
 import logging
 import math
 import sqlite3
+from datetime import datetime, timedelta, timezone
 
 logger = logging.getLogger('fugleobs')
+
+# AOs interne område-ID-er (fylke/kommune) endrer seg kun ved administrative
+# grensereformer (skjer sjeldent, ca. hvert 5. år) — trygt med lang TTL.
+AREAS_CACHE_TTL_DAYS = 30
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS locations (
@@ -23,6 +28,8 @@ CREATE TABLE IF NOT EXISTS locations (
     municipality TEXT,
     county TEXT,
     source TEXT NOT NULL,
+    areas TEXT,
+    areas_updated_at TEXT,
     created_at TEXT DEFAULT (datetime('now')),
     updated_at TEXT DEFAULT (datetime('now'))
 );
@@ -53,6 +60,10 @@ class LocationDB:
                     conn.execute('ALTER TABLE locations ADD COLUMN municipality TEXT')
                 if 'county' not in cols:
                     conn.execute('ALTER TABLE locations ADD COLUMN county TEXT')
+                if 'areas' not in cols:
+                    conn.execute('ALTER TABLE locations ADD COLUMN areas TEXT')
+                if 'areas_updated_at' not in cols:
+                    conn.execute('ALTER TABLE locations ADD COLUMN areas_updated_at TEXT')
         logger.info(f'LocationDB initialisert: {db_path}')
 
     def _connect(self):
@@ -201,6 +212,50 @@ class LocationDB:
         """Antall lokasjoner i databasen."""
         with self._connect() as conn:
             return conn.execute('SELECT COUNT(*) FROM locations').fetchone()[0]
+
+    def get_cached_areas(self, site_id):
+        """Hent cachede AO Areas-ID-er (fylke/kommune) for en lokalitet.
+
+        Returns:
+            Kommaseparert streng med area-ID-er, eller None hvis ikke
+            cachet eller eldre enn AREAS_CACHE_TTL_DAYS.
+        """
+        try:
+            site_id = int(site_id)
+        except (TypeError, ValueError):
+            return None
+        with self._connect() as conn:
+            row = conn.execute(
+                'SELECT areas, areas_updated_at FROM locations WHERE ao_id = ?',
+                (site_id,)
+            ).fetchone()
+        if not row or not row['areas'] or not row['areas_updated_at']:
+            return None
+        try:
+            updated = datetime.fromisoformat(row['areas_updated_at'])
+        except ValueError:
+            return None
+        if datetime.now(timezone.utc) - updated > timedelta(days=AREAS_CACHE_TTL_DAYS):
+            return None
+        return row['areas']
+
+    def set_areas(self, site_id, areas_str):
+        """Cache Areas-ID-er for en lokalitet som allerede finnes i DB-en.
+
+        En helt ny AO-lokalitet (ikke importert fra før) hoppes stille over —
+        å sette inn en rad uten kjent navn ville forurenset navnesøket.
+        Cachen mister da bare effekten for akkurat den lokaliteten.
+        """
+        try:
+            site_id = int(site_id)
+        except (TypeError, ValueError):
+            return False
+        with self._connect() as conn:
+            cur = conn.execute(
+                'UPDATE locations SET areas = ?, areas_updated_at = ? WHERE ao_id = ?',
+                (areas_str, datetime.now(timezone.utc).isoformat(), site_id)
+            )
+            return cur.rowcount > 0
 
 
 def _haversine(lat1, lon1, lat2, lon2):
