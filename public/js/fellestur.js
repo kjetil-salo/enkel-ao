@@ -119,8 +119,8 @@ function renderBliMedSkjema() {
   const omrade = document.getElementById('skjema-omrade');
   omrade.innerHTML = `
     <label for="tur-kode">Kode fra den som startet turen</label>
-    <input type="text" id="tur-kode" placeholder="F.EKS. TJ7K2M" maxlength="6"
-           style="text-transform:uppercase;letter-spacing:0.1em;">
+    <input type="text" id="tur-kode" placeholder="F.EKS. 48213" maxlength="5" inputmode="numeric"
+           style="letter-spacing:0.1em;">
     <div class="rad-btn">
       <button class="btn primar" id="btn-bli-med-send">Bli med</button>
     </div>
@@ -134,9 +134,9 @@ function renderBliMedSkjema() {
 
   document.getElementById('btn-bli-med-send').addEventListener('click', async () => {
     const kode = kodeInput.value.trim().toUpperCase();
-    if (kode.length !== 6) {
+    if (kode.length !== 5) {
       const feil = document.getElementById('feil');
-      feil.textContent = 'Koden skal være 6 tegn.';
+      feil.textContent = 'Koden skal være 5 tegn.';
       feil.style.display = 'block';
       return;
     }
