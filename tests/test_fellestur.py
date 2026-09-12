@@ -264,6 +264,47 @@ def test_for_mange_oppforinger_avvises():
         fellestur_store.MAX_OBS_PER_TUR = original_maks
 
 
+def test_on_event_kalles_add_update_delete():
+    """on_event() brukes av fellestur_peer.py til å bygge utgående federasjons-events."""
+    tur = fellestur_store.create_fellestur()
+    kode = tur['kode']
+    hendelser = []
+
+    fellestur_store.apply_sync(
+        kode, upserts=[_upsert('uuid-1')], on_event=lambda t, oid, obs: hendelser.append((t, oid))
+    )
+    assert hendelser == [('add', 'uuid-1')]
+
+    hendelser.clear()
+    fellestur_store.apply_sync(
+        kode, upserts=[_upsert('uuid-1', count=9)], on_event=lambda t, oid, obs: hendelser.append((t, oid))
+    )
+    assert hendelser == [('update', 'uuid-1')]
+
+    hendelser.clear()
+    fellestur_store.apply_sync(
+        kode, deletes=['uuid-1'], on_event=lambda t, oid, obs: hendelser.append((t, oid))
+    )
+    assert hendelser == [('delete', 'uuid-1')]
+
+
+def test_on_event_kalles_ikke_for_slett_av_ukjent_id():
+    tur = fellestur_store.create_fellestur()
+    hendelser = []
+    fellestur_store.apply_sync(
+        tur['kode'], deletes=['finnes-ikke'], on_event=lambda t, oid, obs: hendelser.append((t, oid))
+    )
+    assert hendelser == []
+
+
+def test_apply_sync_uten_on_event_fungerer_som_for():
+    """Eksisterende kallere (server.py sin /api/fellestur-sync) sender ikke on_event — skal ikke kreve det."""
+    tur = fellestur_store.create_fellestur()
+    resultat = fellestur_store.apply_sync(tur['kode'], upserts=[_upsert('uuid-1')])
+    assert resultat is not None
+    assert len(resultat['observasjoner']) == 1
+
+
 def test_slett_med_feil_kode_er_no_op_for_annen_tur():
     tur1 = fellestur_store.create_fellestur()
     tur2 = fellestur_store.create_fellestur()
