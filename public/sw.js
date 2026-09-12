@@ -1,5 +1,5 @@
 // Service Worker for offline-støtte
-const CACHE_NAME = 'fugleobs-v118';
+const CACHE_NAME = 'fugleobs-v120';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -30,6 +30,7 @@ const STATIC_ASSETS = [
   '/js/coobserver-picker.js',
   '/js/datetime-helpers.js',
   '/js/edit-modal.js',
+  '/js/rarity.js',
   '/data/activities.json',
   '/data/norske_arter.json',
   '/favicon.svg'

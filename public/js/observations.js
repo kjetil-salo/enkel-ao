@@ -362,6 +362,19 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
           primaryLine.appendChild(rest);
         }
       }
+      // Sjeldenhetsvarsel fanget ved registrering — ellers er AOs advarsel
+      // usynlig igjen så snart man har gått videre til neste art.
+      if (obs.rarityWarning && (obs.rarityWarning.header || obs.rarityWarning.body)) {
+        const rarityMerke = document.createElement('span');
+        rarityMerke.className = 'obs-rarity-badge';
+        rarityMerke.textContent = '⚠️';
+        const titleParts = [];
+        if (obs.rarityWarning.header) titleParts.push(obs.rarityWarning.header);
+        if (obs.rarityWarning.body) titleParts.push(obs.rarityWarning.body);
+        rarityMerke.title = titleParts.join('\n');
+        rarityMerke.setAttribute('aria-label', `Sjeldenhetsvarsel: ${obs.rarityWarning.header || obs.rarityWarning.body}`);
+        primaryLine.appendChild(rarityMerke);
+      }
       // Skjul-merke (øye med strek) rett etter arten/aktiviteten på hovedlinja,
       // ikke på egen linje – merket alene under ser forlatt ut.
       // Øye-med-strek = ingen andre kan se funnet. (Hengelås er reservert for

@@ -163,6 +163,13 @@ function handleSubmit(e) {
   const obs = currentObservations && currentObservations[currentIdx];
   if (!obs) return;
 
+  // Fanget ved registrering (observation-commit.js) — gjelder kun den opprinnelige
+  // art+lokalitet+dato-kombinasjonen. Endres noen av dem her, kan ikke det gamle
+  // AO-svaret lenger stoles på, og merket ville ellers misvisende bli hengende igjen.
+  const gammelArt = obs.species && obs.species.taxonName;
+  const gammeltSted = obs.placeName;
+  const gammelDato = (obs.timestamp || '').slice(0, 10);
+
   obs.species = obs.species || {};
   obs.species.taxonName = els.species.value.trim();
   obs.count = parseInt(els.count.value, 10) || 1;
@@ -195,6 +202,13 @@ function handleSubmit(e) {
     obs.tilKlokkeslett = nyTilKlokkeslett;
   } else {
     delete obs.tilKlokkeslett;
+  }
+
+  if (obs.rarityWarning
+      && (obs.species.taxonName !== gammelArt
+          || obs.placeName !== gammeltSted
+          || nyTimestamp.slice(0, 10) !== gammelDato)) {
+    delete obs.rarityWarning;
   }
 
   obs.comment = els.comment.value.trim();

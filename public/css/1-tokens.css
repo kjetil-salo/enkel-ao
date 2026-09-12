@@ -20,6 +20,8 @@
   --color-success-soft: rgba(34, 197, 94, 0.2);
   --color-error: #ef4444;
   --color-error-soft: rgba(239, 68, 68, 0.2);
+  --color-warning: #eab308;
+  --color-warning-soft: rgba(234, 179, 8, 0.15);
 
   /* === Spacing System === */
   --space-xs: 0.25rem;   /* 4px */
@@ -99,6 +101,8 @@ body.theme-light {
   --color-success-soft: rgba(22, 163, 74, 0.1);
   --color-error: #dc2626;
   --color-error-soft: rgba(220, 38, 38, 0.1);
+  --color-warning: #b45309;
+  --color-warning-soft: rgba(180, 83, 9, 0.1);
 
   --border-color: rgba(0, 0, 0, 0.1);
   --border-color-medium: rgba(0, 0, 0, 0.2);

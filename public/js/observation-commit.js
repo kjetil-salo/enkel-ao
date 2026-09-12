@@ -193,6 +193,20 @@ export function commitObservation(state, dom, callbacks) {
     obs.photo = dom.extraPhotoValue.value;
   }
 
+  // Sjeldenhetsvarsel: fanger boksens innhold på registreringstidspunktet —
+  // ellers er AOs advarsel usynlig igjen så snart neste art skrives inn.
+  // AO garanterer ikke at Warning har en Header (kan i teorien være tom med
+  // kun Body) — krev derfor bare at boksen faktisk vises, ikke at header har tekst.
+  const rarityHeaderText = dom.rarityWarningHeader ? dom.rarityWarningHeader.textContent : '';
+  const rarityBodyText = dom.rarityWarningBody ? dom.rarityWarningBody.textContent : '';
+  if (dom.rarityWarning && dom.rarityWarning.style.display !== 'none'
+      && (rarityHeaderText || rarityBodyText)) {
+    obs.rarityWarning = {
+      header: rarityHeaderText,
+      body: rarityBodyText,
+    };
+  }
+
   // Legg til tilKlokkeslett hvis det finnes
   if (tilKlokkeslett) {
     obs.tilKlokkeslett = tilKlokkeslett;

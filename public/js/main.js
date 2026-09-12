@@ -57,6 +57,9 @@ const dom = {
   input: document.getElementById('search'),
   resultsEl: document.getElementById('results'),
   emptyMsgEl: document.getElementById('empty-msg'),
+  rarityWarning: document.getElementById('rarity-warning'),
+  rarityWarningHeader: document.getElementById('rarity-warning-header'),
+  rarityWarningBody: document.getElementById('rarity-warning-body'),
   statusDot: document.getElementById('status-dot'),
   statusText: document.getElementById('status-text'),
   resultCount: document.getElementById('result-count'),
@@ -548,6 +551,10 @@ function setupEventListeners() {
       dom.activitySubmitBtn.disabled = true;
       dom.ageSelect.disabled = true;
       dom.genderSelect.disabled = true;
+      // Denne handleren kjører etter listeneren over (samme event) som allerede
+      // kalte updateSectionStates() med den GAMLE arten — sjeldenhetsboksen ville
+      // ellers blitt hengende synlig for en art brukeren nettopp forlot.
+      updateSectionStates(appState, dom);
     }
     if (appState.debounceTimer) {
       clearTimeout(appState.debounceTimer);

@@ -2,6 +2,8 @@
  * Skjematilstand-modul for progressiv aktivering av felter
  */
 
+import { checkRarity } from './rarity.js';
+
 // Placeholder i art-feltet forklarer hvorfor det er låst før lokasjon er valgt.
 const SEARCH_PLACEHOLDER_LOCKED = 'Velg lokasjon først ↑';
 const SEARCH_PLACEHOLDER_READY = 'Skriv artsnavn her …';
@@ -50,6 +52,7 @@ export function updateSectionStates(state, dom) {
   dom.genderSelect.disabled = !hasLocation || !state.selectedSpecies;
 
   updateFieldHighlights(dom, state.selectedSpecies, hasCount);
+  checkRarity(state, dom);
 }
 
 export function updateFieldHighlights(dom, selectedSpecies, hasCount) {
