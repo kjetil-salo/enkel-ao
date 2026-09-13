@@ -36,8 +36,8 @@ describe('news-splash', () => {
 
     expect(document.querySelector('.news-splash')).toBeTruthy();
     expect(document.body.textContent).toContain('Nytt i Enkel-AO');
-    expect(document.body.textContent).toContain('👥 Fellestur');
-    expect(document.body.textContent).toContain('Fortsatt en tidlig versjon');
+    expect(document.body.textContent).toContain('⚠️ Varsel ved sjeldne funn');
+    expect(document.body.textContent).toContain('Krever nett og innlogging');
     expect(document.body.textContent).toContain('Se endringslogg');
   });
 
@@ -71,7 +71,7 @@ describe('news-splash', () => {
     initNewsSplash();
 
     expect(document.querySelector('.news-splash')).toBeTruthy();
-    expect(document.body.textContent).toContain('👥 Fellestur');
+    expect(document.body.textContent).toContain('⚠️ Varsel ved sjeldne funn');
     expect(hasReadNews(CURRENT_NEWS_SPLASH.id)).toBe(false);
   });
 });

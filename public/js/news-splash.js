@@ -18,15 +18,15 @@ const MAX_VISIBLE = 4;
 
 export const CURRENT_NEWS_SPLASH = {
   enabled: true,
-  id: 'september-2026-fellestur-fikset-v1',
+  id: 'september-2026-sjeldenhetsvarsel-v1',
   items: [
     {
-      title: '👥 Fellestur',
-      body: 'Flere fuglefolk kan dele registreringsarbeidet på samme tur – start under «Fellestur», del koden. Synkroniseringen mot den delte loggen er nå gjort mer robust.',
+      title: '⚠️ Varsel ved sjeldne funn',
+      body: 'Skjemaet forteller deg nå med en gang hvis arten er uvanlig på stedet du har valgt – rett fra Artsobservasjoner sin egen vurdering. Nyttig på flere måter: du oppdager fort om du har trykket feil i artslista, du får vite hvis du faktisk har gjort et sjeldent funn, og reiser du fra en landsdel til en annen ser du raskt om noe du tar for gitt hjemme faktisk er uvanlig akkurat der du er.',
     },
     {
-      title: 'Fortsatt en tidlig versjon',
-      body: 'Fellestur er ny og ikke grundig testet i praktisk bruk ennå. Meld gjerne fra hvis noe oppfører seg rart – se tilbakemelding-lenken i innstillinger.',
+      title: 'Krever nett og innlogging',
+      body: 'Varselet virker kun når artssøket går mot ekte Artsobservasjoner. Bruker du offline-artslista (eget valg, eller automatisk fallback uten nett), får du ingen advarsel – samme som om du ikke er innlogget.',
     },
   ],
 };
