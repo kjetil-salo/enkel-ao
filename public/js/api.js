@@ -325,6 +325,25 @@ export async function createAoSite(name, lat, lon, accuracy) {
     localStorage.setItem('ao_tokens', JSON.stringify(savedTokens));
   }
 
+  // En helt ny privat lokasjon dukker ALDRI opp i /api/ao-sites (anonymt
+  // ByBoundingBox-kall ser den aldri, og lokal-DB-cachen er en sjelden
+  // batch-import) — kun i denne 24-timers-cachen. Uten en oppdatering her
+  // ville nyopprettede private lokasjoner vært usynlige i «Velg lokasjon»
+  // helt til cachen tilfeldigvis ble tom og fylt på nytt.
+  //
+  // Legger til lokalt fra det vi allerede vet (unngår en runde-tripp mot
+  // AOs read-endepunkt rett etter en write — et refetch her kunne i verste
+  // fall komme tilbake uten den splitter nye siden og stille la bugen bestå).
+  if (data.success && data.siteId) {
+    try {
+      const existing = getCachedPrivateSites().filter(s => s.id !== data.siteId);
+      const newSite = { id: data.siteId, name: data.siteName || name, lat, lon, acc: accuracy };
+      localStorage.setItem(PRIVATE_SITES_KEY, JSON.stringify({ ts: Date.now(), sites: [newSite, ...existing] }));
+    } catch (e) {
+      // localStorage utilgjengelig — ikke kritisk, tas igjen ved neste normale refresh
+    }
+  }
+
   return data;
 }
 

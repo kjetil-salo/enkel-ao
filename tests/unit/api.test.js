@@ -13,7 +13,7 @@ vi.stubGlobal('localStorage', localStorageMock);
 const fetchMock = vi.fn();
 vi.stubGlobal('fetch', fetchMock);
 
-const { searchSpecies, fetchAoSites, logPageView, loadActivities } = await import('../../public/js/api.js');
+const { searchSpecies, fetchAoSites, logPageView, loadActivities, createAoSite } = await import('../../public/js/api.js');
 
 beforeEach(() => {
   Object.keys(store).forEach(k => delete store[k]);
@@ -298,5 +298,58 @@ describe('loadActivities', () => {
     const result = await loadActivities();
     expect(result).toEqual(activities);
     expect(fetchMock).toHaveBeenCalledWith('/data/activities.json');
+  });
+});
+
+// ─── createAoSite ─────────────────────────────────────────────
+
+describe('createAoSite', () => {
+  it('should not call the API when not logged in', async () => {
+    const result = await createAoSite('Testplass', 60.1, 5.2, 100);
+
+    expect(result).toEqual({ success: false, message: 'Ikke innlogget på AO' });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('should append the new site to the private-sites cache after a successful creation', async () => {
+    // Regresjonstest: en helt ny privat lokasjon dukket ikke opp i «Velg
+    // lokasjon» før cachen (24t TTL) tilfeldigvis ble tom og fylt på nytt —
+    // /api/ao-sites ser aldri private lokasjoner selv. Fikset ved å legge
+    // den nye siden rett inn i cachen — ikke ved å refetche fra AO (unngår
+    // en read-after-write-avhengighet mot AOs eget API).
+    store.ao_tokens = JSON.stringify({ loginToken: 'abc', authCookie: 'xyz' });
+    store.ao_private_sites = JSON.stringify({ ts: Date.now(), sites: [{ id: 1, name: 'Gammel plass', lat: 60, lon: 5, acc: 50 }] });
+
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve({ success: true, siteId: 999, siteName: 'Ny plass', message: 'Opprettet' }),
+    });
+
+    const result = await createAoSite('Ny plass', 60.1, 5.2, 100);
+
+    expect(result.success).toBe(true);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/ao-create-site');
+
+    const cached = JSON.parse(store.ao_private_sites);
+    expect(cached.sites).toEqual([
+      { id: 999, name: 'Ny plass', lat: 60.1, lon: 5.2, acc: 100 },
+      { id: 1, name: 'Gammel plass', lat: 60, lon: 5, acc: 50 },
+    ]);
+  });
+
+  it('should not touch the private-sites cache when creation fails', async () => {
+    store.ao_tokens = JSON.stringify({ loginToken: 'abc', authCookie: 'xyz' });
+
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve({ success: false, message: 'Navn allerede i bruk' }),
+    });
+
+    const result = await createAoSite('Duplikat', 60.1, 5.2, 100);
+
+    expect(result.success).toBe(false);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(store.ao_private_sites).toBeUndefined();
   });
 });
