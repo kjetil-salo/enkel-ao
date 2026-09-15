@@ -51,10 +51,45 @@ function spawnBanner(speciesName) {
 }
 
 /**
+ * Kort "ta-da"-klang generert med Web Audio API — ingen lydfil å laste/vedlikeholde.
+ * Trygt å kalle synkront fra et klikk (✓-knappen er brukerinteraksjonen som
+ * gir nettleseren lov til å spille lyd — ingen egen tillatelse trengs).
+ */
+function playChime() {
+  const AudioCtx = window.AudioContext || window.webkitAudioContext;
+  if (!AudioCtx) return;
+  const ctx = new AudioCtx();
+  const now = ctx.currentTime;
+  const notes = [523.25, 659.25, 783.99, 1046.5]; // C5 E5 G5 C6
+
+  notes.forEach((freq, i) => {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.value = freq;
+    const start = now + i * 0.09;
+    gain.gain.setValueAtTime(0, start);
+    gain.gain.linearRampToValueAtTime(0.22, start + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.001, start + 0.35);
+    osc.connect(gain).connect(ctx.destination);
+    osc.start(start);
+    osc.stop(start + 0.4);
+  });
+
+  setTimeout(() => ctx.close().catch(() => {}), 1000);
+}
+
+/**
  * Vis fyrverkeri for en sjelden observasjon. Ikke-blokkerende
  * (pointer-events: none) — brukeren kan fortsette å registrere med én gang.
  */
 export function celebrateRareFind(speciesName) {
+  try {
+    playChime();
+  } catch (e) {
+    // Lyd er ikke kritisk — stille no-op (autoplay-policy, mangler AudioContext, osv.)
+  }
+
   if (prefersReducedMotion()) {
     // Behold selve informasjonen (banner), men uten bevegelse.
     spawnBanner(speciesName);

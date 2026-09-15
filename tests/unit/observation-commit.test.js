@@ -280,4 +280,27 @@ describe('commitObservation — sjeldenhetsvarsel-feiring', () => {
     expect(state.observations[0].rarityWarning).toBeUndefined();
     expect(celebrateRareFind).not.toHaveBeenCalled();
   });
+
+  it('viser ikke den vanlige registrerings-toasten ved sjeldent funn (krasjet visuelt med bannerert)', () => {
+    const state = nyState();
+    const dom = nyDom();
+    dom.rarityWarning.style.display = '';
+    dom.rarityWarningHeader.textContent = 'Forekomst: Ekstremt sjelden';
+
+    commitObservation(state, dom, nyeCallbacks());
+
+    const toast = document.getElementById('registered-toast');
+    expect(toast).toBeNull();
+  });
+
+  it('viser den vanlige registrerings-toasten for en vanlig registrering', () => {
+    const state = nyState();
+    const dom = nyDom();
+
+    commitObservation(state, dom, nyeCallbacks());
+
+    const toast = document.getElementById('registered-toast');
+    expect(toast).not.toBeNull();
+    expect(toast.textContent).toContain('registrert');
+  });
 });

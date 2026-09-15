@@ -249,12 +249,19 @@ body.theme-light .obs-sent-badge {
   z-index: 9999;
   pointer-events: none;
   text-align: center;
-  font-size: clamp(1.3rem, 5vw, 2.2rem);
+  font-size: clamp(1.1rem, 4.5vw, 1.9rem);
   font-weight: var(--font-weight-bold);
-  color: #fff;
-  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.5), 0 0 24px rgba(234, 179, 8, 0.6);
+  color: #1a1206;
+  background: linear-gradient(135deg, #fde047, #f59e0b);
+  padding: 16px 28px;
+  border-radius: var(--radius-lg);
+  border: 2px solid #fff7d6;
+  box-shadow: 0 14px 44px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(0, 0, 0, 0.05);
   animation: rarity-banner-pop 2.6s ease forwards;
   white-space: nowrap;
+  max-width: 92vw;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 @media (prefers-reduced-motion: reduce) {

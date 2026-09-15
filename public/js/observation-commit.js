@@ -200,6 +200,7 @@ export function commitObservation(state, dom, callbacks) {
   // kun Body) — krev derfor bare at boksen faktisk vises, ikke at header har tekst.
   const rarityHeaderText = dom.rarityWarningHeader ? dom.rarityWarningHeader.textContent : '';
   const rarityBodyText = dom.rarityWarningBody ? dom.rarityWarningBody.textContent : '';
+  let celebratedRareFind = false;
   if (dom.rarityWarning && dom.rarityWarning.style.display !== 'none'
       && (rarityHeaderText || rarityBodyText)) {
     obs.rarityWarning = {
@@ -210,6 +211,7 @@ export function commitObservation(state, dom, callbacks) {
     // av observasjonen (unshift/saveState) lenger ned i funksjonen.
     try {
       celebrateRareFind(obs.species.taxonName);
+      celebratedRareFind = true;
     } catch (e) {
       // ignorer - fyrverkeriet er ikke kritisk
     }
@@ -269,7 +271,12 @@ export function commitObservation(state, dom, callbacks) {
   state.activeIndex = -1;
   callbacks.renderResults();
 
-  showToast(artNavnToast);
+  // Ved sjeldent funn dekker den store feiringsbanneren («Sjeldent funn: X!»)
+  // allerede både registrerings-bekreftelsen og sjeldenheten — den vanlige
+  // toasten ville bare krasjet visuelt med den (begge sentrert på skjermen).
+  if (!celebratedRareFind) {
+    showToast(artNavnToast);
+  }
   dom.input.focus();
   dom.input.select();
   dom.input.classList.remove('focus-flash');
