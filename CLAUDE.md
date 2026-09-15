@@ -21,12 +21,17 @@ python3 server.py          # Start server on port 3000
 # Python unit tests
 python3 -m pytest --maxfail=3
 
+# JS unit tests (vitest, fra repo-roten — IKKE fra tests/e2e_playwright/)
+npm test                   # tests/unit/*.test.js, jsdom-miljø, se vitest.config.js
+
 # E2E tests (Playwright)
 cd tests/e2e_playwright
 npm test                   # Against live server at localhost:3000
 npm run test:mock          # With mock server
 npm run test:with-mock     # Start mock + run tests
 ```
+**NB:** `npm test` betyr ulike ting avhengig av hvor den kjøres fra — repo-roten (vitest) vs.
+`tests/e2e_playwright/` (Playwright). Ved frontend-endringer, kjør alle tre testtypene.
 
 ### Docker & Deploy
 ```bash
@@ -40,6 +45,9 @@ docker-compose up --build  # Run with mock Nominatim (safe for load testing)
 
 # Deploy to Raspberry Pi (primær produksjon)
 ./update-ao-pi.sh          # Rsync + docker-compose up --build på Pi
+
+# Deploy til Pi-staging (egen mappe/DB/port, deler kun shared-locations med prod)
+./deploy-staging-pi.sh     # Kjører pytest+npm test (vitest) selv, deretter https://ao-staging.efugl.no
 ```
 
 ### Lokasjons-DB import (kjøres ved behov, ~40 min)
@@ -74,6 +82,16 @@ The `Handler` class routes requests:
   - Søker lokal DB først (ingen innlogging nødvendig), deretter AO hvis innlogget
   - Med lat/lon: sorterer etter avstand, returnerer `_distance` i meters
   - Returnerer `isSuper`, `isPrivate`, `subvalue` (kommune, fylke) per resultat
+- `/api/ao-rarity?taxonId=X&siteId=Y&date=YYYY-MM-DD` → sjeldenhetsvarsel: proxyer AOs egne
+  `/SubmitSighting/GetSite` (henter Areas-ID-er for lokaliteten) + `/SubmitSighting/ValidateTaxonAndArea`
+  (sanntidsvurdering art×areas×dato) — samme validering AOs eget skjema kjører FØR publisering
+  - Uinnlogget bruker eller AO-feil → stille tomt `{}`/200, aldri 500 (jf. ekstern-API-konvensjonen)
+  - Areas-ID-er cachet i `location_db.py` med 30 dagers TTL (`get_cached_areas`/`set_areas`) —
+    administrative grenseendringer er sjeldne. Cacher kun lokaliteter som allerede finnes i DB-en
+    fra før (unngår å forurense navnesøket med en fantom-rad for en helt ny AO-lokalitet)
+  - Frontend (`rarity.js`) viser kun boks ved `Warning` — `Information` alene holdes tilbake i v1.
+    Virker ikke med offline-artslista (mangler AOs `taxonId` helt)
+  - Full analyse: `docs/sjeldenhetsvarsel.md`
 - `/api/ao-login` (POST) → logger inn på AO med brukernavn/passord, returnerer `loginToken` + `authCookie`
 - `/api/ao-import` (POST) → direkte publisering av observasjoner til AO (CSV-import + publish). Enkelt JSON-svar.
 - `/api/ao-import-stream` (POST) → som `ao-import`, men **streamer fremdrift via SSE** (`text/event-stream`)
@@ -121,6 +139,9 @@ The `Handler` class routes requests:
 
 ### Backend Modules (src/)
 - `api_handlers.py` — External API calls (species search, geocoding, AO sites, autocomplete)
+  - `get_ao_rarity()`/`fetch_site_areas()`/`check_taxon_rarity()` — sjeldenhetsvarsel-orkestrering
+    (se `/api/ao-rarity` og `docs/sjeldenhetsvarsel.md`). `_oslo_midnight_utc_iso()` konverterer
+    dato til AOs forventede format (norsk lokal midnatt som UTC-ISO), verifisert mot ekte AO-respons
 - `html_templates.py` — HTML generation for stats- og feedback-admin-sider
 - `supabase_log.py` — Optional Supabase analytics logging
 - `feedback_store.py` — SQLite-lagring av tilbakemeldinger (samme `stats.db` via `DB_PATH`)
@@ -164,11 +185,20 @@ The `Handler` class routes requests:
   - `upsert_locations(sites, source)` — idempotent insert/update
   - **Super-deteksjon**: AO ByBoundingBox returnerer `parentSiteId=null` i sanntid. Super-status utledes i merge-steget fra lokal DB sin `parent_id` — hvis en lokal site peker på en foreldreside som finnes i AO-resultatet, markeres forelderen `isSuper=True`.
   - **Viktig**: `is_private` i lokal DB kan være utdatert (site endret til privat etter import). Bbox-størrelse (`_compute_bbox`) dekker nå full `size_m`-radius slik at AO-APIet returnerer korrekt `isPrivate` for sites i ytterkanten.
+  - `get_cached_areas(site_id)`/`set_areas(site_id, areas_str)` — cache for AOs Areas-ID-er
+    (fylke/kommune) per lokalitet, 30 dagers TTL. `set_areas()` oppdaterer kun eksisterende rad —
+    en helt ny AO-lokalitet (ikke i lokal DB fra før) hoppes stille over. Brukt av sjeldenhetsvarselet
 
 ### Frontend Modules (public/js/)
 Pure ES6 modules with no framework:
 - `api.js` — API communication with 1-hour species cache
+  - `createAoSite()` legger den nye lokasjonen rett inn i `ao_private_sites`-cachen (localStorage,
+    24t TTL) fra opprettelsessvaret — IKKE via refetch fra AO (unngår en read-after-write-avhengighet
+    mot AOs API). Uten dette var nyopprettede private lokasjoner usynlige i «Velg lokasjon» i opptil
+    et døgn, siden cachen ellers kun fornyes ved innlogging eller når den tilfeldigvis er tom (v1.53.0)
 - `location.js` — Geolocation and AO sites integration
+- `rarity.js` — Sjeldenhetsvarsel: debounced, race-sikker sjekk mot `/api/ao-rarity` når både art og
+  lokasjon er valgt (både felt- og etterregistrering). Se `/api/ao-rarity` over og `docs/sjeldenhetsvarsel.md`
 - `observations.js` — Main observation form logic
   - Gruppeoverskriften i ③ har tre knapper: ↩ (tilbake til besøket), 🔒 (lås besøk), 🕐 (sett klokkeslett)
   - **↩ = «gå tilbake til akkurat dette besøket»**, ikke bare «bytt lokalitet». Modulen eier ikke
@@ -191,6 +221,10 @@ Pure ES6 modules with no framework:
   - **Full beskrivelse:** `docs/besok-og-tilbake-til-besok.md` (begrepet besøk, tidsregelen,
     fallgruver, testdekning)
 - `observation-commit.js` — Observation validation and activity pills rendering
+  - Fanger en synlig sjeldenhetsvarsel-boks (`dom.rarityWarning`) ved registrering inn i
+    `obs.rarityWarning = {header, body}` — vist som ⚠️-merke i lista (`observations.js`)
+  - `edit-modal.js` nullstiller `obs.rarityWarning` hvis art/lokasjon/dato endres ved redigering
+    — det gamle AO-svaret er ellers ikke lenger til å stole på
 - `storage.js` — Browser localStorage management (includes activity pills config)
   - `saveObservations()` returnerer `true`/`false` for om `localStorage.setItem()` faktisk
     lyktes (full kvote, f.eks. store bilder på iOS Safari, kaster ellers i stillhet).
@@ -235,6 +269,7 @@ Brukere kan velge 0-6 aktiviteter som vises som hurtigknapper:
 
 ### Test Structure
 - `tests/test_*.py` — Python unit tests (pytest)
+- `tests/unit/*.test.js` — JS-enhetstester (vitest, jsdom), kjøres med `npm test` fra repo-roten
 - `tests/e2e_playwright/` — Playwright E2E tests with mock server support
 
 ## Key Conventions
@@ -301,13 +336,22 @@ AO_URL=http://localhost:8080 AO_MOBILE_URL=http://localhost:8080 python3 server.
 - **Aldri bruk Co-Authored-By** - commit uten co-author linje
 
 ### Deploy
-- **Production deploy**: `update-app.sh production` kjører automatisk `python3 -m pytest --maxfail=3` først. Deploy avbrytes hvis tester feiler.
+- **«Prod» = Raspberry Pi** (`update-ao-pi.sh`), ikke Fly.io. Fly kjøres kun som sjelden brukt backup.
+- **Pi-staging** (`deploy-staging-pi.sh`, `https://ao-staging.efugl.no`) kjører pytest+vitest selv
+  før deploy og er det reelle test-miljøet (Fly-staging mangler `LOCATION_DB_PATH`, så stedssøk
+  uten AO-innlogging ikke virker der). Bruk denne før `update-ao-pi.sh` ved usikre endringer.
+- **`update-ao-pi.sh` kjører IKKE tester selv** — kjør `pytest`+`npm test` manuelt før bruk.
+- **Fly production deploy**: `update-app.sh production` kjører automatisk `python3 -m pytest --maxfail=3` først. Deploy avbrytes hvis tester feiler.
 
 ### Versjonering
-Ved ny versjon (git tag), gjør alltid følgende:
-1. Oppdater `VERSION` i `public/js/version.js` (brukes av index.html og help.html footers)
-2. **Bump `CACHE_NAME` i `public/sw.js`** (`fugleobs-vNN` → `vNN+1`). **Uten dette henter
+Ved ny versjon, gjør alltid følgende:
+1. Oppdater `VERSION` i `public/js/version.js` (brukes av `help.html`/`feedback.html` footers via import)
+2. **`public/index.html` har TRE EGNE inline `VERSION`-konstanter** (main.js-cache-bust, SW-registrering,
+   footer-tekst) — importerer bevisst IKKE fra `version.js` (unngår at en cachet gammel `version.js`
+   forteller usant om seg selv). Kjør `grep -n "v[0-9]*\.[0-9]*\.[0-9]*" public/index.html` og bump
+   ALLE treff, ikke bare `version.js`.
+3. **Bump `CACHE_NAME` i `public/sw.js`** (`fugleobs-vNN` → `vNN+1`). **Uten dette henter
    installerte PWA-er aldri ny JS** — sw.js må endres for at nettleseren skal trigge
    install/activate. Nye JS-moduler må også legges til i `STATIC_ASSETS`.
-3. Oppdater `public/changelog.html` med kort beskrivelse av hva som er nytt
-4. Oppdater relevant dokumentasjon i `docs/` hvis funksjonalitet er endret
+4. Oppdater `public/changelog.html` med kort beskrivelse av hva som er nytt
+5. Oppdater relevant dokumentasjon i `docs/` hvis funksjonalitet er endret
