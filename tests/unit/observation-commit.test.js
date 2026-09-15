@@ -10,7 +10,10 @@ vi.stubGlobal('localStorage', {
   removeItem: vi.fn((key) => { delete store[key]; }),
 });
 
+vi.mock('../../public/js/celebrate.js', () => ({ celebrateRareFind: vi.fn() }));
+
 const { commitObservation } = await import('../../public/js/observation-commit.js');
+const { celebrateRareFind } = await import('../../public/js/celebrate.js');
 
 function lagInput(id, value = '') {
   const el = document.createElement('input');
@@ -79,6 +82,9 @@ function nyDom() {
     extraComment: lagTextarea('extra-comment'),
     extraHideUntil: lagInput('extra-hide-until', ''),
     extraPhotoValue: lagInput('extra-photo-value', ''),
+    rarityWarning: (() => { const el = document.createElement('div'); el.id = 'rarity-warning'; document.body.appendChild(el); return el; })(),
+    rarityWarningHeader: (() => { const el = document.createElement('div'); el.id = 'rarity-warning-header'; document.body.appendChild(el); return el; })(),
+    rarityWarningBody: (() => { const el = document.createElement('div'); el.id = 'rarity-warning-body'; document.body.appendChild(el); return el; })(),
   };
 }
 
@@ -93,6 +99,7 @@ function nyeCallbacks() {
 
 beforeEach(() => {
   document.body.innerHTML = '';
+  celebrateRareFind.mockClear();
 });
 
 describe('commitObservation — «antall er estimert»-boks', () => {
@@ -231,5 +238,46 @@ describe('commitObservation — «flere felt»-modal', () => {
 
     expect(lytter).toHaveBeenCalledTimes(1);
     document.removeEventListener('obs:extra-felt-nullstilt', lytter);
+  });
+});
+
+describe('commitObservation — sjeldenhetsvarsel-feiring', () => {
+  it('fanger boksens innhold på obs og trigger feiring når varselet er synlig', () => {
+    const state = nyState();
+    const dom = nyDom();
+    dom.rarityWarning.style.display = '';
+    dom.rarityWarningHeader.textContent = 'Forekomst: Ekstremt sjelden';
+    dom.rarityWarningBody.textContent = 'Observasjonen er veldig interessant!';
+
+    commitObservation(state, dom, nyeCallbacks());
+
+    expect(state.observations[0].rarityWarning).toEqual({
+      header: 'Forekomst: Ekstremt sjelden',
+      body: 'Observasjonen er veldig interessant!',
+    });
+    expect(celebrateRareFind).toHaveBeenCalledTimes(1);
+    expect(celebrateRareFind).toHaveBeenCalledWith('Tjeld');
+  });
+
+  it('trigger ikke feiring når boksen er skjult', () => {
+    const state = nyState();
+    const dom = nyDom();
+    dom.rarityWarning.style.display = 'none';
+    dom.rarityWarningHeader.textContent = 'Skal ikke plukkes opp';
+
+    commitObservation(state, dom, nyeCallbacks());
+
+    expect(state.observations[0].rarityWarning).toBeUndefined();
+    expect(celebrateRareFind).not.toHaveBeenCalled();
+  });
+
+  it('trigger ikke feiring for en vanlig registrering uten varsel', () => {
+    const state = nyState();
+    const dom = nyDom();
+
+    commitObservation(state, dom, nyeCallbacks());
+
+    expect(state.observations[0].rarityWarning).toBeUndefined();
+    expect(celebrateRareFind).not.toHaveBeenCalled();
   });
 });

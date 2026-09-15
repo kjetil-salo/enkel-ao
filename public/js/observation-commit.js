@@ -6,6 +6,7 @@ import { defaultCoObservers, loadActivityPills } from './storage.js';
 import { showToast } from './ui.js';
 import { toLocalISOString } from './utils.js';
 import { resolveVisitIdForNewObservation, getVisitTimeSpan, isVisitLocked, visitExists } from './visits.js';
+import { celebrateRareFind } from './celebrate.js';
 
 function getObservationTimestamp() {
   const isAfterMode = localStorage.getItem('afterRegistrationMode') === '1';
@@ -205,6 +206,13 @@ export function commitObservation(state, dom, callbacks) {
       header: rarityHeaderText,
       body: rarityBodyText,
     };
+    // Rent kosmetisk — skal aldri kunne kaste og ta med seg selve lagringen
+    // av observasjonen (unshift/saveState) lenger ned i funksjonen.
+    try {
+      celebrateRareFind(obs.species.taxonName);
+    } catch (e) {
+      // ignorer - fyrverkeriet er ikke kritisk
+    }
   }
 
   // Legg til tilKlokkeslett hvis det finnes

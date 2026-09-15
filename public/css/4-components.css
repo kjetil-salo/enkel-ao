@@ -112,6 +112,20 @@ body.theme-light .mode-pill.after-mode {
   opacity: 0.8;
 }
 
+/* Prikk i header som viser om AO-innlogging er lagret på denne enheten */
+.ao-status-dot {
+  display: block;
+  width: 9px;
+  height: 9px;
+  border-radius: var(--radius-full);
+  background: var(--color-error);
+  flex-shrink: 0;
+}
+
+.ao-status-dot.online {
+  background: var(--color-success);
+}
+
 /* Activity Pills - Klikkbare hurtigknapper */
 .activity-pills {
   display: flex;
@@ -207,6 +221,50 @@ body.theme-light .obs-sent-badge {
   font-size: 0.85em;
   vertical-align: middle;
   cursor: default;
+}
+
+/* === Sjelden-fugl-feiring (fyrverkeri ved registrering av Warning-art) ===
+   Sjelden nok (langt fra hver registrering) til å fortjene noe stort — hele
+   skjermen, ikke bare en liten pulsering på en knapp. */
+.rarity-celebration {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  overflow: hidden;
+}
+
+.rarity-celebration-piece {
+  position: absolute;
+  top: -10vh;
+  will-change: transform, opacity;
+  animation: rarity-confetti-fall var(--rarity-duration, 2.2s) ease-in var(--rarity-delay, 0s) forwards;
+}
+
+.rarity-celebration-banner {
+  position: fixed;
+  top: 40%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 9999;
+  pointer-events: none;
+  text-align: center;
+  font-size: clamp(1.3rem, 5vw, 2.2rem);
+  font-weight: var(--font-weight-bold);
+  color: #fff;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.5), 0 0 24px rgba(234, 179, 8, 0.6);
+  animation: rarity-banner-pop 2.6s ease forwards;
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rarity-celebration {
+    display: none;
+  }
+  .rarity-celebration-banner {
+    animation: none;
+    opacity: 1;
+  }
 }
 
 /* ============================================================================

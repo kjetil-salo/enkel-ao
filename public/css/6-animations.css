@@ -76,6 +76,46 @@
    TOAST / POPUP ANIMATIONS
    ========================================================================= */
 
+/* ============================================================================
+   SJELDEN-FUGL-FEIRING (fyrverkeri ved sjeldenhetsvarsel)
+   ========================================================================= */
+
+@keyframes rarity-confetti-fall {
+  0% {
+    transform: translateY(-10vh) translateX(0) rotate(0deg);
+    opacity: 0;
+  }
+  8% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(110vh) translateX(var(--rarity-drift, 0px)) rotate(var(--rarity-spin, 360deg));
+    opacity: 0;
+  }
+}
+
+@keyframes rarity-banner-pop {
+  0% {
+    transform: translate(-50%, -50%) scale(0.6);
+    opacity: 0;
+  }
+  15% {
+    transform: translate(-50%, -50%) scale(1.08);
+    opacity: 1;
+  }
+  25% {
+    transform: translate(-50%, -50%) scale(1);
+  }
+  80% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(0.95);
+    opacity: 0;
+  }
+}
+
 @keyframes toast-pop {
   0% {
     transform: scale(0.95);
