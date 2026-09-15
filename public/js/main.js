@@ -164,6 +164,11 @@ function updateAoDirectVisibility() {
   // Uten innlogging: vis CTA så nye brukere ser at direkte publisering finnes
   const loginCta = document.getElementById('ao-login-cta');
   if (loginCta) loginCta.style.display = hasCredentials ? 'none' : 'flex';
+  const statusDot = document.getElementById('ao-status-dot');
+  if (statusDot) {
+    statusDot.classList.toggle('online', !!hasCredentials);
+    statusDot.title = hasCredentials ? 'Innlogget mot Artsobservasjoner' : 'Ikke innlogget mot Artsobservasjoner – trykk for å logge inn';
+  }
 }
 
 function commitFromActivity() {
