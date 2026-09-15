@@ -138,6 +138,28 @@ art, lokalitet eller dato endres via ✎-blyanten. Uten dette kunne et gammelt
 AO-svar bli hengende på en korrigert art — feilaktig antydet at *den nye*
 arten var uvanlig.
 
+## Feiring ved Warning (`public/js/celebrate.js`)
+
+Innført i v1.53.1. Samme fangst-punkt som merket i lista (`obs.rarityWarning`
+settes) trigger `celebrateRareFind(speciesName)`: konfetti + et stort gyllent
+banner + en kort Web Audio-klang over hele skjermen. Bevisst stort — dette
+skjer sjelden nok (langt fra hver registrering) til å tåle å ta plass, i
+motsetning til den vanlige, diskré registrerings-toasten.
+
+- **Ikke-blokkerende:** hele overlayen har `pointer-events: none` og rydder
+  seg selv opp (`setTimeout`) — brukeren kan registrere neste art med én gang.
+- **Krasjer ikke med toasten:** den vanlige "art registrert"-toasten droppes
+  når feiringen trigges (`celebratedRareFind`-flagget i `commitObservation`)
+  — begge var sentrert på skjermen og kolliderte visuelt (v1.53.2).
+- **Banneret trenger en solid bakgrunn:** ren tekst med kun `text-shadow`
+  så gjennomsiktig og utydelig ut i praksis — løst med en solid gyllen
+  gradient-bakgrunn og mørk, fet tekst (v1.53.3).
+- **`prefers-reduced-motion`:** hopper over konfetti, viser banneret uten
+  animasjon (informasjonen beholdes, bevegelsen fjernes).
+- **Robusthet:** kalt i `try/catch` fra `observation-commit.js` — en
+  kosmetisk feil her skal aldri kunne ta med seg selve lagringen av
+  observasjonen (`state.observations.unshift`/`saveState` lenger ned).
+
 ## Kjente begrensninger
 
 - Krever nett og innlogget AO-konto (se «Offline-artsliste» over).

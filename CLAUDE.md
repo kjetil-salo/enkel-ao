@@ -199,6 +199,16 @@ Pure ES6 modules with no framework:
 - `location.js` — Geolocation and AO sites integration
 - `rarity.js` — Sjeldenhetsvarsel: debounced, race-sikker sjekk mot `/api/ao-rarity` når både art og
   lokasjon er valgt (både felt- og etterregistrering). Se `/api/ao-rarity` over og `docs/sjeldenhetsvarsel.md`
+- `celebrate.js` — `celebrateRareFind(speciesName)`: fyrverkeri (konfetti + stort banner + kort
+  Web Audio-klang, ingen lydfil) over hele skjermen når en registrert observasjon har en aktiv
+  sjeldenhetsvarsel-boks. Trigges fra `observation-commit.js` rett der `obs.rarityWarning` fanges
+  (v1.53.1). Bevisst stort — skjer sjelden, i motsetning til den vanlige registrerings-toasten
+  - Kalt i try/catch fra kalleren — en kosmetisk feil her skal aldri kunne ta med seg lagringen
+    av selve observasjonen
+  - Den vanlige "art registrert"-toasten droppes ved sjeldent funn (kolliderte visuelt med
+    banneret, som allerede sier "Sjeldent funn: X!") — se `celebratedRareFind`-flagget i
+    `observation-commit.js` (v1.53.2)
+  - Respekterer `prefers-reduced-motion` (banner uten bevegelse, ingen konfetti)
 - `observations.js` — Main observation form logic
   - Gruppeoverskriften i ③ har tre knapper: ↩ (tilbake til besøket), 🔒 (lås besøk), 🕐 (sett klokkeslett)
   - **↩ = «gå tilbake til akkurat dette besøket»**, ikke bare «bytt lokalitet». Modulen eier ikke
