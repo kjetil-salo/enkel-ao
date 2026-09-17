@@ -208,9 +208,19 @@ body.theme-light .obs-sent-badge {
   display: inline-flex;
   align-items: center;
   margin-left: 6px;
-  font-size: 0.85em;
+  padding: 1px 6px;
+  border-radius: var(--radius-full);
+  font-size: 0.8em;
+  background: rgba(96, 165, 250, 0.16);
   vertical-align: middle;
   cursor: default;
+}
+
+/* Ren emoji uten bakgrunn druknet i lyst tema — gi den samme synlige
+   pille-stilen som de andre merkene (✓ sendt, øye = skjult) i stedet. */
+body.theme-light .obs-comment-badge {
+  background: rgba(29, 78, 216, 0.14);
+  box-shadow: inset 0 0 0 1px rgba(29, 78, 216, 0.18);
 }
 
 /* Sjeldenhetsvarsel fanget ved registrering (se .rarity-warning for selve boksen) */

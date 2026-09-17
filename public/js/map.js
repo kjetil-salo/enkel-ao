@@ -167,26 +167,47 @@ if (sites && Array.isArray(sites)) {
     popupHtml += `<br><br><button onclick="selectLocation('${siteName.replace(/'/g, "\\'")}', '${siteIdStr}')">Velg denne lokaliteten</button>`;
 
     // Tegn polygon hvis det er en polygon-lokalitet
-    if (site.raw && site.raw.isPolygon && site.raw.polygonCoordinates) {
+    const hasPolygon = !!(site.raw && site.raw.isPolygon && site.raw.polygonCoordinates && site.raw.polygonCoordinates.length > 0);
+    if (hasPolygon) {
       const coords = site.raw.polygonCoordinates;
-      if (coords && coords.length > 0) {
-        // ByBoundingBox returnerer [lon, lat], Leaflet trenger [lat, lon] - må bytte om
-        const leafletCoords = coords.map(coord => [coord[1], coord[0]]);
+      // ByBoundingBox returnerer [lon, lat], Leaflet trenger [lat, lon] - må bytte om
+      const leafletCoords = coords.map(coord => [coord[1], coord[0]]);
 
-        // Er navn synlig på kartet, vet du allerede hva du trykker på — da
-        // går valget rett gjennom uten en ekstra bekreftelse. Er navn
-        // skrudd av, spiller Leaflets standard popup-på-klikk (bindPopup)
-        // inn i stedet: navn + avstand + en eksplisitt velg-knapp. Sjekkes
-        // ved hvert klikk (ikke ved oppretting), så toggling av navn
-        // underveis endrer oppførselen med en gang.
-        const polygon = L.polygon(leafletCoords, {
+      // Er navn synlig på kartet, vet du allerede hva du trykker på — da
+      // går valget rett gjennom uten en ekstra bekreftelse. Er navn
+      // skrudd av, spiller Leaflets standard popup-på-klikk (bindPopup)
+      // inn i stedet: navn + avstand + en eksplisitt velg-knapp. Sjekkes
+      // ved hvert klikk (ikke ved oppretting), så toggling av navn
+      // underveis endrer oppførselen med en gang.
+      const polygon = L.polygon(leafletCoords, {
+        color: polygonColor,
+        weight: 2,
+        opacity: 0.8,
+        fillColor: polygonColor,
+        fillOpacity: 0.15
+      }).addTo(map).bindPopup(popupHtml);
+      polygon.on('click', () => {
+        if (showLabels) selectLocation(site.name || 'Ukjent lokalitet', site.id ?? null);
+      });
+    }
+
+    // Tegn radius-sirkel hvis det er en radiuslokalitet (punkt + nøyaktighet i
+    // meter — AO sitt `accuracy`-felt, se docs/mobil-artsobservasjoner-api.md).
+    // Samme idé som polygonet over, bare rund i stedet for fritegnet. En
+    // punktlokalitet (accuracy 0/mangler) skal ikke ha noen sirkel.
+    if (!hasPolygon && site.raw) {
+      const accuracyM = parseFloat(site.raw.accuracy ?? site.raw.Accuracy);
+      if (!isNaN(accuracyM) && accuracyM > 0) {
+        const radiusCircle = L.circle([lat, lon], {
+          radius: accuracyM,
           color: polygonColor,
           weight: 2,
           opacity: 0.8,
           fillColor: polygonColor,
-          fillOpacity: 0.15
+          fillOpacity: 0.12,
+          dashArray: '5 5'
         }).addTo(map).bindPopup(popupHtml);
-        polygon.on('click', () => {
+        radiusCircle.on('click', () => {
           if (showLabels) selectLocation(site.name || 'Ukjent lokalitet', site.id ?? null);
         });
       }
@@ -313,6 +334,36 @@ if (hasAoCredentials() && fab) {
 let pinDropMode = false;
 let dropMarker = null;
 let mapClickHandler = null;
+let accuracyCircle = null;
+
+// Tegner radiusen ("nøyaktigheten") rundt lokasjonen som faktisk sendes til AO —
+// uten denne var det umulig å se på kartet hvor stort området en radiuslokasjon
+// faktisk dekker før man opprettet den.
+function updateAccuracyCircle(latlng) {
+  if (accuracyCircle) {
+    map.removeLayer(accuracyCircle);
+    accuracyCircle = null;
+  }
+  const radiusM = parseInt(accuracySelect.value, 10) || 0;
+  if (radiusM > 0) {
+    accuracyCircle = L.circle(latlng, {
+      radius: radiusM,
+      color: '#ef4444',
+      weight: 2,
+      dashArray: '5 5',
+      fillColor: '#ef4444',
+      fillOpacity: 0.12
+    }).addTo(map);
+  }
+  if (dropMarker) dropMarker.bringToFront();
+}
+
+function removeAccuracyCircle() {
+  if (accuracyCircle) {
+    map.removeLayer(accuracyCircle);
+    accuracyCircle = null;
+  }
+}
 
 function enterPinDropMode() {
   pinDropMode = true;
@@ -335,6 +386,8 @@ function enterPinDropMode() {
       shadowSize: [41, 41]
     });
     dropMarker = L.marker(e.latlng, { icon: redIcon, draggable: true }).addTo(map);
+    updateAccuracyCircle(e.latlng);
+    dropMarker.on('drag', (ev) => updateAccuracyCircle(ev.target.getLatLng()));
     hint.style.display = 'none';
     cancelPinBtn.style.display = 'none';
 
@@ -363,6 +416,7 @@ function exitPinDropMode() {
     map.removeLayer(dropMarker);
     dropMarker = null;
   }
+  removeAccuracyCircle();
 
   // Vis FAB igjen
   if (hasAoCredentials() && fab) {
@@ -415,6 +469,11 @@ if (cancelPinBtn) {
 if (panelCancelBtn) {
   panelCancelBtn.addEventListener('click', exitPinDropMode);
 }
+if (accuracySelect) {
+  accuracySelect.addEventListener('change', () => {
+    if (dropMarker) updateAccuracyCircle(dropMarker.getLatLng());
+  });
+}
 if (createBtn) {
   createBtn.addEventListener('click', async () => {
     const name = nameInput.value.trim();
@@ -449,6 +508,7 @@ if (createBtn) {
           map.removeLayer(dropMarker);
           dropMarker = null;
         }
+        removeAccuracyCircle();
         addNewSiteMarker(name, latlng.lat, latlng.lng);
 
         setTimeout(() => {
