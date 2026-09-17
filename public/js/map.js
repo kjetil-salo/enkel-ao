@@ -355,7 +355,6 @@ function updateAccuracyCircle(latlng) {
       fillOpacity: 0.12
     }).addTo(map);
   }
-  if (dropMarker) dropMarker.bringToFront();
 }
 
 function removeAccuracyCircle() {
