@@ -329,6 +329,10 @@
     integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
     crossorigin=""></script>
 
-  <script type="module" src="/js/map.js"></script>
+  <!-- Versjonert URL: uten denne kan Cloudflare (max-age=14400 på JS) og nettleserens
+       egen HTTP-cache holde fast på en utdatert map.js i opptil 4 timer etter deploy,
+       selv om siden lastes på nytt — helt til noe endrer selve URL-en. Samme mønster
+       som main.js i index.html. -->
+  <script type="module" src="/js/map.js?v=v1.53.7"></script>
 </body>
 </html>
