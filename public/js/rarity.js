@@ -24,6 +24,8 @@ function getAoHeaders() {
     if (tokens.loginToken) headers['X-AO-Login-Token'] = tokens.loginToken;
     if (tokens.authCookie) headers['X-AO-Auth-Cookie'] = tokens.authCookie;
     if (tokens.userId) headers['X-AO-User-Id'] = tokens.userId;
+    const savedUsername = localStorage.getItem('ao_username');
+    if (savedUsername) headers['X-AO-Username'] = savedUsername;
   } catch (e) {
     // localStorage utilgjengelig/korrupt - behandles som uinnlogget
   }

@@ -275,7 +275,7 @@ def test_ensure_auth_full_relogin_fallback(monkeypatch):
     )
     monkeypatch.setattr(
         'src.api_handlers._full_relogin',
-        lambda user_id, login: 'relogin-cookie'
+        lambda user_id, login, username=None: 'relogin-cookie'
     )
     auth, refreshed = _ensure_auth('old-cookie', '12345', '12345:abc')
     assert auth == 'relogin-cookie'
@@ -298,9 +298,13 @@ def test_ensure_auth_no_refresh_needed(monkeypatch):
 
 
 # --- _save_credentials / _load_credentials ---
+#
+# Nøkkelen er brukernavn (case-insensitive), IKKE AOs "user_id" — det tallet
+# viste seg IKKE stabilt per AO-konto (samme konto fikk 309 forskjellige
+# user_id-verdier i prod). Se _load_credentials-docstring i src/api_handlers.py.
 
 def test_credentials_roundtrip(monkeypatch):
-    """Test at credentials lagres og lastes fra disk."""
+    """Test at credentials lagres og lastes fra disk, nøkkel = brukernavn."""
     from src.api_handlers import _save_credentials, _load_credentials
 
     with tempfile.NamedTemporaryFile(suffix='.json', delete=False) as f:
@@ -310,14 +314,14 @@ def test_credentials_roundtrip(monkeypatch):
         monkeypatch.setattr('src.api_handlers._CREDENTIALS_PATH', tmp_path)
 
         # Lagre
-        _save_credentials('12345', 'testuser', 'testpass')
+        _save_credentials('testuser', 'testpass')
 
-        # Last
-        result = _load_credentials('12345')
-        assert result == ('testuser', 'testpass')
+        # Last (case-insensitive oppslag, original username-casing bevares i verdien)
+        assert _load_credentials('testuser') == ('testuser', 'testpass')
+        assert _load_credentials('TestUser') == ('testuser', 'testpass')
 
         # Ukjent bruker
-        assert _load_credentials('99999') is None
+        assert _load_credentials('ukjentbruker') is None
     finally:
         os.unlink(tmp_path)
 
@@ -332,11 +336,11 @@ def test_credentials_survives_overwrite(monkeypatch):
     try:
         monkeypatch.setattr('src.api_handlers._CREDENTIALS_PATH', tmp_path)
 
-        _save_credentials('111', 'user1', 'pass1')
-        _save_credentials('222', 'user2', 'pass2')
+        _save_credentials('user1', 'pass1')
+        _save_credentials('user2', 'pass2')
 
-        assert _load_credentials('111') == ('user1', 'pass1')
-        assert _load_credentials('222') == ('user2', 'pass2')
+        assert _load_credentials('user1') == ('user1', 'pass1')
+        assert _load_credentials('user2') == ('user2', 'pass2')
     finally:
         os.unlink(tmp_path)
 
@@ -346,7 +350,37 @@ def test_load_credentials_missing_file(monkeypatch):
     from src.api_handlers import _load_credentials
 
     monkeypatch.setattr('src.api_handlers._CREDENTIALS_PATH', '/tmp/nonexistent_creds_xyz.json')
-    assert _load_credentials('12345') is None
+    assert _load_credentials('testuser') is None
+
+
+def test_migrate_credentials_file_converts_legacy_user_id_keys(monkeypatch):
+    """Test at gammelt format (nøkkel=user_id) migreres til nytt (nøkkel=brukernavn),
+    og at duplikate rader for samme bruker slås sammen (samme konto, samme passord)."""
+    import json as json_module
+    from src.api_handlers import _migrate_credentials_file, _load_credentials
+
+    with tempfile.NamedTemporaryFile(suffix='.json', mode='w', delete=False) as f:
+        json_module.dump({
+            '111111': {'username': 'kjetils', 'password': 'hunter2'},
+            '222222': {'username': 'kjetils', 'password': 'hunter2'},
+            '333333': {'username': 'annenbruker', 'password': 'annet-pass'},
+        }, f)
+        tmp_path = f.name
+
+    try:
+        monkeypatch.setattr('src.api_handlers._CREDENTIALS_PATH', tmp_path)
+        _migrate_credentials_file()
+
+        with open(tmp_path) as f:
+            migrated = json_module.load(f)
+
+        # Ingen rene tall-nøkler igjen
+        assert not any(k.isdigit() for k in migrated.keys())
+        assert _load_credentials('kjetils') == ('kjetils', 'hunter2')
+        assert _load_credentials('annenbruker') == ('annenbruker', 'annet-pass')
+        assert len(migrated) == 2
+    finally:
+        os.unlink(tmp_path)
 
 
 # --- _full_relogin ---
@@ -364,7 +398,7 @@ def test_full_relogin_logintoken_first(monkeypatch):
 
 
 def test_full_relogin_credentials_fallback(monkeypatch):
-    """Test at credentials brukes når logintoken feiler."""
+    """Test at credentials brukes når logintoken feiler, slått opp på username."""
     from src.api_handlers import _full_relogin, _save_credentials
 
     with tempfile.NamedTemporaryFile(suffix='.json', delete=False) as f:
@@ -378,11 +412,13 @@ def test_full_relogin_credentials_fallback(monkeypatch):
         )
         monkeypatch.setattr(
             'src.api_handlers.login_to_ao',
-            lambda username, password: {'authCookie': 'cred-cookie', 'loginToken': 'lt', 'userId': '12345'}
+            lambda username, password: {'authCookie': 'cred-cookie', 'loginToken': 'lt', 'userId': '99999'}
         )
 
-        _save_credentials('12345', 'testuser', 'testpass')
-        result = _full_relogin('12345', '12345:abc')
+        _save_credentials('testuser', 'testpass')
+        # user_id her ('12345') er BEVISST forskjellig fra det som ble brukt ved lagring
+        # (ustabilt tall) — poenget er at oppslaget skjer på username, ikke user_id.
+        result = _full_relogin('12345', '12345:abc', username='testuser')
         assert result == 'cred-cookie'
     finally:
         os.unlink(tmp_path)
@@ -393,5 +429,27 @@ def test_full_relogin_no_credentials(monkeypatch):
     from src.api_handlers import _full_relogin
 
     monkeypatch.setattr('src.api_handlers._CREDENTIALS_PATH', '/tmp/nonexistent_creds_xyz.json')
-    result = _full_relogin('12345', None)
+    result = _full_relogin('12345', None, username='testuser')
     assert result is None
+
+
+def test_full_relogin_no_username_skips_credentials_lookup(monkeypatch):
+    """Test at fallback hoppes over (ikke krasjer) når klienten ikke sender username —
+    f.eks. en gammel, ikke-oppdatert klient. Skal ikke prøve å slå opp på user_id."""
+    from src.api_handlers import _full_relogin, _save_credentials
+
+    with tempfile.NamedTemporaryFile(suffix='.json', delete=False) as f:
+        tmp_path = f.name
+
+    try:
+        monkeypatch.setattr('src.api_handlers._CREDENTIALS_PATH', tmp_path)
+        monkeypatch.setattr(
+            'src.api_handlers._refresh_with_logintoken',
+            lambda login_token, user_id: None
+        )
+        _save_credentials('testuser', 'testpass')
+
+        result = _full_relogin('12345', '12345:abc', username=None)
+        assert result is None
+    finally:
+        os.unlink(tmp_path)

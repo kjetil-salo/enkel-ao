@@ -94,6 +94,8 @@ export function initAutocomplete(placeInput, onSelect, getPosition = null) {
       if (loginToken) headers['X-AO-Login-Token'] = loginToken;
       if (authCookie) headers['X-AO-Auth-Cookie'] = authCookie;
       if (userId) headers['X-AO-User-Id'] = userId;
+      const savedUsername = localStorage.getItem('ao_username');
+      if (savedUsername) headers['X-AO-Username'] = savedUsername;
 
       const pos = getPosition && getPosition();
       let url = `/api/ao-autocomplete?term=${encodeURIComponent(term)}`;

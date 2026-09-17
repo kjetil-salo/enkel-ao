@@ -1,5 +1,5 @@
 #!/bin/bash
-# Deploy enkel-ao STAGING til Raspberry Pi (ao-staging.efugl.no)
+# Deploy enkel-ao STAGING til Raspberry Pi (aos.efugl.no)
 #
 # Egen mappe (~/enkel-ao-staging) og egen database, atskilt fra produksjon —
 # samme mønster som dagens-funn-staging på Pi-en. Deler kun den skrivebeskyttede
@@ -38,4 +38,4 @@ rsync -av --delete \
 echo "🏗️  Bygger og starter staging-container på Pi..."
 ssh "$PI_HOST" "cd $PI_DIR && docker compose -f docker-compose.staging.yml up -d --build"
 
-echo "✅ Staging (Pi) deploy ferdig: https://ao-staging.efugl.no"
+echo "✅ Staging (Pi) deploy ferdig: https://aos.efugl.no"

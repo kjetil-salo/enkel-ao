@@ -27,7 +27,7 @@ from src.utils import mask_token
 from src.ao_import_httpx import fetch_csrf_tokens
 
 
-def fetch_ao_autocomplete(term: str, login_token: str = None, auth_cookie: str = None, user_id: str = None, location_db=None, lat: float = None, lon: float = None) -> dict:
+def fetch_ao_autocomplete(term: str, login_token: str = None, auth_cookie: str = None, user_id: str = None, location_db=None, lat: float = None, lon: float = None, username: str = None) -> dict:
     """
     Hent autocomplete-forslag for lokaliteter.
 
@@ -83,7 +83,7 @@ def fetch_ao_autocomplete(term: str, login_token: str = None, auth_cookie: str =
 
     # Sørg for gyldig auth (sliding expiration → logintoken → credentials)
     if user_id and login_token:
-        auth_cookie, refreshed_auth_cookie = _ensure_auth(auth_cookie, user_id, login_token)
+        auth_cookie, refreshed_auth_cookie = _ensure_auth(auth_cookie, user_id, login_token, username=username)
 
     base_url = os.getenv('AO_URL', 'https://www.artsobservasjoner.no')
     params = {
@@ -151,12 +151,21 @@ _cache_lock = threading.Lock()
 _CREDENTIALS_PATH = os.environ.get('CREDENTIALS_PATH', '/data/credentials.json')
 
 
-def _load_credentials(user_id: str) -> tuple:
-    """Last credentials fra disk. Returnerer (username, password) eller None."""
+def _load_credentials(username: str) -> tuple:
+    """Last credentials fra disk. Returnerer (username, password) eller None.
+
+    Nøkkelen er brukernavn (case-insensitive), IKKE AOs "user_id" fra
+    logintoken-prefikset — det tallet er IKKE stabilt per konto, se
+    docs/ao-token-autentisering.md (funnet 2026-09-16: samme AO-konto fikk
+    309 forskjellige "user_id"-verdier over tid, hver passord-relogin
+    skapte en ny foreldreløs rad i credentials.json).
+    """
+    if not username:
+        return None
     try:
         with open(_CREDENTIALS_PATH, 'r') as f:
             data = json.load(f)
-        entry = data.get(str(user_id))
+        entry = data.get(username.lower())
         if entry:
             return (entry['username'], entry['password'])
     except (FileNotFoundError, json.JSONDecodeError, KeyError):
@@ -164,8 +173,8 @@ def _load_credentials(user_id: str) -> tuple:
     return None
 
 
-def _save_credentials(user_id: str, username: str, password: str):
-    """Lagre credentials til disk (trådsikkert)."""
+def _save_credentials(username: str, password: str):
+    """Lagre credentials til disk (trådsikkert), nøkkel = brukernavn (lowercased)."""
     try:
         os.makedirs(os.path.dirname(_CREDENTIALS_PATH), exist_ok=True)
         with _cache_lock:
@@ -174,11 +183,47 @@ def _save_credentials(user_id: str, username: str, password: str):
                     data = json.load(f)
             except (FileNotFoundError, json.JSONDecodeError):
                 data = {}
-            data[str(user_id)] = {'username': username, 'password': password}
+            data[username.lower()] = {'username': username, 'password': password}
             with open(_CREDENTIALS_PATH, 'w') as f:
                 json.dump(data, f)
     except Exception as e:
         logger.warning(f'[CREDENTIALS] Kunne ikke lagre credentials: {e}')
+
+
+def _migrate_credentials_file():
+    """Engangsmigrering: konverter credentials.json fra gammelt format
+    (nøkkel = AOs ustabile "user_id") til nytt format (nøkkel = brukernavn).
+
+    Kjøres ved import. Idempotent — hopper over hvis filen allerede er i nytt
+    format (ingen rene tall-nøkler). Slår sammen duplikate rader per bruker
+    (passordet er identisk uansett, siden det er samme AO-konto).
+    """
+    try:
+        with _cache_lock:
+            try:
+                with open(_CREDENTIALS_PATH, 'r') as f:
+                    data = json.load(f)
+            except (FileNotFoundError, json.JSONDecodeError):
+                return
+            if not data or not any(k.isdigit() for k in data.keys()):
+                return
+            migrated = {}
+            for entry in data.values():
+                uname = entry.get('username')
+                pwd = entry.get('password')
+                if uname and pwd:
+                    migrated[uname.lower()] = {'username': uname, 'password': pwd}
+            with open(_CREDENTIALS_PATH, 'w') as f:
+                json.dump(migrated, f)
+            logger.info(
+                f'[CREDENTIALS] Migrerte {len(data)} rader (gammelt user_id-format) til '
+                f'{len(migrated)} unike brukere (nytt username-format)'
+            )
+    except Exception as e:
+        logger.warning(f'[CREDENTIALS] Migrering feilet: {e}')
+
+
+_migrate_credentials_file()
 
 def _sliding_expiration(auth_cookie: str, user_id: str, login_token: str = None) -> str:
     """Forleng AO-session via sliding expiration (rate-limited).
@@ -326,10 +371,10 @@ def login_to_ao(username: str, password: str) -> dict:
         if not login_token:
             raise ValueError('Innlogging feilet - ingen logintoken mottatt (husk å krysse av "Husk meg")')
 
-        # Lagre credentials for auto-relogin (persisterert til disk)
-        if user_id:
-            _save_credentials(user_id, username, password)
-            logger.debug(f'[AO-LOGIN] Lagret credentials for auto-relogin (user_id={user_id})')
+        # Lagre credentials for auto-relogin (persistert til disk, nøkkel = brukernavn —
+        # IKKE user_id, som er ustabilt per AO-konto, se _load_credentials-docstring)
+        _save_credentials(username, password)
+        logger.debug(f'[AO-LOGIN] Lagret credentials for auto-relogin (bruker={username})')
 
         logger.info(f'[AO-LOGIN] Innlogging vellykket! user_id={user_id}, auth_cookie={mask_token(auth_cookie)}')
 
@@ -343,10 +388,14 @@ def login_to_ao(username: str, password: str) -> dict:
 def _refresh_with_logintoken(login_token: str, user_id: str) -> str:
     """Gjenoppretter .ASPXAUTHNO via logintoken (AO sin "husk meg"-auto-login).
 
-    VIKTIG — bevist mekanisme (testet mot AO):
-    - Må treffe FORSIDEN «/» (ikke [Authorize]-beskyttet). Beskyttede sider
-      (/User/MyPages, /SubmitSighting/Report) redirecter til /LogOn FØR
-      husk-meg-logikken kjører, så revival er umulig der.
+    VIKTIG — mekanisme (revidert 2026-09-16, se docs/ao-token-autentisering.md):
+    - Må treffe `/LogOn?ReturnUrl=<beskyttet-side>` — IKKE bar forside «/». Husk-meg-logikken
+      trigges av redirecten til selve innloggingssiden med en ReturnUrl, ikke av et vilkårlig
+      GET mot en anonym side. (Tidligere antatt at beskyttede sider «kortslo» revival — det var
+      feil konklusjon; poenget er å FØLGE redirect-kjeden helt, ikke unngå den.)
+      Bevist empirisk i ekte nettlesersesjon (Chrome, 2026-09-16): en beskyttet side redirectet
+      til nettopp `/LogOn?ReturnUrl=...`, og sesjonen ble gjenopprettet stille der — ingen
+      innloggingsskjema vist, ingen passord sendt.
     - `logintoken_ssl=1` er PÅKREVD.
     - Ingen .ASPXAUTHNO må sendes: en gammel/død cookie kortslutter auto-login.
 
@@ -369,17 +418,17 @@ def _refresh_with_logintoken(login_token: str, user_id: str) -> str:
             'AcceptCookies': '1'
         }) as client:
             response = client.get(
-                'https://www.artsobservasjoner.no/',
+                'https://www.artsobservasjoner.no/LogOn?ReturnUrl=%2fUser%2fMyPages',
                 headers={'User-Agent': 'Mozilla/5.0 (compatible; Fugleobservasjoner/1.0)'},
                 timeout=10,
                 follow_redirects=True
             )
 
-            # Revival mislyktes hvis vi havnet på login-siden
+            # Revival mislyktes hvis vi fortsatt står på login-siden (ingen redirect skjedde)
             if '/LogOn' in str(response.url):
                 logger.warning(
                     f'[LOGINTOKEN-REFRESH] AO nektet revival for user_id={user_id} '
-                    f'— redirect til {response.url} (status={response.status_code})'
+                    f'— ble værende på {response.url} (status={response.status_code})'
                 )
                 return None
 
@@ -388,12 +437,12 @@ def _refresh_with_logintoken(login_token: str, user_id: str) -> str:
                     logger.info(f'[LOGINTOKEN-REFRESH] Session gjenopprettet via husk-meg: {mask_token(cookie.value)}')
                     return cookie.value
 
-            # Ingen auth-cookie: AO svarte uten å redirecte, men satte den ikke.
+            # Ingen auth-cookie: AO redirectet oss videre, men satte den ikke.
             # Cookie-navnene viser om AO ignorerte token eller ga noe uventet.
             cookie_names = ', '.join(sorted(c.name for c in client.cookies.jar)) or 'ingen'
             logger.warning(
                 f'[LOGINTOKEN-REFRESH] Ingen .ASPXAUTHNO mottatt for user_id={user_id} '
-                f'(status={response.status_code}, cookies: {cookie_names})'
+                f'(status={response.status_code}, sluttside={response.url}, cookies: {cookie_names})'
             )
         return None
     except Exception as e:
@@ -401,8 +450,13 @@ def _refresh_with_logintoken(login_token: str, user_id: str) -> str:
         return None
 
 
-def _full_relogin(user_id: str, login_token: str = None) -> str:
+def _full_relogin(user_id: str, login_token: str = None, username: str = None) -> str:
     """Fornyer session. Prøver logintoken først, deretter credentials fra disk.
+
+    `username` (brukerens AO-innloggingsnavn, sendt av klienten som `X-AO-Username`)
+    er nøkkelen credentials slås opp på — IKKE `user_id`. `user_id` (AOs
+    logintoken-prefiks) er kun til logging/statistikk her, siden det viste seg
+    IKKE å være stabilt per konto (se _load_credentials-docstring).
 
     Returns:
         Ny .ASPXAUTHNO hvis vellykket, ellers None.
@@ -421,19 +475,23 @@ def _full_relogin(user_id: str, login_token: str = None) -> str:
         # Uten token er revival umulig — skiller «AO nektet» fra «token kom aldri fram»
         logger.warning(f'[LOGINTOKEN-REFRESH] Hoppet over for user_id={user_id} — klienten sendte ingen logintoken')
 
-    # Steg 2: Full relogin med lagrede credentials (fra disk)
-    creds = _load_credentials(user_id)
-    if not creds:
-        logger.error(f'[AUTH-RELOGIN-RESULT] Ingen lagrede credentials for user_id={user_id} — bruker må logge inn manuelt')
+    # Steg 2: Full relogin med lagrede credentials (fra disk, nøkkel = brukernavn)
+    if not username:
+        logger.error(f'[AUTH-RELOGIN-RESULT] Intet brukernavn oppgitt for user_id={user_id} — kan ikke slå opp lagrede credentials')
         return None
 
-    username, password = creds
+    creds = _load_credentials(username)
+    if not creds:
+        logger.error(f'[AUTH-RELOGIN-RESULT] Ingen lagrede credentials for bruker={username} (user_id={user_id}) — bruker må logge inn manuelt')
+        return None
+
+    saved_username, password = creds
     try:
-        result = login_to_ao(username, password)
-        logger.error(f'[AUTH-RELOGIN-RESULT] Credentials-relogin vellykket for user_id={user_id}')
+        result = login_to_ao(saved_username, password)
+        logger.error(f'[AUTH-RELOGIN-RESULT] Credentials-relogin vellykket for bruker={saved_username} (user_id={user_id})')
         return result['authCookie']
     except Exception as e:
-        logger.error(f'[AUTH-RELOGIN-RESULT] Credentials-relogin feilet for user_id={user_id}: {e}')
+        logger.error(f'[AUTH-RELOGIN-RESULT] Credentials-relogin feilet for bruker={username} (user_id={user_id}): {e}')
         return None
 
 
@@ -555,7 +613,7 @@ def _epsg3857_to_wgs84(x, y):
     return round(lat, 6), round(lon, 6)
 
 
-def handle_ao_private_sites(auth_cookie: str, ao_base_url: str = 'https://www.artsobservasjoner.no', login_token: str = None, user_id: str = None) -> tuple:
+def handle_ao_private_sites(auth_cookie: str, ao_base_url: str = 'https://www.artsobservasjoner.no', login_token: str = None, user_id: str = None, username: str = None) -> tuple:
     """
     Hent alle brukerens private lokasjoner via BindUserSitesGrid.
 
@@ -572,7 +630,7 @@ def handle_ao_private_sites(auth_cookie: str, ao_base_url: str = 'https://www.ar
     # Sørg for gyldig auth (sliding expiration → logintoken → credentials)
     refreshed_auth_cookie = None
     if user_id and login_token:
-        auth_cookie, refreshed_auth_cookie = _ensure_auth(auth_cookie, user_id, login_token)
+        auth_cookie, refreshed_auth_cookie = _ensure_auth(auth_cookie, user_id, login_token, username=username)
 
     url_grid = f'{ao_base_url}/Site/BindUserSitesGrid?UserSitesGrid-size=500'
     seed_cookies = {'.ASPXAUTHNO': auth_cookie, 'AcceptCookies': '1'}
@@ -641,12 +699,13 @@ def _compute_bbox(lat, lon, size_m):
     }
 
 
-def _ensure_auth(ao_auth, ao_user_id, login_token):
+def _ensure_auth(ao_auth, ao_user_id, login_token, username=None):
     """Sørg for at auth-cookie er gyldig.
 
     Strategi (én HTTP-request i normaltilfelle):
     1. Sliding expiration — forleng eksisterende session (rate-limited)
-    2. Hvis cookie utløpt — full relogin (logintoken → credentials)
+    2. Hvis cookie utløpt — full relogin (logintoken → credentials, sistnevnte
+       slått opp på `username`, se _load_credentials-docstring)
 
     Returns:
         tuple: (ao_auth, refreshed_auth_cookie_or_None)
@@ -664,7 +723,7 @@ def _ensure_auth(ao_auth, ao_user_id, login_token):
 
     # Steg 2: Hvis ingen auth eller sliding feilet, prøv full relogin
     if not ao_auth or _is_cookie_expired(ao_auth, ao_user_id, login_token):
-        new_cookie = _full_relogin(ao_user_id, login_token)
+        new_cookie = _full_relogin(ao_user_id, login_token, username=username)
         if new_cookie:
             return new_cookie, new_cookie
 
@@ -911,7 +970,7 @@ def _mark_env_owned_sites(sites):
         pass
 
 
-def handle_ao_sites_search(lat, lon, size_m=600.0, ao_mobile_base_url='https://mobil.artsobservasjoner.no', user_id=None, login_token=None, auth_cookie=None, location_db=None):
+def handle_ao_sites_search(lat, lon, size_m=600.0, ao_mobile_base_url='https://mobil.artsobservasjoner.no', user_id=None, login_token=None, auth_cookie=None, location_db=None, username=None):
     """Håndter søk etter AO-lokaliteter.
 
     Hvis location_db er satt, søkes det parallelt i lokal DB og AO.
@@ -931,7 +990,7 @@ def handle_ao_sites_search(lat, lon, size_m=600.0, ao_mobile_base_url='https://m
     ao_auth = auth_cookie or os.getenv('AO_AUTH_COOKIE')
 
     # Sørg for gyldig auth
-    ao_auth, refreshed_auth_cookie = _ensure_auth(ao_auth, ao_user_id, login_token)
+    ao_auth, refreshed_auth_cookie = _ensure_auth(ao_auth, ao_user_id, login_token, username=username)
 
     # Beregn bounding box
     bbox = _compute_bbox(lat, lon, size_m)
@@ -1103,7 +1162,7 @@ def check_taxon_rarity(taxon_id, areas_csv: str, date_str: str, auth_cookie: str
 
 
 def get_ao_rarity(taxon_id, site_id, date_str: str, user_id: str = None, login_token: str = None,
-                   auth_cookie: str = None, location_db=None) -> tuple:
+                   auth_cookie: str = None, location_db=None, username: str = None) -> tuple:
     """Sjekk om en art er uvanlig på en gitt lokalitet/dato (AO sin sjeldenhetsvarsling).
 
     Henter Areas-ID-er for lokaliteten (cachet i location_db med lang TTL —
@@ -1119,7 +1178,7 @@ def get_ao_rarity(taxon_id, site_id, date_str: str, user_id: str = None, login_t
     if not is_logged_in or not taxon_id or not site_id or not date_str:
         return None, None
 
-    auth_cookie, refreshed_auth_cookie = _ensure_auth(auth_cookie, user_id, login_token)
+    auth_cookie, refreshed_auth_cookie = _ensure_auth(auth_cookie, user_id, login_token, username=username)
     if not auth_cookie:
         return None, refreshed_auth_cookie
 

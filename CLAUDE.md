@@ -47,7 +47,7 @@ docker-compose up --build  # Run with mock Nominatim (safe for load testing)
 ./update-ao-pi.sh          # Rsync + docker-compose up --build på Pi
 
 # Deploy til Pi-staging (egen mappe/DB/port, deler kun shared-locations med prod)
-./deploy-staging-pi.sh     # Kjører pytest+npm test (vitest) selv, deretter https://ao-staging.efugl.no
+./deploy-staging-pi.sh     # Kjører pytest+npm test (vitest) selv, deretter https://aos.efugl.no
 ```
 
 ### Lokasjons-DB import (kjøres ved behov, ~40 min)
@@ -347,9 +347,10 @@ AO_URL=http://localhost:8080 AO_MOBILE_URL=http://localhost:8080 python3 server.
 
 ### Deploy
 - **«Prod» = Raspberry Pi** (`update-ao-pi.sh`), ikke Fly.io. Fly kjøres kun som sjelden brukt backup.
-- **Pi-staging** (`deploy-staging-pi.sh`, `https://ao-staging.efugl.no`) kjører pytest+vitest selv
+- **Pi-staging** (`deploy-staging-pi.sh`, `https://aos.efugl.no`) kjører pytest+vitest selv
   før deploy og er det reelle test-miljøet (Fly-staging mangler `LOCATION_DB_PATH`, så stedssøk
   uten AO-innlogging ikke virker der). Bruk denne før `update-ao-pi.sh` ved usikre endringer.
+  Fly har fra nå av kun rolle som reserve om Pi går ned — se README.md.
 - **`update-ao-pi.sh` kjører IKKE tester selv** — kjør `pytest`+`npm test` manuelt før bruk.
 - **Fly production deploy**: `update-app.sh production` kjører automatisk `python3 -m pytest --maxfail=3` først. Deploy avbrytes hvis tester feiler.
 

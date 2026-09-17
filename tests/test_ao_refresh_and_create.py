@@ -95,8 +95,8 @@ def test_ao_refresh_success(monkeypatch):
 def test_ao_refresh_expired_logintoken(monkeypatch):
     """Test at /api/ao-refresh gir feil når husk-meg-revival mislykkes.
 
-    Ved utløpt logintoken utsteder forsiden ingen .ASPXAUTHNO (og redirecter
-    ikke til /LogOn siden den er offentlig), så mangel på ny cookie = utløpt.
+    Ved utløpt logintoken blir vi værende på /LogOn (ingen redirect til
+    ReturnUrl) og ingen .ASPXAUTHNO settes — det betyr at revival feilet.
     """
     class FakeResponse:
         status_code = 200
@@ -259,7 +259,7 @@ def test_private_sites_revives_expired_session(monkeypatch):
 
     calls = {}
 
-    def fake_ensure_auth(auth, user_id, login_token):
+    def fake_ensure_auth(auth, user_id, login_token, username=None):
         calls['ensure_auth'] = (auth, user_id, login_token)
         return 'ny-gyldig-cookie', 'ny-gyldig-cookie'
 

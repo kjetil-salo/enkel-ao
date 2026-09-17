@@ -37,6 +37,8 @@ export async function fetchAndCachePrivateSites() {
     const headers = { 'X-AO-Auth-Cookie': tokens.authCookie };
     if (tokens.loginToken) headers['X-AO-Login-Token'] = tokens.loginToken;
     if (tokens.userId) headers['X-AO-User-Id'] = tokens.userId;
+    const savedUsername = localStorage.getItem('ao_username');
+    if (savedUsername) headers['X-AO-Username'] = savedUsername;
     const resp = await fetch('/api/ao-private-sites', { headers });
     if (!resp.ok) return;
     const data = await resp.json();
@@ -200,6 +202,8 @@ export async function fetchAoSites(lat, lon, sizeMeters = 1000, isRetry = false)
     if (savedTokens.authCookie) {
       headers['X-AO-Auth-Cookie'] = savedTokens.authCookie;
     }
+    const savedUsername = localStorage.getItem('ao_username');
+    if (savedUsername) headers['X-AO-Username'] = savedUsername;
   } catch (e) {
     // Ignorer feil ved parsing
   }

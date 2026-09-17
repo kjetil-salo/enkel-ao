@@ -92,6 +92,7 @@ og staging kjørte en periode på 2 maskiner uten delt lagring (SQLite-data
 ble usynlig avhengig av hvilken maskin som svarte).~~
 
 → Opprettet 2026-08-31: **`https://ao-staging.efugl.no`**, port 3015 på Pi-en.
+(2026-09-15: domenet er erstattet med **`https://aos.efugl.no`**, samme port/oppsett.)
 Egen mappe (`~/enkel-ao-staging`), egen database (bind-mounted `./data`,
 atskilt fra produksjonens navngitte volum), deler kun den skrivebeskyttede
 `shared-locations`-volumet med produksjon (så `LOCATION_DB_PATH` faktisk

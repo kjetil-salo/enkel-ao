@@ -1,3 +1,55 @@
+# ⚠️ KORREKSJON 3 (2026-09-16): passordfallback var nesten helt ødelagt (feil nøkkel)
+
+> **Uavhengig av korreksjon 2 rett under.** Mens vi gravde i hvorfor selve token-fornyelsen
+> feiler, oppdaget vi et STØRRE, separat problem: passord-**fallbacket** (sikkerhetsnettet som
+> skulle redde situasjonen når logintoken-revival feiler) fungerte i praksis nesten aldri for
+> noen bruker — uavhengig av korreksjon 2 sin fiks.
+>
+> Årsak: `_load_credentials`/`_save_credentials` (`src/api_handlers.py`) brukte AOs "user_id"
+> (prefikset i `logintoken`-cookien, `<tall>:<hash>`) som lagrings-/oppslagsnøkkel. Vi antok
+> dette var en STABIL AO-kontoidentifikator. Verifisert i produksjonsdata (`/data/credentials.json`
+> på Pi-en, akkumulert siden mai 2026): brukernavnet `kjetils` hadde **309 forskjellige
+> "user_id"-nøkler**, alle med nøyaktig samme passord — AO gir et NYTT tall nesten hver gang man
+> logger inn med passord, selv for samme konto. Totalt i filen: 1760 rader, kun 40 unike
+> brukernavn. Siden klienten aldri overskriver en allerede satt `ao_tokens.userId`
+> (`public/js/api.js`, kommentar «Behold eksisterende userId/mapUserId hvis satt»), ble hver
+> klient låst til SITT første tilfeldige tall, mens serverens oppslag nesten aldri traff en av
+> de stadig voksende foreldreløse radene.
+>
+> **Kodefiks (2026-09-16, v1.53.4):** Nøkkelen er nå **brukernavn** (case-insensitive), ikke
+> `user_id`. Klienten sender nå `X-AO-Username` (fra `localStorage.ao_username`) i tillegg til
+> de tre eksisterende AO-headerne. `_full_relogin`/`_ensure_auth` og alle fire kallstedene
+> (`handle_ao_sites_search`, `handle_ao_private_sites`, `fetch_ao_autocomplete`, `get_ao_rarity`)
+> tar nå imot og videresender `username`. En engangsmigrering (`_migrate_credentials_file()`,
+> kjøres automatisk ved serveroppstart) konverterer den gamle filen til det nye formatet og
+> slår sammen duplikate rader per bruker. `user_id` brukes fortsatt i logglinjer for sporing,
+> men ALDRI lenger som lagrings-/oppslagsnøkkel.
+
+# ⚠️ KORREKSJON 2 (2026-09-16): riktig URL er /LogOn?ReturnUrl=X, ikke bar «/»
+
+> **Denne seksjonen oppdaterer korreksjonen fra 2026-07-03 rett under.** Juli-korreksjonen
+> beviste at logintoken-revival virker, men konkluderte samtidig — feilaktig — at man må treffe
+> bar forside «/» og unngå beskyttede sider fordi de «kortslutter» revival ved å redirecte til
+> /LogOn. Produksjonsmåling (20. juli–15. sept 2026) viste at denne tilnærmingen nesten aldri
+> virker i praksis: 531 relogin-forsøk, kun 1 vellykket.
+>
+> En kontrollert test 2026-09-15 (ekte, 18 sekunder gammelt logintoken, sendt mot bar «/» fra
+> server) feilet likevel — det avkreftet en hypotese om at logintoken var «brukt opp», og pekte
+> mot at selve MÅLET for kallet var feil, ikke tokenets ferskhet.
+>
+> Løsningen ble funnet 2026-09-16 ved å observere en ekte, innlogget Chrome-nettleser etter et
+> døgns inaktivitet: en beskyttet side redirectet til nettopp `/LogOn?ReturnUrl=<original-side>`,
+> og sesjonen ble gjenopprettet HELT STILLE der — ingen innloggingsskjema vist, ingen passord
+> sendt. Det er altså IKKE sant at beskyttede sider «kortslutter» husk-meg-logikken — poenget er
+> å FØLGE redirect-kjeden til `/LogOn?ReturnUrl=X` (med `logintoken`+`logintoken_ssl`, ingen
+> `.ASPXAUTHNO`), ikke å unngå den ved å treffe en anonym side.
+>
+> **Kodefiks (2026-09-16):** `_refresh_with_logintoken()` (`src/api_handlers.py`) og
+> `_handle_ao_refresh_post()` (`server.py`) treffer nå
+> `https://www.artsobservasjoner.no/LogOn?ReturnUrl=%2fUser%2fMyPages` i stedet for bar `/`.
+> Passordfallback (`_full_relogin()` → lagrede credentials) er urørt og fungerer fortsatt som
+> sikkerhetsnett hvis den nye revival-mekanismen likevel skulle feile.
+
 # ⚠️ KORREKSJON (2026-07-03): logintoken KAN gjenopprette sesjon
 
 > **Denne seksjonen opphever den tidligere konklusjonen lenger ned om at

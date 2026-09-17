@@ -6,10 +6,12 @@ En lynrask, superenkel webapp for å registrere fugleobservasjoner direkte til A
 
 **Live:**
 - https://ao.efugl.no – hovedadresse, stabil produksjon (kjører på Raspberry Pi, raskere)
-- https://enkel-ao.fly.dev – reserve/backup (samme kode, kjører på Fly.io)
-- https://enkel-ao-staging.fly.dev – siste endringer og eksperimenter (kan være ustabil)
+- https://aos.efugl.no – staging (Pi), test av siste endringer før prod (kan være ustabil)
+- https://enkel-ao.fly.dev – ren reserve/backup, brukes kun om Pi-en går ned (samme kode, Fly.io)
 
-> `ao.efugl.no` er ny hovedadresse — oppdater bokmerke/hjemskjerm-ikon. `enkel-ao.fly.dev` fortsetter å kjøre som reserve.
+> `ao.efugl.no` er hovedadressen — oppdater bokmerke/hjemskjerm-ikon. Fly.io (`enkel-ao.fly.dev`)
+> er fra og med 2026-09-15 KUN en reserve om Pi-en går ned — all reell testing skjer på
+> Pi-staging (`aos.efugl.no`) fordi deploy dit går mye raskere enn til Fly.
 
 ## Hovedfunksjoner
 - 📍 Automatisk lokalitetsfinner (AO-integrasjon)

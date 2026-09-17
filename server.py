@@ -139,7 +139,7 @@ class Handler(SimpleHTTPRequestHandler):
         self.send_response(200)
         self.send_header('Access-Control-Allow-Origin', '*')
         self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-        self.send_header('Access-Control-Allow-Headers', 'Content-Type, X-AO-User-Id, X-AO-Login-Token, X-AO-Auth-Cookie')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type, X-AO-User-Id, X-AO-Login-Token, X-AO-Auth-Cookie, X-AO-Username')
         self.end_headers()
 
     def do_POST(self):
@@ -802,11 +802,12 @@ class Handler(SimpleHTTPRequestHandler):
                 return
 
             # Husk-meg-revival: KUN logintoken + logintoken_ssl, INGEN .ASPXAUTHNO
-            # (en gammel/død cookie kortslutter AO sin auto-login), og mot FORSIDEN «/»
-            # (beskyttede sider redirecter til /LogOn før husk-meg-logikken kjører).
+            # (en gammel/død cookie kortslutter AO sin auto-login), mot /LogOn?ReturnUrl=...
+            # — IKKE bar forside «/» (revidert 2026-09-16, se
+            # src/api_handlers.py:_refresh_with_logintoken og docs/ao-token-autentisering.md).
             cookies = {'logintoken': login_token, 'logintoken_ssl': '1', 'AcceptCookies': '1'}
 
-            probe_url = 'https://www.artsobservasjoner.no/'
+            probe_url = 'https://www.artsobservasjoner.no/LogOn?ReturnUrl=%2fUser%2fMyPages'
             logger.debug(f'[AO-REFRESH] Husk-meg-revival mot: {probe_url}')
 
             # VIKTIG: Sett cookies på CLIENT-nivå, ikke request-nivå!
@@ -842,8 +843,8 @@ class Handler(SimpleHTTPRequestHandler):
                 result['refreshedLoginToken'] = refreshed_login_token
 
             if not result:
-                # Ingen .ASPXAUTHNO fra revival = logintoken utløpt/ugyldig (forsiden
-                # redirecter ikke til /LogOn, så vi kan ikke basere oss på det).
+                # Ingen .ASPXAUTHNO fra revival = logintoken utløpt/ugyldig
+                # (ble værende på /LogOn i stedet for å bli sendt videre til ReturnUrl).
                 logger.info('[AO-REFRESH] Revival mislyktes - logintoken utløpt, krever ny innlogging')
                 result['error'] = 'Token utløpt - krever ny innlogging'
 
@@ -1017,15 +1018,20 @@ class Handler(SimpleHTTPRequestHandler):
         Kun loginToken trengs i praksis (userId ekstraheres derfra hvis
         ikke sendt separat); authCookie hentes automatisk server-side ved behov.
 
+        `username` (X-AO-Username) er nøkkelen passord-fallback slås opp på —
+        IKKE `user_id`, som viste seg IKKE å være stabilt per AO-konto (se
+        src/api_handlers.py:_load_credentials).
+
         Returns:
-            tuple: (login_token, auth_cookie, user_id) — hver None hvis ikke satt.
+            tuple: (login_token, auth_cookie, user_id, username) — hver None hvis ikke satt.
         """
         login_token = self.headers.get('X-AO-Login-Token', '').strip() or None
         auth_cookie = self.headers.get('X-AO-Auth-Cookie', '').strip() or None
         user_id = self.headers.get('X-AO-User-Id', '').strip() or None
+        username = self.headers.get('X-AO-Username', '').strip() or None
         if login_token and not user_id and ':' in login_token:
             user_id = login_token.split(':')[0]
-        return login_token, auth_cookie, user_id
+        return login_token, auth_cookie, user_id, username
 
     def _handle_species_api(self, parsed):
         """Håndter arts-søk API."""
@@ -1068,14 +1074,14 @@ class Handler(SimpleHTTPRequestHandler):
         size_raw = params.get('size', ['600'])[0].strip()
         
         # Hent bruker-auth fra headers (sendt fra frontend)
-        login_token, auth_cookie, user_id = self._read_ao_auth_headers()
+        login_token, auth_cookie, user_id, username = self._read_ao_auth_headers()
         logger.debug(f'ao-sites mottok auth: user_id={user_id is not None}, login_token={login_token is not None}, auth_cookie={auth_cookie is not None}')
-        
+
         ao_mobile_base = os.environ.get(
             'AO_MOBILE_URL', 'https://mobil.artsobservasjoner.no'
         )
         try:
-            sites, refreshed_auth_cookie, auth_failed = handle_ao_sites_search(lat_raw, lon_raw, size_raw, ao_mobile_base, user_id, login_token, auth_cookie, location_db=_location_db)
+            sites, refreshed_auth_cookie, auth_failed = handle_ao_sites_search(lat_raw, lon_raw, size_raw, ao_mobile_base, user_id, login_token, auth_cookie, location_db=_location_db, username=username)
             response_data = {'sites': sites}
             logger.debug(f'ao-sites refresh: refreshed={refreshed_auth_cookie is not None}, auth_failed={auth_failed}')
             if refreshed_auth_cookie:
@@ -1097,13 +1103,14 @@ class Handler(SimpleHTTPRequestHandler):
         auth_cookie = self.headers.get('X-AO-Auth-Cookie', '').strip() or None
         login_token = self.headers.get('X-AO-Login-Token', '').strip() or None
         user_id = self.headers.get('X-AO-User-Id', '').strip() or None
+        username = self.headers.get('X-AO-Username', '').strip() or None
         if not auth_cookie:
             self._send_json({'error': 'Ikke innlogget'}, status=401)
             return
         ao_base = os.environ.get('AO_URL', 'https://www.artsobservasjoner.no')
         try:
             sites, refreshed_auth_cookie = handle_ao_private_sites(
-                auth_cookie, ao_base, login_token=login_token, user_id=user_id)
+                auth_cookie, ao_base, login_token=login_token, user_id=user_id, username=username)
             response_data = {'sites': sites}
             if refreshed_auth_cookie:
                 response_data['refreshedAuthCookie'] = refreshed_auth_cookie
@@ -1149,6 +1156,7 @@ class Handler(SimpleHTTPRequestHandler):
         login_token = self.headers.get('X-AO-Login-Token', '').strip()
         auth_cookie = self.headers.get('X-AO-Auth-Cookie', '').strip()
         user_id = self.headers.get('X-AO-User-Id', '').strip()
+        username = self.headers.get('X-AO-Username', '').strip()
 
         try:
             lat = float(params.get('lat', [None])[0]) if params.get('lat') else None
@@ -1172,6 +1180,7 @@ class Handler(SimpleHTTPRequestHandler):
                 location_db=_location_db,
                 lat=lat,
                 lon=lon,
+                username=username if username else None,
             )
             # data er nå {'results': [...], 'refreshed_auth_cookie': ...}
             self._send_json(data)
@@ -1192,7 +1201,7 @@ class Handler(SimpleHTTPRequestHandler):
         site_id = params.get('siteId', [''])[0].strip()
         date_str = params.get('date', [''])[0].strip()
 
-        login_token, auth_cookie, user_id = self._read_ao_auth_headers()
+        login_token, auth_cookie, user_id, username = self._read_ao_auth_headers()
 
         if not taxon_id or not site_id or not date_str:
             self._send_json({})
@@ -1202,7 +1211,7 @@ class Handler(SimpleHTTPRequestHandler):
             result, refreshed_auth_cookie = get_ao_rarity(
                 taxon_id, site_id, date_str,
                 user_id=user_id, login_token=login_token, auth_cookie=auth_cookie,
-                location_db=_location_db,
+                location_db=_location_db, username=username,
             )
             response_data = result or {}
             if refreshed_auth_cookie:
