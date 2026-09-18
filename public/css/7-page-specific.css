@@ -1608,23 +1608,6 @@ body.theme-light #search:disabled::placeholder {
         border-color: var(--accent) !important;
       }
 
-      .activity-submit-btn {
-        border-radius: 999px;
-        border: 1px solid rgba(22, 163, 74, 1);
-        background: #22c55e;
-        color: #ffffff;
-        font-size: 1em;
-        padding: 0 8px;
-        width: 32px;
-        height: 32px;
-        box-sizing: border-box;
-        margin-left: 4px;
-        flex-shrink: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-
       .advanced-row {
         display: flex;
         gap: 12px;
