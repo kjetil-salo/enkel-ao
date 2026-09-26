@@ -17,6 +17,8 @@
 import { loadObservations, saveObservations } from './storage.js';
 import { resolveVisitIdForNewObservation } from './visits.js';
 import { hentAktivFellestur, settAktivFellestur, forlatFellestur, hentMittNavn, settMittNavn } from './fellestur-client.js';
+import { showToast } from './ui.js';
+import { attachAoObserverAutocomplete } from './ao-observer-autocomplete.js';
 
 const POLL_MS = 12000;
 
@@ -46,6 +48,17 @@ function tekst(v) {
   const el = document.createElement('span');
   el.textContent = v == null ? '' : String(v);
   return el.innerHTML;
+}
+
+/**
+ * Samme sjekk som resten av appen bruker (main.js/location.js/map.js) for
+ * «kan denne enheten publisere til AO uten å måtte logge inn på nytt».
+ * Brukes her til å la «Ditt navn» reflektere den ekte AO-identiteten når den
+ * finnes, og til å kreve innlogging før «Hent inn og forlat» — den som
+ * ender opp med ansvaret for å sende til AO, skal faktisk kunne gjøre det.
+ */
+function erInnloggetMotAo() {
+  return !!(localStorage.getItem('ao_username') && localStorage.getItem('ao_password'));
 }
 
 function formatKlokkeslett(createdTs) {
@@ -182,11 +195,25 @@ function renderIkkeFunnet() {
 
 function renderAktivTur() {
   const tur = state.tur;
+  const innlogget = erInnloggetMotAo();
+  // Innlogget: navnet er den ekte AO-identiteten, ikke noe man kan skrive fritt
+  // — det er DENNE som vises til de andre og brukes i avsluttet-varselet, så
+  // det skal faktisk stemme med hvem som er ansvarlig for AO-innsendingen.
+  const aoBrukernavn = innlogget ? (localStorage.getItem('ao_username') || '') : '';
+  if (innlogget && aoBrukernavn) settMittNavn(aoBrukernavn);
   const mittNavn = hentMittNavn();
+
+  const mittNavnHtml = innlogget
+    ? `<p class="obs-meta">Innlogget på AO som <strong>${tekst(aoBrukernavn)}</strong> — dette navnet brukes på det du registrerer.</p>`
+    : `<label for="mitt-navn">Ditt navn (valgfritt, vises kun til de andre i gruppa)</label>
+       <input type="text" id="mitt-navn" value="${tekst(mittNavn)}" maxlength="40" placeholder="F.eks. Kjetil">
+       <p class="obs-meta">Ikke innlogget på AO på denne enheten — du kan likevel registrere funn i fellesturen,
+         men den som til slutt henter inn og sender til AO må være innlogget (⚙️ Innstillinger).</p>`;
 
   app.innerHTML = `
     <div class="kort">
       <div class="kode-visning">${tekst(state.kode)}</div>
+      <div id="avsluttet-varsel"></div>
       <div class="rad-btn">
         <button class="btn liten" id="btn-kopier">🔗 Kopier delbar lenke</button>
       </div>
@@ -205,11 +232,15 @@ function renderAktivTur() {
         <button class="btn liten" id="btn-medobs-legg-til">+ Legg til</button>
       </div>
 
-      <label for="mitt-navn">Ditt navn (valgfritt, vises kun til de andre i gruppa)</label>
-      <input type="text" id="mitt-navn" value="${tekst(mittNavn)}" maxlength="40" placeholder="F.eks. Kjetil">
+      ${mittNavnHtml}
 
+      <p class="obs-meta" style="margin-top:14px;"><strong>Ferdig med turen?</strong> Bruk knappen under — den
+        henter alle oppføringene i loggen inn i din lokale liste, klar til å sendes til AO fra hovedsiden.</p>
       <div class="rad-btn">
-        <button class="btn liten" id="btn-forlat">Forlat fellestur</button>
+        <button class="btn primar" id="btn-send-ao" style="flex:1;">📤 Send inn listen og avslutt fellestur</button>
+      </div>
+      <div class="rad-btn">
+        <button class="btn liten" id="btn-forlat">Forlat uten å sende inn</button>
       </div>
     </div>
 
@@ -221,20 +252,20 @@ function renderAktivTur() {
       </div>
     </div>
     <div id="obs-liste"></div>
-
-    <div class="rad-btn">
-      <button class="btn primar" id="btn-send-ao">📥 Hent inn i min lokale liste og forlat</button>
-    </div>
     <p class="oppdater-status" id="poll-status"></p>
   `;
 
   renderMedobsListe();
   renderObsListe();
   koblOppMedobs();
+  oppdaterAvsluttetVarsel();
 
-  document.getElementById('mitt-navn').addEventListener('change', (e) => {
-    settMittNavn(e.target.value);
-  });
+  const mittNavnInput = document.getElementById('mitt-navn');
+  if (mittNavnInput) {
+    mittNavnInput.addEventListener('change', (e) => {
+      settMittNavn(e.target.value);
+    });
+  }
 
   document.getElementById('btn-kopier').addEventListener('click', async () => {
     const url = `${location.origin}/fellestur.html?kode=${state.kode}`;
@@ -250,7 +281,7 @@ function renderAktivTur() {
   document.getElementById('btn-oppdater-na').addEventListener('click', () => oppdaterFraServer(true));
   document.getElementById('btn-send-ao').addEventListener('click', sendTilArbeidsliste);
   document.getElementById('btn-forlat').addEventListener('click', () => {
-    if (!confirm('Forlate fellesturen på denne enheten? Loggen består, og du kan bli med igjen med samme kode.')) return;
+    if (!confirm('Forlate fellesturen på denne enheten UTEN å hente inn og sende loggen? Loggen består uansett, og du kan bli med igjen med samme kode.')) return;
     forlatFellestur();
     stopPolling();
     const url = new URL(location.origin + '/fellestur.html');
@@ -281,24 +312,55 @@ function renderMedobsListe() {
 }
 
 function koblOppMedobs() {
-  async function leggTilMedobs() {
-    const input = document.getElementById('medobs-nytt-navn');
-    const navn = input.value.trim();
+  const input = document.getElementById('medobs-nytt-navn');
+
+  async function leggTilMedobs(navnOverride) {
+    const navn = (navnOverride != null ? navnOverride : input.value).trim();
     if (!navn) return;
     const ny = [...(state.tur.medobservatorer || []), navn];
     state.tur.medobservatorer = ny;
     input.value = '';
     renderMedobsListe();
-    await apiPost('/api/fellestur-oppdater', { kode: state.kode, medobservatorer: ny });
+    try {
+      const { ok, data } = await apiPost('/api/fellestur-oppdater', { kode: state.kode, medobservatorer: ny });
+      if (!ok || !data.ok) varsleRedigeringFeilet();
+    } catch (_) {
+      varsleRedigeringFeilet();
+    }
   }
 
-  document.getElementById('btn-medobs-legg-til').addEventListener('click', leggTilMedobs);
-  document.getElementById('medobs-nytt-navn').addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      leggTilMedobs();
-    }
-  });
+  document.getElementById('btn-medobs-legg-til').addEventListener('click', () => leggTilMedobs());
+  // Autocomplete mot AO sitt observatørregister (samme som ✎ Flere felt/
+  // redigeringsmodalen bruker) — nyttig når personen ikke er lagt til fra før.
+  attachAoObserverAutocomplete(input, leggTilMedobs);
+}
+
+/**
+ * Varsler resten av gruppa når noen har hentet loggen inn i sin egen lokale
+ * liste og sendt (eller er i ferd med å sende) til AO — se avsluttetAv-feltet
+ * satt av sendTilArbeidsliste(). Rent informasjonsvarsel: turen forblir åpen
+ * og skrivbar, dette hindrer bare at flere uavhengig av hverandre tror de er
+ * «den ansvarlige» og sender de samme observasjonene på nytt.
+ */
+function oppdaterAvsluttetVarsel() {
+  const el = document.getElementById('avsluttet-varsel');
+  if (!el) return;
+  const navn = state.tur && state.tur.avsluttetAv;
+  if (!navn) {
+    el.innerHTML = '';
+    return;
+  }
+  const tid = state.tur.avsluttetTs ? formatKlokkeslett(state.tur.avsluttetTs) : '';
+  el.innerHTML = `
+    <div style="background:rgba(239,68,68,0.15);border:2px solid #ef4444;border-radius:10px;
+                padding:12px 14px;margin:10px 0;">
+      <p style="margin:0 0 4px;font-size:1.05em;font-weight:700;color:#ef4444;">🛑 Turen er avsluttet</p>
+      <p style="margin:0;font-size:0.9em;">
+        <strong>${tekst(navn)}</strong> har hentet loggen inn i sin lokale liste${tid ? ' kl. ' + tekst(tid) : ''}
+        og sender den (eller har allerede sendt) til AO.
+        <strong>Ikke registrer flere funn eller send selv</strong> — si fra til ${tekst(navn)} hvis noe mangler.
+      </p>
+    </div>`;
 }
 
 // ---------- Selve loggen ----------
@@ -335,9 +397,15 @@ function renderObsListe() {
       const rad = state.tur.observasjoner.find((o) => o.id === id);
       if (!rad) return;
       const obs = { ...obsUtenMeta(rad), count: antall };
-      const { ok, data } = await apiPost('/api/fellestur-sync', { kode: state.kode, upserts: [{ id, obs }] });
-      if (ok && data.ok) {
-        oppdaterFraSyncSvar(data);
+      try {
+        const { ok, data } = await apiPost('/api/fellestur-sync', { kode: state.kode, upserts: [{ id, obs }] });
+        if (ok && data.ok) {
+          oppdaterFraSyncSvar(data);
+        } else {
+          varsleRedigeringFeilet();
+        }
+      } catch (_) {
+        varsleRedigeringFeilet();
       }
     });
   });
@@ -346,13 +414,28 @@ function renderObsListe() {
     btn.addEventListener('click', async () => {
       const id = btn.dataset.slettId;
       if (!confirm('Slette denne oppføringen?')) return;
-      const { ok, data } = await apiPost('/api/fellestur-sync', { kode: state.kode, deletes: [id] });
-      if (ok && data.ok) {
-        oppdaterFraSyncSvar(data);
-        document.querySelector('.liste-header h2').textContent = `Loggen (${state.tur.observasjoner.length})`;
+      try {
+        const { ok, data } = await apiPost('/api/fellestur-sync', { kode: state.kode, deletes: [id] });
+        if (ok && data.ok) {
+          oppdaterFraSyncSvar(data);
+          document.querySelector('.liste-header h2').textContent = `Loggen (${state.tur.observasjoner.length})`;
+        } else {
+          varsleRedigeringFeilet();
+        }
+      } catch (_) {
+        varsleRedigeringFeilet();
       }
     });
   });
+}
+
+/**
+ * Antall-endring og sletting i kontrollrommet feilet stille før dette —
+ * dårlig dekning i felt kunne gi inntrykk av at rettingen var lagret når
+ * den ikke var det. Vis den samme røde toasten synken bruker på hovedsiden.
+ */
+function varsleRedigeringFeilet() {
+  showToast('Fikk ikke lagret endringen — sjekk nettet og prøv igjen', { raw: true, borderColor: '#f87171', duration: 3000 });
 }
 
 /** Radens obs-felt uten server-metadata — grunnlaget for en ny upsert. */
@@ -397,6 +480,9 @@ async function oppdaterFraServer(manuell) {
 
   state.tur = tur;
   state.kjenteIder = new Set(tur.observasjoner.map((o) => o.id));
+  // Varselet om noen har avsluttet er viktig sikkerhetsinformasjon — vis det
+  // med en gang, uavhengig av om resten av lista oppdateres stille i bakgrunnen.
+  oppdaterAvsluttetVarsel();
 
   if (manuell || nyeIder.length === 0) {
     renderMedobsListe();
@@ -441,9 +527,22 @@ async function sendTilArbeidsliste() {
     alert('Fellesturen er tom — ingenting å hente inn.');
     return;
   }
+  // Denne handlingen er starten på AO-innsending (arbeidslista blir sendt
+  // videre derfra) — den som gjør dette må faktisk kunne fullføre det, ikke
+  // bare parkere loggen lokalt hos noen som uansett ikke kan sende den.
+  if (!erInnloggetMotAo()) {
+    alert('Du må være innlogget på Artsobservasjoner for å hente inn og sende denne loggen — logg inn under ⚙️ Innstillinger, eller la en annen i gruppa som er innlogget gjøre dette.');
+    return;
+  }
   if (!confirm(`Hente alle ${tur.observasjoner.length} oppføringer inn i din lokale liste, og forlate fellesturen?`)) {
     return;
   }
+
+  // Varsle resten av gruppa FØR vi forlater — best effort: venter til den er
+  // sendt (unngår at navigasjonen videre kutter forespørselen), men blokkerer
+  // aldri selve innhentingen om varselet skulle feile pga. dårlig dekning.
+  // Se oppdaterAvsluttetVarsel() for hvordan dette vises hos de andre.
+  await apiPost('/api/fellestur-oppdater', { kode: state.kode, avsluttetAv: hentMittNavn() || 'Noen' }).catch(() => {});
 
   // Forlat FØRST: loadObservations()/saveObservations() ruter til det delte
   // speilet så lenge en fellestur er aktiv (samme bryter som hovedsiden

@@ -465,7 +465,7 @@ class Handler(SimpleHTTPRequestHandler):
             self._send_json({'error': 'Kunne ikke opprette fellestur'}, status=500)
 
     def _handle_fellestur_oppdater_post(self):
-        """Oppdater turnavn og/eller medobservatører — alle med koden kan gjøre dette."""
+        """Oppdater turnavn, medobservatører og/eller avsluttet-varsel — alle med koden kan gjøre dette."""
         try:
             data = self._read_json_body()
 
@@ -477,6 +477,7 @@ class Handler(SimpleHTTPRequestHandler):
                 data.get('kode', ''),
                 navn=data.get('navn'),
                 medobservatorer=data.get('medobservatorer'),
+                avsluttet_av=data.get('avsluttetAv'),
             )
             self._send_json({'ok': ok}, status=200 if ok else 404)
         except Exception as e:

@@ -84,6 +84,18 @@ def init_db():
             )
         """)
 
+        # avsluttet_av/avsluttet_ts: satt når noen henter loggen inn i sin
+        # egen lokale liste og forlater (fellestur.js sin sendTilArbeidsliste())
+        # — et rent varselflagg, IKKE en lås. Turen forblir skrivbar (ingen
+        # tekniske forutsetninger for å fortsette å registrere), men klientene
+        # viser et «noen har allerede hentet inn og sendt» varsel til resten av
+        # gruppa slik at flere ikke uavhengig av hverandre sender samme
+        # observasjoner til AO.
+        tur_kolonner = {r['name'] for r in conn.execute("PRAGMA table_info(fellesturer)")}
+        if tur_kolonner and 'avsluttet_av' not in tur_kolonner:
+            conn.execute("ALTER TABLE fellesturer ADD COLUMN avsluttet_av TEXT")
+            conn.execute("ALTER TABLE fellesturer ADD COLUMN avsluttet_ts REAL")
+
         # fellestur_obs byttet radidentitet fra AUTOINCREMENT-int til
         # klientens obs_id (uuid) — nødvendig for at apply_sync() skal
         # kjenne igjen samme rad på tvers av batcher (upsert via
@@ -261,6 +273,8 @@ def get_fellestur(kode: str) -> dict | None:
                 'navn': tur['navn'],
                 'medobservatorer': json.loads(tur['medobservatorer'] or '[]'),
                 'expiresTs': tur['expires_ts'],
+                'avsluttetAv': tur['avsluttet_av'] if 'avsluttet_av' in tur.keys() else None,
+                'avsluttetTs': tur['avsluttet_ts'] if 'avsluttet_ts' in tur.keys() else None,
                 'observasjoner': [_rad_til_observasjon(r) for r in rader],
             }
     except Exception as e:
@@ -268,8 +282,18 @@ def get_fellestur(kode: str) -> dict | None:
         return None
 
 
-def update_fellestur(kode: str, navn=None, medobservatorer=None) -> bool:
-    """Oppdater turnavn og/eller medobservatører. Alle med koden kan gjøre dette."""
+def update_fellestur(kode: str, navn=None, medobservatorer=None, avsluttet_av=None) -> bool:
+    """
+    Oppdater turnavn, medobservatører og/eller avsluttet-varsel. Alle med
+    koden kan gjøre dette (ingen håndheving av hvem som «eier» turen).
+
+    `avsluttet_av` er et rent varselflagg — satt til et navn markerer at
+    noen har hentet loggen inn i sin egen lokale liste og sendt (eller er
+    i ferd med å sende) til AO, slik at de andre i gruppa kan varsles og
+    ikke uavhengig av hverandre gjør det samme (dobbeltsending). Setter
+    ALDRI turen i en skrivebeskyttet tilstand — registrering fortsetter
+    som normalt, dette er kun til orientering.
+    """
     if not _gyldig_kode_format(kode):
         return False
     felt = {}
@@ -277,6 +301,9 @@ def update_fellestur(kode: str, navn=None, medobservatorer=None) -> bool:
         felt['navn'] = _clean_text(navn, MAX_NAVN_LEN)
     if medobservatorer is not None:
         felt['medobservatorer'] = json.dumps(_clean_medobservatorer(medobservatorer), ensure_ascii=False)
+    if avsluttet_av is not None:
+        felt['avsluttet_av'] = _clean_text(avsluttet_av, MAX_REGISTRERT_AV_LEN) or None
+        felt['avsluttet_ts'] = time.time()
     if not felt:
         return False
 

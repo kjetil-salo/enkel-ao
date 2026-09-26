@@ -229,6 +229,38 @@ def test_medobservatorer_kan_endres_underveis():
     assert hentet['medobservatorer'] == ['Kari', 'Ola']
 
 
+def test_ny_tur_har_ikke_avsluttet_varsel():
+    tur = fellestur_store.create_fellestur()
+    hentet = fellestur_store.get_fellestur(tur['kode'])
+    assert hentet['avsluttetAv'] is None
+    assert hentet['avsluttetTs'] is None
+
+
+def test_avsluttet_av_settes_og_gir_tidsstempel():
+    tur = fellestur_store.create_fellestur()
+    kode = tur['kode']
+
+    ok = fellestur_store.update_fellestur(kode, avsluttet_av='Kjetil')
+    assert ok is True
+
+    hentet = fellestur_store.get_fellestur(kode)
+    assert hentet['avsluttetAv'] == 'Kjetil'
+    assert hentet['avsluttetTs'] is not None
+    assert hentet['avsluttetTs'] <= time.time()
+
+
+def test_avsluttet_av_er_rent_varsel_stopper_ikke_videre_synk():
+    """Turen skal forbli fullt skrivbar etter avsluttet-varselet — se docstring i update_fellestur()."""
+    tur = fellestur_store.create_fellestur()
+    kode = tur['kode']
+    fellestur_store.update_fellestur(kode, avsluttet_av='Kjetil')
+
+    resultat = fellestur_store.apply_sync(kode, upserts=[_upsert('uuid-1')])
+    assert resultat is not None
+    assert len(resultat['observasjoner']) == 1
+    assert resultat['avsluttetAv'] == 'Kjetil'
+
+
 def test_utlopt_tur_er_utilgjengelig():
     tur = fellestur_store.create_fellestur(ttl_hours=0)
     time.sleep(0.01)
