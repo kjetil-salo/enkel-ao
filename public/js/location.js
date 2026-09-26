@@ -601,7 +601,7 @@ export function updateCreateSiteBtnVisibility(currentPosition) {
  * Initialiser opprett-lokasjon-funksjonalitet
  * @param {Function} getPosition - Funksjon som returnerer nåværende posisjon
  * @param {Function} getPlaceName - Funksjon som returnerer nåværende stedsnavn
- * @param {Function} onSiteCreated - Callback etter vellykket opprettelse
+ * @param {Function} onSiteCreated - Callback(name, siteId) etter vellykket opprettelse
  */
 export function initCreateSite(getPosition, getPlaceName, onSiteCreated) {
   const btn = document.getElementById('create-site-btn');
@@ -684,7 +684,7 @@ export function initCreateSite(getPosition, getPlaceName, onSiteCreated) {
         showStatus(result.message || 'Lokasjon opprettet!', false);
         setTimeout(() => {
           closeModal();
-          if (onSiteCreated) onSiteCreated();
+          if (onSiteCreated) onSiteCreated(name, result.siteId > 0 ? result.siteId : null);
         }, 1500);
       } else {
         showStatus(result.message || result.error || 'Ukjent feil', true);

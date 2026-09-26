@@ -510,11 +510,11 @@ if (createBtn) {
         removeAccuracyCircle();
         addNewSiteMarker(name, latlng.lat, latlng.lng);
 
+        // Brukeren opprettet lokasjonen fordi hen er der nå — velg den
+        // automatisk, samme vei tilbake som ved klikk på en eksisterende
+        // lokalitet på kartet.
         setTimeout(() => {
-          panel.style.display = 'none';
-          pinDropMode = false;
-          map.getContainer().style.cursor = '';
-          if (fab) fab.style.display = '';
+          selectLocation(name, result.siteId > 0 ? result.siteId : null);
         }, 1500);
       } else {
         showPanelStatus(result.message || result.error || 'Ukjent feil', true);

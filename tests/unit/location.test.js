@@ -26,7 +26,8 @@ const localStorageMock = {
 };
 vi.stubGlobal('localStorage', localStorageMock);
 
-const { isPrivateSite, getSiteLabel, setAoSiteSuggestions, openMap } = await import('../../public/js/location.js');
+const { createAoSite, ensureAoTokens } = await import('../../public/js/api.js');
+const { isPrivateSite, getSiteLabel, setAoSiteSuggestions, openMap, initCreateSite } = await import('../../public/js/location.js');
 
 // ─── isPrivateSite ────────────────────────────────────────────
 
@@ -491,5 +492,69 @@ describe('setAoSiteSuggestions — sortMode avstand', () => {
     const names = Array.from(dropdown.children).slice(1).map(el => el.textContent);
     expect(names[0]).toContain('Lengre unna men min private');
     expect(names[1]).toContain('Nærmest men offentlig');
+  });
+});
+
+// ─── initCreateSite — auto-velg ny lokasjon ──────────────────
+describe('initCreateSite — onSiteCreated callback', () => {
+  let els;
+
+  function makeEl(id, tag = 'div') {
+    const el = document.createElement(tag);
+    el.id = id;
+    document.body.appendChild(el);
+    return el;
+  }
+
+  beforeEach(() => {
+    document.body.innerHTML = '';
+    els = {
+      btn: makeEl('create-site-btn', 'button'),
+      modal: makeEl('create-site-modal'),
+      nameInput: makeEl('create-site-name', 'input'),
+      accuracySelect: makeEl('create-site-accuracy', 'select'),
+      submitBtn: makeEl('create-site-submit', 'button'),
+      cancelBtn: makeEl('create-site-cancel', 'button'),
+      statusEl: makeEl('create-site-status'),
+    };
+    els.nameInput.value = 'Testvika';
+    const opt = document.createElement('option');
+    opt.value = '50';
+    opt.selected = true;
+    els.accuracySelect.appendChild(opt);
+
+    createAoSite.mockReset();
+    ensureAoTokens.mockReset();
+    ensureAoTokens.mockResolvedValue(true);
+  });
+
+  // Ekte AO-svar ved opprettelse gir en gyldig siteId — den skal brukes
+  // rett videre som currentPlaceId, uten at brukeren må søke lokasjonen opp selv.
+  it('kaller onSiteCreated med navn og siteId ved suksess', async () => {
+    createAoSite.mockResolvedValue({ success: true, siteId: 12345, siteName: 'Testvika' });
+    const onSiteCreated = vi.fn();
+    initCreateSite(() => ({ lat: 59.9, lon: 10.7 }), () => '', onSiteCreated);
+
+    els.submitBtn.click();
+    await new Promise((r) => setTimeout(r, 0));
+    await new Promise((r) => setTimeout(r, 1600));
+
+    expect(onSiteCreated).toHaveBeenCalledWith('Testvika', 12345);
+  });
+
+  // AO returnerer i sjeldne tilfeller success=true med siteId=-1 (sentinel for
+  // «opprettet, men ekte ID ikke funnet i svaret»). -1 er truthy i JS, så uten
+  // en explisitt >0-sjekk ville dette blitt brukt som et ekte (ugyldig) AO-ID
+  // helt til CSV-eksporten mot AO.
+  it('faller tilbake til null når AO returnerer siteId=-1', async () => {
+    createAoSite.mockResolvedValue({ success: true, siteId: -1, siteName: 'Testvika' });
+    const onSiteCreated = vi.fn();
+    initCreateSite(() => ({ lat: 59.9, lon: 10.7 }), () => '', onSiteCreated);
+
+    els.submitBtn.click();
+    await new Promise((r) => setTimeout(r, 0));
+    await new Promise((r) => setTimeout(r, 1600));
+
+    expect(onSiteCreated).toHaveBeenCalledWith('Testvika', null);
   });
 });

@@ -875,7 +875,10 @@ async function init() {
   initCreateSite(
     () => appState.currentPosition,
     () => appState.currentPlaceName,
-    () => {
+    (name, siteId) => {
+      // Brukeren opprettet lokasjonen fordi hen er der nå — velg den automatisk
+      // som gjeldende lokasjon, i stedet for å la ① stå uendret.
+      makeSetCurrentPlaceAndUpdate()(name, siteId);
       // Re-hent AO-sites etter opprettelse
       if (appState.currentPosition) {
         fetchAoSites(appState.currentPosition.lat, appState.currentPosition.lon, appState.currentAoSizeMeters)
