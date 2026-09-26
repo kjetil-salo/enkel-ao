@@ -27,25 +27,125 @@ implementerte fem av funnene:
   IKKE rørt: `.pill`/`.badge`/tekniske chip-elementer — de er et eget,
   konsekvent design-mønster, ikke leseinnhold.
 
-**Gjenstår fra reviewen (ikke del av denne runden):**
+**Gjenstår fra reviewen (ikke del av denne runden) — se punkt 23–29 under
+(og punkt 30 for et vedlikeholdsforslag fra kodegjennomgangen), pluss
+LocationDB-verifisering i prod (stedsnavnsøk uten innlogging), som allerede
+er tracket som punkt #18 lenger ned i denne fila.**
 
-- Besøk-modellen (↩/🔒/klokke) er kraftig, men ikonbasert — nyansen («nye
-  arter arver besøkets tidsspenn») ligger kun i `title`, usynlig på touch.
-- Etterregistrering uten tid lagres som `00:00` internt — kan vises som
-  midnatt i observasjonslista/delingsvisning i stedet for «tid ikke satt».
-- «CA»-avkrysningen (estimert antall) er liten, og kommentaren den legger
-  til har en skrivefeil: «Estimert antal» → skal være «Estimert antall».
-- Kartklikk oppfører seg ulikt med/uten stedsnavn synlig — bevisst designvalg
-  (se punkt 4/#1 lenger ned i denne fila), men verdt å revurdere.
-- Modaler («Flere felt», rediger, deling, tidsmodal) mangler `role="dialog"`,
-  fokusfelle og Escape — rammer skjermlesere og tastaturbrukere.
-- Enkelte touch-targets er fortsatt under 44px uten den usynlige
-  `::after`-utvidelsen som ✓-registrerknappen allerede bruker (f.eks.
-  ↩/🔒/klokke-knappene i besøkslinja, 34×34px).
-- Hjelpesiden er god, men dekker etter hvert mye — «Kom i gang» kan drukne i
-  bilder/private kommentarer/sjeldenhetsvarsel/fellestur.
-- LocationDB-verifisering i prod (stedsnavnsøk uten innlogging) — se punkt
-  #18 lenger ned i denne fila, fortsatt ubekreftet.
+## 30. Minimum-skriftstørrelse som egen CSS-variabel (fra kodegjennomgang 2026-09-26)
+
+Skriftstørrelse-fiksen i punkt 22 (0.7–0.78rem → 0.8rem) ble gjort som
+~16 separate literal-erstatninger i `7-page-specific.css`, ikke via en delt
+CSS-variabel — selv om dette er andre gang samme minstestørrelse innføres
+manuelt (første gang var juli-fiksen i `index.html`).
+
+**Hvorfor:** neste gang minstestørrelsen endres (f.eks. til 0.85rem for en
+fremtidig tilgjengelighets-runde) må samme manuelle søk-og-erstatt gjentas,
+med risiko for å bomme på ett av stedene i stedet for å endre én variabel.
+
+**Forslag:** innfør en `--font-size-min` (eller lignende) i
+`public/css/1-tokens.css`, og la de aktuelle selectorene bruke `var(...)` i
+stedet for literalen `0.8rem`. Lav prioritet — rent vedlikeholdsforslag,
+ingen synlig effekt for brukeren.
+
+## 29. Hjelpesiden dekker etter hvert mye (fra UX-review 2026-09-26)
+
+Hjelpen er god, men vokser: «Kom i gang» kan drukne i etter hvert avanserte
+konsepter som bilder, private kommentarer, sjeldenhetsvarsel og fellestur.
+
+**Forslag:** behold dagens side som den er (den er ikke feil, bare stor),
+men legg til en ultrakort «første gang»-ankerseksjon øverst med kun tre valg:
+registrer i felt, etterregistrer, publiser. Lenke videre til resten derfra.
+
+## 28. Touch-targets under 44px uten usynlig utvidelse (fra UX-review 2026-09-26)
+
+✓-registrerknappen er visuelt kun 32×32px, men har et bevisst usynlig
+utvidet trykkfelt via `::after` (`7-page-specific.css`, klassen
+`.activity-submit-btn`, kommentert «Større touch-target uten å endre visuell
+størrelse») — dette er allerede løst godt. ↩/🔒/klokke-knappene i besøkslinja
+(`.obs-group-place-btn`/`.obs-group-lock-btn`/`.obs-group-time-btn`, 34×34px)
+og et par andre småknapper mangler samme triks.
+
+**Hvorfor:** for kulde, hansker og eldre brukere er 44px et bedre praktisk
+minimum enn 34px, men å gjøre knappene visuelt større ville forstyrre
+layouten i besøkslinja.
+
+**Forslag:** bruk samme `::after`-mønster (usynlig utvidet trykkflate) på de
+resterende småknappene i stedet for å gjøre dem visuelt større.
+
+## 27. Modaler mangler dialog-semantikk for skjermleser/tastatur (fra UX-review 2026-09-26)
+
+«Flere felt»-modalen, rediger-modalen (edit-modal.js), delingsdialogen
+(share.js) og tidsmodalen (observations.js) er `div`-overlays uten
+`role="dialog"`/`aria-modal`, uten fokusfelle og uten Escape-håndtering.
+
+**Hvorfor:** rammer ikke bare skjermlesere, men også eldre brukere som
+navigerer med tastatur eller annen presisjonsbegrenset input.
+
+**Forslag:** en felles, enkel modal-hjelper (kan gjenbrukes av alle fire)
+med `role="dialog"`, `aria-labelledby`, Escape-håndtering, fokusfelle og
+retur av fokus til knappen som åpnet modalen når den lukkes.
+
+## 26. Kartklikk oppfører seg ulikt med/uten stedsnavn synlig (fra UX-review 2026-09-26)
+
+Med stedsnavn synlig på kartet velger et klikk lokaliteten direkte; med
+navn skjult (se punkt #1 i Espen-lista over, `🏷️`-knappen) åpnes i stedet
+en popup med en eksplisitt «Velg denne lokaliteten»-knapp
+(`map.js`, `selectLocation()`/`bindPopup()`).
+
+**Dette er et bevisst, dokumentert designvalg** (2026-09-09, se punkt #1
+i Espen-lista over) — laget nettopp for å unngå feiltrykk når man ikke ser
+hva man trykker på. Ikke en glipp, men verdt å revurdere: appen oppfører seg
+ulikt avhengig av en innstilling brukeren kan ha glemt at de skrudde av.
+
+**Forslag:** vurder om samme (tryggere) popup-modell bør gjelde uansett
+label-synlighet, eventuelt med en egen «hurtigvalg på kart»-innstilling for
+erfarne brukere som vil ha direktevalg tilbake.
+
+## 25. «CA»-avkrysning: liten, utydelig, og skrivefeil i kommentar (fra UX-review 2026-09-26)
+
+Estimert antall-avkrysningen («CA», ved siden av Antall-feltet) er en liten
+checkbox med forklaring kun i `title` (usynlig på touch). Den legger
+automatisk til kommentaren **«Estimert antal»** i `observation-commit.js`
+(linje ~176) — mangler siste «l», skal være «Estimert antall» på bokmål.
+
+**Hvorfor:** på mobil, med hansker/sol, er avkrysningen lett å overse eller
+misforstå. Skrivefeilen går rett inn i AO-kommentarfeltet på hver berørte
+observasjon.
+
+**Forslag:** rett skrivefeilen (triviell, lav risiko). Vurder i tillegg en
+tydeligere chip-utforming («ca.») med synlig «estimert»-tekst i valgt
+tilstand, i stedet for en ren checkbox.
+
+## 24. Etterregistrering uten tid kan vises som midnatt (fra UX-review 2026-09-26)
+
+Velger man ikke klokkeslett i etterregistrering, lagres tom tid som `00:00`
+internt i `timestamp`. CSV-eksporten tolker riktignok `00:00` som «tid ikke
+satt» (`observations.js`), men observasjonslista og delingsvisningen kan
+fortsatt vise `00:00` som om det var et reelt, valgt klokkeslett.
+
+**Hvorfor:** brukeren valgte bevisst «ingen tid», men ser midnatt — skaper
+usikkerhet om hva som egentlig ble registrert.
+
+**Forslag:** skill datamodellen mellom «dato uten tid» og «faktisk 00:00».
+Vis «tid ikke satt» (eller bare dato) i UI/delingsvisning når tid mangler.
+
+## 23. Besøk-modellen (↩/🔒/klokke) er kraftig, men ikonbasert (fra UX-review 2026-09-26)
+
+↩, 🔒 og klokke-ikonet i gruppeoverskriften i ③ styrer tid og gruppering av
+observasjoner (se `docs/besok-og-tilbake-til-besok.md`). De har alle
+`aria-label` (skjermlesere er OK), men den viktige nyansen — at nye arter
+arver *besøkets* tidsspenn, ikke nåtid, og at et låst besøk kan låses opp
+igjen — ligger kun i `title`, usynlig på touch (`observations.js`).
+
+**Hvorfor:** «nye arter får kl. 17:09–17:18» er riktig oppførsel, men uvanlig
+nok til at brukeren kan legge inn observasjoner i et gammelt, låst besøk
+uten å forstå konsekvensen.
+
+**Forslag:** når ↩ er aktivt, vis en mer eksplisitt, klikkbar statuslinje i
+selve skjemaet (ikke bare ikon+tooltip), f.eks. «Registrerer i tidligere
+besøk 17:09–17:18 · Avslutt». Vurder en kort bekreftelse første gang ↩
+brukes mot et låst besøk.
 
 ## 21. Ønskeliste fra Espen (testar), 2026-09-09
 
