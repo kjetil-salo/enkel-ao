@@ -19,7 +19,7 @@ import { handleExport, handleCopy, handleCopyAndOpen, handleClear, handleDirectS
 import { openShareDialog } from './share.js';
 import { initAutocomplete } from './autocomplete.js';
 import { initNewsSplash } from './news-splash.js';
-import { initFirstRunHint } from './first-run-hint.js';
+import { initFirstRunHint, shouldShowHint } from './first-run-hint.js';
 import { hentAktivFellestur, forlatFellestur } from './fellestur-client.js';
 import { oppdaterSpeilFraServer, hentSpeilVersjon } from './fellestur-sync.js';
 
@@ -76,6 +76,7 @@ const dom = {
   aoDirectBtn: document.getElementById('ao-direct-btn'),
   aoDirectRow: document.getElementById('ao-direct-row'),
   aoDirectStatus: document.getElementById('ao-direct-status'),
+  fellesturSperreHint: document.getElementById('fellestur-sperre-hint'),
   locDot: document.getElementById('loc-dot'),
   locText: document.getElementById('loc-text'),
   locMapBtn: document.getElementById('loc-map-btn'),
@@ -153,13 +154,18 @@ function loadState() {
 function doRenderObservations() {
   const buttons = { exportBtn: dom.exportBtn, copyBtn: dom.copyBtn, copyOpenBtn: dom.copyOpenBtn, shareBtn: dom.shareBtn, clearBtn: dom.clearBtn, aoDirectBtn: dom.aoDirectBtn };
   renderObservations(appState.observations, dom.obsListEl, buttons, saveState);
+  // renderObservations() aktiverer knappene rent basert på antall — overstyr
+  // dem tilbake til sperret om en fellestur er aktiv (se
+  // oppdaterInnsendingssperreForFellestur()).
+  oppdaterInnsendingssperreForFellestur(!!hentAktivFellestur());
   // Lista kan ha endret besøket vi etterregistrerer i (låst, tømt, nye tider)
   oppdaterEtterregMerke();
 }
 
 function updateAoDirectVisibility() {
   if (!dom.aoDirectRow) return;
-  const hasCredentials = localStorage.getItem('ao_username') && localStorage.getItem('ao_password');
+  const username = localStorage.getItem('ao_username');
+  const hasCredentials = username && localStorage.getItem('ao_password');
   dom.aoDirectRow.style.display = hasCredentials ? 'block' : 'none';
   // Uten innlogging: vis CTA så nye brukere ser at direkte publisering finnes
   const loginCta = document.getElementById('ao-login-cta');
@@ -167,7 +173,21 @@ function updateAoDirectVisibility() {
   const statusDot = document.getElementById('ao-status-dot');
   if (statusDot) {
     statusDot.classList.toggle('online', !!hasCredentials);
-    statusDot.title = hasCredentials ? 'Innlogget mot Artsobservasjoner' : 'Ikke innlogget mot Artsobservasjoner – trykk for å logge inn';
+    if (hasCredentials) {
+      // Initialer i stedet for en tom grønn prikk — viser i tillegg hvilken
+      // konto som er logget inn (nyttig på delte/felles enheter).
+      // Array.from (ikke .slice) for å dele opp i Unicode-tegn, ikke UTF-16-
+      // enheter — kutter aldri et surrogatpar i to.
+      statusDot.textContent = Array.from(username.trim()).slice(0, 2).join('').toUpperCase();
+      statusDot.title = `Innlogget som ${username} mot Artsobservasjoner`;
+      statusDot.setAttribute('aria-label', `Innlogget som ${username}. Trykk for å endre innlogging.`);
+    } else {
+      // Rødt leses som «noe er galt» — men å ikke være innlogget er appens
+      // helt normale starttilstand. Tekst i stedet for farge fjerner tvetydigheten.
+      statusDot.textContent = 'logg inn';
+      statusDot.title = 'Ikke innlogget mot Artsobservasjoner – trykk for å logge inn';
+      statusDot.setAttribute('aria-label', 'Ikke innlogget mot Artsobservasjoner. Trykk for å logge inn.');
+    }
   }
 }
 
@@ -178,38 +198,100 @@ function commitFromActivity() {
 // ============================================================
 // Fellestur-banner (vises når en fellestur er aktiv på denne enheten)
 // ============================================================
+// Ferskeste avsluttet-varsel fra serveren (satt av fellestur.js sin
+// sendTilArbeidsliste() når noen henter loggen inn og forlater) — kun i
+// minnet, oppdateres av hver vellykkede poll. Rent informasjonsvarsel: vi
+// stopper aldri registrering pga. dette, vi bare advarer mot dobbeltsending.
+let fellesturAvsluttetAv = null;
+let fellesturAvsluttetTs = null;
+
 function updateFellesturBanner() {
   const banner = document.getElementById('fellestur-banner');
-  if (!banner) return;
+  const varselEl = document.getElementById('fellestur-avsluttet-varsel');
   const fellestur = hentAktivFellestur();
-  banner.style.display = fellestur ? 'flex' : 'none';
-  if (fellestur) {
-    const navnEl = document.getElementById('fellestur-banner-navn');
-    if (navnEl) navnEl.textContent = fellestur.navn || fellestur.kode;
+  const avsluttet = !!(fellestur && fellesturAvsluttetAv);
+  if (banner) {
+    banner.style.display = fellestur ? 'flex' : 'none';
+    if (fellestur) {
+      const navnEl = document.getElementById('fellestur-banner-navn');
+      if (navnEl) navnEl.textContent = fellestur.navn || fellestur.kode;
+    }
+    // Bytt banneret til rød varselfarge når turen er avsluttet — skal ikke
+    // kunne blandes med den vanlige, rolige «du er på fellestur»-fargen.
+    banner.style.background = avsluttet ? 'rgba(239,68,68,0.15)' : 'var(--accent-soft)';
+    banner.style.borderColor = avsluttet ? '#ef4444' : 'var(--accent)';
   }
+  if (varselEl) {
+    if (avsluttet) {
+      varselEl.innerHTML = `🛑 <strong>Turen er avsluttet:</strong> ${tekst(fellesturAvsluttetAv)} har hentet loggen
+        inn i sin lokale liste og sender den til AO. <strong>Ikke registrer flere funn eller send selv</strong> —
+        si fra til ${tekst(fellesturAvsluttetAv)} hvis noe mangler.`;
+      varselEl.style.display = 'block';
+      varselEl.style.fontSize = '1em';
+    } else {
+      varselEl.style.display = 'none';
+    }
+  }
+  oppdaterInnsendingssperreForFellestur(!!fellestur);
+}
+
+function tekst(v) {
+  const el = document.createElement('span');
+  el.textContent = v == null ? '' : String(v);
+  return el.innerHTML;
+}
+
+/**
+ * Publiser/kopier-til-AO/del/tøm på hovedsiden virker på nøyaktig samme
+ * liste som fellestur-loggen mens en fellestur er aktiv (samme
+ * loadObservations()/saveObservations()-bryter, se storage.js). Uten denne
+ * sperren kan HVEM SOM HELST i gruppa trykke «Publiser til AO» og siden
+ * bekrefte «tøm lista» — og dermed sende og slette DEN DELTE loggen for
+ * alle, ikke bare sin egen kopi. Innsending skal alltid gå via den dedikerte
+ * «Send inn listen og avslutt fellestur»-flyten på fellestur.html, som
+ * gjør riktig opprydding (kronologi, visitId, medobservatør-kreditering) og
+ * varsler resten av gruppa (se oppdaterAvsluttetVarsel() i fellestur.js).
+ */
+function oppdaterInnsendingssperreForFellestur(aktiv) {
+  [dom.aoDirectBtn, dom.copyOpenBtn, dom.shareBtn, dom.clearBtn].forEach((btn) => {
+    if (!btn) return;
+    btn.disabled = aktiv || !appState.observations.length;
+    btn.title = aktiv ? 'Deaktivert under fellestur — bruk 👥 Fellestur-siden for å hente inn og sende til AO' : '';
+  });
+  if (dom.fellesturSperreHint) dom.fellesturSperreHint.style.display = aktiv ? 'block' : 'none';
+}
+
+/**
+ * Kopier fellestur-speilet inn i den private arbeidslista og forlat turen på
+ * denne enheten. Trygg exit også om turen skulle være utløpt eller slettet
+ * på serveren, siden vi bare leser det lokale speilet.
+ */
+function kopierFellesturSpeilTilPrivatListeOgForlat() {
+  const turObs = loadObservations(); // speilet — vi er fortsatt i fellestur-modus her
+  forlatFellestur(); // fra nå av ruter loadObservations/saveObservations til den private lista
+  const privatListe = loadObservations();
+  turObs.forEach((obs) => {
+    const { obsId, ...uten } = obs;
+    privatListe.push(uten);
+  });
+  saveObservations(privatListe);
 }
 
 /**
  * Forlat fellesturen på denne enheten. Spør først om den delte lista skal
- * kopieres inn i den private arbeidslista — trygg exit også om turen skulle
- * være utløpt eller slettet på serveren, siden vi bare leser speilet.
+ * kopieres inn i den private arbeidslista.
  */
 function forlatFellesturMedValg() {
   const kopier = confirm('Vil du kopiere fellestur-lista inn i din egen lokale liste før du forlater?');
 
   if (kopier) {
-    const turObs = loadObservations(); // speilet — vi er fortsatt i fellestur-modus her
-    forlatFellestur(); // fra nå av ruter loadObservations/saveObservations til den private lista
-    const privatListe = loadObservations();
-    turObs.forEach((obs) => {
-      const { obsId, ...uten } = obs;
-      privatListe.push(uten);
-    });
-    saveObservations(privatListe);
+    kopierFellesturSpeilTilPrivatListeOgForlat();
   } else {
     forlatFellestur();
   }
 
+  fellesturAvsluttetAv = null;
+  fellesturAvsluttetTs = null;
   stopFellesturPolling();
   loadState();
   doRenderObservations();
@@ -252,14 +334,40 @@ async function pollFellestur() {
   }
 
   if (r.status === 404) {
+    // Turen er borte server-side (utløpt/slettet), men enheten sto fortsatt i
+    // fellestur-modus — uten opprydding ville loadObservations()/
+    // saveObservations() blitt værende låst til det døde speilet på ubestemt
+    // tid (se storage.js), og nye registreringer ville stille sluttet å synke
+    // uten at brukeren fikk noen tydelig vei ut. Reddes automatisk inn i den
+    // private lista i stedet, samme trygge vei som «Forlat» bruker.
+    kopierFellesturSpeilTilPrivatListeOgForlat();
+    fellesturAvsluttetAv = null;
+    fellesturAvsluttetTs = null;
     stopFellesturPolling();
-    showToast('Fellesturen er utløpt eller slettet', { raw: true, borderColor: '#f59e0b', duration: 3500 });
+    loadState();
+    doRenderObservations();
+    updateFellesturBanner();
+    showToast('Fellesturen er utløpt eller slettet — det du hadde ble lagt i din private liste', { raw: true, borderColor: '#f59e0b', duration: 4500 });
     return;
   }
   if (!r.ok) return;
 
   const data = await r.json().catch(() => null);
   if (!data || !data.ok) return;
+
+  if (data.avsluttetAv !== fellesturAvsluttetAv) {
+    const erNyttAvsluttetVarsel = !fellesturAvsluttetAv && !!data.avsluttetAv;
+    fellesturAvsluttetAv = data.avsluttetAv || null;
+    fellesturAvsluttetTs = data.avsluttetTs || null;
+    updateFellesturBanner();
+    // Banneret alene er lett å overse midt i registrering — et engangsvarsel
+    // midt på skjermen første gang dette oppdages, i tillegg til at banneret
+    // forblir rødt resten av økta (se updateFellesturBanner()).
+    if (erNyttAvsluttetVarsel) {
+      showToast(`🛑 ${fellesturAvsluttetAv} har avsluttet fellesturen og sender til AO — ikke registrer flere funn eller send selv`,
+        { raw: true, borderColor: '#ef4444', duration: 6000 });
+    }
+  }
 
   const flettet = oppdaterSpeilFraServer(data, versjonVedStart);
   if (JSON.stringify(flettet) !== JSON.stringify(appState.observations)) {
@@ -794,7 +902,12 @@ async function init() {
   }
 
   logPageView();
-  initNewsSplash();
+  // Skal «👋 Start her»-hintet vises akkurat nå, skal det møte brukeren
+  // først — ikke en teknisk nyhetsmelding om sjeldenhetsvarsel. Nyheten
+  // vises normalt igjen så snart hintet er lukket (eller aldri var aktuelt).
+  if (!shouldShowHint()) {
+    initNewsSplash();
+  }
   initFirstRunHint();
 }
 

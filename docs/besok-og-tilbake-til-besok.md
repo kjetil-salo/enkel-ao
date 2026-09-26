@@ -107,7 +107,7 @@ Så lenge `etterregVisitKey` er satt, hopper `observation-commit.js` over
 
 `avsluttEtterregistrering()` kalles fra alle andre måter å sette plass på —
 GPS-dropdown, autocomplete, kartvalg, manuell skriving — og fra
-`expandLocation()`. **«Bytt plass» er den synlige veien tilbake til
+`expandLocation()`. **«Bytt lokasjon» er den synlige veien tilbake til
 «nå»-registrering.** I tillegg nullstilles nøkkelen automatisk hvis besøket
 ikke lenger finnes (slettede observasjoner, «tøm lista»); det håndteres i
 `oppdaterEtterregMerke()`, som kjører ved hver rendring av lista.
@@ -144,7 +144,7 @@ lokasjonslinja viser hvilken tid man får så lenge man er i besøket:
 2. Åpent besøk: samme `visitId`, arvet tidsspenn, gruppa strekkes ikke til «nå»
 3. Låst besøk: går inn i besøket, arver låsen, advarselen vises, fortsatt én gruppe
 4. Etterregistreringsmodus: fremtidig klokke i skjemaet blokkerer ikke ↩-registrering
-5. «Bytt plass» avslutter etterregistreringen — tilbake til «nå»
+5. «Bytt lokasjon» avslutter etterregistreringen — tilbake til «nå»
 
 Artssøket er stubbet med `page.route`, så testene sier noe om tidsregelen og
 ikke om AO er oppe.

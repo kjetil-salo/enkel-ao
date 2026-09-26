@@ -112,18 +112,31 @@ body.theme-light .mode-pill.after-mode {
   opacity: 0.8;
 }
 
-/* Prikk i header som viser om AO-innlogging er lagret på denne enheten */
+/* Badge i header som viser AO-innloggingsstatus: "logg inn"-tekst når ikke
+   innlogget (i stedet for en rød prikk — rødt leses som feil, men dette er
+   appens normale starttilstand), grønne initialer når innlogget. */
 .ao-status-dot {
-  display: block;
-  width: 9px;
-  height: 9px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 20px;
+  padding: 0 7px;
   border-radius: var(--radius-full);
-  background: var(--color-error);
+  background: var(--color-accent-soft);
+  color: var(--color-muted);
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
   flex-shrink: 0;
 }
 
 .ao-status-dot.online {
+  width: 20px;
+  padding: 0;
   background: var(--color-success);
+  color: #ffffff;
 }
 
 /* Activity Pills - Klikkbare hurtigknapper */

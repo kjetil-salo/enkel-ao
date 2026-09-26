@@ -50,6 +50,17 @@ function isFirstTimer() {
   }
 }
 
+/**
+ * Sann kun når hintet faktisk kommer til å vises akkurat nå — dvs. samme
+ * betingelse som initFirstRunHint() selv sjekker. Brukes av main.js til å
+ * avgjøre om nyhetssplashen skal vente, uten å duplisere logikken. Kun
+ * isFirstTimer() alene ville holdt nyheter tilbake på ubestemt tid for en
+ * bruker som allerede har lukket hintet, men fortsatt ikke har registrert noe.
+ */
+export function shouldShowHint() {
+  return !hasSeenHint() && isFirstTimer();
+}
+
 function showHint() {
   const section = document.querySelector('.section-lokasjon');
   const card = section?.closest('.card');

@@ -187,7 +187,7 @@ test.describe('↩ Gå tilbake til et besøk', () => {
     expect(ny.tilKlokkeslett).toBe('2026-08-25T17:18:00');
   });
 
-  test('«Bytt plass» avslutter etterregistreringen — tilbake til «nå»', async ({ page }) => {
+  test('«Bytt lokasjon» avslutter etterregistreringen — tilbake til «nå»', async ({ page }) => {
     await seed(page, [
       obs('Polarsnipe', 'Tovo', 'visit:tovo', { timestamp: '2026-08-26T17:09:00' }),
     ]);

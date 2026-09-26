@@ -128,7 +128,9 @@ The `Handler` class routes requests:
 - `/api/fellestur` (POST) → oppretter en ny fellestur (delt, skrivbar loggbok for en gruppe i felt),
   returnerer `{kode, expiresTs}`. 5-sifret kode (`_KODE_LENGTH`/`_KODE_ALPHABET` i `fellestur_store.py`)
 - `/api/fellestur?kode=X` (GET) → henter turnavn, medobservatører og alle oppføringer (polling)
-- `/api/fellestur-oppdater` (POST) → endrer turnavn/medobservatører — alle med koden kan gjøre dette
+- `/api/fellestur-oppdater` (POST) → endrer turnavn/medobservatører/`avsluttetAv` — alle med koden kan gjøre dette.
+  `avsluttetAv` er et rent varselflagg (ikke en lås) satt når noen henter loggen inn i sin egen
+  lokale liste og forlater — se `docs/fellestur-avslutning-og-innsending.md`
 - `/api/fellestur-sync` (POST) → klienten sender en diff (`upserts`+`deletes`) mot sist bekreftede
   server-tilstand, får hele turen tilbake. Se `src/fellestur_store.py` for synk-modellen
 - `/api/fellestur-peer/<kode>/events` (POST) → **kryss-app-føderasjon**: mottar en batch events fra
@@ -162,6 +164,12 @@ The `Handler` class routes requests:
   (samme felt som arbeidslista), koordinater aldri lagret (`sanitize_observasjon()`). `apply_sync()`
   tar en valgfri `on_event(type, obs_id, obs)`-callback — brukt av `fellestur_peer.py` til å bygge
   utgående federasjons-events uten å forurense det vanlige klient-svaret
+  - `avsluttet_av`/`avsluttet_ts` på selve turen (migrert inn via `ALTER TABLE`, v1.53.9) — satt av
+    `update_fellestur(..., avsluttet_av=...)` når noen trykker «Send inn listen og avslutt fellestur»
+    på `fellestur.html`. Rent varsel til resten av gruppa (hindrer dobbeltsending til AO), håndhever
+    IKKE noen skrivesperre — `apply_sync()` bryr seg aldri om feltet. Se
+    `docs/fellestur-avslutning-og-innsending.md` for hele resonnementet, inkl. hvorfor vi bevisst
+    IKKE innførte en ekte lås eller direkte AO-sending fra fellestur-siden
 - `fellestur_peer.py` — Kryss-app-føderasjon for Fellestur (v1: Feltlogg). Tynn oversettelsesbro,
   IKKE en egen datamodell — peer-events anvendes på samme `fellestur_obs`-tabell via
   `fellestur_store.apply_sync()`. Se `docs/ANALYSIS_FELLESTUR_FODERASJON.md` for full analyse
@@ -225,7 +233,7 @@ Pure ES6 modules with no framework:
     ellers avvist for en tid som aldri kom til å bli brukt
   - `etterregVisitKey` nullstilles av `avsluttEtterregistrering()` fra alle andre måter å sette plass
     på (GPS-dropdown, autocomplete, kartvalg, manuell skriving) og fra `expandLocation()` —
-    «Bytt plass» er den synlige veien tilbake til «nå»-registrering
+    «Bytt lokasjon» er den synlige veien tilbake til «nå»-registrering
   - Merket `#loc-pinned-visit` i den festede lokasjonslinja viser tidsspennet man får («↩ 17:09–17:18»,
     «🔒 ↩ 17:09» for låst besøk / ett tidspunkt). Tida skal aldri settes i det skjulte
   - **Full beskrivelse:** `docs/besok-og-tilbake-til-besok.md` (begrepet besøk, tidsregelen,
@@ -364,5 +372,12 @@ Ved ny versjon, gjør alltid følgende:
 3. **Bump `CACHE_NAME` i `public/sw.js`** (`fugleobs-vNN` → `vNN+1`). **Uten dette henter
    installerte PWA-er aldri ny JS** — sw.js må endres for at nettleseren skal trigge
    install/activate. Nye JS-moduler må også legges til i `STATIC_ASSETS`.
+4. **Andre sider med egen versjonert `<script type="module" src=".../x.js?v=vX.Y.Z">`**
+   (`map.html`, `fellestur.html`) — samme cache-bust-mønster som `index.html` sin
+   `main.js`, se v1.53.7. Kjør `grep -rn 'type="module" src="/js/.*?v=v' public/*.html`
+   for å finne dem alle og bump hver for seg. **Uten dette kan Cloudflare
+   (`max-age=14400`) holde fast på gammel JS på akkurat den siden i opptil 4 timer
+   etter deploy** — glemt for `fellestur.html` frem til v1.53.10, oppdaget da staging
+   viste utdatert kode rett etter en deploy.
 4. Oppdater `public/changelog.html` med kort beskrivelse av hva som er nytt
 5. Oppdater relevant dokumentasjon i `docs/` hvis funksjonalitet er endret

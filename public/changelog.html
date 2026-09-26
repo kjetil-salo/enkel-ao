@@ -172,6 +172,80 @@
 
         <div class="version">
           <div class="version-header">
+            <span class="version-number">v1.53.13</span>
+            <span class="version-date">26. september 2026</span>
+          </div>
+          <div class="section-title">Endret</div>
+          <ul class="changes">
+            <li><strong>Innloggingsstatus i header viser nå initialer eller «logg inn».</strong> Den lille prikken øverst til høyre var rød når du ikke var innlogget — helt normalt for en ny bruker, men rødt leses lett som «noe er galt». Nå viser den i stedet teksten «logg inn» (nøytral farge) når du ikke er innlogget, og dine egne initialer på grønn bunn når du er det.</li>
+            <li><strong>Nye brukere møter «Start her»-hintet før nyheter.</strong> Var det en ulest nyhetsmelding, kunne den vises FØR førstegangs-hintet om hvordan appen fungerer — en helt ny bruker risikerte å møte en teknisk nyhetstekst om sjeldenhetsvarsel før «trykk Bruk GPS». Nyheter vises nå normalt igjen så snart du har registrert din første observasjon.</li>
+            <li><strong>Innstillinger åpner nå med Tema i stedet for AO-innlogging.</strong> AO-brukernavn/passord og personvern-teksten lå først på siden, noe som kunne gi inntrykk av at innlogging var påkrevd. Flyttet lenger ned, rett før «Oppdatering».</li>
+            <li><strong>«Bytt plass»-knappen heter nå «Bytt lokasjon»</strong> — samme ord som brukes i seksjonsoverskriften «① Lokasjon» rett over, i stedet for et tredje, urelatert ord for samme ting.</li>
+            <li>Hevet noen gjenværende små skriftstørrelser (feltlabels, statustekst, latinske artsnavn i søk, tabellinnhold) til minimum 0.8rem, samme minstestørrelse som ble innført andre steder i juli.</li>
+          </ul>
+        </div>
+
+        <div class="version">
+          <div class="version-header">
+            <span class="version-number">v1.53.12</span>
+            <span class="version-date">25. september 2026</span>
+          </div>
+          <div class="section-title">Endret</div>
+          <ul class="changes">
+            <li><strong>Mye kraftigere varsel når noen avslutter fellesturen.</strong> Både på fellestur-siden og hovedsiden var «noen har hentet inn og sendt»-varselet bare noen røde ord i teksten — lett å overse midt i registrering. Nå: en tydelig rød varselboks begge steder, banneret på hovedsiden bytter til varselfarge, og et engangsvarsel midt på skjermen første gang det oppdages under aktiv registrering.</li>
+          </ul>
+        </div>
+
+        <div class="version">
+          <div class="version-header">
+            <span class="version-number">v1.53.11</span>
+            <span class="version-date">25. september 2026</span>
+          </div>
+          <div class="section-title">Rettet</div>
+          <ul class="changes">
+            <li><strong>Innsendingsknappen på fellestur-siden var lett å overse.</strong> Den lå under hele den delte loggen, mens «Forlat»-knappen (som IKKE sender inn noe) lå godt synlig lenger opp — flere trodde «Forlat» var veien til å levere fra seg turen. Flyttet innsendingsknappen opp som en tydelig hovedhandling, omdøpt fra «Hent inn i min lokale liste og forlat» til «Send inn listen og avslutt fellestur», og «Forlat»-knappen er nå tydelig merket «Forlat uten å sende inn».</li>
+            <li><strong>Hjelpesiden sin beskrivelse av Fellestur var utdatert</strong> (bl.a. feilaktig «6-tegns kode» — den er 5-sifret) og viste til gammel knappetekst. Oppdatert til å matche faktisk oppførsel.</li>
+          </ul>
+        </div>
+
+        <div class="version">
+          <div class="version-header">
+            <span class="version-number">v1.53.10</span>
+            <span class="version-date">25. september 2026</span>
+          </div>
+          <div class="section-title">Nytt</div>
+          <ul class="changes">
+            <li><strong>Autocomplete mot AOs observatørregister for fellesturens medobservatører.</strong> Samme søk som «✎ Flere felt»-medobservatørene allerede har — foreslår navn fra AO mens du skriver, i stedet for bare fritekst.</li>
+          </ul>
+          <div class="section-title">Endret</div>
+          <ul class="changes">
+            <li><strong>«Ditt navn» på fellestur-siden reflekterer nå den ekte AO-innloggingen</strong> når enheten er innlogget, i stedet for et fritt skrevet navn — det er dette navnet som vises til resten av gruppa og brukes i avsluttet-varselet. Innsendingsknappen krever nå innlogging på AO, siden det er starten på selve innsendingen.</li>
+          </ul>
+          <div class="section-title">Rettet</div>
+          <ul class="changes">
+            <li><strong>`fellestur.html` manglet versjonert script-URL.</strong> Samme feil som ble fikset for kartsiden i v1.53.7: uten `?v=` kunne Cloudflare (`max-age=14400`) holde fast på en utdatert `fellestur.js` i opptil 4 timer etter deploy, selv om siden lastes på nytt. Oppdaget fordi staging viste gammel kode rett etter denne versjonens egen deploy.</li>
+          </ul>
+        </div>
+
+        <div class="version">
+          <div class="version-header">
+            <span class="version-number">v1.53.9</span>
+            <span class="version-date">25. september 2026</span>
+          </div>
+          <div class="section-title">Rettet</div>
+          <ul class="changes">
+            <li><strong>Publiser/Kopier &amp; åpne AO-import/Del/Tøm liste var aktive under en fellestur.</strong> Disse virker på nøyaktig samme delte logg som fellesturen — trykket noen «Publiser til AO» og deretter bekreftet «tøm lista» på hovedsiden, sendte og slettet det den DELTE loggen for hele gruppa, ikke bare egen kopi. Deaktivert mens en fellestur er aktiv, med henvisning til fellestur-sidens egen «Hent inn og forlat»-flyt.</li>
+            <li><strong>Enheten kunne bli sittende fast mot en utløpt/slettet fellestur.</strong> Nye registreringer sluttet da stille å synke, uten noen tydelig vei ut. Enheten faller nå automatisk trygt tilbake til den private listen (samme vei som «Forlat» bruker), med varsel om hva som skjedde.</li>
+            <li><strong>Feilet lagring i fellestur-kontrollrommet (rette antall/slette) ga ingen tilbakemelding.</strong> Viser nå samme varsel som synkfeil ellers, viktig ved dårlig dekning i felt.</li>
+          </ul>
+          <div class="section-title">Nytt</div>
+          <ul class="changes">
+            <li><strong>Varsel når noen har hentet fellesturloggen inn i sin egen liste.</strong> Forebygger at flere uavhengig av hverandre sender de samme observasjonene til AO — vises både på fellestur-siden og i banneret på hovedsiden.</li>
+          </ul>
+        </div>
+
+        <div class="version">
+          <div class="version-header">
             <span class="version-number">v1.53.8</span>
             <span class="version-date">18. september 2026</span>
           </div>

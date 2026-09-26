@@ -148,7 +148,7 @@
 
       label {
         display: block;
-        font-size: 0.78rem;
+        font-size: 0.8rem;
         text-transform: uppercase;
         letter-spacing: 0.11em;
         color: var(--muted);
@@ -565,7 +565,7 @@ body.theme-light #search:disabled::placeholder {
         align-items: center;
         justify-content: space-between;
         margin-top: 10px;
-        font-size: 0.72rem;
+        font-size: 0.8rem;
         color: var(--muted);
       }
 
@@ -620,13 +620,13 @@ body.theme-light #search:disabled::placeholder {
       
 
       .result-sci {
-        font-size: 0.75rem;
+        font-size: 0.8rem;
         color: var(--muted);
       }
 
 
       .result-empty {
-        font-size: 0.78rem;
+        font-size: 0.8rem;
         color: var(--muted);
         padding: 8px 2px 4px;
       }
@@ -673,7 +673,7 @@ body.theme-light #search:disabled::placeholder {
 
       .loc-row {
         margin-top: 6px;
-        font-size: 0.72rem;
+        font-size: 0.8rem;
         color: var(--muted);
         display: flex;
         align-items: center;
@@ -735,7 +735,7 @@ body.theme-light #search:disabled::placeholder {
       /* Sekundær innsendingsknapp: nedtonet */
       .btn-secondary-action {
         opacity: 0.75;
-        font-size: 0.78rem !important;
+        font-size: 0.8rem !important;
       }
 
       /* Tøm-knapp: diskret, utenfor sendeseksjonen */
@@ -754,7 +754,7 @@ body.theme-light #search:disabled::placeholder {
       }
 
       .section-handlinger legend {
-        font-size: 0.78rem;
+        font-size: 0.8rem;
         text-transform: uppercase;
         letter-spacing: 0.1em;
         color: rgba(245, 158, 11, 0.8);
@@ -778,7 +778,7 @@ body.theme-light #search:disabled::placeholder {
         }
 
         .tablet-list-column .section-title {
-          font-size: 0.78rem;
+          font-size: 0.8rem;
           font-weight: 600;
           text-transform: uppercase;
           letter-spacing: 0.1em;
@@ -788,7 +788,7 @@ body.theme-light #search:disabled::placeholder {
       }
 
       .section-title {
-        font-size: 0.72rem;
+        font-size: 0.8rem;
         text-transform: uppercase;
         letter-spacing: 0.12em;
         color: var(--muted);
@@ -842,7 +842,7 @@ body.theme-light #search:disabled::placeholder {
         }
 
       fieldset.section-main legend {
-        font-size: 0.78rem;
+        font-size: 0.8rem;
         text-transform: uppercase;
         letter-spacing: 0.1em;
         color: var(--text);
@@ -872,7 +872,7 @@ body.theme-light #search:disabled::placeholder {
       }
 
       .section-optional legend {
-        font-size: 0.75rem;
+        font-size: 0.8rem;
         color: var(--muted);
         font-weight: 400;
         padding: 0 6px;
@@ -892,7 +892,7 @@ body.theme-light #search:disabled::placeholder {
       .datetime-title {
         display: block;
         margin-bottom: 8px;
-        font-size: 0.78rem;
+        font-size: 0.8rem;
         text-transform: uppercase;
         letter-spacing: 0.1em;
         color: var(--muted);
@@ -913,7 +913,7 @@ body.theme-light #search:disabled::placeholder {
       .datetime-field label {
         display: block;
         margin-bottom: 4px;
-        font-size: 0.72rem;
+        font-size: 0.8rem;
         text-transform: uppercase;
         letter-spacing: 0.08em;
         color: var(--muted);
@@ -1092,7 +1092,7 @@ body.theme-light #search:disabled::placeholder {
       .obs-group-time,
       .obs-group-meta {
         color: var(--muted);
-        font-size: 0.76rem;
+        font-size: 0.8rem;
         font-weight: 500;
         letter-spacing: 0;
         text-transform: none;
@@ -1211,7 +1211,7 @@ body.theme-light #search:disabled::placeholder {
       .obs-table td {
         padding: 6px 8px;
         text-align: left;
-        font-size: 0.78rem;
+        font-size: 0.8rem;
         border-bottom: 1px solid rgba(15, 23, 42, 0.6);
       }
 
@@ -1558,7 +1558,7 @@ body.theme-light #search:disabled::placeholder {
         border: 1px solid rgba(148, 163, 184, 0.55);
         background: radial-gradient(circle at top left, rgba(248, 250, 252, 0.08), rgba(15, 23, 42, 0.96));
         color: var(--text);
-        font-size: 0.78rem;
+        font-size: 0.8rem;
         padding: 5px 12px;
         cursor: pointer;
         display: inline-flex;

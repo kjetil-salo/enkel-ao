@@ -1,5 +1,52 @@
 # TODO
 
+## 22. UX-review 2026-09-26 (Claude + Codex som uavhengig andre reviewer)
+
+Full UX-gjennomgang av appen (onboarding, feltregistrering, etterregistrering,
+lokalitetsvalg, fellestur, deling, innstillinger, tilgjengelighet). v1.53.13
+implementerte fem av funnene:
+
+- ✅ **Innloggingsindikator i header** (`index.html`, `main.js`, `4-components.css`):
+  rød prikk uten synlig tekst erstattet med «logg inn»-tekst (ikke innlogget)
+  eller grønne initialer (innlogget). Rødt leses som feil, men «ikke innlogget»
+  er appens normale starttilstand for alle nye brukere.
+- ✅ **Nyhetssplash kan kapre førsteinntrykket** (`main.js`, `first-run-hint.js`):
+  en helt ny bruker (0 observasjoner) ser nå «👋 Start her»-hintet før en
+  eventuell ulest nyhetsmelding, ikke omvendt.
+- ✅ **Innstillinger åpnet med det tyngste/mest sensitive** (`settings.html`):
+  AO-innlogging flyttet fra toppen til rett før «Oppdatering» — siden åpner nå
+  med Tema.
+- ✅ **Terminologi**: «Bytt plass»-knappen hadde et tredje, urelatert ord for
+  samme konsept som «① Lokasjon» rett over — omdøpt til «Bytt lokasjon».
+  Resten av lokasjon/lokalitet-bruken i appen er bevisst latt urørt — det er
+  et koherent to-nivås begrepssystem (lokasjon = steget/det generelle,
+  lokalitet = det spesifikke AO-stedet), ikke reell forvirring.
+- ✅ **Skriftstørrelser** i `7-page-specific.css`: feltlabels, statustekst,
+  latinske artsnavn i søk, tabellinnhold m.fl. hevet fra 0.7–0.78rem til
+  0.8rem (samme minstestørrelse som juli-fiksen i `index.html`). Bevisst
+  IKKE rørt: `.pill`/`.badge`/tekniske chip-elementer — de er et eget,
+  konsekvent design-mønster, ikke leseinnhold.
+
+**Gjenstår fra reviewen (ikke del av denne runden):**
+
+- Besøk-modellen (↩/🔒/klokke) er kraftig, men ikonbasert — nyansen («nye
+  arter arver besøkets tidsspenn») ligger kun i `title`, usynlig på touch.
+- Etterregistrering uten tid lagres som `00:00` internt — kan vises som
+  midnatt i observasjonslista/delingsvisning i stedet for «tid ikke satt».
+- «CA»-avkrysningen (estimert antall) er liten, og kommentaren den legger
+  til har en skrivefeil: «Estimert antal» → skal være «Estimert antall».
+- Kartklikk oppfører seg ulikt med/uten stedsnavn synlig — bevisst designvalg
+  (se punkt 4/#1 lenger ned i denne fila), men verdt å revurdere.
+- Modaler («Flere felt», rediger, deling, tidsmodal) mangler `role="dialog"`,
+  fokusfelle og Escape — rammer skjermlesere og tastaturbrukere.
+- Enkelte touch-targets er fortsatt under 44px uten den usynlige
+  `::after`-utvidelsen som ✓-registrerknappen allerede bruker (f.eks.
+  ↩/🔒/klokke-knappene i besøkslinja, 34×34px).
+- Hjelpesiden er god, men dekker etter hvert mye — «Kom i gang» kan drukne i
+  bilder/private kommentarer/sjeldenhetsvarsel/fellestur.
+- LocationDB-verifisering i prod (stedsnavnsøk uten innlogging) — se punkt
+  #18 lenger ned i denne fila, fortsatt ubekreftet.
+
 ## 21. Ønskeliste fra Espen (testar), 2026-09-09
 
 Samla tilbakemelding frå Espen, som testar appen aktivt i felt. «FL» viser til

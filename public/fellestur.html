@@ -47,6 +47,24 @@
                              padding: 0; line-height: 1; opacity: 0.7; }
       .medobs-legg-til { display: flex; gap: 6px; margin-top: 6px; }
       .medobs-legg-til input { flex: 1; }
+      /* attachAoObserverAutocomplete() (ao-observer-autocomplete.js) pakker inputen
+         i denne wrapperen — uten flex:1 her ville input miste sin plass i raden. */
+      .medobs-legg-til .medobs-ac-wrap { position: relative; flex: 1; }
+      .medobs-ac-list {
+        position: absolute; top: 100%; left: 0; right: 0; z-index: 1100;
+        background: rgba(30,41,59,0.98); border: 1px solid rgba(148,163,184,0.25);
+        border-radius: 8px; max-height: 180px; overflow-y: auto;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.4); display: none;
+      }
+      .medobs-ac-list.show { display: block; }
+      .medobs-ac-item { padding: 8px 10px; cursor: pointer; font-size: 0.95em;
+                         border-bottom: 1px solid rgba(148,163,184,0.08); }
+      .medobs-ac-item:last-child { border-bottom: none; }
+      .medobs-ac-item:hover, .medobs-ac-item.active { background: rgba(59,130,246,0.2); }
+      .medobs-ac-item .ac-city { font-size: 0.8em; color: var(--muted, #9ca3af); margin-left: 6px; }
+      .medobs-ac-item .ac-fav { color: #f59e0b; margin-right: 4px; font-size: 0.85em; }
+      .medobs-ac-spinner { padding: 8px 10px; font-size: 0.85em; color: var(--muted); }
+      body.theme-light .medobs-ac-list { background: #fff !important; border-color: #d1d5db !important; color: #1a1a1a !important; }
 
       .liste-header { display: flex; justify-content: space-between; align-items: center; margin: 18px 0 8px; }
       .liste-header h2 { font-size: 1rem; margin: 0; }
@@ -92,6 +110,10 @@
       <div id="app"></div>
     </div>
 
-    <script type="module" src="/js/fellestur.js"></script>
+    <!-- Versjonert URL: uten denne kan Cloudflare (max-age=14400 på JS) og nettleserens
+         egen HTTP-cache holde fast på en utdatert fellestur.js i opptil 4 timer etter
+         deploy, selv om siden lastes på nytt. Samme mønster som main.js i index.html
+         og map.js i map.html (se v1.53.7). -->
+    <script type="module" src="/js/fellestur.js?v=v1.53.13"></script>
   </body>
 </html>

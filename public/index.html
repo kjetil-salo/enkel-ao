@@ -44,12 +44,15 @@
         </header>
 
         <!-- Vises kun når en fellestur er aktiv på denne enheten -->
-        <div id="fellestur-banner" style="display:none;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;background:var(--accent-soft);border:1px solid var(--accent);border-radius:10px;padding:8px 12px;margin-bottom:10px;font-size:0.85em;">
-          <span>👥 På fellestur: <strong id="fellestur-banner-navn"></strong> — det du registrerer havner i den delte loggen</span>
-          <span style="display:flex;gap:10px;align-items:center;white-space:nowrap;">
-            <a href="/fellestur.html" style="color:var(--accent);text-decoration:none;font-weight:600;">Se logg</a>
-            <button type="button" id="fellestur-forlat-btn" style="background:none;border:none;color:var(--muted);text-decoration:underline;cursor:pointer;font-size:1em;padding:0;">Forlat</button>
-          </span>
+        <div id="fellestur-banner" style="display:none;flex-direction:column;gap:6px;background:var(--accent-soft);border:1px solid var(--accent);border-radius:10px;padding:8px 12px;margin-bottom:10px;font-size:0.85em;">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
+            <span>👥 På fellestur: <strong id="fellestur-banner-navn"></strong> — det du registrerer havner i den delte loggen</span>
+            <span style="display:flex;gap:10px;align-items:center;white-space:nowrap;">
+              <a href="/fellestur.html" style="color:var(--accent);text-decoration:none;font-weight:600;">Se logg</a>
+              <button type="button" id="fellestur-forlat-btn" style="background:none;border:none;color:var(--muted);text-decoration:underline;cursor:pointer;font-size:1em;padding:0;">Forlat</button>
+            </span>
+          </div>
+          <div id="fellestur-avsluttet-varsel" style="display:none;color:#f87171;font-weight:600;"></div>
         </div>
 
         <!-- Kompakt festet linje som viser aktiv plass (vises når plass er valgt) -->
@@ -59,7 +62,7 @@
             <span id="loc-pinned-name" class="loc-pinned-name"></span>
             <span id="loc-pinned-visit" class="loc-pinned-visit" style="display:none;"></span>
           </button>
-          <button type="button" id="loc-change-btn" class="loc-change-btn">Bytt plass</button>
+          <button type="button" id="loc-change-btn" class="loc-change-btn">Bytt lokasjon</button>
         </div>
 
         <div class="tablet-layout">
@@ -311,6 +314,11 @@
 
         <fieldset class="section-main section-handlinger">
           <legend>④ Send inn</legend>
+          <p id="fellestur-sperre-hint" style="display:none;font-size:0.85em;color:var(--muted);margin:0 0 10px;line-height:1.4;">
+            👥 Du er på en fellestur — sending til AO gjøres samlet av én person via
+            <a href="/fellestur.html" style="color:var(--accent);">Fellestur-siden</a> når turen er ferdig,
+            ikke herfra (ellers kan flere sende det samme).
+          </p>
           <div class="export-row">
             <div id="ao-direct-row" style="display:none;">
               <button class="btn btn-primary-action" id="ao-direct-btn" disabled>
@@ -351,20 +359,20 @@
 
     </div>
 
-    <script type="module" src="/js/main.js?v=v1.53.8"></script>
+    <script type="module" src="/js/main.js?v=v1.53.13"></script>
     <script type="module">
       // Registrer Service Worker for offline-støtte.
       // Versjonert URL: Cloudflare overstyrer origin sin max-age=300 med 4 timer, så
       // en endret /sw.js kan bli liggende i edge-cachen og aldri nå installerte apper.
       // Bruk inline versjon her: /js/version.js kan selv være cachet i gammel versjon.
-      const VERSION = 'v1.53.8';
+      const VERSION = 'v1.53.13';
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register(`/sw.js?v=${VERSION}`).catch(() => {});
       }
     </script>
     <footer class="footer-credit">Versjon <span id="version"></span>  |  <a href="/changelog.html" style="color:var(--accent);text-decoration:none;">Endringslogg</a>  |  <a href="/feedback.html" style="color:var(--accent);text-decoration:none;">Gi tilbakemelding</a>  |  © 2026 Kjetil Salomonsen</footer>
     <script type="module">
-      const VERSION = 'v1.53.8';
+      const VERSION = 'v1.53.13';
       document.getElementById('version').textContent = VERSION;
     </script>
 

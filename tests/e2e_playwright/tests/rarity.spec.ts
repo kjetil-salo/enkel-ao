@@ -196,7 +196,7 @@ test.describe('Sjeldenhetsvarsel', () => {
     await page.fill('#count', '1');
     await expect(rarityBox(page)).toBeVisible({ timeout: 2000 });
 
-    // Stedsfeltet er kollapset til en festet linje etter valg — «Bytt plass»
+    // Stedsfeltet er kollapset til en festet linje etter valg — «Bytt lokasjon»
     // åpner det igjen (samme mønster som bytt-lokalitet.spec.ts).
     await page.locator('#loc-change-btn').click();
     await page.fill('#place', '');
