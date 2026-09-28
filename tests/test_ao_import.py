@@ -496,6 +496,65 @@ def test_post_with_curl_reports_held_back(monkeypatch):
     assert 'ikke publisert' in result['message']
 
 
+def test_post_with_curl_waits_for_queue_before_publishing(monkeypatch):
+    """
+    Regresjonstest for racet der AOs "importing"-teller når 0 lenge før alle radene
+    faktisk er skrevet til gjennomgangskøen (produksjonslogg 2026-09-27: 6 obs sendt,
+    kun 1 rukket inn i køen på halvannet sekund). publish_all() skal IKKE kalles før
+    NumberOfSightingsSubmitted faktisk har nådd `total`.
+    """
+    monkeypatch.setattr('src.ao_import_httpx.fetch_csrf_tokens',
+                        lambda lt, ac: ('FORM123', 'COOKIE456', None))
+
+    mock_response = Mock()
+    mock_response.text = '<html><body>Import vellykket</body></html>'
+    mock_response.status_code = 200
+
+    mock_client = Mock()
+    mock_client.__enter__ = Mock(return_value=mock_client)
+    mock_client.__exit__ = Mock(return_value=None)
+    mock_client.post = Mock(return_value=mock_response)
+
+    monkeypatch.setattr('httpx.Client', lambda: mock_client)
+    monkeypatch.setattr('time.sleep', lambda x: None)
+
+    # AOs "importing"-teller melder ferdig med det samme (racet i praksis)
+    monkeypatch.setattr('src.ao_import_httpx.number_of_sightings_importing', lambda lt, ac: 0)
+
+    # Gjennomgangskøen fylles opp gradvis: 1, 3, 6 (=total) — deretter tom igjen etter
+    # selve publiseringen (siste verdi brukes av _remaining_after_publish).
+    submitted_sequence = iter([1, 3, 6, 6, 0])
+    submitted_seen = []
+
+    def fake_submitted(lt, ac):
+        value = next(submitted_sequence, 0)
+        submitted_seen.append(value)
+        return value
+
+    monkeypatch.setattr('src.ao_import_httpx.number_of_sightings_submitted', fake_submitted)
+
+    publish_calls = []
+
+    def fake_publish(lt, ac):
+        publish_calls.append(len(submitted_seen))
+        return {'status': 200}
+
+    monkeypatch.setattr('src.ao_import_httpx.publish_all', fake_publish)
+
+    observations = [
+        {'species': {'taxonName': 'Tårnseiler'}, 'count': '1', 'timestamp': '2024-01-15T14:00:00Z', 'placeName': 'Hylkje'}
+        for _ in range(6)
+    ]
+    result = post_with_curl(observations, 'LOGIN123', 'AUTH456')
+
+    assert publish_calls, 'publish_all ble aldri kalt'
+    checks_before_publish = submitted_seen[:publish_calls[0]]
+    assert checks_before_publish[0] < 6, 'testen sier ingenting hvis køen var full allerede første avlesning'
+    assert checks_before_publish[-1] >= 6, 'publish_all ble trigget før køen faktisk var full'
+    assert result['success'] is True
+    assert 'heldBack' not in result
+
+
 def test_post_with_curl_no_held_back_when_queue_empty(monkeypatch):
     """Tom gjennomgangskø etter publisering → ingen heldBack, ren suksess."""
     monkeypatch.setattr('src.ao_import_httpx.fetch_csrf_tokens',
@@ -513,7 +572,15 @@ def test_post_with_curl_no_held_back_when_queue_empty(monkeypatch):
     monkeypatch.setattr('httpx.Client', lambda: mock_client)
     monkeypatch.setattr('time.sleep', lambda x: None)
     monkeypatch.setattr('src.ao_import_httpx.publish_all', lambda lt, ac: {'status': 200})
-    monkeypatch.setattr('src.ao_import_httpx.number_of_sightings_submitted', lambda lt, ac: 0)
+    # Første kall(ene) er pre-publish-gaten (venter på at køen fylles opp til total
+    # før publisering trigges) — deretter er køen tom igjen etter selve publiseringen.
+    submitted_calls = {'n': 0}
+
+    def fake_submitted(lt, ac):
+        submitted_calls['n'] += 1
+        return 1 if submitted_calls['n'] <= 2 else 0
+
+    monkeypatch.setattr('src.ao_import_httpx.number_of_sightings_submitted', fake_submitted)
 
     observations = [
         {'species': {'taxonName': 'Gråspurv'}, 'count': '1', 'timestamp': '2024-01-15T14:00:00Z', 'placeName': 'Oslo'}

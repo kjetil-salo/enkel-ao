@@ -383,32 +383,58 @@ def _remaining_after_publish(login_token, auth_cookie, timeout=6.0, interval=1.0
 
 
 def _poll_importing_done(login_token, auth_cookie, total, progress_cb=None,
-                         timeout=30.0, interval=0.7):
+                         timeout=None, interval=0.7):
     """
-    Poll NumberOfSightingsImporting til AO er ferdig med å parse (Count == 0).
+    Poll til AO BÅDE er ferdig med å parse (NumberOfSightingsImporting == 0) OG har
+    faktisk lagt alle observasjonene inn i gjennomgangskøen (NumberOfSightingsSubmitted
+    >= total), før vi lar publiseringen trigges.
 
-    Erstatter tidligere blind time.sleep(3). Kaller progress_cb underveis med reell
-    fremdrift. Faller tilbake til kort blind venting hvis endepunktet ikke svarer.
+    AOs "importing"-teller kan nå 0 i god tid FØR alle radene er skrevet til
+    gjennomgangstabellen — en race i AOs egen backend, størst ved flere observasjoner.
+    Å bare sjekke det første tallet (tidligere versjon) gjorde at "Publiser"-klikket kom
+    for tidlig ved batcher på 5+ obs, og halen ble liggende igjen som "ikke publisert"
+    uten at brukeren merket det før etterpå. Bekreftet i produksjonslogg 2026-09-27:
+    6 innsendte obs, men kun 1 rukket inn i gjennomgangskøen på de 1,5 sekundene
+    "importing"-telleren brukte på å nå 0 to ganger på rad.
+
+    Tidsgrensen skaleres med antall observasjoner — større batcher tar reelt lengre
+    tid hos AO. Faller tilbake til kort blind venting hvis BEGGE endepunkt er nede;
+    hvis bare ett svarer, styres ferdig-vurderingen av det som faktisk svarer.
     """
-    deadline = time.time() + timeout
-    first = True
+    effective_timeout = timeout if timeout is not None else min(120.0, max(30.0, total * 1.5))
+    deadline = time.time() + effective_timeout
+    consecutive_ready = 0
+    remaining = submitted = None
     while time.time() < deadline:
         remaining = number_of_sightings_importing(login_token, auth_cookie)
-        if remaining is None:
-            # Endepunkt utilgjengelig — blind fallback, og la publish-retry ta resten
-            logger.debug('[AO-HTTPX] Progress-endepunkt svarte ikke — faller tilbake til venting')
+        submitted = number_of_sightings_submitted(login_token, auth_cookie)
+
+        if remaining is None and submitted is None:
+            # Begge endepunkt utilgjengelige — blind fallback, la publish-retry ta resten
+            logger.debug('[AO-HTTPX] Progress-endepunkter svarte ikke — faller tilbake til venting')
             time.sleep(3)
             return
-        if progress_cb and remaining > 0:
+
+        if progress_cb and remaining is not None and remaining > 0:
             progress_cb({'phase': 'importing', 'remaining': remaining, 'total': total})
-        # Krev to påfølgende avlesninger for å unngå å publisere før AO har startet
-        if remaining == 0 and not first:
-            if progress_cb:
-                progress_cb({'phase': 'importing', 'remaining': 0, 'total': total})
-            return
-        first = False
+
+        importing_done = True if remaining is None else remaining == 0
+        queue_filled = True if submitted is None else submitted >= total
+
+        # Krev to påfølgende ferdig-avlesninger for å unngå å publisere før AO har startet
+        if importing_done and queue_filled:
+            consecutive_ready += 1
+            if consecutive_ready >= 2:
+                if progress_cb:
+                    progress_cb({'phase': 'importing', 'remaining': 0, 'total': total})
+                return
+        else:
+            consecutive_ready = 0
         time.sleep(interval)
-    logger.warning('[AO-HTTPX] Poll-timeout nådd — fortsetter til publisering')
+    logger.warning(
+        f'[AO-HTTPX] Poll-timeout nådd etter {effective_timeout:.0f}s ({total} obs, '
+        f'siste avlesning: importing={remaining}, submitted={submitted}) — fortsetter til publisering'
+    )
 
 
 def post_with_curl(observations, login_token=None, auth_cookie=None, area_id='', progress_cb=None):
