@@ -688,6 +688,19 @@ body.theme-light #search:disabled::placeholder {
         background: #6b7280;
       }
 
+      /* En slags spinner for "noe henter i bakgrunnen" — brukt når en liste
+         allerede vises, men en fersk GPS+AO-henting pågår bak kulissene
+         (f.eks. ved "Bytt lokasjon", se expandLocation() i main.js). Uten
+         denne var det ingen visuell forskjell mellom "ferdig" og "henter". */
+      .loc-dot.pending {
+        animation: loc-dot-pulse 1s ease-in-out infinite;
+      }
+
+      @keyframes loc-dot-pulse {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50% { opacity: 0.4; transform: scale(1.4); }
+      }
+
       .section {
         margin-top: 16px;
         margin-bottom: 16px;

@@ -10,7 +10,7 @@ const localStorageMock = {
 vi.stubGlobal('localStorage', localStorageMock);
 
 // Dynamisk import etter mock er satt opp
-const { loadMedobs, saveMedobs, defaultCoObservers, saveObservations, loadObservations } = await import('../../public/js/storage.js');
+const { loadMedobs, saveMedobs, defaultCoObservers, saveObservations, loadObservations, saveAoDirectAutoClear, loadAoDirectAutoClear } = await import('../../public/js/storage.js');
 
 // Speiler todayStr() i storage.js — medobs lagres med dagens dato.
 function todayStr() {
@@ -168,6 +168,23 @@ describe('saveObservations', () => {
     const stored = JSON.parse(store['fugleobservasjoner_v1']);
     expect(stored.observations).toHaveLength(1);
     expect(stored.observations[0].species.taxonName).toBe('Stokkand');
+  });
+});
+
+describe('loadAoDirectAutoClear / saveAoDirectAutoClear', () => {
+  it('should default to false when nothing stored', () => {
+    expect(loadAoDirectAutoClear()).toBe(false);
+  });
+
+  it('should round-trip true', () => {
+    saveAoDirectAutoClear(true);
+    expect(loadAoDirectAutoClear()).toBe(true);
+  });
+
+  it('should round-trip false after being true', () => {
+    saveAoDirectAutoClear(true);
+    saveAoDirectAutoClear(false);
+    expect(loadAoDirectAutoClear()).toBe(false);
   });
 });
 

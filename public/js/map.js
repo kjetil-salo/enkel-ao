@@ -2,7 +2,17 @@
  * Kart-modul for visning av brukerposisjon og AO-lokaliteter
  */
 
-import { createAoSite, ensureAoTokens } from './api.js';
+import { createAoSite, ensureAoTokens, fetchAoSites } from './api.js';
+// Versjonert import (i motsetning til de andre): dette er en HARD avhengighet
+// til en navngitt eksport (mergeAoSitesWithPrivateCache) som ikke fantes i
+// tidligere versjoner av location.js. Uten ?v= her serverer Cloudflare
+// (max-age=14400) en cachet, gammel location.js — siden den ellers ALDRI
+// hentes med noen versjonert URL noe sted (kun `import ... from './location.js'`
+// uten query) — helt til den utløper naturlig, opptil 4 timer etter deploy.
+// Resultat: en SyntaxError ved modul-lasting som stopper HELE map.js, altså
+// et blankt kart (oppdaget i staging v1.53.15). Bump denne SAMTIDIG som
+// map.html sin egen ?v=-tag, hver gang location.js endres.
+import { mergeAoSitesWithPrivateCache, isPrivateSite } from './location.js?v=v1.53.16';
 import { haversine } from './utils.js';
 
 // Hent data fra localStorage
@@ -14,6 +24,9 @@ if (!mapData) {
 
 const data = JSON.parse(mapData);
 const { userPosition, sites } = data;
+// Valgt søkeradius fra registreringssiden — brukes UENDRET når kartet henter
+// nye lokaliteter ved panorering (se moveend-håndteringen lenger ned).
+const sizeMeters = (typeof data.sizeMeters === 'number' && data.sizeMeters > 0) ? data.sizeMeters : 1000;
 console.log('mapData sites-array:', sites);
 
 if (!userPosition || !userPosition.lat || !userPosition.lon) {
@@ -55,7 +68,11 @@ L.control.layers({
 // gang kartet åpnes.
 const SHOW_LABELS_KEY = 'mapShowLabels_v1';
 let showLabels = localStorage.getItem(SHOW_LABELS_KEY) !== '0';
+// Manuelt opprettede lokasjoner (pin-drop, se addNewSiteMarker) — disse ligger
+// utenfor siteLayerGroup og overlever derfor en panorer-oppdatering uendret.
 const labelMarkers = [];
+// Hentede AO-lokaliteter — bygges på nytt for hvert kall til renderSites().
+const siteLabelMarkers = [];
 
 const toggleLabelsBtn = document.getElementById('toggle-labels-btn');
 function updateToggleLabelsBtnText() {
@@ -69,7 +86,7 @@ function setShowLabels(value) {
   } catch (e) {
     // Ikke kritisk om preferansen ikke lar seg lagre
   }
-  labelMarkers.forEach((marker) => {
+  [...labelMarkers, ...siteLabelMarkers].forEach((marker) => {
     if (value) marker.openTooltip();
     else marker.closeTooltip();
   });
@@ -95,21 +112,57 @@ if (userPosition.accuracy) {
 }
 userMarker.bindPopup(popupContent);
 
-// Legg til alle markers i en bounds for auto-zoom
-const bounds = L.latLngBounds([[userPosition.lat, userPosition.lon]]);
+// Lag som holder KUN de hentede AO-lokalitetene (markers/polygoner/sirkler).
+// Skilt fra brukermarkør, pin-drop og manuelt opprettede lokasjoner, slik at
+// en panorer-oppdatering (renderSites) kan tømme og tegne på nytt uten å
+// røre noe av det andre på kartet.
+const siteLayerGroup = L.layerGroup().addTo(map);
 
-// Filtrer og legg til AO-lokaliteter
-let siteCount = 0;
-if (sites && Array.isArray(sites)) {
-  // Logging: vis alle sites med isMine=true
-  const mineSites = sites.filter(s => s.isMine);
-  if (mineSites.length > 0) {
-    console.log('Mine lokasjoner (isMine=true):', mineSites.map(s => ({ name: s.name, id: s.id, lat: s.lat, lon: s.lon })));
-  } else {
-    console.log('Ingen egne lokasjoner (isMine=true) funnet i sites-array.');
-  }
+/**
+ * Tegn AO-lokaliteter på kartet. Kalles ved første last (fitToBounds: true)
+ * og ved hver panorer-oppdatering (fitToBounds: false — å re-zoome ville
+ * kjempet mot brukerens egen panorering).
+ * @param {Array} sitesToRender - Lokaliteter å tegne
+ * @param {Object} [options]
+ * @param {boolean} [options.fitToBounds] - Zoom kartet til å vise alle markers
+ * @returns {number} Antall tegnede lokaliteter
+ */
+// IDer for lokasjoner opprettet med pin-drop i DENNE kartøkten (se
+// addNewSiteMarker/createBtn under). De har allerede sin egen permanente
+// markør direkte på kartet — uten dette ville en panorer-oppdatering rett
+// etter opprettelse tegnet den samme lokasjonen en gang til inne i
+// siteLayerGroup, siden den nå også ligger i privat-cachen som
+// mergeAoSitesWithPrivateCache henter fra.
+const manuallyPlacedSiteIds = new Set();
 
-  sites.forEach(site => {
+function renderSites(sitesToRender, { fitToBounds = false } = {}) {
+  siteLayerGroup.clearLayers();
+  siteLabelMarkers.length = 0;
+
+  // Legg til alle markers i en bounds for auto-zoom
+  const bounds = L.latLngBounds([[userPosition.lat, userPosition.lon]]);
+
+  // Filtrer og legg til AO-lokaliteter
+  let siteCount = 0;
+  if (sitesToRender && Array.isArray(sitesToRender)) {
+    // Logging: vis alle sites med isMine=true
+    const mineSites = sitesToRender.filter(s => s.isMine);
+    if (mineSites.length > 0) {
+      console.log('Mine lokasjoner (isMine=true):', mineSites.map(s => ({ name: s.name, id: s.id, lat: s.lat, lon: s.lon })));
+    } else {
+      console.log('Ingen egne lokasjoner (isMine=true) funnet i sites-array.');
+    }
+
+    sitesToRender.forEach(site => {
+    // Allerede vist via egen, permanent markør fra pin-drop i denne økten.
+    // Normalisert til streng — AO-endepunktene er ikke konsekvente på om en
+    // site-id kommer som tall eller streng (se _normalize_site() i
+    // src/api_handlers.py), og et number/string-mismatch her ville stille
+    // sluppet gjennom akkurat den dobbel-tegningen denne sjekken finnes for.
+    if (site.id != null && manuallyPlacedSiteIds.has(String(site.id))) {
+      return;
+    }
+
     // Sjekk om site er privat
     const isPrivate = isPrivateSite(site);
     const showPrivateSites = localStorage.getItem('showPrivateSitesOnMap') === '1'; // av som standard
@@ -185,7 +238,7 @@ if (sites && Array.isArray(sites)) {
         opacity: 0.8,
         fillColor: polygonColor,
         fillOpacity: 0.15
-      }).addTo(map).bindPopup(popupHtml);
+      }).addTo(siteLayerGroup).bindPopup(popupHtml);
       polygon.on('click', () => {
         if (showLabels) selectLocation(site.name || 'Ukjent lokalitet', site.id ?? null);
       });
@@ -206,7 +259,7 @@ if (sites && Array.isArray(sites)) {
           fillColor: polygonColor,
           fillOpacity: 0.12,
           dashArray: '5 5'
-        }).addTo(map).bindPopup(popupHtml);
+        }).addTo(siteLayerGroup).bindPopup(popupHtml);
         radiusCircle.on('click', () => {
           if (showLabels) selectLocation(site.name || 'Ukjent lokalitet', site.id ?? null);
         });
@@ -224,7 +277,7 @@ if (sites && Array.isArray(sites)) {
         popupAnchor: [1, -34],
         shadowSize: [41, 41]
       })
-    }).addTo(map);
+    }).addTo(siteLayerGroup);
     marker.bindPopup(popupHtml);
 
     // Tooltip med navn (vises permanent)
@@ -239,7 +292,7 @@ if (sites && Array.isArray(sites)) {
       offset: [0, -35]
     });
     if (!showLabels) marker.closeTooltip();
-    labelMarkers.push(marker);
+    siteLabelMarkers.push(marker);
 
     // Samme logikk som polygonet over: navn synlig → velg direkte, navn
     // skrudd av → popup med bekreftelse (Leaflets standard popup-på-klikk).
@@ -250,47 +303,90 @@ if (sites && Array.isArray(sites)) {
     // Legg til i bounds
     bounds.extend([lat, lon]);
     siteCount++;
-  });
-}
+    });
+  }
 
-// Zoom kartet til å vise alle markers
-if (siteCount > 0) {
-  map.fitBounds(bounds, { padding: [50, 50] });
+  // Zoom kartet til å vise alle markers (kun ved første last — en
+  // panorer-oppdatering skal ikke kjempe mot brukerens egen panorering).
+  // animate:false gjør at Leaflet flytter/zoomer OG fyrer sin egen moveend
+  // synkront, FØR denne linjen returnerer — se bruken like under kallet til
+  // renderSites() for hvorfor det er det som gjør panorer-lytteren trygg å
+  // sette opp uten noen tidsbasert gjetning.
+  if (fitToBounds && siteCount > 0) {
+    map.fitBounds(bounds, { padding: [50, 50], animate: false });
+  }
 
-  // Vis info-boks
+  // Oppdater info-boksen — vis/skjul basert på om det faktisk er noe å vise
+  // i det nåværende utsnittet (viktig etter panorering til et tomt område)
   const infoBox = document.getElementById('info-box');
   const siteCountEl = document.getElementById('site-count');
   if (infoBox && siteCountEl) {
-    siteCountEl.textContent = siteCount;
-    infoBox.style.display = 'block';
+    if (siteCount > 0) {
+      siteCountEl.textContent = siteCount;
+      infoBox.style.display = 'block';
+    } else {
+      infoBox.style.display = 'none';
+    }
   }
+
+  return siteCount;
 }
 
-/**
- * Sjekk om et site er privat (samme logikk som location.js)
- * @param {Object} site - Site-objekt
- * @returns {boolean} - true hvis privat
- */
-function isPrivateSite(site) {
-  if (!site || typeof site !== 'object') return false;
+renderSites(sites, { fitToBounds: true });
 
-  const raw = site.raw && typeof site.raw === 'object' ? site.raw : site;
-  if (!raw || typeof raw !== 'object') return false;
+// --- Panorer-og-oppdater: hent nye lokaliteter for kartets senter ---
+// Samme mønster som drivstoffprisene (public/js/map.js: initKartBevegelse):
+// debounce + minimumsavstand, så vi ikke hamrer løs på AO ved hver liten
+// bevegelse eller zoom. Radius (sizeMeters) endres ALDRI her — kun SENTERET
+// for hva som hentes flytter seg med panoreringen.
+//
+// renderSites() over kaller ev. fitBounds MED animate:false (se der), som gjør
+// at Leaflet flytter/zoomer OG fyrer sin egen moveend HELT synkront — altså
+// FØR linjen over i det hele tatt returnerer. Dermed er map.getCenter() her
+// garantert den endelige, ferdig-bosatte posisjonen, og moveend-lytteren under
+// kan trygt kobles på med en gang: JS er entrådet, så INGEN brukerhandling kan
+// ha rukket å skje i vinduet mellom oppstarts-fitBounds og denne linjen. Ingen
+// tidsbasert gjetning nødvendig (tidligere forsøk med map.once()/karantenetid
+// hadde begge egne rekkefølge-svakheter — se git-historikk).
+let lastFetchedCenter = { lat: map.getCenter().lat, lon: map.getCenter().lng };
+let moveendTimer = null;
+// Øker for hvert forsøk — brukes til å forkaste svar fra et eldre, tregere
+// kall som kommer tilbake ETTER at en nyere panorering allerede har startet
+// (og kanskje allerede fått svar og tegnet) sitt eget kall. Uten dette kunne
+// et sent svar for et sted brukeren har forlatt overskrive et korrekt,
+// ferskere kart.
+let fetchSeq = 0;
+const MIN_REFETCH_DISTANCE_M = Math.max(150, sizeMeters / 4);
 
-  // Bruk isPrivate-flagget fra AO
-  if (Object.prototype.hasOwnProperty.call(raw, 'isPrivate')) {
-    const v = raw.isPrivate;
-    if (v === true || v === 'true') return true;
-    if (v === false || v === 'false') return false;
-  }
+map.on('moveend', handleMapMoveEnd);
 
-  if (Object.prototype.hasOwnProperty.call(raw, 'IsPrivate')) {
-    const v = raw.IsPrivate;
-    if (v === true || v === 'true') return true;
-    if (v === false || v === 'false') return false;
-  }
+function handleMapMoveEnd() {
+  clearTimeout(moveendTimer);
+  moveendTimer = setTimeout(async () => {
+    const center = map.getCenter();
+    const moved = haversine(lastFetchedCenter.lat, lastFetchedCenter.lon, center.lat, center.lng);
+    if (moved != null && moved < MIN_REFETCH_DISTANCE_M) return;
 
-  return false;
+    const seq = ++fetchSeq;
+    try {
+      await ensureAoTokens();
+      const bboxSites = await fetchAoSites(center.lat, center.lng, sizeMeters);
+      // En nyere panorering kan ha rukket å starte (og fullføre) sitt eget
+      // kall mens dette ventet — da skal IKKE dette eldre svaret tegnes,
+      // og lastFetchedCenter skal heller ikke oppdateres til dette stedet.
+      if (seq !== fetchSeq) return;
+      // Oppdateres først NÅ (ikke før fetch startet) — en feilet henting skal
+      // fortsatt kunne prøves på nytt ved neste panorering i samme område,
+      // i stedet for at MIN_REFETCH_DISTANCE_M stille blokkerer den for godt.
+      lastFetchedCenter = { lat: center.lat, lon: center.lng };
+      const merged = mergeAoSitesWithPrivateCache(bboxSites, { lat: center.lat, lon: center.lng }, sizeMeters);
+      renderSites(merged, { fitToBounds: false });
+    } catch (e) {
+      // Ekstern-API-feil ved panorering: behold forrige visning i stedet for
+      // å krasje eller tømme kartet — samme prinsipp som andre AO-kall.
+      console.warn('Kunne ikke oppdatere lokaliteter etter panorering:', e);
+    }
+  }, 600);
 }
 
 /**
@@ -437,7 +533,10 @@ function showPanelStatus(msg, isError) {
   panelStatus.style.color = isError ? '#ef4444' : '#22c55e';
 }
 
-function addNewSiteMarker(name, lat, lon) {
+function addNewSiteMarker(name, lat, lon, siteId) {
+  if (siteId != null) {
+    manuallyPlacedSiteIds.add(String(siteId));
+  }
   const yellowIcon = L.icon({
     iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-yellow.png',
     shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
@@ -508,7 +607,16 @@ if (createBtn) {
           dropMarker = null;
         }
         removeAccuracyCircle();
-        addNewSiteMarker(name, latlng.lat, latlng.lng);
+        // Sporer siteId uansett fortegn (også f.eks. -1, som AO kan returnere ved
+        // success=true uten en gyldig id — se ao_create_site.py) — poenget her er
+        // KUN å hindre dobbel tegning hvis samme id dukker opp igjen via
+        // privat-cachen ved en senere panorer-oppdatering, ikke å validere IDen.
+        // Bevisst akseptert restrisiko: -1 er en sentinel, ikke en unik AO-id, så
+        // om AO NOEN gang skulle returnere -1 for en helt annen, ekte lokalitet i
+        // et bbox-svar ville den (usannsynlig, men teoretisk) blitt hoppet over på
+        // en panorer-oppdatering. For usannsynlig til å rettferdiggjøre en egen
+        // navn+posisjon-basert dedup-mekanisme i et hobbyprosjekt.
+        addNewSiteMarker(name, latlng.lat, latlng.lng, result.siteId);
 
         // Brukeren opprettet lokasjonen fordi hen er der nå — velg den
         // automatisk, samme vei tilbake som ved klikk på en eksisterende

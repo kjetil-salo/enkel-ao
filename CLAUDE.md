@@ -205,6 +205,16 @@ Pure ES6 modules with no framework:
     mot AOs API). Uten dette var nyopprettede private lokasjoner usynlige i «Velg lokasjon» i opptil
     et døgn, siden cachen ellers kun fornyes ved innlogging eller når den tilfeldigvis er tom (v1.53.0)
 - `location.js` — Geolocation and AO sites integration
+  - `mergeAoSitesWithPrivateCache(sites, referencePosition, searchRadiusMeters)` — slår sammen
+    bbox-sites med brukerens private-cache (isMine-merking + nærmeste utenfor-bbox) og filtrerer
+    andres private etter innstilling. Delt av `setAoSiteSuggestions()` (dropdown) og `map.js` sin
+    panorer-og-oppdater (v1.53.15) — én kilde til isMine-/privat-logikk i stedet for to kopier
+  - `openMapPage(userPosition, sites, sizeMeters)` lagrer valgt søkeradius i `mapData` (localStorage)
+    slik at `map.js` kan bruke SAMME radius når den henter nye lokaliteter ved panorering (v1.53.15)
+  - `initLocation(elements, onPositionUpdate, aoSizeMeters)` sitt `onPositionUpdate(position, sites, radiusUsed)`
+    tar nå et TREDJE argument (v1.53.16) — radiusen FAKTISK brukt i akkurat dette GPS+AO-forsøket, ikke
+    en senere lest live-verdi. Kritisk for `main.js` sin `handlePositionUpdate()`, som cacher forrige
+    bbox-resultat sammen med radiusen det ble hentet med (se der for hele fallback-mekanismen)
 - `rarity.js` — Sjeldenhetsvarsel: debounced, race-sikker sjekk mot `/api/ao-rarity` når både art og
   lokasjon er valgt (både felt- og etterregistrering). Se `/api/ao-rarity` over og `docs/sjeldenhetsvarsel.md`
 - `celebrate.js` — `celebrateRareFind(speciesName)`: fyrverkeri (konfetti + stort banner + kort
@@ -274,6 +284,16 @@ Pure ES6 modules with no framework:
 - `map.js` — Kartvisning (Leaflet) med brukerposisjon, AO-lokaliteter og pin-drop for ny lokasjon
   - Kartlag: OpenStreetMap (standard), Kartverket Topo, Kartverket Gråtone — velges via `L.control.layers` nederst til venstre
   - Kartverket-tiles er gratis WMTS uten nøkkel (`cache.kartverket.no/v1/wmts/1.0.0/{topo|topograatone}/...`)
+  - **Panorer-og-oppdater** (v1.53.15): `map.on('moveend', ...)` henter nye lokaliteter for kartets
+    NYE senter når brukeren panorerer, med samme søkeradius (`sizeMeters`, fra `mapData` i
+    localStorage) som allerede var valgt — radius endres aldri av panoreringen. Debounce 600ms +
+    minimumsavstand (`MIN_REFETCH_DISTANCE_M`) hindrer at hvert lite dra/zoom trigger et nytt
+    AO-kall (samme mønster som `initKartBevegelse` i drivstoffprisene). `fetchSeq`-telleren forkaster
+    svar fra et eldre, tregere kall som kommer tilbake etter at en nyere panorering allerede har
+    tegnet et ferskere resultat. Tegning skjer via `renderSites()`, som tømmer og bygger `siteLayerGroup`
+    på nytt — brukermarkør, pin-drop og manuelt opprettede lokasjoner ligger utenfor denne gruppen og
+    påvirkes ikke. Henting bruker samme isMine-/privat-merging som dropdown-forslaget
+    (`mergeAoSitesWithPrivateCache` i `location.js`, delt av begge for å unngå at logikken driver fra hverandre)
 
 ### Konfigurerbare Aktivitetspills (v1.18.0+)
 Brukere kan velge 0-6 aktiviteter som vises som hurtigknapper:
@@ -379,5 +399,22 @@ Ved ny versjon, gjør alltid følgende:
    (`max-age=14400`) holde fast på gammel JS på akkurat den siden i opptil 4 timer
    etter deploy** — glemt for `fellestur.html` frem til v1.53.10, oppdaget da staging
    viste utdatert kode rett etter en deploy.
-4. Oppdater `public/changelog.html` med kort beskrivelse av hva som er nytt
-5. Oppdater relevant dokumentasjon i `docs/` hvis funksjonalitet er endret
+   - **Samme problem gjelder INTERNE `import ... from './x.js'`-setninger mellom
+     JS-moduler** — de har normalt ingen `?v=` i det hele tatt, så en modul som
+     hentes UTELUKKENDE via slike bare imports (aldri via en egen versjonert
+     `<script src>`-tag) kan bli hengende cachet på Cloudflare i opptil 4 timer
+     etter ENHVER endring, uavhengig av om selve siden sin versjon bumpes. Dette
+     rammer typisk ikke, siden en gammel modul-versjon som regel fortsatt
+     fungerer for den som importerer den — MEN hvis en endring legger til en NY
+     navngitt eksport en fersk importør nå er hardt avhengig av, gir en stale
+     kopi en `SyntaxError` ved modul-lasting som stopper HELE den importerende
+     scriptfilen (`map.js`s import av `mergeAoSitesWithPrivateCache` fra
+     `location.js` — helt blankt kart i staging, v1.53.15). Samme mønster
+     dukket opp igjen i v1.53.17: `main.js` sin import av `storage.js` fikk
+     en tilsvarende versjonert `?v=` da `loadAoDirectAutoClear`/
+     `saveAoDirectAutoClear` ble lagt til som nye eksporter — denne gangen
+     fanget FØR deploy, ikke etterpå. Kjør
+     `grep -rn "from '\./.*\.js?v=" public/js/*.js` for å finne slike bevisst
+     versjonerte interne imports og bump dem sammen med resten.
+5. Oppdater `public/changelog.html` med kort beskrivelse av hva som er nytt
+6. Oppdater relevant dokumentasjon i `docs/` hvis funksjonalitet er endret

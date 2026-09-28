@@ -10,6 +10,7 @@ const AO_SIZE_KEY = 'ao_search_radius_v1';
 const ACTIVITY_PILLS_KEY = 'activityPills_v1';
 const SENT_KEY = 'sent_observations_v1';
 const LOCATION_SORT_KEY = 'location_sort_mode_v1';
+const AO_DIRECT_AUTO_CLEAR_KEY = 'ao_direct_auto_clear_v1';
 
 /**
  * Teknisk beskrivelse av siste feilede saveObservations()-kall (f.eks.
@@ -286,6 +287,36 @@ export function loadLocationSortMode() {
     return raw === 'avstand' ? 'avstand' : 'standard';
   } catch (e) {
     return 'standard';
+  }
+}
+
+/**
+ * Lagre om lista skal tømmes automatisk (uten spørsmål) ved vellykket
+ * direktepublisering til AO.
+ * @param {boolean} value
+ */
+export function saveAoDirectAutoClear(value) {
+  if (!window.localStorage) return;
+
+  try {
+    window.localStorage.setItem(AO_DIRECT_AUTO_CLEAR_KEY, value ? '1' : '0');
+  } catch (e) {
+    console.warn('Kunne ikke lagre auto-tøm-valg', e);
+  }
+}
+
+/**
+ * Last om lista skal tømmes automatisk ved vellykket direktepublisering.
+ * Default av — brukeren må aktivt slå det på.
+ * @returns {boolean}
+ */
+export function loadAoDirectAutoClear() {
+  if (!window.localStorage) return false;
+
+  try {
+    return window.localStorage.getItem(AO_DIRECT_AUTO_CLEAR_KEY) === '1';
+  } catch (e) {
+    return false;
   }
 }
 

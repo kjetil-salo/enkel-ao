@@ -19,6 +19,8 @@ En lynrask, superenkel webapp for å registrere fugleobservasjoner direkte til A
   - Klikk på lokalitet i kart for å velge den automatisk
   - Grønne/oransje markører med navn og avstand
   - Private lokaliteter filtreres bort
+  - **Panorer for å se lokaliteter andre steder** (v1.53.15) — kartet henter automatisk nye
+    lokaliteter for området du panorerer til, med samme søkeradius som allerede var valgt
 - 🔍 Artssøk med autocomplete
    - Underarter kan vises ("Vis underarter") kun når du er online. I offline-modus får du kun hovedarter, og en tydelig advarsel vises under boksen.
    - **Valgt art vises direkte i søkefeltet** (ikke som separat "pill").

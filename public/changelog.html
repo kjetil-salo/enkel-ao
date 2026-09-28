@@ -172,6 +172,50 @@
 
         <div class="version">
           <div class="version-header">
+            <span class="version-number">v1.53.18</span>
+            <span class="version-date">27. september 2026</span>
+          </div>
+          <div class="section-title">Forbedret</div>
+          <ul class="changes">
+            <li><strong>Tydeligere melding om at «Bytt lokasjon» henter ferske lokaliteter.</strong> Den pulserende prikken ved lokasjonsstatusen var for lett å overse. Nå vises også «🔄 Henter oppdaterte lokaliteter …» rett under lista mens den ferske hentingen pågår.</li>
+          </ul>
+        </div>
+
+        <div class="version">
+          <div class="version-header">
+            <span class="version-number">v1.53.17</span>
+            <span class="version-date">27. september 2026</span>
+          </div>
+          <div class="section-title">Nytt</div>
+          <ul class="changes">
+            <li><strong>Ny hake: «Tøm listen automatisk ved vellykket sending».</strong> Ved siden av «Publiser til AO» kan du nå slå på at lista tømmes med en gang etter en vellykket sending, uten det vanlige spørsmålet om bekreftelse. Av som standard.</li>
+          </ul>
+        </div>
+
+        <div class="version">
+          <div class="version-header">
+            <span class="version-number">v1.53.16</span>
+            <span class="version-date">27. september 2026</span>
+          </div>
+          <div class="section-title">Nytt</div>
+          <ul class="changes">
+            <li><strong>«Bytt lokasjon» viser nå forrige liste med en gang, og henter ferske lokaliteter i bakgrunnen.</strong> Tidligere sto lokalitetsfeltet tomt helt til du selv trykket «Bruk GPS» på nytt. Nå ser du med en gang lista fra sist, mens en fersk GPS-posisjon og oppdaterte lokaliteter hentes i bakgrunnen — den lille prikken ved lokasjonsstatusen pulserer mens dette pågår.</li>
+          </ul>
+        </div>
+
+        <div class="version">
+          <div class="version-header">
+            <span class="version-number">v1.53.15</span>
+            <span class="version-date">27. september 2026</span>
+          </div>
+          <div class="section-title">Nytt</div>
+          <ul class="changes">
+            <li><strong>Kartet kan nå panoreres for å se lokaliteter andre steder.</strong> Tidligere viste kartet kun lokalitetene som ble hentet da det åpnet — å panorere gjorde ingenting. Nå henter kartet automatisk nye lokaliteter for det området du panorerer til, med samme søkeradius som du allerede har valgt.</li>
+          </ul>
+        </div>
+
+        <div class="version">
+          <div class="version-header">
             <span class="version-number">v1.53.14</span>
             <span class="version-date">26. september 2026</span>
           </div>
@@ -191,8 +235,6 @@
             <li><strong>Innloggingsstatus i header viser nå initialer eller «logg inn».</strong> Den lille prikken øverst til høyre var rød når du ikke var innlogget — helt normalt for en ny bruker, men rødt leses lett som «noe er galt». Nå viser den i stedet teksten «logg inn» (nøytral farge) når du ikke er innlogget, og dine egne initialer på grønn bunn når du er det.</li>
             <li><strong>Nye brukere møter «Start her»-hintet før nyheter.</strong> Var det en ulest nyhetsmelding, kunne den vises FØR førstegangs-hintet om hvordan appen fungerer — en helt ny bruker risikerte å møte en teknisk nyhetstekst om sjeldenhetsvarsel før «trykk Bruk GPS». Nyheter vises nå normalt igjen så snart du har registrert din første observasjon.</li>
             <li><strong>Innstillinger åpner nå med Tema i stedet for AO-innlogging.</strong> AO-brukernavn/passord og personvern-teksten lå først på siden, noe som kunne gi inntrykk av at innlogging var påkrevd. Flyttet lenger ned, rett før «Oppdatering».</li>
-            <li><strong>«Bytt plass»-knappen heter nå «Bytt lokasjon»</strong> — samme ord som brukes i seksjonsoverskriften «① Lokasjon» rett over, i stedet for et tredje, urelatert ord for samme ting.</li>
-            <li>Hevet noen gjenværende små skriftstørrelser (feltlabels, statustekst, latinske artsnavn i søk, tabellinnhold) til minimum 0.8rem, samme minstestørrelse som ble innført andre steder i juli.</li>
           </ul>
         </div>
 
@@ -215,7 +257,6 @@
           <div class="section-title">Rettet</div>
           <ul class="changes">
             <li><strong>Innsendingsknappen på fellestur-siden var lett å overse.</strong> Den lå under hele den delte loggen, mens «Forlat»-knappen (som IKKE sender inn noe) lå godt synlig lenger opp — flere trodde «Forlat» var veien til å levere fra seg turen. Flyttet innsendingsknappen opp som en tydelig hovedhandling, omdøpt fra «Hent inn i min lokale liste og forlat» til «Send inn listen og avslutt fellestur», og «Forlat»-knappen er nå tydelig merket «Forlat uten å sende inn».</li>
-            <li><strong>Hjelpesiden sin beskrivelse av Fellestur var utdatert</strong> (bl.a. feilaktig «6-tegns kode» — den er 5-sifret) og viste til gammel knappetekst. Oppdatert til å matche faktisk oppførsel.</li>
           </ul>
         </div>
 
@@ -231,10 +272,6 @@
           <div class="section-title">Endret</div>
           <ul class="changes">
             <li><strong>«Ditt navn» på fellestur-siden reflekterer nå den ekte AO-innloggingen</strong> når enheten er innlogget, i stedet for et fritt skrevet navn — det er dette navnet som vises til resten av gruppa og brukes i avsluttet-varselet. Innsendingsknappen krever nå innlogging på AO, siden det er starten på selve innsendingen.</li>
-          </ul>
-          <div class="section-title">Rettet</div>
-          <ul class="changes">
-            <li><strong>`fellestur.html` manglet versjonert script-URL.</strong> Samme feil som ble fikset for kartsiden i v1.53.7: uten `?v=` kunne Cloudflare (`max-age=14400`) holde fast på en utdatert `fellestur.js` i opptil 4 timer etter deploy, selv om siden lastes på nytt. Oppdaget fordi staging viste gammel kode rett etter denne versjonens egen deploy.</li>
           </ul>
         </div>
 
@@ -263,17 +300,6 @@
           <div class="section-title">Rettet</div>
           <ul class="changes">
             <li><strong>«Flere felt»-knappen (☰) var like grønn som «Registrer»-knappen (✓).</strong> En duplikatregel i stilarket overstyrte den tiltenkte nøytrale fargen, slik at de to knappene ved siden av hverandre lett kunne forveksles. Byttet også ikon fra ✎ til ☰ for tydeligere skille.</li>
-          </ul>
-        </div>
-
-        <div class="version">
-          <div class="version-header">
-            <span class="version-number">v1.53.7</span>
-            <span class="version-date">17. september 2026</span>
-          </div>
-          <div class="section-title">Rettet</div>
-          <ul class="changes">
-            <li><strong>Kartsiden lastet gammel kode etter oppdatering.</strong> Rettelsen i v1.53.6 kunne bli sittende fast i nettleserens egen cache i opptil 4 timer etter deploy, siden kartsidens skript manglet den samme versjons-URL-en som resten av appen bruker. Ingen kodefeil denne gangen — bare en manglende cache-brytning.</li>
           </ul>
         </div>
 
@@ -357,17 +383,6 @@
 
         <div class="version">
           <div class="version-header">
-            <span class="version-number">v1.52.2</span>
-            <span class="version-date">12. september 2026</span>
-          </div>
-          <div class="section-title">Nytt</div>
-          <ul class="changes">
-            <li><strong>Nyhetsvisning om sjeldenhetsvarselet.</strong> Ingen kodeendring — kun en oppdatert «Nytt i Enkel-AO»-boks som forklarer varselet fra v1.52.0/v1.52.1.</li>
-          </ul>
-        </div>
-
-        <div class="version">
-          <div class="version-header">
             <span class="version-number">v1.52.1</span>
             <span class="version-date">12. september 2026</span>
           </div>
@@ -385,17 +400,6 @@
           <div class="section-title">Nytt</div>
           <ul class="changes">
             <li><strong>⚠️ Sjeldenhetsvarsel.</strong> Er innlogget bruker i ferd med å registrere en uvanlig art på valgt lokalitet, viser skjemaet nå AO sin egen sjeldenhetsvurdering direkte mens du fyller ut — før du sender inn.</li>
-          </ul>
-        </div>
-
-        <div class="version">
-          <div class="version-header">
-            <span class="version-number">v1.51.0</span>
-            <span class="version-date">12. september 2026</span>
-          </div>
-          <div class="section-title">Nytt</div>
-          <ul class="changes">
-            <li><strong>Fellestur-koder er nå 5 tegn</strong> i stedet for 6 — forberedelse for kryss-app-samarbeid med andre feltapper.</li>
           </ul>
         </div>
 
@@ -503,17 +507,6 @@
           <div class="section-title">Nytt</div>
           <ul class="changes">
             <li><strong>👥 Fellestur.</strong> Flere fuglefolk på samme tur kan nå dele på registreringsarbeidet — start en fellestur, del en kort kode, og legg inn arter sammen i en delt logg. Alle kan rette tall og slette feilregistreringer. Når turen er over henter én av dere hele lista inn i arbeidslista og sender til AO som normalt. Ingen kontoer, koden er hemmelig (som en delingslenke).</li>
-          </ul>
-        </div>
-
-        <div class="version">
-          <div class="version-header">
-            <span class="version-number">v1.45.14</span>
-            <span class="version-date">29. august 2026</span>
-          </div>
-          <div class="section-title">Fikset</div>
-          <ul class="changes">
-            <li><strong>«Sortering»-etiketten så annerledes ut enn «Radius».</strong> Begge er nå stor og sperret på samme måte.</li>
           </ul>
         </div>
 
@@ -898,29 +891,6 @@
 
         <div class="version">
           <div class="version-header">
-            <span class="version-number">v1.32.2</span>
-            <span class="version-date">19. juli 2026</span>
-          </div>
-          <div class="section-title">Forbedret</div>
-          <ul class="changes">
-            <li>Fra/til-klokkeslettene i etterregistrering holder seg nå pent innenfor rammen på iPhone (de kunne før flyte utenfor)</li>
-            <li>Lås- og klokke-knappen på hvert sted i lista er nå avrundede firkanter. Klokka har fått et tydeligere klokke-ikon i appens blåfarge, så den ikke forsvinner ved siden av lås-symbolet</li>
-          </ul>
-        </div>
-
-        <div class="version">
-          <div class="version-header">
-            <span class="version-number">v1.32.1</span>
-            <span class="version-date">18. juli 2026</span>
-          </div>
-          <div class="section-title">Forbedret</div>
-          <ul class="changes">
-            <li>«Skjul-til-dato»-merket i observasjonslista er forenklet til en ren hengelås 🔒 uten dato. Datoen vises fortsatt hvis du holder fingeren/musepekeren over merket</li>
-          </ul>
-        </div>
-
-        <div class="version">
-          <div class="version-header">
             <span class="version-number">v1.32.0</span>
             <span class="version-date">18. juli 2026</span>
           </div>
@@ -1134,7 +1104,6 @@
           <div class="section-title">Forbedringer</div>
           <ul class="changes">
             <li>Renere GUI i etterregistreringsmodus: GPS-kontroller skjules siden du er hjemme</li>
-            <li>Lokalitets-ID nullstilles automatisk hvis du manuelt redigerer stedsnavnet</li>
           </ul>
         </div>
 
@@ -1147,44 +1116,6 @@
           <ul class="changes">
             <li>Polygon-visualisering på kart: Lokaliteter som er områder (f.eks. Hylkje sjø) vises nå som fargede polygoner i stedet for bare punktmarkører</li>
             <li>Forbedret kartvisning med tydelige konturer (grønn/oransje/gul) rundt polygon-lokaliteter</li>
-          </ul>
-        </div>
-
-        <div class="version">
-          <div class="version-header">
-            <span class="version-number">v1.19.2</span>
-            <span class="version-date">14. februar 2026</span>
-          </div>
-          <div class="section-title">Kritisk feilretting</div>
-          <ul class="changes">
-            <li>HOTFIX: Fullfør httpx-migrering - "Refresh session" og område-søk brukte fortsatt curl</li>
-            <li>Fikser feilmelding: "[Errno 2] No such file or directory: 'curl'" i produksjon</li>
-            <li>Alle HTTP-kall bruker nå konsekvent httpx (ingen curl-avhengighet)</li>
-          </ul>
-        </div>
-
-        <div class="version">
-          <div class="version-header">
-            <span class="version-number">v1.19.1</span>
-            <span class="version-date">14. februar 2026</span>
-          </div>
-          <div class="section-title">Feilrettinger</div>
-          <ul class="changes">
-            <li>Fikset innlogging som sluttet å virke etter migrering til httpx</li>
-            <li>Alle autentiseringsfunksjoner bruker nå httpx i stedet for curl</li>
-          </ul>
-        </div>
-
-        <div class="version">
-          <div class="version-header">
-            <span class="version-number">v1.19.0</span>
-            <span class="version-date">14. februar 2026</span>
-          </div>
-          <div class="section-title">Tekniske forbedringer</div>
-          <ul class="changes">
-            <li>Modernisert HTTP-bibliotek: Byttet fra subprocess curl til httpx for bedre ytelse og stabilitet</li>
-            <li>Forbedret feilhåndtering ved kommunikasjon med Artsobservasjoner.no</li>
-            <li>Enklere vedlikehold og testing av backend-kode</li>
           </ul>
         </div>
 
@@ -1408,6 +1339,18 @@
             <li>Smart gruppering per lokalitet</li>
             <li>Alfabetisk sortering innenfor gruppe</li>
             <li>Aktivitets-pills for hurtigvalg</li>
+          </ul>
+        </div>
+
+        <div class="version">
+          <div class="version-header">
+            <span class="version-number">v1.0</span>
+            <span class="version-date">8. januar 2026</span>
+          </div>
+          <div class="section-title">🌱 Der det hele startet</div>
+          <ul class="changes">
+            <li>Første versjon: automatisk lokalitetsfinner, artssøk med autocomplete, lynrask registrering (art, antall, aktivitet) og «Kopier &amp; åpne AO»-eksport — kjernen appen fortsatt bygger videre på i dag.</li>
+            <li>Aller første kodelinje ble skrevet 6. januar 2026.</li>
           </ul>
         </div>
 

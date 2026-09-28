@@ -119,6 +119,7 @@ comment=
 | Auth utløpt | HTML-redirect til login-side |
 | Duplikat navn | `{"success": false, "message": "Site not saved: duplicate name"}` |
 | Mangler Geometry | NullReferenceException |
+| `success=true` men siteId mangler/er ukjent | `{"success": true, "siteId": -1, ...}` (`ao_create_site.py` linje 207) — se merknaden under om samspill med kartets dedup-vern |
 
 ## Filer
 
@@ -128,8 +129,24 @@ comment=
 | `server.py` | Route: `POST /api/ao-create-site` |
 | `public/js/api.js` | Frontend: `createAoSite()` |
 | `public/js/location.js` | Frontend: ➕-knapp og modal |
+| `public/js/map.js` | Frontend: pin-drop-varianten på kartsiden (➕-FAB → trykk i kart → panel), samme `createAoSite()`-kall |
 | `tests/test_ao_create_site.py` | Enhetstester |
 | `tools/test_create_site_final.py` | Manuelt testskript for AO API |
+
+### Samspill med panorer-og-oppdater på kartet (v1.53.15)
+
+En nyopprettet lokasjon fra pin-drop får sin egen permanente markør direkte i
+`map.js` (`addNewSiteMarker`), UTENFOR laget som panorer-oppdateringen tegner
+på nytt (`siteLayerGroup`). Siden `createAoSite()` også skriver den nye
+lokasjonen inn i 24-timers privat-cachen (`ao_private_sites`), ville en
+panorering rett etter opprettelse ellers hentet den samme lokasjonen på nytt
+via `mergeAoSitesWithPrivateCache` og tegnet den en gang til. `map.js` sporer
+derfor `siteId` (normalisert til streng, `AO kan returnere -1` ved
+`success=true` uten gyldig id — se Feilhåndtering-tabellen — behandles som en
+akseptert sjelden restrisiko, ikke en unik id å stole på for annet enn dette)
+i `manuallyPlacedSiteIds` og hopper over dobbel tegning av samme id ved
+panorer-oppdatering. Se `CLAUDE.md` (repo-roten) sin `map.js`-seksjon for
+detaljer om selve panorer-og-oppdater-mekanismen.
 
 ## Verifisert
 

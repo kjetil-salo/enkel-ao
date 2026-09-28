@@ -212,6 +212,12 @@ export function setLocationStatus(locDot, locText, mode, text) {
   } else {
     locDot.style.background = '#6b7280';
   }
+
+  // "Pending" er nå det eneste tilfellet der en aktiv henting pågår — pulserer
+  // prikken som en enkel spinner, viktig når en liste allerede vises (se
+  // expandLocation() i main.js) og brukeren ellers ikke har noe visuelt tegn
+  // på at noe skjer i bakgrunnen.
+  locDot.classList.toggle('pending', mode === 'pending');
 }
 
 /**

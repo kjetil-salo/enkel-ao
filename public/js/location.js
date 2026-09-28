@@ -79,21 +79,18 @@ export function shouldShowOthersPrivateSites() {
 }
 
 /**
- * Sett AO-site forslag i dropdown
- * @param {Array} sites - Liste med sites
- * @param {Object} currentPosition - Nåværende posisjon {lat, lon}
- * @param {HTMLElement} dropdown - Dropdown-element
- * @param {HTMLElement} aoSitesEl - AO-sites info-element
- * @param {HTMLInputElement} placeInput - Stedsnavn input-felt
- * @param {Function} setCurrentPlace - Callback for å sette nåværende sted
+ * Slå sammen bbox-sites (fra /api/ao-sites) med cachet liste over brukerens
+ * egne private lokasjoner, og filtrer bort andres private hvis innstillingen
+ * for det er av. Delt av dropdown-forslaget (setAoSiteSuggestions) og
+ * kartets panorer-oppdatering (map.js) — begge skal vise samme isMine-/
+ * privat-logikk, ikke to divergerende kopier av den.
+ * @param {Array} sites - Sites fra bbox-kallet
+ * @param {Object} referencePosition - Posisjon å regne avstand fra {lat, lon}
+ *   (brukerens GPS-posisjon ved første last, kartets senter ved panorering)
  * @param {number} searchRadiusMeters - Søkeradius i meter
- * @param {string} sortMode - 'standard' (mine → super → offentlig → andres private, så avstand)
- *   eller 'avstand' (kun avstand, uavhengig av type)
- * @returns {Array} - Oppdatert liste med sites
+ * @returns {Array} - Sammenslått og filtrert liste
  */
-export function setAoSiteSuggestions(sites, currentPosition, dropdown, aoSitesEl, placeInput, setCurrentPlace, searchRadiusMeters, sortMode = 'standard') {
-  console.log('currentPosition:', currentPosition);
-  
+export function mergeAoSitesWithPrivateCache(sites, referencePosition, searchRadiusMeters) {
   // Slå sammen bbox-sites med cachet liste over mine private lokasjoner
   const bboxSites = Array.isArray(sites) ? sites : [];
   const cachedPrivate = getCachedPrivateSites();
@@ -109,14 +106,14 @@ export function setAoSiteSuggestions(sites, currentPosition, dropdown, aoSitesEl
 
   // Legg til cachet private lokasjoner som ikke er innenfor bbox, men kun de nærmeste
   const bboxIds = new Set(bboxSites.map(s => s.id).filter(id => id != null));
-  const userLat0 = currentPosition && typeof currentPosition.lat === 'number' ? currentPosition.lat : null;
-  const userLon0 = currentPosition && typeof currentPosition.lon === 'number' ? currentPosition.lon : null;
+  const refLat = referencePosition && typeof referencePosition.lat === 'number' ? referencePosition.lat : null;
+  const refLon = referencePosition && typeof referencePosition.lon === 'number' ? referencePosition.lon : null;
   const extraPrivate = cachedPrivate
     .filter(s => !bboxIds.has(s.id))
     .map(s => {
       let dist = null;
-      if (userLat0 != null && userLon0 != null && s.lat != null && s.lon != null) {
-        dist = haversine(userLat0, userLon0, parseFloat(s.lat), parseFloat(s.lon));
+      if (refLat != null && refLon != null && s.lat != null && s.lon != null) {
+        dist = haversine(refLat, refLon, parseFloat(s.lat), parseFloat(s.lon));
       }
       return { ...s, isMine: true, isPrivate: true, _distance: dist };
     })
@@ -127,8 +124,27 @@ export function setAoSiteSuggestions(sites, currentPosition, dropdown, aoSitesEl
   // Andres private lokasjoner vises kun hvis brukeren har skrudd det på — samme
   // valg som styrer kartet (settings.html). Egne private (isMine) vises alltid.
   const showOthersPrivate = shouldShowOthersPrivateSites();
-  const currentAoSites = [...markedBbox, ...extraPrivate]
+  return [...markedBbox, ...extraPrivate]
     .filter(s => s.isMine || !isPrivateSite(s) || showOthersPrivate);
+}
+
+/**
+ * Sett AO-site forslag i dropdown
+ * @param {Array} sites - Liste med sites
+ * @param {Object} currentPosition - Nåværende posisjon {lat, lon}
+ * @param {HTMLElement} dropdown - Dropdown-element
+ * @param {HTMLElement} aoSitesEl - AO-sites info-element
+ * @param {HTMLInputElement} placeInput - Stedsnavn input-felt
+ * @param {Function} setCurrentPlace - Callback for å sette nåværende sted
+ * @param {number} searchRadiusMeters - Søkeradius i meter
+ * @param {string} sortMode - 'standard' (mine → super → offentlig → andres private, så avstand)
+ *   eller 'avstand' (kun avstand, uavhengig av type)
+ * @returns {Array} - Oppdatert liste med sites
+ */
+export function setAoSiteSuggestions(sites, currentPosition, dropdown, aoSitesEl, placeInput, setCurrentPlace, searchRadiusMeters, sortMode = 'standard') {
+  console.log('currentPosition:', currentPosition);
+
+  const currentAoSites = mergeAoSitesWithPrivateCache(sites, currentPosition, searchRadiusMeters);
 
   if (!dropdown) return currentAoSites;
   
@@ -309,7 +325,10 @@ export function setAoSiteSuggestions(sites, currentPosition, dropdown, aoSitesEl
 /**
  * Initialiser geolokasjon
  * @param {Object} elements - Objekt med DOM-elementer
- * @param {Function} onPositionUpdate - Callback når posisjon er oppdatert
+ * @param {Function} onPositionUpdate - Callback(position, sites, radiusUsed) når posisjon er
+ *   oppdatert. radiusUsed er radiusen som FAKTISK ble sendt til fetchAoSites for dette
+ *   forsøket — ikke nødvendigvis lik en senere lest live-verdi av radius-innstillingen,
+ *   viktig for kallere som cacher resultatet sammen med hvilken radius det gjelder for.
  * @param {number} aoSizeMeters - Radius for AO-sites søk
  */
 export function initLocation(elements, onPositionUpdate, aoSizeMeters = 1000) {
@@ -381,7 +400,7 @@ export function initLocation(elements, onPositionUpdate, aoSizeMeters = 1000) {
       if (!bestPosition) {
         console.warn('Ingen GPS-fix mottatt innen tidsfrist');
         setLocationStatus(locDot, locText, 'error', 'Kunne ikke hente lokasjon. Sjekk tillatelser og prøv igjen.');
-        onPositionUpdate(null, []);
+        onPositionUpdate(null, [], effectiveAoSize);
         if (locMapBtn) {
           locMapBtn.style.display = 'none';
         }
@@ -395,7 +414,13 @@ export function initLocation(elements, onPositionUpdate, aoSizeMeters = 1000) {
       const lonStr = lon.toFixed(5);
       const accStr = Math.round(accuracy);
 
-      setLocationStatus(locDot, locText, 'ok', `Lokasjon hentet (±${accStr} m)`);
+      // Fortsatt «henter» (pulserende prikk) til lokalitetene også er hentet —
+      // dette er nå det som representerer HELE bakgrunnsoppdateringen ved
+      // «Bytt lokasjon» (se expandLocation() i main.js), ikke bare selve
+      // GPS-fiksen. Stoppet pulsen her allerede ved GPS-fiks, så den før
+      // AO-kallet under var ferdig — brukeren så «ferdig» mens lista fortsatt
+      // kunne endre seg stille et øyeblikk senere, uten noe visuelt tegn.
+      setLocationStatus(locDot, locText, 'pending', `Lokasjon hentet (±${accStr} m), henter lokaliteter …`);
 
       if (locText) {
         locText.title = `${latStr}, ${lonStr} (±${accStr} m)`;
@@ -408,10 +433,15 @@ export function initLocation(elements, onPositionUpdate, aoSizeMeters = 1000) {
         // No-op umiddelbart hvis ingen credentials er lagret.
         await ensureAoTokens();
         const sites = await fetchAoSites(lat, lon, effectiveAoSize);
-        onPositionUpdate(bestPosition, sites);
+        onPositionUpdate(bestPosition, sites, effectiveAoSize);
       } catch (err) {
         console.warn('Feil ved henting av AO-lokaliteter', err);
-        onPositionUpdate(bestPosition, []);
+        onPositionUpdate(bestPosition, [], effectiveAoSize);
+      } finally {
+        // GPS-delen lyktes uansett utfall på AO-kallet over — en feilet/tom
+        // AO-henting håndteres av mottakeren (handlePositionUpdate i main.js
+        // beholder en allerede god liste i stedet for å tømme den).
+        setLocationStatus(locDot, locText, 'ok', `Lokasjon hentet (±${accStr} m)`);
       }
 
       if (locMapBtn) {
@@ -446,7 +476,7 @@ export function initLocation(elements, onPositionUpdate, aoSizeMeters = 1000) {
           console.warn('Feil ved geolokasjon (watchPosition)', err);
           if (!bestPosition) {
             setLocationStatus(locDot, locText, 'error', 'Kunne ikke hente lokasjon. Sjekk tillatelser og prøv igjen.');
-            onPositionUpdate(null, []);
+            onPositionUpdate(null, [], effectiveAoSize);
             if (locMapBtn) {
               locMapBtn.style.display = 'none';
             }
@@ -543,8 +573,10 @@ export function openMap(position) {
  * Åpne kartside med brukerposisjon og alle AO-lokaliteter
  * @param {Object} userPosition - Brukerens posisjon {lat, lon, accuracy}
  * @param {Array} sites - Liste med AO-lokaliteter
+ * @param {number} sizeMeters - Valgt søkeradius i meter — kartet bruker denne
+ *   uendret når det henter nye lokaliteter ved panorering
  */
-export function openMapPage(userPosition, sites) {
+export function openMapPage(userPosition, sites, sizeMeters) {
   if (!userPosition || !userPosition.lat || !userPosition.lon) {
     console.warn('openMapPage: Mangler brukerposisjon');
     return;
@@ -557,7 +589,8 @@ export function openMapPage(userPosition, sites) {
       lon: userPosition.lon,
       accuracy: userPosition.accuracy
     },
-    sites: sites || []
+    sites: sites || [],
+    sizeMeters: (typeof sizeMeters === 'number' && sizeMeters > 0) ? sizeMeters : 1000
   };
 
   localStorage.setItem('mapData', JSON.stringify(mapData));

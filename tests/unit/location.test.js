@@ -26,8 +26,8 @@ const localStorageMock = {
 };
 vi.stubGlobal('localStorage', localStorageMock);
 
-const { createAoSite, ensureAoTokens } = await import('../../public/js/api.js');
-const { isPrivateSite, getSiteLabel, setAoSiteSuggestions, openMap, initCreateSite } = await import('../../public/js/location.js');
+const { createAoSite, ensureAoTokens, getCachedPrivateSites } = await import('../../public/js/api.js');
+const { isPrivateSite, getSiteLabel, setAoSiteSuggestions, mergeAoSitesWithPrivateCache, openMap, openMapPage, initCreateSite } = await import('../../public/js/location.js');
 
 // ─── isPrivateSite ────────────────────────────────────────────
 
@@ -151,6 +151,159 @@ describe('openMap', () => {
     expect(openSpy).toHaveBeenCalledWith(expect.any(String), '_blank', 'noopener');
   });
 });
+
+// ─── openMapPage ──────────────────────────────────────────────
+
+describe('openMapPage', () => {
+  beforeEach(() => {
+    for (const key of Object.keys(localStorageStore)) delete localStorageStore[key];
+    vi.stubGlobal('location', { href: '' });
+  });
+
+  function readMapData() {
+    return JSON.parse(localStorageStore.mapData);
+  }
+
+  it('should not store anything when userPosition is missing lat/lon', () => {
+    openMapPage(null, [], 1500);
+    expect(localStorageStore.mapData).toBeUndefined();
+  });
+
+  it('should store a valid positive sizeMeters unchanged', () => {
+    openMapPage({ lat: 59.9, lon: 10.7 }, [], 2500);
+    expect(readMapData().sizeMeters).toBe(2500);
+  });
+
+  it.each([
+    ['manglende argument', undefined],
+    ['null', null],
+    ['0', 0],
+    ['negativt tall', -500],
+    ['streng', '2000'],
+    ['NaN', NaN],
+  ])('should fall back to default 1000 for %s', (_label, value) => {
+    openMapPage({ lat: 59.9, lon: 10.7 }, [], value);
+    expect(readMapData().sizeMeters).toBe(1000);
+  });
+});
+
+// ─── mergeAoSitesWithPrivateCache ───────────────────────────────
+// Delt kontrakt mellom setAoSiteSuggestions (dropdown) og map.js sin
+// panorer-oppdatering — direkte enhetstestet som ren funksjon, uavhengig av
+// DOM-rendring, siden map.js nå kaller den direkte.
+
+describe('mergeAoSitesWithPrivateCache', () => {
+  beforeEach(() => {
+    for (const key of Object.keys(localStorageStore)) delete localStorageStore[key];
+    getCachedPrivateSites.mockReturnValue([]);
+  });
+
+  it('should return empty array for null/undefined sites and empty cache', () => {
+    expect(mergeAoSitesWithPrivateCache(null, { lat: 59.9, lon: 10.7 }, 1000)).toEqual([]);
+    expect(mergeAoSitesWithPrivateCache(undefined, { lat: 59.9, lon: 10.7 }, 1000)).toEqual([]);
+  });
+
+  it('should pass through bbox sites unchanged when cache is empty', () => {
+    const sites = [{ id: 1, name: 'Sted', lat: 59.9, lon: 10.7 }];
+    const result = mergeAoSitesWithPrivateCache(sites, { lat: 59.9, lon: 10.7 }, 1000);
+    expect(result).toEqual(sites);
+  });
+
+  it('should mark a bbox site as isMine when its id is in the private cache', () => {
+    getCachedPrivateSites.mockReturnValue([{ id: 42, name: 'Min plass', lat: 59.9, lon: 10.7 }]);
+    const sites = [{ id: 42, name: 'Min plass', lat: 59.9, lon: 10.7, isMine: false }];
+
+    const result = mergeAoSitesWithPrivateCache(sites, { lat: 59.9, lon: 10.7 }, 1000);
+
+    expect(result).toHaveLength(1);
+    expect(result[0].isMine).toBe(true);
+  });
+
+  it('should not duplicate a cached private site already present in bbox', () => {
+    getCachedPrivateSites.mockReturnValue([{ id: 42, name: 'Min plass', lat: 59.9, lon: 10.7 }]);
+    const sites = [{ id: 42, name: 'Min plass', lat: 59.9, lon: 10.7 }];
+
+    const result = mergeAoSitesWithPrivateCache(sites, { lat: 59.9, lon: 10.7 }, 1000);
+
+    expect(result).toHaveLength(1);
+  });
+
+  it('should add cached private sites outside bbox within search radius, with distance', () => {
+    getCachedPrivateSites.mockReturnValue([
+      { id: 99, name: 'Utenfor bbox, nær', lat: 59.901, lon: 10.701 }
+    ]);
+    const result = mergeAoSitesWithPrivateCache([], { lat: 59.9, lon: 10.7 }, 5000);
+
+    expect(result).toHaveLength(1);
+    expect(result[0].isMine).toBe(true);
+    expect(result[0].isPrivate).toBe(true);
+    expect(result[0]._distance).not.toBeNull();
+  });
+
+  it('should exclude cached private sites outside the given search radius', () => {
+    getCachedPrivateSites.mockReturnValue([
+      { id: 99, name: 'Langt unna', lat: 65.0, lon: 15.0 }
+    ]);
+    const result = mergeAoSitesWithPrivateCache([], { lat: 59.9, lon: 10.7 }, 1000);
+
+    expect(result).toEqual([]);
+  });
+
+  it('should default to 5000m radius when searchRadiusMeters is not given', () => {
+    getCachedPrivateSites.mockReturnValue([
+      { id: 99, name: 'Innenfor default', lat: 59.93, lon: 10.7 } // ~3.3 km unna
+    ]);
+    const result = mergeAoSitesWithPrivateCache([], { lat: 59.9, lon: 10.7 }, undefined);
+
+    expect(result).toHaveLength(1);
+  });
+
+  it('should exclude cached private sites when referencePosition is missing (no distance to compare)', () => {
+    getCachedPrivateSites.mockReturnValue([
+      { id: 99, name: 'Uten posisjon å regne fra', lat: 59.901, lon: 10.701 }
+    ]);
+    const result = mergeAoSitesWithPrivateCache([], null, 5000);
+
+    expect(result).toEqual([]);
+  });
+
+  it('should limit extra private sites outside bbox to the 5 nearest', () => {
+    const farAway = Array.from({ length: 7 }, (_, i) => ({
+      id: 100 + i,
+      name: `Privat ${i}`,
+      lat: 59.9 + i * 0.001,
+      lon: 10.7
+    }));
+    getCachedPrivateSites.mockReturnValue(farAway);
+
+    const result = mergeAoSitesWithPrivateCache([], { lat: 59.9, lon: 10.7 }, 5000);
+
+    expect(result).toHaveLength(5);
+    // Sortert nærmest først
+    expect(result[0].name).toBe('Privat 0');
+    expect(result[4].name).toBe('Privat 4');
+  });
+
+  it('should hide andres private (not isMine) bbox sites by default', () => {
+    const sites = [{ id: 1, name: 'Andres private', lat: 59.9, lon: 10.7, isPrivate: true, isMine: false }];
+    const result = mergeAoSitesWithPrivateCache(sites, { lat: 59.9, lon: 10.7 }, 1000);
+    expect(result).toEqual([]);
+  });
+
+  it('should show andres private bbox sites when the setting is on', () => {
+    localStorageStore.showPrivateSitesOnMap = '1';
+    const sites = [{ id: 1, name: 'Andres private', lat: 59.9, lon: 10.7, isPrivate: true, isMine: false }];
+    const result = mergeAoSitesWithPrivateCache(sites, { lat: 59.9, lon: 10.7 }, 1000);
+    expect(result).toHaveLength(1);
+  });
+
+  it('should always keep own private sites regardless of the andres-private setting', () => {
+    const sites = [{ id: 1, name: 'Min private', lat: 59.9, lon: 10.7, isPrivate: true, isMine: true }];
+    const result = mergeAoSitesWithPrivateCache(sites, { lat: 59.9, lon: 10.7 }, 1000);
+    expect(result).toHaveLength(1);
+  });
+});
+
 
 // ─── setAoSiteSuggestions ─────────────────────────────────────
 

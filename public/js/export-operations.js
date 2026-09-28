@@ -311,8 +311,16 @@ export async function handleDirectSend(observations, dom, callbacks) {
     callbacks.doRenderObservations();
     callbacks.saveState();
 
+    // Hopper over bekreftelsesspørsmålet og tømmer lista stille når brukeren
+    // har slått på haken «Tøm listen automatisk ved vellykket sending» (se
+    // ao-direct-auto-clear i index.html) — kun ved en FAKTISK vellykket
+    // sending (denne kodeveien nås aldri ved feil, se catch-blokken under).
+    // Leses INNI setTimeout-callbacken, ikke fanget i en closure-variabel før
+    // den — brukeren kan rekke å slå haken av/på i de 1,5 sekundene før
+    // tømmingen skjer, og DA-verdien skal telle, ikke verdien ved sendetidspunktet.
     setTimeout(() => {
-      if (confirm('Sending vellykket! Vil du tømme observasjonslisten?')) {
+      const autoClear = !!(dom.aoDirectAutoClear && dom.aoDirectAutoClear.checked);
+      if (autoClear || confirm('Sending vellykket! Vil du tømme observasjonslisten?')) {
         observations.splice(0, observations.length);
         callbacks.doRenderObservations();
         callbacks.saveState();

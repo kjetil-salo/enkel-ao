@@ -5,8 +5,16 @@
 
 // Eksisterende moduler
 import { logPageView, loadActivities, fetchAoSites, fetchAndCachePrivateSites, getCachedPrivateSites } from './api.js';
-import { loadObservations, saveObservations, loadAoSearchRadius, saveAoSearchRadius, loadLocationSortMode, saveLocationSortMode } from './storage.js';
-import { setStatus, setLocationStatus, showToast } from './ui.js';
+// Versjonert import: denne linjen har en HARD avhengighet til to navngitte
+// eksporter (loadAoDirectAutoClear/saveAoDirectAutoClear) som ikke fantes i
+// tidligere versjoner av storage.js. Uten ?v= her kan Cloudflare servere en
+// cachet, gammel storage.js (aldri hentet med noen versjonert URL noe annet
+// sted) og gi en SyntaxError ved modul-lasting som stopper HELE main.js —
+// altså hele appen, se samme fallgruve for map.js/location.js (v1.53.15) og
+// sjekklisten i CLAUDE.md. Bump SAMTIDIG som index.html sin egen ?v=-tag for
+// main.js, hver gang storage.js får en ny eksport main.js begynner å bruke.
+import { loadObservations, saveObservations, loadAoSearchRadius, saveAoSearchRadius, loadLocationSortMode, saveLocationSortMode, loadAoDirectAutoClear, saveAoDirectAutoClear } from './storage.js?v=v1.53.17';
+import { setStatus, setLocationStatus, showToast, haversine } from './ui.js';
 import { setAoSiteSuggestions, initLocation, openMap, openMapPage, updateCreateSiteBtnVisibility, initCreateSite } from './location.js';
 import { renderObservations } from './observations.js';
 import { getVisitTimeSpan, isVisitLocked, visitExists } from './visits.js';
@@ -42,6 +50,19 @@ const appState = {
   // på en hvilken som helst annen måte.
   etterregVisitKey: null,
   currentAoSites: [],
+  // Siste ikke-tomme bbox-resultat FØR privat-cache-merge (rå input til
+  // setAoSiteSuggestions/mergeAoSitesWithPrivateCache), pluss posisjon,
+  // søkeradius og tidspunkt det ble hentet MED — brukt som fallback i
+  // handlePositionUpdate() når en fersk henting kommer tom tilbake, slik at
+  // offentlige lokaliteter som kun finnes via bbox ikke forsvinner ved en
+  // forbigående AO-feil. Posisjon/radius/tidspunkt lagres for å unngå å vise
+  // disse når de ikke lenger er relevante (brukeren har flyttet seg for
+  // langt, endret søkeradius, eller det er gått for lang tid) — se
+  // handlePositionUpdate for full begrunnelse.
+  lastBboxSites: [],
+  lastBboxPosition: null,
+  lastBboxSizeMeters: null,
+  lastBboxTs: 0,
   currentAoSizeMeters: 1000,
   locationSortMode: loadLocationSortMode(),
   _callbacks: null, // settes i init()
@@ -76,6 +97,7 @@ const dom = {
   aoDirectBtn: document.getElementById('ao-direct-btn'),
   aoDirectRow: document.getElementById('ao-direct-row'),
   aoDirectStatus: document.getElementById('ao-direct-status'),
+  aoDirectAutoClear: document.getElementById('ao-direct-auto-clear'),
   fellesturSperreHint: document.getElementById('fellestur-sperre-hint'),
   locDot: document.getElementById('loc-dot'),
   locText: document.getElementById('loc-text'),
@@ -479,6 +501,52 @@ function expandLocation() {
   // Scroll den gjenåpnede seksjonen til topp — ellers ser det ut som ingenting
   // skjer når man trykker «Bytt plass» mens man er scrollet ned i obs-lista.
   window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  // Vis forrige lokalitetsliste med en gang — uten dette sto dropdownen tom
+  // (kun skjult via display:none siden forrige valg, ikke tømt) helt til
+  // brukeren rørte feltet selv. Hent samtidig en fersk GPS-posisjon og nye
+  // AO-lokaliteter i BAKGRUNNEN, som oppdaterer lista når den er klar — ingen
+  // ventetid før noe vises, men fortsatt fersk data uten et eget GPS-trykk.
+  // Gjenbruker «Bruk GPS»-knappen (samme knapp/flyt brukeren selv trykker) i
+  // stedet for å duplisere GPS-/fetch-logikken fra location.js.
+  const hadCachedSites = !!(appState.currentAoSites && appState.currentAoSites.length && dom.placeInput);
+  if (hadCachedSites) {
+    appState.currentAoSites = setAoSiteSuggestions(
+      appState.currentAoSites,
+      appState.currentPosition,
+      dom.aoSitesDropdown,
+      dom.aoSitesEl,
+      dom.placeInput,
+      makeSetCurrentPlaceAndUpdate(),
+      appState.currentAoSizeMeters,
+      appState.locationSortMode
+    );
+  }
+  // location.js sin initLocation() fester ALDRI noen click-listener på locBtn
+  // hvis nettleseren mangler geolokasjon-støtte (navigator.geolocation) i det
+  // hele tatt — da blir .click() en total no-op, og locBtn.disabled forblir
+  // false for alltid (ingenting setter den). Uten denne sjekken kunne
+  // "henter oppdaterte lokaliteter"-meldingen under bli hengende PERMANENT i
+  // et slikt tilfelle, siden ingenting noensinne ville kalt
+  // setAoSiteSuggestions() på nytt for å rydde den bort (se den funksjonens
+  // egen selvopprydding, location.js linje ~153). Alle andre feilveier
+  // (avslått tillatelse, timeout) fungerer fint — de går via samme
+  // onPositionUpdate()-kall som en vellykket henting.
+  const gpsStøttet = typeof navigator !== 'undefined' && !!navigator.geolocation;
+  if (dom.locBtn && !dom.locBtn.disabled && gpsStøttet) {
+    dom.locBtn.click();
+  }
+  // Tydelig TEKSTMELDING om at GPS jobber i bakgrunnen — den pulserende
+  // loc-dot-prikken (setLocationStatus) alene viste seg for diskret til å
+  // legges merke til når blikket er på selve lista, ikke på GPS-knappen.
+  // Overskriver bevisst det setAoSiteSuggestions() over nettopp satte på
+  // aoSitesEl — ryddes automatisk bort av NESTE setAoSiteSuggestions-kall
+  // (den nullstiller alltid aoSitesEl aller først), altså når den ferske
+  // bakgrunnsdataen faktisk er klar og lista tegnes på nytt.
+  if (hadCachedSites && dom.locBtn && dom.aoSitesEl && gpsStøttet) {
+    dom.aoSitesEl.textContent = '🔄 Henter oppdaterte lokaliteter …';
+    dom.aoSitesEl.style.display = 'block';
+  }
 }
 
 // ============================================================
@@ -504,17 +572,91 @@ function makeSetCurrentPlaceAndUpdate() {
 // stedet for at brukeren må trykke «Bruk GPS» og så kartknappen på nytt.
 let apneKartEtterGps = false;
 
-function handlePositionUpdate(position, sites) {
-  appState.currentPosition = position;
+// Hvor lenge et tidligere bbox-resultat regnes som en gyldig fallback ved en
+// tom fersk henting (se handlePositionUpdate) — kort nok til at det kun bygger
+// bro over en forbigående AO-feil, ikke lenge nok til å vise reelt utdaterte
+// lokaliteter (f.eks. en offentlig lokalitet som siden er fjernet/gjort privat).
+const LAST_BBOX_FALLBACK_TTL_MS = 2 * 60 * 1000;
+
+function handlePositionUpdate(position, sites, radiusUsed = appState.currentAoSizeMeters) {
+  // En gyldig, fersk GPS-fiks skal ALLTID oppdatere posisjonen — uansett om
+  // AO-lokalitetene i det hele tatt kom med. Posisjonen må aldri fryse på et
+  // gammelt sted bare fordi et samtidig AO-kall feilet/degraderte til tom liste.
+  if (position) {
+    appState.currentPosition = position;
+  }
+
+  // Merge-steget (setAoSiteSuggestions → mergeAoSitesWithPrivateCache) kjøres
+  // ALLTID, uansett om bbox-resultatet er tomt — det er dette steget som også
+  // henter inn cache-baserte endringer (f.eks. en nyopprettet privat lokasjon,
+  // se initCreateSite-kallet lenger ned og v1.53.0 i CLAUDE.md). Å hoppe over
+  // det helt ved et tomt bbox-svar var en tidligere feil her: da forsvant
+  // nyopprettede lokasjoner stille fordi de aldri ble slått sammen inn i lista,
+  // selv om de allerede lå i privat-cachen.
+  //
+  // Det som derimot beskyttes er selve BBOX-INPUTEN til merget: en fersk,
+  // TOM bbox-liste (feilet/degradert AO-kall — backend-konvensjonen er å
+  // svare 200 med {sites:[]} på eksterne feil, se CLAUDE.md — umulig å skille
+  // fra et ekte "ingen offentlige lokaliteter her" fra frontend) faller
+  // tilbake til forrige kjente, ikke-tomme bbox-resultat i stedet for å late
+  // som om det ikke finnes offentlige lokaliteter i det hele tatt. Spesielt
+  // viktig nå som «Bytt lokasjon» (expandLocation()) trigger GPS i
+  // BAKGRUNNEN uten at brukeren eksplisitt ba om en ny henting akkurat da.
+  //
+  // Fallback brukes KUN hvis ALLE stemmer: (1) brukeren er fortsatt innenfor
+  // valgt søkeradius fra der forrige bbox-resultat faktisk ble hentet — uten
+  // dette kunne en som beveget seg til et sted UTEN offentlige lokaliteter
+  // (et ekte tomt resultat, ikke en feil) i stedet se gamle, fjerne
+  // lokaliteter og risikere å velge feil AO-lokalitet for en observasjon;
+  // (2) søkeradius er UENDRET siden — en smalere radius kan gyldig gi et tomt
+  // resultat der en bredere ikke gjorde det, så et radiusbytte skal aldri
+  // maskeres av den gamle, bredere lista; (3) ikke eldre enn
+  // LAST_BBOX_FALLBACK_TTL_MS — kun ment å bygge bro over en forbigående
+  // AO-feil, ikke vise reelt utdaterte lokaliteter på ubestemt tid. Gjelder
+  // heller ikke et helt FØRSTE forsøk (ingen fallback å falle tilbake på) —
+  // der vises et ekte tomt bbox-resultat normalt.
+  const forrigeBboxFortsattRelevant = appState.lastBboxPosition
+    && appState.currentPosition
+    && appState.lastBboxSizeMeters === appState.currentAoSizeMeters
+    && (Date.now() - appState.lastBboxTs) <= LAST_BBOX_FALLBACK_TTL_MS
+    && haversine(
+      appState.lastBboxPosition.lat, appState.lastBboxPosition.lon,
+      appState.currentPosition.lat, appState.currentPosition.lon
+    ) <= appState.currentAoSizeMeters;
+
+  if (sites && sites.length) {
+    appState.lastBboxSites = sites;
+    appState.lastBboxPosition = position ? { lat: position.lat, lon: position.lon } : appState.currentPosition;
+    // radiusUsed (radiusen FAKTISK sendt til fetchAoSites for DETTE resultatet)
+    // — ikke appState.currentAoSizeMeters, som kan ha rukket å bli endret av
+    // brukeren (radius-slideren) mens denne hentingen fortsatt pågikk. Uten
+    // dette kunne betingelse (2) over bli lurt av en race: et resultat hentet
+    // med gammel radius ble feilmerket med en NY, senere valgt radius.
+    appState.lastBboxSizeMeters = radiusUsed;
+    appState.lastBboxTs = Date.now();
+  }
+  const bboxSites = (sites && sites.length)
+    ? sites
+    : (forrigeBboxFortsattRelevant ? appState.lastBboxSites : []);
+  // Radiusen sendt til privat-cache-avstandsfilteret i mergeAoSitesWithPrivateCache
+  // skal matche radiusen bboxSites over FAKTISK ble hentet med — samme
+  // forgrening som bboxSites: radiusUsed for et ferskt resultat,
+  // lastBboxSizeMeters KUN når fallback-lista faktisk brukes, ellers
+  // live currentAoSizeMeters (et EKTE tomt resultat, f.eks. etter at
+  // brukeren nettopp har snevret inn radiusen, skal filtreres med DEN nye
+  // radiusen — ikke en gammel, irrelevant en).
+  const radiusForMerge = (sites && sites.length)
+    ? radiusUsed
+    : (forrigeBboxFortsattRelevant ? appState.lastBboxSizeMeters : appState.currentAoSizeMeters);
 
   appState.currentAoSites = setAoSiteSuggestions(
-    (sites && sites.length) ? sites : [],
+    bboxSites,
     appState.currentPosition,
     dom.aoSitesDropdown,
     dom.aoSitesEl,
     dom.placeInput,
     makeSetCurrentPlaceAndUpdate(),
-    appState.currentAoSizeMeters,
+    radiusForMerge,
     appState.locationSortMode
   );
   updateSectionStates(appState, dom);
@@ -524,7 +666,7 @@ function handlePositionUpdate(position, sites) {
   if (apneKartEtterGps) {
     apneKartEtterGps = false;
     if (position && typeof position.lat === 'number') {
-      openMapPage(appState.currentPosition, appState.currentAoSites);
+      openMapPage(appState.currentPosition, appState.currentAoSites, appState.currentAoSizeMeters);
     }
   }
 }
@@ -740,7 +882,7 @@ function setupEventListeners() {
     dom.locMapBtn.style.display = '';
     dom.locMapBtn.addEventListener('click', () => {
       if (appState.currentPosition && typeof appState.currentPosition.lat === 'number') {
-        openMapPage(appState.currentPosition, appState.currentAoSites);
+        openMapPage(appState.currentPosition, appState.currentAoSites, appState.currentAoSizeMeters);
         return;
       }
       apneKartEtterGps = true;
@@ -808,6 +950,13 @@ window.updateMapBtnVisibility = updateMapBtnVisibility;
   if (dom.shareBtn) dom.shareBtn.addEventListener('click', () => openShareDialog(appState.observations));
   if (dom.clearBtn) dom.clearBtn.addEventListener('click', () => handleClear(appState.observations, dom, callbacks));
   if (dom.aoDirectBtn) dom.aoDirectBtn.addEventListener('click', () => handleDirectSend(appState.observations, dom, callbacks));
+
+  if (dom.aoDirectAutoClear) {
+    dom.aoDirectAutoClear.checked = loadAoDirectAutoClear();
+    dom.aoDirectAutoClear.addEventListener('change', () => {
+      saveAoDirectAutoClear(dom.aoDirectAutoClear.checked);
+    });
+  }
 }
 
 // ============================================================
@@ -879,10 +1028,14 @@ async function init() {
       // Brukeren opprettet lokasjonen fordi hen er der nå — velg den automatisk
       // som gjeldende lokasjon, i stedet for å la ① stå uendret.
       makeSetCurrentPlaceAndUpdate()(name, siteId);
-      // Re-hent AO-sites etter opprettelse
+      // Re-hent AO-sites etter opprettelse. Radius fanges i en lokal variabel
+      // FØR kallet, slik at et eventuelt radiusbytte fra brukeren mens dette
+      // kallet pågår ikke feilmerker resultatet med feil radius i
+      // handlePositionUpdate() sin ferskhets-sjekk (se der for begrunnelse).
       if (appState.currentPosition) {
-        fetchAoSites(appState.currentPosition.lat, appState.currentPosition.lon, appState.currentAoSizeMeters)
-          .then(sites => handlePositionUpdate(appState.currentPosition, sites))
+        const radiusForDetteKallet = appState.currentAoSizeMeters;
+        fetchAoSites(appState.currentPosition.lat, appState.currentPosition.lon, radiusForDetteKallet)
+          .then(sites => handlePositionUpdate(appState.currentPosition, sites, radiusForDetteKallet))
           .catch(() => {});
       }
     }
