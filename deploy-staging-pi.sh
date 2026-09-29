@@ -23,6 +23,7 @@ rsync -av --delete \
   --exclude '__pycache__' \
   --exclude '*.pyc' \
   --exclude '.env' \
+  --exclude '.codex-tmp' \
   --exclude 'node_modules' \
   --exclude 'tests' \
   --exclude 'tools' \
