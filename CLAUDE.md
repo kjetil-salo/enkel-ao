@@ -210,7 +210,8 @@ Pure ES6 modules with no framework:
     andres private etter innstilling. Delt av `setAoSiteSuggestions()` (dropdown) og `map.js` sin
     panorer-og-oppdater (v1.53.15) — én kilde til isMine-/privat-logikk i stedet for to kopier
   - `openMapPage(userPosition, sites, sizeMeters)` lagrer valgt søkeradius i `mapData` (localStorage)
-    slik at `map.js` kan bruke SAMME radius når den henter nye lokaliteter ved panorering (v1.53.15)
+    slik at `map.js` kan bruke den som GULV når den henter nye lokaliteter ved panorering (v1.53.15;
+    fra v1.53.19 er selve radiusen viewport-avhengig og kan bli større enn dette, se `map.js` under)
   - `initLocation(elements, onPositionUpdate, aoSizeMeters)` sitt `onPositionUpdate(position, sites, radiusUsed)`
     tar nå et TREDJE argument (v1.53.16) — radiusen FAKTISK brukt i akkurat dette GPS+AO-forsøket, ikke
     en senere lest live-verdi. Kritisk for `main.js` sin `handlePositionUpdate()`, som cacher forrige
@@ -284,16 +285,46 @@ Pure ES6 modules with no framework:
 - `map.js` — Kartvisning (Leaflet) med brukerposisjon, AO-lokaliteter og pin-drop for ny lokasjon
   - Kartlag: OpenStreetMap (standard), Kartverket Topo, Kartverket Gråtone — velges via `L.control.layers` nederst til venstre
   - Kartverket-tiles er gratis WMTS uten nøkkel (`cache.kartverket.no/v1/wmts/1.0.0/{topo|topograatone}/...`)
-  - **Panorer-og-oppdater** (v1.53.15): `map.on('moveend', ...)` henter nye lokaliteter for kartets
-    NYE senter når brukeren panorerer, med samme søkeradius (`sizeMeters`, fra `mapData` i
-    localStorage) som allerede var valgt — radius endres aldri av panoreringen. Debounce 600ms +
-    minimumsavstand (`MIN_REFETCH_DISTANCE_M`) hindrer at hvert lite dra/zoom trigger et nytt
-    AO-kall (samme mønster som `initKartBevegelse` i drivstoffprisene). `fetchSeq`-telleren forkaster
-    svar fra et eldre, tregere kall som kommer tilbake etter at en nyere panorering allerede har
-    tegnet et ferskere resultat. Tegning skjer via `renderSites()`, som tømmer og bygger `siteLayerGroup`
-    på nytt — brukermarkør, pin-drop og manuelt opprettede lokasjoner ligger utenfor denne gruppen og
-    påvirkes ikke. Henting bruker samme isMine-/privat-merging som dropdown-forslaget
-    (`mergeAoSitesWithPrivateCache` i `location.js`, delt av begge for å unngå at logikken driver fra hverandre)
+  - **Panorer-og-oppdater** (v1.53.15, viewport-radius + cache v1.53.19): `map.on('moveend', ...)`
+    henter nye lokaliteter for kartets NYE senter når brukeren panorerer ELLER zoomer.
+    `computeEffectiveFetchRadiusMeters()` beregner radius ut fra hvor mye kartutsnittet faktisk
+    dekker (standard Web Mercator meter/piksel-formel, halve viewport-diagonalen), med gulv =
+    brukerens valgte `sizeMeters` og et hardt tak `MAX_AUTO_FETCH_RADIUS_M = 3000` — uansett hvor
+    langt man zoomer ut (f.eks. hele Norge), henter AO-kallet ALDRI mer enn 3 km rundt senteret;
+    resten av det synlige kartet vises bare tomt i stedet for en nedre zoom-sperre. `lastFetchedZoom`
+    spores i tillegg til senteret, slik at en ren zoom (uendret senter) også trigger refetch — uten
+    dette hentet ikke zooming noe nytt i det hele tatt. Debounce 600ms + minimumsavstand
+    (skalerer nå med `effectiveRadius`, ikke lenger en fast verdi) hindrer at hvert lite dra/zoom
+    trigger et nytt AO-kall (samme mønster som `initKartBevegelse` i drivstoffprisene).
+    `lastFetchedCenter`/`lastFetchedZoom` settes OPTIMISTISK ved forsøkets start (ikke ved suksess)
+    og reverteres kun ved feil — uten dette kunne en rask panorering A→B (før As kall er ferdig)
+    latt As forsinkede svar bli tegnet og markert som gjeldende for B. `fetchSeq`-telleren forkaster
+    i tillegg svar fra et eldre, tregere kall som kommer tilbake etter at en nyere panorering
+    allerede har tegnet et ferskere resultat. Tegning skjer via `renderSites()`, som tømmer og
+    bygger `siteLayerGroup` på nytt — brukermarkør, pin-drop og manuelt opprettede lokasjoner ligger
+    utenfor denne gruppen og påvirkes ikke. Henting bruker samme isMine-/privat-merging som
+    dropdown-forslaget (`mergeAoSitesWithPrivateCache` i `location.js`, delt av begge for å unngå at
+    logikken driver fra hverandre) — kalles bevisst med `sizeMeters` (ikke `effectiveRadius`) som
+    tredje argument, siden det kun styrer et lite ekstra fallback-søk for egne private lokasjoner
+    bbox-treffet måtte ha misset, ikke selve bbox-radiusen. Et TOMT AO-svar
+    tømmer ALDRI selve visningen (`if (bboxSites.length === 0) return;` FØR
+    `renderSites()` kalles) — umulig å skille fra en forbigående, degradert
+    AO-feil i felt, og trolig (deler av) årsaken til at en betatester meldte
+    at lokaliteter «forsvant» ved panorering. Bokføringen reverteres bevisst
+    IKKE i dette tilfellet (i motsetning til ved en ekte feil) — det hamret
+    et nytt AO-kall for hver ~150 m panorering over et genuint tomt område i
+    et tidligere forsøk. Full beskrivelse, avveininger og aksepterte
+    bieffekter: `docs/kart-viewport-radius-og-cache.md`
+  - **Lokal cache for bbox-lokaliteter** (`fetchAoSitesCached()` i `api.js`, v1.53.19): 7 dagers
+    localStorage-cache (`ao_bbox_cache_v1`, maks 5 innslag) for panorer-og-oppdater sine
+    AO-kall — dekker at samme bruker gjerne besøker de samme få stedene igjen og igjen (helt nye
+    OFFENTLIGE AO-lokaliteter er svært sjeldne i en 15 år gammel app). Partisjonert på innlogget
+    AO-brukernavn (`ao_username`, `'__anon__'` hvis ingen) — uten det kunne en innlogging/utlogging
+    gjenbrukt et cachet svar med feil `isMine`-merking. Tomme resultater caches ALDRI (backend
+    degraderer eksterne AO-feil til en tom, men HTTP 200-liste — umulig å skille en forbigående
+    feil fra et genuint tomt område, og caching av det ville låst fast en glipp i opptil 7 dager).
+    Brukerens EGNE nyopprettede lokasjoner er upåvirket av denne cachen uansett (se `createAoSite()`
+    i `api.js`, som skriver rett inn i den separate 24t-cachen `ao_private_sites`)
 
 ### Konfigurerbare Aktivitetspills (v1.18.0+)
 Brukere kan velge 0-6 aktiviteter som vises som hurtigknapper:

@@ -2,6 +2,8 @@
  * API-modul for kommunikasjon med backend
  */
 
+import { haversine } from './utils.js';
+
 // localStorage-basert cache for artssøk med 1 års TTL
 const SPECIES_CACHE_PREFIX = 'species_';
 const SPECIES_CACHE_TTL = 365 * 24 * 60 * 60 * 1000; // 1 år
@@ -9,6 +11,29 @@ const SPECIES_CACHE_TTL = 365 * 24 * 60 * 60 * 1000; // 1 år
 // Cache for private lokasjoner
 const PRIVATE_SITES_KEY = 'ao_private_sites';
 const PRIVATE_SITES_TTL = 24 * 60 * 60 * 1000; // 24 timer
+
+// Cache for offentlige/bbox-lokaliteter hentet ved panorering på kartet
+// (map.js). Helt offentlige AO-lokaliteter opprettes svært sjelden (appen har
+// eksistert i 15 år) — 7 dagers TTL dekker Espens bruksmønster («95 % av
+// tiden på Bømlo») uten reell fare for at nye lokaliteter forblir usynlige
+// lenge. Brukerens EGNE nyopprettede lokasjoner er upåvirket av denne cachen:
+// de legges rett inn i PRIVATE_SITES_KEY over ved opprettelse (se
+// createAoSite under) og slås sammen med bbox-resultatet ved hver visning,
+// uansett hvor gammelt selve bbox-cache-treffet er.
+const BBOX_CACHE_KEY = 'ao_bbox_cache_v1';
+const BBOX_CACHE_TTL = 7 * 24 * 60 * 60 * 1000; // 7 dager
+// Holdt lavt med vilje: hver AO-respons kan inneholde opptil 1000 sites
+// (maxSites, se src/api_handlers.py) med fullt `raw`-objekt hver (polygoner
+// m.m.) — i en tett by kan én eneste slik respons bli flere hundre KB. Et
+// par favorittsteder (Espens Bømlo-bruk) er det reelle målet, ikke en
+// generell flate-cache over hele landet, så 5 gir god nok dekning uten å
+// presse localStorage-kvoten (typisk 5–10 MB per origin, delt med resten
+// av appens egne cacher) i verstefall-scenarioet.
+const BBOX_CACHE_MAX_ENTRIES = 5;
+// Et cachet treff gjenbrukes kun for et senter innenfor denne avstanden fra
+// det som faktisk ble hentet — nok til å dekke normal GPS-unøyaktighet og
+// småpanorering, uten å late som et helt annet sted er «det samme».
+const BBOX_CACHE_MATCH_DISTANCE_M = 300;
 
 /**
  * Hent cachet liste over brukerens private lokasjoner
@@ -251,6 +276,80 @@ export async function fetchAoSites(lat, lon, sizeMeters = 1000, isRetry = false)
   }
 
   return data.sites.filter(s => s && typeof s.name === 'string' && s.name.trim());
+}
+
+function getBboxCacheEntries() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(BBOX_CACHE_KEY) || '[]');
+    return Array.isArray(raw) ? raw : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function saveBboxCacheEntries(entries) {
+  try {
+    localStorage.setItem(BBOX_CACHE_KEY, JSON.stringify(entries));
+  } catch (e) {
+    // localStorage full/utilgjengelig — cachen er kun en optimalisering,
+    // ikke kritisk om den ikke lar seg lagre (samme prinsipp som ellers i
+    // denne fila, se setCachedSpecies).
+  }
+}
+
+/**
+ * Som fetchAoSites(), men med en lokal 7-dagers cache for å spare gjentatte
+ * kall til samme kartområde over tid (se BBOX_CACHE_TTL over). Cacher den RÅ
+ * AO-responsen (kun offentlige/bbox-lokaliteter) — brukerens egne private
+ * lokasjoner ligger i en helt separat, alltid fersk cache
+ * (getCachedPrivateSites) og slås sammen med resultatet herfra ved hver
+ * visning, uavhengig av hvor gammelt selve bbox-treffet er.
+ *
+ * Et cache-treff krever at et tidligere hentet punkt ligger innenfor
+ * BBOX_CACHE_MATCH_DISTANCE_M fra `lat,lon` OG dekket minst `radiusMeters` —
+ * en cachet liste hentet med en MINDRE radius enn det som nå trengs
+ * inneholder ikke nødvendigvis alt som skal vises, og brukes derfor ikke.
+ *
+ * Partisjonert på innlogget AO-brukernavn (eller "anonym" hvis ingen): selve
+ * AO-svaret markerer `isMine` ut fra HVEM som spør, ikke bare hvor. Uten
+ * dette ville en logg-inn/logg-ut eller brukerbytte kunne gjenbruke et
+ * cachet svar beregnet for en annen identitet — egne lokasjoner ville da
+ * feilaktig vist som andres (eller omvendt) i opptil 7 dager.
+ *
+ * @param {number} lat
+ * @param {number} lon
+ * @param {number} radiusMeters
+ * @returns {Promise<Array>}
+ */
+export async function fetchAoSitesCached(lat, lon, radiusMeters) {
+  const now = Date.now();
+  const userKey = localStorage.getItem('ao_username') || '__anon__';
+  const entries = getBboxCacheEntries().filter(e => now - e.ts < BBOX_CACHE_TTL);
+
+  const hit = entries.find(e => {
+    if (e.userKey !== userKey) return false;
+    if (e.radius < radiusMeters) return false;
+    const dist = haversine(lat, lon, e.lat, e.lon);
+    return dist != null && dist <= BBOX_CACHE_MATCH_DISTANCE_M;
+  });
+  if (hit) {
+    return hit.sites;
+  }
+
+  const sites = await fetchAoSites(lat, lon, radiusMeters);
+
+  // Ikke cache et tomt resultat: backend degraderer alltid ekstern-API-feil
+  // til en tom, men HTTP 200-liste (se CLAUDE.md, "External API Error
+  // Handling") — en forbigående AO-feil er derfor umulig å skille fra et
+  // genuint tomt område her. Å cache den ville låst fast en tilfeldig
+  // glipp som "bekreftet tomt" i opptil 7 dager. Et ekte tomt område er
+  // uansett billig å spørre på nytt — ingen treff å hente uansett.
+  if (sites.length > 0) {
+    const updated = [{ lat, lon, radius: radiusMeters, sites, userKey, ts: now }, ...entries];
+    saveBboxCacheEntries(updated.slice(0, BBOX_CACHE_MAX_ENTRIES));
+  }
+
+  return sites;
 }
 
 /**

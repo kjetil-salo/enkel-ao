@@ -2,7 +2,13 @@
  * Kart-modul for visning av brukerposisjon og AO-lokaliteter
  */
 
-import { createAoSite, ensureAoTokens, fetchAoSites } from './api.js';
+// Versjonert import — samme begrunnelse som location.js-importen under:
+// fetchAoSitesCached er en NY navngitt eksport i api.js, og api.js var
+// tidligere en ubetegnet (uversjonert) import her. Uten ?v= kunne Cloudflare
+// (max-age=14400) fortsatt servere en gammel api.js uten denne eksporten i
+// opptil 4 timer etter deploy — nøyaktig samme feilmønster som rammet
+// location.js-importen i v1.53.15 og storage.js-importen i v1.53.17.
+import { createAoSite, ensureAoTokens, fetchAoSitesCached } from './api.js?v=v1.53.19';
 // Versjonert import (i motsetning til de andre): dette er en HARD avhengighet
 // til en navngitt eksport (mergeAoSitesWithPrivateCache) som ikke fantes i
 // tidligere versjoner av location.js. Uten ?v= her serverer Cloudflare
@@ -337,8 +343,9 @@ renderSites(sites, { fitToBounds: true });
 // --- Panorer-og-oppdater: hent nye lokaliteter for kartets senter ---
 // Samme mønster som drivstoffprisene (public/js/map.js: initKartBevegelse):
 // debounce + minimumsavstand, så vi ikke hamrer løs på AO ved hver liten
-// bevegelse eller zoom. Radius (sizeMeters) endres ALDRI her — kun SENTERET
-// for hva som hentes flytter seg med panoreringen.
+// bevegelse eller zoom. Radius skalerer nå med hvor mye kartutsnittet faktisk
+// dekker (se computeEffectiveFetchRadiusMeters) — men er alltid låst til et
+// tak, se MAX_AUTO_FETCH_RADIUS_M, uansett hvor langt brukeren zoomer ut.
 //
 // renderSites() over kaller ev. fitBounds MED animate:false (se der), som gjør
 // at Leaflet flytter/zoomer OG fyrer sin egen moveend HELT synkront — altså
@@ -349,6 +356,7 @@ renderSites(sites, { fitToBounds: true });
 // tidsbasert gjetning nødvendig (tidligere forsøk med map.once()/karantenetid
 // hadde begge egne rekkefølge-svakheter — se git-historikk).
 let lastFetchedCenter = { lat: map.getCenter().lat, lon: map.getCenter().lng };
+let lastFetchedZoom = map.getZoom();
 let moveendTimer = null;
 // Øker for hvert forsøk — brukes til å forkaste svar fra et eldre, tregere
 // kall som kommer tilbake ETTER at en nyere panorering allerede har startet
@@ -356,7 +364,48 @@ let moveendTimer = null;
 // et sent svar for et sted brukeren har forlatt overskrive et korrekt,
 // ferskere kart.
 let fetchSeq = 0;
-const MIN_REFETCH_DISTANCE_M = Math.max(150, sizeMeters / 4);
+
+// Hardt tak, uansett zoom-nivå: zoomer brukeren ut til f.eks. hele Norge er
+// det SYNLIGE kartutsnittet stort, men selve AO-forespørselen skal likevel
+// aldri strekke seg lenger enn dette rundt kartsenteret. Resten av det
+// synlige kartet vises da bare tomt i stedet for at appen prøver å hente et
+// helt land — se resonnementet i chat 2026-09-28 (Kjetil): ingen egen
+// nedre zoom-sperre er nødvendig når selve innhentingen uansett er låst til
+// et tak. Satt lik den eksisterende maks-søkeradiusen på registreringssiden
+// (500 m – 3 km, se public/index.html) — en allerede utprøvd, trygg øvre
+// grense, i stedet for en ny, uprøvd terskel. Å sette den høyere ville også
+// gjort det lettere å treffe AOs harde `maxSites: 1000`-tak i tette områder
+// (f.eks. Oslo sentrum), som trunkerer resultatet stille uten varsel.
+const MAX_AUTO_FETCH_RADIUS_M = 3000;
+
+/**
+ * Radiusen (meter) som skal hentes rundt kartsenteret ved denne
+ * panorer/zoom-oppdateringen. Skalerer med zoom — jo mer utzoomet, jo større
+ * areal er synlig, jo mer trengs for at "alt i kartutsnittet" faktisk lastes
+ * (Espens ønske) — men klippes hardt til MAX_AUTO_FETCH_RADIUS_M i stedet for
+ * å vokse videre med et enda mer utzoomet kart. Gulv = brukerens opprinnelig
+ * valgte søkeradius (sizeMeters) — panorering skal aldri vise FÆRRE
+ * lokaliteter enn det man eksplisitt valgte på registreringssiden. Taket
+ * heves om nødvendig for å aldri komme under gulvet (edge case: en
+ * fremtidig endring av slideren i index.html tillater en sizeMeters større
+ * enn MAX_AUTO_FETCH_RADIUS_M) — rekkefølgen min(max(...), ...) alene ville
+ * stille brutt gulv-garantien i det tilfellet.
+ * @param {L.LatLng} center - Kartsenteret å beregne ut fra
+ * @param {number} zoom - Zoom-nivået å beregne ut fra
+ */
+function computeEffectiveFetchRadiusMeters(center, zoom) {
+  const size = map.getSize(); // {x, y} i piksler
+  // Standard Web Mercator meter-per-piksel for gitt breddegrad og zoom-nivå
+  // (samme formel Leaflet/OSM selv bruker internt for tile-skalering).
+  const metersPerPixel = (156543.03392 * Math.cos((center.lat * Math.PI) / 180)) / Math.pow(2, zoom);
+  // Halve DIAGONALEN, ikke halve bredden/høyden — sikrer at hele det synlige
+  // utsnittet (inkl. hjørnene) dekkes av den kvadratiske boksen
+  // _compute_bbox() bygger på backend, ikke bare midten av skjermen.
+  const halfDiagonalPx = Math.sqrt(size.x * size.x + size.y * size.y) / 2;
+  const viewportRadius = halfDiagonalPx * metersPerPixel;
+  const cap = Math.max(MAX_AUTO_FETCH_RADIUS_M, sizeMeters);
+  return Math.min(Math.max(viewportRadius, sizeMeters), cap);
+}
 
 map.on('moveend', handleMapMoveEnd);
 
@@ -364,24 +413,108 @@ function handleMapMoveEnd() {
   clearTimeout(moveendTimer);
   moveendTimer = setTimeout(async () => {
     const center = map.getCenter();
+    const zoom = map.getZoom();
+    const effectiveRadius = computeEffectiveFetchRadiusMeters(center, zoom);
     const moved = haversine(lastFetchedCenter.lat, lastFetchedCenter.lon, center.lat, center.lng);
-    if (moved != null && moved < MIN_REFETCH_DISTANCE_M) return;
+    // Terskelen skalerer med radiusen som faktisk er i bruk NÅ (ikke lenger
+    // en fast verdi satt ved sideinnlasting) — utzoomet med større radius tåler
+    // en større reell forflytning før det er verdt et nytt AO-kall.
+    const minRefetchDistance = Math.max(150, effectiveRadius / 4);
+    // Zoom uten panorering (samme senter) endrer ikke `moved` i det hele tatt
+    // — uten zoomChanged ville en ren zoom aldri hentet på nytt, trolig
+    // årsaken til at lokaliteter ikke viste seg på alle zoom-nivå.
+    const zoomChanged = zoom !== lastFetchedZoom;
+    if (!zoomChanged && moved != null && moved < minRefetchDistance) return;
+
+    // Marker dette stedet som "under henting" MED EN GANG — ikke først ved
+    // suksess. Uten dette ville en rask panorering til A og rett tilbake til
+    // B (før As kall er ferdig) sett Bs eget moveend ut som "ingenting nytt"
+    // (fortsatt sammenlignet mot det gamle, ikke-oppdaterte Bs-hentepunkt),
+    // hoppe over sitt eget kall, og siden la As forsinkede (og nå utdaterte)
+    // svar bli tegnet og markert som gjeldende — selv om kartet faktisk viser
+    // B. Ved feil (catch under) tilbakestilles til forrige kjente sted, slik
+    // at et nytt forsøk på nøyaktig samme sted fortsatt trigges senere,
+    // i stedet for å bli stille blokkert for godt.
+    const previousFetchedCenter = lastFetchedCenter;
+    const previousFetchedZoom = lastFetchedZoom;
+    lastFetchedCenter = { lat: center.lat, lon: center.lng };
+    lastFetchedZoom = zoom;
+
+    // Delt av både "tomt svar"- og feil-grenen under: reverter den optimistiske
+    // oppdateringen over til forrige kjente sted, MEN kun hvis dette fortsatt
+    // er den gjeldende hentingen (en nyere, allerede fullført/pågående henting
+    // skal ikke få bokføringen sin overskrevet av et eldre forsøks
+    // manglende-resultat). Kjent, akseptert restrisiko: hvis et ELDRE forsøk
+    // (mot et sted A, fortsatt i flight) skulle lykkes ETTER at dette nyere
+    // forsøket (mot B) har reversert til A her, blir As eget vellykkede svar
+    // uansett forkastet av seq-sjekken under (en enda nyere B-forsøk «eier»
+    // fetchSeq) — og bokføringen sier da feilaktig at A er ferdig hentet helt
+    // til brukeren beveger seg langt nok bort og tilbake, eller zoomer.
+    // Selvkorrigerende innen én ekstra bevegelse, og for usannsynlig (krever
+    // treg nettverk + rukket-å-svare i akkurat denne rekkefølgen) til å
+    // rettferdiggjøre per-forsøk-sporing i et hobbyprosjekt.
+    const revertFetchBookkeepingIfStillCurrent = () => {
+      if (seq === fetchSeq) {
+        lastFetchedCenter = previousFetchedCenter;
+        lastFetchedZoom = previousFetchedZoom;
+      }
+    };
 
     const seq = ++fetchSeq;
     try {
       await ensureAoTokens();
-      const bboxSites = await fetchAoSites(center.lat, center.lng, sizeMeters);
+      const bboxSites = await fetchAoSitesCached(center.lat, center.lng, effectiveRadius);
       // En nyere panorering kan ha rukket å starte (og fullføre) sitt eget
-      // kall mens dette ventet — da skal IKKE dette eldre svaret tegnes,
-      // og lastFetchedCenter skal heller ikke oppdateres til dette stedet.
+      // kall mens dette ventet — da skal IKKE dette eldre svaret tegnes.
+      // lastFetchedCenter/-Zoom er allerede satt til DENNE hentingens mål
+      // over (før awaiten), så de rører vi ikke her — en nyere, gjeldende
+      // henting eier allerede bokføringen på dette tidspunktet.
       if (seq !== fetchSeq) return;
-      // Oppdateres først NÅ (ikke før fetch startet) — en feilet henting skal
-      // fortsatt kunne prøves på nytt ved neste panorering i samme område,
-      // i stedet for at MIN_REFETCH_DISTANCE_M stille blokkerer den for godt.
-      lastFetchedCenter = { lat: center.lat, lon: center.lng };
+      // Et TOMT svar er umulig å skille fra en forbigående, degradert AO-feil:
+      // backend gir alltid HTTP 200 + tom liste ved ekstern-API-feil (se
+      // CLAUDE.md "External API Error Handling"), ALDRI en feilkode try/catch
+      // under ville fanget. Selve VISNINGEN skal derfor ALDRI tømmes for
+      // allerede viste, gyldige lokaliteter på grunnlag av et tomt svar alene
+      // — trolig (deler av) årsaken til at Espen opplevde at lokaliteter
+      // "forsvant" ved panorering i felt (ofte ustabil mobildekning der
+      // nettopp denne degraderingen inntreffer).
+      //
+      // Bokføringen (lastFetchedCenter/-Zoom) reverteres BEVISST IKKE her,
+      // i motsetning til i catch under: et tomt svar behandles som et
+      // gyldig, "ferdig sjekket" resultat for akkurat dette punktet — samme
+      // måte resten av appen allerede stoler på en degradert-men-200-respons
+      // som sannheten. Et første forsøk med revert her hamret et nytt
+      // AO-kall for hver ~150 m panorering over et genuint tomt område
+      // (kyst/hav/fjell) — stikk i strid med "External API Ethics"
+      // (aldri lastteste/hamre på Artsobservasjoner). Prisen er at en
+      // maskert, forbigående AO-feil ikke hentes på nytt før brukeren
+      // beveger seg vekk og tilbake eller zoomer — samme forsinkelse enhver
+      // annen degradert-men-200-respons i appen allerede har.
+      //
+      // Aksepert bieffekt: mergeAoSitesWithPrivateCache() under (som også
+      // later som om en håndfull nærmeste EGNE private lokasjoner utenfor
+      // selve bbox-treffet skal vises, se "extraPrivate") kjøres IKKE når vi
+      // returnerer her — en egen privat lokasjon nær et sted der bare det
+      // OFFENTLIGE bbox-svaret var tomt, vises derfor ikke før en senere
+      // panorering/zoom treffer et offentlig, ikke-tomt svar. Denne fallbacken
+      // er uansett kun et sikkerhetsnett for sites bbox-kallet skulle ha
+      // misset (selve bbox-svaret inneholder normalt allerede alle brukerens
+      // sites innenfor effectiveRadius, se kommentar ved kallet under) — for
+      // smalt et hjørnetilfelle til å rettferdiggjøre en egen, atskilt
+      // render-vei for offentlige vs. private lokasjoner i et hobbyprosjekt.
+      if (bboxSites.length === 0) return;
+      // sizeMeters — IKKE effectiveRadius — som søkeradius for "egne private
+      // lokasjoner utenfor selve bbox-treffet": bboxSites dekker allerede hele
+      // effectiveRadius (også private, se src/api_handlers.py), så dette
+      // tredje argumentet styrer kun HVOR MYE LENGER UT enn selve bbox-treffet
+      // vi i tillegg later som om en håndfull nærmeste egne private
+      // lokasjoner skal vises. Å bruke effectiveRadius her ville latt det
+      // ekstra søket vokse i takt med utzooming, langt utover det brukeren
+      // faktisk ba om på registreringssiden.
       const merged = mergeAoSitesWithPrivateCache(bboxSites, { lat: center.lat, lon: center.lng }, sizeMeters);
       renderSites(merged, { fitToBounds: false });
     } catch (e) {
+      revertFetchBookkeepingIfStillCurrent();
       // Ekstern-API-feil ved panorering: behold forrige visning i stedet for
       // å krasje eller tømme kartet — samme prinsipp som andre AO-kall.
       console.warn('Kunne ikke oppdatere lokaliteter etter panorering:', e);
