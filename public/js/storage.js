@@ -322,10 +322,11 @@ export function loadAoDirectAutoClear() {
 }
 
 /**
- * Lagre om nynorske artsnavn skal vises som hint i artssøket (kun offline-
- * lista, se docs/ for kildeanalyse). Rent kosmetisk - endrer ALDRI hvilket
- * navn som faktisk lagres/sendes til AO ved publisering (det er alltid
- * bokmål, jf. observations.js sin CSV-eksport).
+ * Lagre om nynorske artsnavn skal brukes som visningsnavn i artssøket (kun
+ * offline-lista, se docs/ for kildeanalyse). Rent visuelt - endrer ALDRI
+ * hvilket navn som faktisk lagres/sendes til AO ved publisering (det er
+ * alltid bokmål, jf. observations.js sin CSV-eksport og speciesDisplayName()
+ * under, som holder disse to bevisst atskilt).
  * @param {boolean} value
  */
 export function saveNynorskArtsnavn(value) {
@@ -339,7 +340,7 @@ export function saveNynorskArtsnavn(value) {
 }
 
 /**
- * Last om nynorske artsnavn skal vises som hint i artssøket. Default av.
+ * Last om nynorske artsnavn skal brukes som visningsnavn i artssøket. Default av.
  * @returns {boolean}
  */
 export function loadNynorskArtsnavn() {
@@ -350,6 +351,27 @@ export function loadNynorskArtsnavn() {
   } catch (e) {
     return false;
   }
+}
+
+/**
+ * Navnet som skal VISES til brukeren for en art - nynorsk hvis innstillingen
+ * er på og arten har et (fra offline-lista), ellers bokmål. Brukes overalt
+ * arten vises i grensesnittet (søkeresultater, ③-lista, registrerings-toast).
+ *
+ * Helt bevisst ALDRI brukt for selve lagringen/publiseringen: `species.taxonName`
+ * er og skal forbli det eneste feltet som sendes til AO (se observations.js
+ * sin CSV-eksport, som leser taxonName direkte - ikke denne funksjonen).
+ * Uten dette skillet ville registrering av f.eks. "fiskemåse" (nynorsk) blitt
+ * sendt til AO som teksten "fiskemåse", som AO mest sannsynlig ikke kjenner
+ * igjen (AO matcher navn på tekst, se kråke/svartkråke-unntaket i
+ * observations.js).
+ * @param {{taxonName?: string, nynorsk?: string}} species
+ * @returns {string}
+ */
+export function speciesDisplayName(species) {
+  if (!species) return '';
+  if (loadNynorskArtsnavn() && species.nynorsk) return species.nynorsk;
+  return species.taxonName || '';
 }
 
 /**

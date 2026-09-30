@@ -2,7 +2,7 @@
  * Observasjons-modul for validering, lagring og aktivitets-pills
  */
 
-import { defaultCoObservers, loadActivityPills } from './storage.js';
+import { defaultCoObservers, loadActivityPills, speciesDisplayName } from './storage.js?v=v1.53.24';
 import { showToast } from './ui.js';
 import { toLocalISOString } from './utils.js';
 import { resolveVisitIdForNewObservation, getVisitTimeSpan, isVisitLocked, visitExists } from './visits.js';
@@ -227,7 +227,7 @@ export function commitObservation(state, dom, callbacks) {
   callbacks.doRenderObservations();
   callbacks.saveState();
 
-  const artNavnToast = state.selectedSpecies.taxonName;
+  const artNavnToast = speciesDisplayName(state.selectedSpecies);
 
   // Behold selectedSpecies for å tillate umiddelbar ny registrering med nytt antall
   // Nullstilles først når bruker begynner å skrive nytt søk

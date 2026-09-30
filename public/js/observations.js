@@ -2,7 +2,7 @@
  * Observations-modul for håndtering av observasjoner og CSV-eksport
  */
 
-import { defaultCoObservers, loadMedobs } from './storage.js';
+import { defaultCoObservers, loadMedobs, speciesDisplayName } from './storage.js?v=v1.53.24';
 import { showToast } from './ui.js';
 import { toLocalISOString } from './utils.js';
 import { getObservationVisitKey, setVisitLocked } from './visits.js';
@@ -342,7 +342,7 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
 
       const speciesSpan = document.createElement('span');
       speciesSpan.className = 'obs-species';
-      speciesSpan.textContent = obs.species && obs.species.taxonName ? obs.species.taxonName : '';
+      speciesSpan.textContent = obs.species ? speciesDisplayName(obs.species) : '';
       primaryLine.appendChild(speciesSpan);
 
       if (obs.activity) {
@@ -649,7 +649,7 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
         // Lagre slettet observasjon og posisjon for undo
         const deletedObs = observations[globalIndex];
         const deletedIndex = globalIndex;
-        const speciesName = deletedObs.species?.taxonName || 'Observasjon';
+        const speciesName = (deletedObs.species && speciesDisplayName(deletedObs.species)) || 'Observasjon';
 
         // Fjern fra array
         observations.splice(globalIndex, 1);

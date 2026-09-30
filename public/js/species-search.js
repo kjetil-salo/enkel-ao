@@ -4,7 +4,7 @@
 
 import { searchSpecies } from './api.js';
 import { searchOfflineSpecies } from './species_offline.js';
-import { loadNynorskArtsnavn } from './storage.js?v=v1.53.23';
+import { speciesDisplayName } from './storage.js?v=v1.53.24';
 
 export function updateSubtaxaCheckboxState() {
   const forceOffline = localStorage.getItem('forceOfflineSpecies') === '1';
@@ -43,18 +43,8 @@ export function renderResults(state, dom) {
 
     const nameSpan = document.createElement('span');
     nameSpan.className = 'result-name';
-    nameSpan.textContent = item.taxonName || item.norwegian || '(ukjent navn)';
+    nameSpan.textContent = speciesDisplayName(item) || item.norwegian || '(ukjent navn)';
     row.appendChild(nameSpan);
-
-    // Rent kosmetisk hint - overstyrer ALDRI taxonName, som er det som
-    // faktisk lagres og sendes til AO ved publisering (se observations.js).
-    if (loadNynorskArtsnavn() && item.nynorsk && item.nynorsk !== item.taxonName) {
-      const nnSpan = document.createElement('span');
-      nnSpan.className = 'result-nynorsk';
-      nnSpan.style.cssText = 'font-size:0.85em;opacity:0.7;margin-left:6px;';
-      nnSpan.textContent = `(nn: ${item.nynorsk})`;
-      row.appendChild(nnSpan);
-    }
 
     if (item.scientificName || item.latin) {
       const sciSpan = document.createElement('span');
@@ -92,7 +82,10 @@ export function chooseItem(index, state, dom, callbacks) {
 
   state.selectedSpecies = item;
 
-  dom.input.value = item.taxonName;
+  // Viser displayName (nynorsk hvis valgt), men item.taxonName forblir
+  // uendret bokmål - det er DET som faktisk havner i state.selectedSpecies
+  // og til slutt sendes til AO, uavhengig av hva som står i feltet her.
+  dom.input.value = speciesDisplayName(item);
   dom.input.classList.add('species-selected');
 
   state.currentResults = [];

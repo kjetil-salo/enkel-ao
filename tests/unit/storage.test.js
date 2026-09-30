@@ -10,7 +10,7 @@ const localStorageMock = {
 vi.stubGlobal('localStorage', localStorageMock);
 
 // Dynamisk import etter mock er satt opp
-const { loadMedobs, saveMedobs, defaultCoObservers, saveObservations, loadObservations, saveAoDirectAutoClear, loadAoDirectAutoClear } = await import('../../public/js/storage.js');
+const { loadMedobs, saveMedobs, defaultCoObservers, saveObservations, loadObservations, saveAoDirectAutoClear, loadAoDirectAutoClear, saveNynorskArtsnavn, loadNynorskArtsnavn, speciesDisplayName } = await import('../../public/js/storage.js');
 
 // Speiler todayStr() i storage.js — medobs lagres med dagens dato.
 function todayStr() {
@@ -185,6 +185,55 @@ describe('loadAoDirectAutoClear / saveAoDirectAutoClear', () => {
     saveAoDirectAutoClear(true);
     saveAoDirectAutoClear(false);
     expect(loadAoDirectAutoClear()).toBe(false);
+  });
+});
+
+describe('loadNynorskArtsnavn / saveNynorskArtsnavn', () => {
+  it('should default to false when nothing stored', () => {
+    expect(loadNynorskArtsnavn()).toBe(false);
+  });
+
+  it('should round-trip true', () => {
+    saveNynorskArtsnavn(true);
+    expect(loadNynorskArtsnavn()).toBe(true);
+  });
+
+  it('should round-trip false after being true', () => {
+    saveNynorskArtsnavn(true);
+    saveNynorskArtsnavn(false);
+    expect(loadNynorskArtsnavn()).toBe(false);
+  });
+});
+
+describe('speciesDisplayName', () => {
+  it('should return empty string for null/undefined species', () => {
+    expect(speciesDisplayName(null)).toBe('');
+    expect(speciesDisplayName(undefined)).toBe('');
+  });
+
+  it('should return bokmål (taxonName) when nynorsk setting is off, even if nynorsk field exists', () => {
+    saveNynorskArtsnavn(false);
+    expect(speciesDisplayName({ taxonName: 'fiskemåke', nynorsk: 'fiskemåse' })).toBe('fiskemåke');
+  });
+
+  it('should return nynorsk when setting is on and species has a nynorsk name', () => {
+    saveNynorskArtsnavn(true);
+    expect(speciesDisplayName({ taxonName: 'fiskemåke', nynorsk: 'fiskemåse' })).toBe('fiskemåse');
+  });
+
+  it('should fall back to bokmål when setting is on but species has no nynorsk name', () => {
+    // Typisk et online AO-søkeresultat, som aldri har et nynorsk-felt
+    saveNynorskArtsnavn(true);
+    expect(speciesDisplayName({ taxonName: 'kjøttmeis' })).toBe('kjøttmeis');
+  });
+
+  it('should never leak nynorsk into the underlying taxonName field itself', () => {
+    saveNynorskArtsnavn(true);
+    const species = { taxonName: 'fiskemåke', nynorsk: 'fiskemåse' };
+    speciesDisplayName(species);
+    // Kallet må aldri mutere objektet - taxonName er det som til slutt
+    // sendes til AO og skal forbli urørt uansett innstilling.
+    expect(species.taxonName).toBe('fiskemåke');
   });
 });
 
