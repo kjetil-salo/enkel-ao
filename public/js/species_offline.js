@@ -105,3 +105,36 @@ export async function searchOfflineSpecies(term, includeSubtaxa = false) {
   // Begrens til 15 treff for å unngå lang, støyete liste
   return filtered.slice(0, 15);
 }
+
+let latinToNynorskIndex = null;
+
+async function buildLatinToNynorskIndex() {
+  if (latinToNynorskIndex) return latinToNynorskIndex;
+  const list = await loadOfflineSpecies();
+  const index = new Map();
+  for (const art of list) {
+    if (art.latin && art.nynorsk) index.set(art.latin.toLowerCase(), art.nynorsk);
+    if (Array.isArray(art.subspecies)) {
+      for (const sub of art.subspecies) {
+        if (sub.latin && sub.nynorsk) index.set(sub.latin.toLowerCase(), sub.nynorsk);
+      }
+    }
+  }
+  latinToNynorskIndex = index;
+  return index;
+}
+
+/**
+ * Slå opp nynorsk artsnavn for et vitenskapelig navn (case-insensitiv eksakt
+ * match). AOs eget søk har aldri nynorsk-data selv - denne brukes til å
+ * berike de ONLINE søkeresultatene med samme nynorsk-data som offline-lista,
+ * slik at nynorsk-innstillingen faktisk virker i vanlig søk (ikke bare når
+ * "Tving offline arts-søk" også er slått på - se species-search.js).
+ * @param {string} latinName
+ * @returns {Promise<string|null>}
+ */
+export async function getNynorskByLatin(latinName) {
+  if (!latinName) return null;
+  const index = await buildLatinToNynorskIndex();
+  return index.get(latinName.trim().toLowerCase()) || null;
+}

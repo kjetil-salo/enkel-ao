@@ -46,7 +46,7 @@ const fetchMock = vi.fn();
 vi.stubGlobal('fetch', fetchMock);
 
 // Importer etter mock. Modulen cacher internt, så vi må re-importere per test.
-let searchOfflineSpecies, loadOfflineSpecies;
+let searchOfflineSpecies, loadOfflineSpecies, getNynorskByLatin;
 
 beforeEach(async () => {
   vi.resetModules();
@@ -59,6 +59,7 @@ beforeEach(async () => {
   const mod = await import('../../public/js/species_offline.js');
   searchOfflineSpecies = mod.searchOfflineSpecies;
   loadOfflineSpecies = mod.loadOfflineSpecies;
+  getNynorskByLatin = mod.getNynorskByLatin;
 });
 
 // ─── loadOfflineSpecies ───────────────────────────────────────
@@ -205,5 +206,36 @@ describe('searchOfflineSpecies', () => {
     const result = await searchOfflineSpecies('Svartmeis');
     const hit = result.find(r => r.taxonName === 'Svartmeis');
     expect(hit.nynorsk).toBeNull();
+  });
+});
+
+// ─── getNynorskByLatin ────────────────────────────────────────
+// Brukt til å berike AOs egne (alltid bokmål) søkeresultater med nynorsk,
+// slik at nynorsk-innstillingen virker i vanlig, online søk - se species-search.js
+
+describe('getNynorskByLatin', () => {
+  it('should find nynorsk by exact scientific name', async () => {
+    expect(await getNynorskByLatin('Parus major')).toBe('kjøtmeis');
+  });
+
+  it('should be case-insensitive', async () => {
+    expect(await getNynorskByLatin('parus MAJOR')).toBe('kjøtmeis');
+  });
+
+  it('should trim whitespace', async () => {
+    expect(await getNynorskByLatin('  Parus major  ')).toBe('kjøtmeis');
+  });
+
+  it('should return null for species without a nynorsk name', async () => {
+    expect(await getNynorskByLatin('Periparus ater')).toBeNull();
+  });
+
+  it('should return null for unknown scientific name', async () => {
+    expect(await getNynorskByLatin('Ukjentus artus')).toBeNull();
+  });
+
+  it('should return null for empty/missing input', async () => {
+    expect(await getNynorskByLatin('')).toBeNull();
+    expect(await getNynorskByLatin(null)).toBeNull();
   });
 });

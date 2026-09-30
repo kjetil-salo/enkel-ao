@@ -3,7 +3,7 @@
  */
 
 import { searchSpecies } from './api.js';
-import { searchOfflineSpecies } from './species_offline.js';
+import { searchOfflineSpecies, getNynorskByLatin } from './species_offline.js?v=v1.53.25';
 import { speciesDisplayName } from './storage.js?v=v1.53.24';
 
 export function updateSubtaxaCheckboxState() {
@@ -209,7 +209,20 @@ export async function fetchResults(term, state, dom, callbacks) {
     if (cb && cb.checked) includeSubtaxa = true;
     const data = await withTimeout(searchSpecies(q, includeSubtaxa), 10000);
 
-    state.currentResults = data;
+    // AO sitt eget søk har aldri nynorsk-data (verifisert: kun language=4
+    // gir treff mot Taxon/PickerSearch). Beriker derfor hvert treff med
+    // nynorsk-navn fra den lokale offline-lista, slik at nynorsk-innstillingen
+    // faktisk virker i vanlig søk - ikke bare når "Tving offline arts-søk"
+    // er tvunget på. norske_arter.json er allerede lastet inn i nettleseren
+    // (statisk fil, PWA-cachet), så dette er et lokalt oppslag - ingen ekstra
+    // nettverkskall eller merkbar forsinkelse.
+    state.currentResults = await Promise.all(data.map(async (item) => {
+      const latin = (item.scientificNameHtml || item.scientificName || item.latin || '')
+        .replace(/<[^>]+>/g, '')
+        .trim();
+      const nynorsk = latin ? await getNynorskByLatin(latin) : null;
+      return { ...item, nynorsk };
+    }));
     state.activeIndex = state.currentResults.length ? 0 : -1;
     renderResults(state, dom);
 
