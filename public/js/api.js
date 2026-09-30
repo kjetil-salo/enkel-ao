@@ -52,6 +52,28 @@ export function getCachedPrivateSites() {
 }
 
 /**
+ * Sjekk om private lokasjoner er hentet og fortsatt friske — UAVHENGIG av om
+ * resultatet var tomt. `getCachedPrivateSites().length === 0` klarer ikke å
+ * skille «aldri hentet ennå» fra «hentet, brukeren har faktisk null private
+ * lokasjoner» — for en bruker uten egne private lokasjoner var den andre
+ * tilstanden PERMANENT, og ga et ekte, ekstra nettverkskall til
+ * `/api/ao-private-sites` ved HVER eneste kall til ensureAoTokens() (altså
+ * hver panorering på kartet), for alltid. Brukt i stedet for lengde-sjekken
+ * der ensureAoTokens() avgjør om fetchAndCachePrivateSites() trengs.
+ * @returns {boolean}
+ */
+export function hasFreshPrivateSitesCache() {
+  try {
+    const item = localStorage.getItem(PRIVATE_SITES_KEY);
+    if (!item) return false;
+    const { ts } = JSON.parse(item);
+    return Date.now() - ts <= PRIVATE_SITES_TTL;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Hent og cache alle brukerens private lokasjoner fra AO
  * Kjøres i bakgrunnen etter innlogging
  */
@@ -390,16 +412,23 @@ export async function ensureAoTokens() {
   }
 
   // Både «tokens akkurat etablert» og «tokens fantes fra før, men cachen med
-  // private lokasjoner er fortsatt tom» skal utløse henting — ellers ser en
-  // bruker som logget inn et helt annet sted (f.eks. Innstillinger, som ikke
-  // selv lagrer tokens) ingen private lokaliteter før neste sideinnlasting.
+  // private lokasjoner er ALDRI HENTET (eller utløpt)» skal utløse henting —
+  // ellers ser en bruker som logget inn et helt annet sted (f.eks.
+  // Innstillinger, som ikke selv lagrer tokens) ingen private lokaliteter før
+  // neste sideinnlasting. `hasFreshPrivateSitesCache()` — IKKE
+  // `getCachedPrivateSites().length === 0` — avgjør dette: en bruker som
+  // faktisk har null private lokasjoner ville ellers sett denne betingelsen
+  // være sann for alltid, og fått et ekte, ekstra nettverkskall til
+  // /api/ao-private-sites ved HVER eneste ensureAoTokens()-kall (altså hver
+  // panorering på kartet) i uendelig tid — oppdaget som «kartet føles sakte
+  // selv med cache» i felt, v1.53.19.
   //
   // MÅ ventes på (ikke fire-and-forget): kalleren gjør typisk fetchAoSites()
   // rett etter ensureAoTokens() returnerer, og setAoSiteSuggestions() leser
   // cachen synkront for å markere isMine. Uten await var dette en race —
   // kartet kunne rekke å tegne markørene (som grå «privat», ikke gul «min»)
   // før nettverkskallet til /api/ao-private-sites var ferdig.
-  if (ok && getCachedPrivateSites().length === 0) {
+  if (ok && !hasFreshPrivateSitesCache()) {
     await fetchAndCachePrivateSites();
   }
   return ok;

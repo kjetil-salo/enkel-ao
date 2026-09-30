@@ -2,22 +2,24 @@ import { test, expect } from '../fixtures';
 
 /**
  * Skrevet under QA av "zoom-nivå-begrenset lasting av AO-lokaliteter" (fase 1:
- * computeEffectiveFetchRadiusMeters + race-fiksen i handleMapMoveEnd).
- * computeEffectiveFetchRadiusMeters er ikke eksportert fra map.js (og filen
- * kan ikke importeres direkte i vitest uten Leaflet-mocking pga.
- * side-effekter ved modul-last, se toppen av map.js) — verifiseres derfor
- * her, svart-boks, via ekte tastatur-styrt panorering/zoom i en ekte
- * nettleser. Kjøres kun mot chromium (geometri-/timing-testen er ikke
- * mobil-spesifikk, og unødvendig repetisjon mot flere viewports/browsere
- * ville bare gjort testen tregere og mer flaky).
+ * opprinnelig en viewport-avhengig radius, forenklet i v1.53.22 til en FAST
+ * radius uansett zoom — se docs/kart-viewport-radius-og-cache.md for
+ * hvorfor). Verken den faste radiuskonstanten eller handleMapMoveEnd er
+ * eksportert fra map.js (og filen kan ikke importeres direkte i vitest uten
+ * Leaflet-mocking pga. side-effekter ved modul-last, se toppen av map.js) —
+ * verifiseres derfor her, svart-boks, via ekte tastatur-styrt
+ * panorering/zoom i en ekte nettleser. Kjøres kun mot chromium
+ * (geometri-/timing-testen er ikke mobil-spesifikk, og unødvendig
+ * repetisjon mot flere viewports/browsere ville bare gjort testen tregere
+ * og mer flaky).
  */
 
 const BASE = process.env.BASE_URL || 'http://localhost:3000';
 
-test.describe('Kart: viewport-avhengig hente-radius ved panorering/zoom', () => {
+test.describe('Kart: fast hente-radius ved panorering, uavhengig av zoom', () => {
   test.skip(({ browserName }) => browserName !== 'chromium', 'Kun chromium nødvendig for denne geometri-testen');
 
-  test('ren zoom uten panorering trigger refetch, med gulv og tak på radius', async ({ page }) => {
+  test('radius er alltid den samme faste verdien, og ren zoom uten panorering trigger IKKE refetch', async ({ page }) => {
     const requests: { lat: number; lon: number; size: number }[] = [];
 
     await page.route('**/api/ao-sites*', async (route) => {
@@ -49,34 +51,41 @@ test.describe('Kart: viewport-avhengig hente-radius ved panorering/zoom', () => 
     // til museklikk/drag, uten behov for noen test-hook inn i map.js.
     await page.locator('#map').click({ position: { x: 100, y: 400 } });
 
-    // Zoom kraftig INN (samme senter, ingen panorering) — skal alene trigge
-    // en ny henting (zoomChanged-fiksen) og gi en radius NEDE ved gulvet
-    // (sizeMeters=500), siden et sterkt innzoomet kartutsnitt dekker et
-    // mindre areal enn den valgte søkeradiusen.
+    // Zoom kraftig INN og UT (samme senter, INGEN panorering). Med en fast
+    // radius har zoom alene ingenting nytt å hente — dette skal derfor IKKE
+    // trigge noe AO-kall i det hele tatt (motsatt av v1.53.19-21, der zoom
+    // endret hvor mye som skulle hentes).
     for (let i = 0; i < 7; i++) {
       await page.keyboard.press('+');
       await page.waitForTimeout(350);
     }
-    await page.waitForTimeout(900); // debounce (600ms) + slingringsmonn
-
-    expect(requests.length, 'Ren zoom inn trigget ingen refetch i det hele tatt').toBeGreaterThan(0);
-    const afterZoomIn = requests[requests.length - 1];
-    expect(afterZoomIn.size, `Forventet radius nær gulvet (500m) ved sterk innzooming, fikk ${afterZoomIn.size}`).toBeLessThanOrEqual(520);
-    expect(afterZoomIn.size).toBeGreaterThanOrEqual(500);
-
-    // Zoom kraftig UT (fortsatt samme senter) — skal gi en radius klippet til
-    // taket (3000m), ALDRI mer, uansett hvor langt man zoomer ut.
-    const beforeZoomOut = requests.length;
     for (let i = 0; i < 12; i++) {
       await page.keyboard.press('-');
       await page.waitForTimeout(350);
     }
+    await page.waitForTimeout(900); // debounce (600ms) + slingringsmonn
+
+    expect(requests.length, 'Ren zoom uten panorering skal ikke trigge noe AO-kall').toBe(0);
+
+    // Panorer (flytt senteret) — dette SKAL trigge et kall, med radius lik
+    // det faste taket (3000m), siden sizeMeters=500 < taket.
+    for (let i = 0; i < 4; i++) {
+      await page.keyboard.press('ArrowRight');
+      await page.waitForTimeout(150);
+    }
     await page.waitForTimeout(900);
 
-    expect(requests.length, 'Ren zoom ut trigget ingen refetch').toBeGreaterThan(beforeZoomOut);
-    const afterZoomOut = requests[requests.length - 1];
-    expect(afterZoomOut.size, `Radius skal aldri overstige taket på 3000m, fikk ${afterZoomOut.size}`).toBeLessThanOrEqual(3000);
-    expect(afterZoomOut.size).toBeGreaterThan(afterZoomIn.size);
+    expect(requests.length, 'Panorering skal trigge nøyaktig ett AO-kall').toBe(1);
+    expect(requests[0].size, `Radius skal alltid være det faste taket (3000m) når sizeMeters < taket, fikk ${requests[0].size}`).toBe(3000);
+
+    // Zoom igjen etter panoreringen — fortsatt ingen nye kall, siden senteret
+    // ikke har flyttet seg.
+    for (let i = 0; i < 5; i++) {
+      await page.keyboard.press('+');
+      await page.waitForTimeout(350);
+    }
+    await page.waitForTimeout(900);
+    expect(requests.length, 'Zoom etter panorering (uendret senter) skal fortsatt ikke trigge noe nytt kall').toBe(1);
   });
 
   test('rask panorering A→B (A forsinket) skal ende med Bs data, ikke As utdaterte svar', async ({ page }) => {

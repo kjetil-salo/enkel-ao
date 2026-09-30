@@ -204,6 +204,15 @@ Pure ES6 modules with no framework:
     24t TTL) fra opprettelsessvaret — IKKE via refetch fra AO (unngår en read-after-write-avhengighet
     mot AOs API). Uten dette var nyopprettede private lokasjoner usynlige i «Velg lokasjon» i opptil
     et døgn, siden cachen ellers kun fornyes ved innlogging eller når den tilfeldigvis er tom (v1.53.0)
+  - `hasFreshPrivateSitesCache()` (v1.53.20) — brukes av `ensureAoTokens()` (og av `main.js` ved
+    sideinnlasting) i stedet for `getCachedPrivateSites().length === 0` for å avgjøre om
+    `fetchAndCachePrivateSites()` trengs. `.length === 0` klarte ikke å skille «aldri hentet» fra
+    «hentet, brukeren har faktisk null private lokasjoner» — for sistnevnte var betingelsen sann
+    FOR ALLTID, og ga et ekte, ekstra nettverkskall til `/api/ao-private-sites` ved HVER eneste
+    `ensureAoTokens()`-kall (altså hver panorering på kartet). Oppdaget i felt som «kartets
+    lokaliteter tar 2-4 sekunder å laste selv med cache», mens selve bbox-cachen (se `map.js`
+    under) i praksis svarte på 2 ms — flaskehalsen lå i denne, urelaterte, allerede eksisterende
+    koden. Se `docs/kart-viewport-radius-og-cache.md`
 - `location.js` — Geolocation and AO sites integration
   - `mergeAoSitesWithPrivateCache(sites, referencePosition, searchRadiusMeters)` — slår sammen
     bbox-sites med brukerens private-cache (isMine-merking + nærmeste utenfor-bbox) og filtrerer
@@ -285,36 +294,35 @@ Pure ES6 modules with no framework:
 - `map.js` — Kartvisning (Leaflet) med brukerposisjon, AO-lokaliteter og pin-drop for ny lokasjon
   - Kartlag: OpenStreetMap (standard), Kartverket Topo, Kartverket Gråtone — velges via `L.control.layers` nederst til venstre
   - Kartverket-tiles er gratis WMTS uten nøkkel (`cache.kartverket.no/v1/wmts/1.0.0/{topo|topograatone}/...`)
-  - **Panorer-og-oppdater** (v1.53.15, viewport-radius + cache v1.53.19): `map.on('moveend', ...)`
-    henter nye lokaliteter for kartets NYE senter når brukeren panorerer ELLER zoomer.
-    `computeEffectiveFetchRadiusMeters()` beregner radius ut fra hvor mye kartutsnittet faktisk
-    dekker (standard Web Mercator meter/piksel-formel, halve viewport-diagonalen), med gulv =
-    brukerens valgte `sizeMeters` og et hardt tak `MAX_AUTO_FETCH_RADIUS_M = 3000` — uansett hvor
-    langt man zoomer ut (f.eks. hele Norge), henter AO-kallet ALDRI mer enn 3 km rundt senteret;
-    resten av det synlige kartet vises bare tomt i stedet for en nedre zoom-sperre. `lastFetchedZoom`
-    spores i tillegg til senteret, slik at en ren zoom (uendret senter) også trigger refetch — uten
-    dette hentet ikke zooming noe nytt i det hele tatt. Debounce 600ms + minimumsavstand
-    (skalerer nå med `effectiveRadius`, ikke lenger en fast verdi) hindrer at hvert lite dra/zoom
-    trigger et nytt AO-kall (samme mønster som `initKartBevegelse` i drivstoffprisene).
-    `lastFetchedCenter`/`lastFetchedZoom` settes OPTIMISTISK ved forsøkets start (ikke ved suksess)
-    og reverteres kun ved feil — uten dette kunne en rask panorering A→B (før As kall er ferdig)
-    latt As forsinkede svar bli tegnet og markert som gjeldende for B. `fetchSeq`-telleren forkaster
-    i tillegg svar fra et eldre, tregere kall som kommer tilbake etter at en nyere panorering
-    allerede har tegnet et ferskere resultat. Tegning skjer via `renderSites()`, som tømmer og
-    bygger `siteLayerGroup` på nytt — brukermarkør, pin-drop og manuelt opprettede lokasjoner ligger
-    utenfor denne gruppen og påvirkes ikke. Henting bruker samme isMine-/privat-merging som
-    dropdown-forslaget (`mergeAoSitesWithPrivateCache` i `location.js`, delt av begge for å unngå at
-    logikken driver fra hverandre) — kalles bevisst med `sizeMeters` (ikke `effectiveRadius`) som
-    tredje argument, siden det kun styrer et lite ekstra fallback-søk for egne private lokasjoner
-    bbox-treffet måtte ha misset, ikke selve bbox-radiusen. Et TOMT AO-svar
-    tømmer ALDRI selve visningen (`if (bboxSites.length === 0) return;` FØR
-    `renderSites()` kalles) — umulig å skille fra en forbigående, degradert
-    AO-feil i felt, og trolig (deler av) årsaken til at en betatester meldte
-    at lokaliteter «forsvant» ved panorering. Bokføringen reverteres bevisst
-    IKKE i dette tilfellet (i motsetning til ved en ekte feil) — det hamret
-    et nytt AO-kall for hver ~150 m panorering over et genuint tomt område i
-    et tidligere forsøk. Full beskrivelse, avveininger og aksepterte
-    bieffekter: `docs/kart-viewport-radius-og-cache.md`
+  - **Panorer-og-oppdater** (v1.53.15, radius+cache v1.53.19, fast radius v1.53.22):
+    `map.on('moveend', ...)` henter nye lokaliteter for kartets NYE senter når brukeren panorerer.
+    Radius er `AUTO_FETCH_RADIUS_M = max(3000, sizeMeters)` — en FAST verdi uansett zoom-nivå, ikke
+    lenger viewport-avhengig. En tidligere versjon (v1.53.19-21) skalerte radiusen med hvor mye
+    kartutsnittet faktisk dekket (beregnet fra zoom+skjermstørrelse), men det gjorde at et lite
+    zoom-skifte mellom to besøk på samme sted ble en cache-miss i `fetchAoSitesCached()` (som krever
+    at en tidligere cachet radius er MINST like stor som det som nå trengs) — et gjenbesøk «der man
+    nettopp var» ga da likevel et nytt, ekte AO-kall (målt 1,5–2,3 sek på staging i felt 2026-09-29).
+    Den faste radiusen er uansett det samme, allerede etablerte trygge taket (500 m – 3 km, matcher
+    slideren i `index.html`) — aldri mer enn før, bare ikke mindre når innzoomet. Debounce 600ms +
+    minimumsavstand (`MIN_REFETCH_DISTANCE_M`, fast siden radiusen nå er det) hindrer at hvert lite
+    dra trigger et nytt AO-kall (samme mønster som `initKartBevegelse` i drivstoffprisene).
+    `lastFetchedCenter` settes OPTIMISTISK ved forsøkets start (ikke ved suksess) og reverteres kun
+    ved feil — uten dette kunne en rask panorering A→B (før As kall er ferdig) latt As forsinkede
+    svar bli tegnet og markert som gjeldende for B. `fetchSeq`-telleren forkaster i tillegg svar fra
+    et eldre, tregere kall som kommer tilbake etter at en nyere panorering allerede har tegnet et
+    ferskere resultat. Tegning skjer via `renderSites()`, som tømmer og bygger `siteLayerGroup` på
+    nytt — brukermarkør, pin-drop og manuelt opprettede lokasjoner ligger utenfor denne gruppen og
+    påvirkes ikke. Henting bruker samme isMine-/privat-merging som dropdown-forslaget
+    (`mergeAoSitesWithPrivateCache` i `location.js`, delt av begge for å unngå at logikken driver
+    fra hverandre) — kalles bevisst med `sizeMeters` (ikke `AUTO_FETCH_RADIUS_M`) som tredje
+    argument, siden det kun styrer et lite ekstra fallback-søk for egne private lokasjoner
+    bbox-treffet måtte ha misset, ikke selve bbox-radiusen. Et TOMT AO-svar tømmer ALDRI selve
+    visningen (`if (bboxSites.length === 0) return;` FØR `renderSites()` kalles) — umulig å skille
+    fra en forbigående, degradert AO-feil i felt, og trolig (deler av) årsaken til at en betatester
+    meldte at lokaliteter «forsvant» ved panorering. Bokføringen reverteres bevisst IKKE i dette
+    tilfellet (i motsetning til ved en ekte feil) — det hamret et nytt AO-kall for hver ~150 m
+    panorering over et genuint tomt område i et tidligere forsøk. Full beskrivelse, avveininger og
+    aksepterte bieffekter: `docs/kart-viewport-radius-og-cache.md`
   - **Lokal cache for bbox-lokaliteter** (`fetchAoSitesCached()` i `api.js`, v1.53.19): 7 dagers
     localStorage-cache (`ao_bbox_cache_v1`, maks 5 innslag) for panorer-og-oppdater sine
     AO-kall — dekker at samme bruker gjerne besøker de samme få stedene igjen og igjen (helt nye

@@ -4,7 +4,11 @@
  */
 
 // Eksisterende moduler
-import { logPageView, loadActivities, fetchAoSites, fetchAndCachePrivateSites, getCachedPrivateSites } from './api.js';
+// Versjonert import: hasFreshPrivateSitesCache er en NY navngitt eksport i
+// api.js (v1.53.20). Uten ?v= her kan Cloudflare servere en cachet, gammel
+// api.js uten denne eksporten i opptil 4 timer etter deploy — samme fallgruve
+// som storage.js-importen under og map.js sin api.js-import.
+import { logPageView, loadActivities, fetchAoSites, fetchAndCachePrivateSites, hasFreshPrivateSitesCache } from './api.js?v=v1.53.20';
 // Versjonert import: denne linjen har en HARD avhengighet til to navngitte
 // eksporter (loadAoDirectAutoClear/saveAoDirectAutoClear) som ikke fantes i
 // tidligere versjoner av storage.js. Uten ?v= her kan Cloudflare servere en
@@ -13,7 +17,7 @@ import { logPageView, loadActivities, fetchAoSites, fetchAndCachePrivateSites, g
 // altså hele appen, se samme fallgruve for map.js/location.js (v1.53.15) og
 // sjekklisten i CLAUDE.md. Bump SAMTIDIG som index.html sin egen ?v=-tag for
 // main.js, hver gang storage.js får en ny eksport main.js begynner å bruke.
-import { loadObservations, saveObservations, loadAoSearchRadius, saveAoSearchRadius, loadLocationSortMode, saveLocationSortMode, loadAoDirectAutoClear, saveAoDirectAutoClear } from './storage.js?v=v1.53.17';
+import { loadObservations, saveObservations, loadAoSearchRadius, saveAoSearchRadius, loadLocationSortMode, saveLocationSortMode, loadAoDirectAutoClear, saveAoDirectAutoClear } from './storage.js?v=v1.53.23';
 import { setStatus, setLocationStatus, showToast, haversine } from './ui.js';
 import { setAoSiteSuggestions, initLocation, openMap, openMapPage, updateCreateSiteBtnVisibility, initCreateSite } from './location.js';
 import { renderObservations } from './observations.js';
@@ -1146,8 +1150,11 @@ window.addEventListener('DOMContentLoaded', () => {
   updateAoDirectVisibility();
   setupFellesturBanner();
 
-  // Hent private lokasjoner i bakgrunnen hvis cache mangler eller er utdatert
-  if (getCachedPrivateSites().length === 0) {
+  // Hent private lokasjoner i bakgrunnen hvis cache mangler eller er utdatert.
+  // hasFreshPrivateSitesCache() — ikke .length === 0 — for at en bruker med
+  // faktisk null private lokasjoner ikke skal hente på nytt ved HVER
+  // sideinnlasting for alltid (se api.js sin ensureAoTokens() for samme fiks).
+  if (!hasFreshPrivateSitesCache()) {
     const tokens = JSON.parse(localStorage.getItem('ao_tokens') || '{}');
     if (tokens.authCookie) {
       fetchAndCachePrivateSites();

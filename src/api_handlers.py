@@ -1039,10 +1039,17 @@ def handle_ao_sites_search(lat, lon, size_m=600.0, ao_mobile_base_url='https://m
                 elif local_site.get('isSuper') and not ao_id_map[local_id].get('isSuper'):
                     # AO-APIet mangler isSuper — hent fra lokal DB som har fullstendig data
                     ao_id_map[local_id]['isSuper'] = True
-            # AO-APIet returnerer parentSiteId=null — bruk lokal DB sin parent_id til å utlede super-status
+            # AO-APIet returnerer parentSiteId=null — bruk lokal DB sin parent_id til å utlede
+            # super-status OG til å gi selve underlokasjonen en parentId (kartet tegner en linje
+            # til superlokasjonen ut fra dette feltet, se renderSites() i map.js)
             for local_site in local_sites:
+                local_id = local_site.get('id')
                 pid = local_site.get('parentId')
-                if pid is not None and pid in ao_id_map and not ao_id_map[pid].get('isSuper'):
+                if pid is None:
+                    continue
+                if local_id in ao_id_map and ao_id_map[local_id].get('parentId') is None:
+                    ao_id_map[local_id]['parentId'] = pid
+                if pid in ao_id_map and not ao_id_map[pid].get('isSuper'):
                     ao_id_map[pid]['isSuper'] = True
             logger.debug(f'Merget {len(sites)} totalt (AO + lokal DB)')
 
