@@ -4,6 +4,7 @@
 
 import { searchSpecies } from './api.js';
 import { searchOfflineSpecies } from './species_offline.js';
+import { loadNynorskArtsnavn } from './storage.js?v=v1.53.23';
 
 export function updateSubtaxaCheckboxState() {
   const forceOffline = localStorage.getItem('forceOfflineSpecies') === '1';
@@ -44,6 +45,16 @@ export function renderResults(state, dom) {
     nameSpan.className = 'result-name';
     nameSpan.textContent = item.taxonName || item.norwegian || '(ukjent navn)';
     row.appendChild(nameSpan);
+
+    // Rent kosmetisk hint - overstyrer ALDRI taxonName, som er det som
+    // faktisk lagres og sendes til AO ved publisering (se observations.js).
+    if (loadNynorskArtsnavn() && item.nynorsk && item.nynorsk !== item.taxonName) {
+      const nnSpan = document.createElement('span');
+      nnSpan.className = 'result-nynorsk';
+      nnSpan.style.cssText = 'font-size:0.85em;opacity:0.7;margin-left:6px;';
+      nnSpan.textContent = `(nn: ${item.nynorsk})`;
+      row.appendChild(nnSpan);
+    }
 
     if (item.scientificName || item.latin) {
       const sciSpan = document.createElement('span');
@@ -177,6 +188,7 @@ export async function fetchResults(term, state, dom, callbacks) {
     const offline = await searchOfflineSpecies(q, includeSubtaxa);
     state.currentResults = offline.map(s => ({
       taxonName: s.taxonName,
+      nynorsk: s.nynorsk,
       scientificName: s.scientificName,
       source: 'offline'
     }));
@@ -222,6 +234,7 @@ export async function fetchResults(term, state, dom, callbacks) {
     const offline = await searchOfflineSpecies(q);
     state.currentResults = offline.map(s => ({
       taxonName: s.taxonName,
+      nynorsk: s.nynorsk,
       scientificName: s.scientificName,
       source: 'offline'
     }));

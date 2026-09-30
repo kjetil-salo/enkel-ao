@@ -184,6 +184,20 @@
         Når denne er på, brukes kun den lokale artslisten (ingen søk mot Artsobservasjoner).
       </div>
 
+      <div class="settings-row">
+        <span class="settings-label">Nynorske artsnavn (hint)</span>
+        <label class="switch">
+          <input type="checkbox" id="show-nynorsk" />
+          <span class="slider"></span>
+        </label>
+      </div>
+      <div style="font-size:0.92em;color:var(--muted,#aaa);margin-bottom:18px;">
+        Viser nynorsk artsnavn som et ekstra hint i søkeresultatene, der det finnes (kun i den
+        lokale offline-artslisten – Artsobservasjoner sitt eget søk har foreløpig bare bokmål).
+        Rent kosmetisk: navnet som faktisk registreres og sendes til Artsobservasjoner er
+        alltid bokmål, uansett denne innstillingen.
+      </div>
+
       <div style="margin-top:24px;padding-top:18px;border-top:1px solid rgba(148,163,184,0.12);">
         <h3 style="margin:0 0 4px 0;font-size:1em;color:var(--text,#e5e7eb);">AO-innlogging</h3>
         <p style="font-size:0.82em;color:var(--muted,#aaa);margin:0 0 14px 0;">
@@ -270,8 +284,14 @@
       </div>
     </div>
     <script type="module">
-      import { loadActivityPills, saveActivityPills, ACTIVITY_SHORT_SUGGESTIONS } from './js/storage.js';
+      import { loadActivityPills, saveActivityPills, ACTIVITY_SHORT_SUGGESTIONS, loadNynorskArtsnavn, saveNynorskArtsnavn } from './js/storage.js?v=v1.53.23';
       import { loadActivities } from './js/api.js';
+
+      const nynorskCb = document.getElementById('show-nynorsk');
+      nynorskCb.checked = loadNynorskArtsnavn();
+      nynorskCb.addEventListener('change', () => {
+        saveNynorskArtsnavn(nynorskCb.checked);
+      });
 
       let availableActivities = []; // Lastes inn ved init
       let isInitializing = true;    // Undertrykk «✓ Lagret» under første render

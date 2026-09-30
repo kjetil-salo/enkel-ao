@@ -172,6 +172,50 @@
 
         <div class="version">
           <div class="version-header">
+            <span class="version-number">v1.53.23</span>
+            <span class="version-date">30. september 2026</span>
+          </div>
+          <div class="section-title">Nytt</div>
+          <ul class="changes">
+            <li><strong>Nynorske artsnavn som hint i artssøket.</strong> Ny innstilling («Nynorske artsnavn (hint)») viser nynorsk artsnavn ved siden av bokmålsnavnet i søkeresultatene, der det finnes. Gjelder foreløpig kun den lokale offline-artslisten. Rent kosmetisk – navnet som faktisk registreres og sendes til Artsobservasjoner er alltid bokmål.</li>
+          </ul>
+        </div>
+
+        <div class="version">
+          <div class="version-header">
+            <span class="version-number">v1.53.22</span>
+            <span class="version-date">29. september 2026</span>
+          </div>
+          <div class="section-title">Fikset</div>
+          <ul class="changes">
+            <li><strong>Gjenbesøkte kartområder laster momentant, uavhengig av zoom-nivå.</strong> Kartet hentet tidligere en radius som varierte med hvor innzoomet du var, noe som gjorde at et lite zoom-skifte mellom to besøk på samme sted ble regnet som et nytt sted av hurtigminnet. Nå hentes samme, trygge maksradius uansett zoom, så et gjenbesøk alltid treffer hurtigminnet.</li>
+          </ul>
+        </div>
+
+        <div class="version">
+          <div class="version-header">
+            <span class="version-number">v1.53.21</span>
+            <span class="version-date">29. september 2026</span>
+          </div>
+          <div class="section-title">Nytt</div>
+          <ul class="changes">
+            <li><strong>Linje fra lokalitet til superlokasjon på kartet.</strong> Lokaliteter som hører til en superlokasjon (f.eks. et større våtmarksområde) får nå en tynn, stiplet oransje linje til den. Gjør sammenhengen mellom en vanlig lokalitet og "paraplyen" den er en del av tydeligere.</li>
+          </ul>
+        </div>
+
+        <div class="version">
+          <div class="version-header">
+            <span class="version-number">v1.53.20</span>
+            <span class="version-date">29. september 2026</span>
+          </div>
+          <div class="section-title">Fikset</div>
+          <ul class="changes">
+            <li><strong>Kartet henter lokaliteter raskere for innloggede brukere.</strong> En feil gjorde at brukere med få eller ingen egne private lokasjoner fikk et unødvendig ekstra nettverkskall ved hver panorering, uansett hvor mange ganger de allerede hadde besøkt stedet. Lokaliteter dukker nå opp momentant på gjenbesøk, som tiltenkt.</li>
+          </ul>
+        </div>
+
+        <div class="version">
+          <div class="version-header">
             <span class="version-number">v1.53.19</span>
             <span class="version-date">28. september 2026</span>
           </div>

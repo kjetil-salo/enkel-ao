@@ -13,6 +13,7 @@ const testSpecies = [
   {
     norwegian: 'Kjøttmeis',
     latin: 'Parus major',
+    nynorsk: 'kjøtmeis',
     subspecies: []
   },
   {
@@ -183,5 +184,26 @@ describe('searchOfflineSpecies', () => {
   it('should find species by partial Latin name', async () => {
     const result = await searchOfflineSpecies('Parus');
     expect(result.some(r => r.taxonName === 'Kjøttmeis')).toBe(true);
+  });
+
+  // Nynorsk-hint (kosmetisk - se docs for hvorfor dette aldri erstatter taxonName)
+  it('should include nynorsk field when present in source data', async () => {
+    const result = await searchOfflineSpecies('Kjøttmeis');
+    const hit = result.find(r => r.taxonName === 'Kjøttmeis');
+    expect(hit.nynorsk).toBe('kjøtmeis');
+  });
+
+  it('should keep taxonName as bokmål regardless of nynorsk field', async () => {
+    // Kjøttmeis har et annet nynorsk-navn enn bokmål - taxonName skal likevel
+    // forbli bokmål, siden det er dette som faktisk sendes til AO ved publisering
+    const result = await searchOfflineSpecies('Kjøttmeis');
+    const hit = result.find(r => r.nynorsk === 'kjøtmeis');
+    expect(hit.taxonName).toBe('Kjøttmeis');
+  });
+
+  it('should return null nynorsk when not present in source data', async () => {
+    const result = await searchOfflineSpecies('Svartmeis');
+    const hit = result.find(r => r.taxonName === 'Svartmeis');
+    expect(hit.nynorsk).toBeNull();
   });
 });

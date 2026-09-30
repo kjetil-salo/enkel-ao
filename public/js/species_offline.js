@@ -37,6 +37,10 @@ export async function searchOfflineSpecies(term, includeSubtaxa = false) {
       // Alltid vis hovedart hvis den matcher
       results.push({
         taxonName: validNorwegian(art.norwegian, ''),
+        // Kun kosmetisk hint i dropdownen - ALDRI det som lagres/sendes til AO.
+        // Underarter mangler nynorsk-oppslag foreløpig (se tools/enrich_nynorsk.py),
+        // derfor ingen foreldre-fallback her slik validNorwegian() har for bokmål.
+        nynorsk: art.nynorsk || null,
         scientificName: art.latin,
         source: 'offline',
         isSub: false
@@ -46,6 +50,7 @@ export async function searchOfflineSpecies(term, includeSubtaxa = false) {
         for (const sub of art.subspecies) {
           results.push({
             taxonName: validNorwegian(sub.norwegian, art.norwegian),
+            nynorsk: sub.nynorsk || null,
             scientificName: sub.latin,
             source: 'offline',
             isSub: true
@@ -60,6 +65,7 @@ export async function searchOfflineSpecies(term, includeSubtaxa = false) {
         if (subMatch) {
           results.push({
             taxonName: validNorwegian(sub.norwegian, art.norwegian),
+            nynorsk: sub.nynorsk || null,
             scientificName: sub.latin,
             source: 'offline',
             isSub: true

@@ -11,6 +11,7 @@ const ACTIVITY_PILLS_KEY = 'activityPills_v1';
 const SENT_KEY = 'sent_observations_v1';
 const LOCATION_SORT_KEY = 'location_sort_mode_v1';
 const AO_DIRECT_AUTO_CLEAR_KEY = 'ao_direct_auto_clear_v1';
+const NYNORSK_ARTSNAVN_KEY = 'nynorsk_artsnavn_v1';
 
 /**
  * Teknisk beskrivelse av siste feilede saveObservations()-kall (f.eks.
@@ -315,6 +316,37 @@ export function loadAoDirectAutoClear() {
 
   try {
     return window.localStorage.getItem(AO_DIRECT_AUTO_CLEAR_KEY) === '1';
+  } catch (e) {
+    return false;
+  }
+}
+
+/**
+ * Lagre om nynorske artsnavn skal vises som hint i artssøket (kun offline-
+ * lista, se docs/ for kildeanalyse). Rent kosmetisk - endrer ALDRI hvilket
+ * navn som faktisk lagres/sendes til AO ved publisering (det er alltid
+ * bokmål, jf. observations.js sin CSV-eksport).
+ * @param {boolean} value
+ */
+export function saveNynorskArtsnavn(value) {
+  if (!window.localStorage) return;
+
+  try {
+    window.localStorage.setItem(NYNORSK_ARTSNAVN_KEY, value ? '1' : '0');
+  } catch (e) {
+    console.warn('Kunne ikke lagre nynorsk-valg', e);
+  }
+}
+
+/**
+ * Last om nynorske artsnavn skal vises som hint i artssøket. Default av.
+ * @returns {boolean}
+ */
+export function loadNynorskArtsnavn() {
+  if (!window.localStorage) return false;
+
+  try {
+    return window.localStorage.getItem(NYNORSK_ARTSNAVN_KEY) === '1';
   } catch (e) {
     return false;
   }
