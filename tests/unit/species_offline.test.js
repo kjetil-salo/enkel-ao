@@ -46,7 +46,7 @@ const fetchMock = vi.fn();
 vi.stubGlobal('fetch', fetchMock);
 
 // Importer etter mock. Modulen cacher internt, så vi må re-importere per test.
-let searchOfflineSpecies, loadOfflineSpecies, getNynorskByLatin;
+let searchOfflineSpecies, loadOfflineSpecies, getNynorskByLatin, findBokmalByNynorskTerm;
 
 beforeEach(async () => {
   vi.resetModules();
@@ -60,6 +60,7 @@ beforeEach(async () => {
   searchOfflineSpecies = mod.searchOfflineSpecies;
   loadOfflineSpecies = mod.loadOfflineSpecies;
   getNynorskByLatin = mod.getNynorskByLatin;
+  findBokmalByNynorskTerm = mod.findBokmalByNynorskTerm;
 });
 
 // ─── loadOfflineSpecies ───────────────────────────────────────
@@ -206,6 +207,49 @@ describe('searchOfflineSpecies', () => {
     const result = await searchOfflineSpecies('Svartmeis');
     const hit = result.find(r => r.taxonName === 'Svartmeis');
     expect(hit.nynorsk).toBeNull();
+  });
+
+  // Søk på nynorsk-navnet skal FINNE arten, ikke bare vise nynorsk etter man
+  // fant den via bokmål. "kjøtmeis" er bevisst valgt fordi det IKKE er en
+  // delstreng av bokmål "Kjøttmeis" (ekstra "t") - kun nynorsk-matching kan
+  // finne treffet her.
+  it('should find species by nynorsk name even when it does not substring-match the bokmål name', async () => {
+    expect('Kjøttmeis'.toLowerCase().includes('kjøtmeis')).toBe(false); // forutsetning for testen
+    const result = await searchOfflineSpecies('kjøtmeis');
+    expect(result.some(r => r.taxonName === 'Kjøttmeis')).toBe(true);
+  });
+
+  it('should find species by nynorsk name prefix', async () => {
+    const result = await searchOfflineSpecies('kjøt');
+    expect(result.some(r => r.taxonName === 'Kjøttmeis')).toBe(true);
+  });
+});
+
+// ─── findBokmalByNynorskTerm ──────────────────────────────────
+// Oversetter en nynorsk søketerm til bokmål, brukt til å søke AO på nytt
+// siden AO selv ikke forstår nynorsk-termer i det hele tatt.
+
+describe('findBokmalByNynorskTerm', () => {
+  it('should find bokmål name from exact nynorsk term', async () => {
+    expect(await findBokmalByNynorskTerm('kjøtmeis')).toContain('Kjøttmeis');
+  });
+
+  it('should find bokmål name from nynorsk prefix', async () => {
+    expect(await findBokmalByNynorskTerm('kjøt')).toContain('Kjøttmeis');
+  });
+
+  it('should return empty array for a term with no nynorsk match', async () => {
+    expect(await findBokmalByNynorskTerm('helturistisk')).toEqual([]);
+  });
+
+  it('should return empty array for short terms', async () => {
+    expect(await findBokmalByNynorskTerm('k')).toEqual([]);
+    expect(await findBokmalByNynorskTerm('')).toEqual([]);
+  });
+
+  it('should not return duplicates', async () => {
+    const result = await findBokmalByNynorskTerm('kjøtmeis');
+    expect(result.length).toBe(new Set(result).size);
   });
 });
 

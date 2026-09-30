@@ -94,6 +94,11 @@
         "norwegian": "nan",
         "latin": "B. h. hutchinsii",
         "nynorsk": null
+      },
+      {
+        "norwegian": "nan",
+        "latin": "B. h. minima",
+        "nynorsk": null
       }
     ],
     "nynorsk": "polargås"
@@ -2610,6 +2615,11 @@
       {
         "norwegian": "nan",
         "latin": "N. p. percnopterus",
+        "nynorsk": null
+      },
+      {
+        "norwegian": "nan",
+        "latin": "N. p. ginginianus",
         "nynorsk": null
       }
     ],
@@ -5478,58 +5488,10 @@
     "nynorsk": null
   },
   {
-    "norwegian": "knoppsvane",
-    "latin": "Cygnus olor",
-    "subspecies": [],
-    "nynorsk": "knoppsvane"
-  },
-  {
     "norwegian": "svartsvane",
     "latin": "Cygnus atratus",
     "subspecies": [],
     "nynorsk": "svartsvane"
-  },
-  {
-    "norwegian": "rødhalsgås",
-    "latin": "Branta ruficollis",
-    "subspecies": [],
-    "nynorsk": "raudhalsgås"
-  },
-  {
-    "norwegian": "kanadagås",
-    "latin": "Branta canadensis",
-    "subspecies": [
-      {
-        "norwegian": "nan",
-        "latin": "B. c. canadensis",
-        "nynorsk": null
-      }
-    ],
-    "nynorsk": "kanadagås"
-  },
-  {
-    "norwegian": "hvitkinngås",
-    "latin": "Branta leucopsis",
-    "subspecies": [],
-    "nynorsk": "kvitkinngås"
-  },
-  {
-    "norwegian": "polargås",
-    "latin": "Branta hutchinsii",
-    "subspecies": [
-      {
-        "norwegian": "nan",
-        "latin": "B. h. minima",
-        "nynorsk": null
-      }
-    ],
-    "nynorsk": "polargås"
-  },
-  {
-    "norwegian": "stripegås",
-    "latin": "Anser indicus",
-    "subspecies": [],
-    "nynorsk": "stripegås"
   },
   {
     "norwegian": "keisergås",
@@ -5538,40 +5500,10 @@
     "nynorsk": "keisargås"
   },
   {
-    "norwegian": "eskimogås",
-    "latin": "Anser rossii",
-    "subspecies": [],
-    "nynorsk": "eskimogås"
-  },
-  {
-    "norwegian": "snøgås",
-    "latin": "Anser caerulescens",
-    "subspecies": [],
-    "nynorsk": "snøgås"
-  },
-  {
-    "norwegian": "grågås",
-    "latin": "Anser anser",
-    "subspecies": [],
-    "nynorsk": "grågås"
-  },
-  {
     "norwegian": "svanegås",
     "latin": "Anser cygnoides",
     "subspecies": [],
     "nynorsk": null
-  },
-  {
-    "norwegian": "dverggås",
-    "latin": "Anser erythropus",
-    "subspecies": [],
-    "nynorsk": "dverggås"
-  },
-  {
-    "norwegian": "taigasædgås",
-    "latin": "Anser fabalis",
-    "subspecies": [],
-    "nynorsk": "taigasædgås"
   },
   {
     "norwegian": "moskusand",
@@ -5580,58 +5512,16 @@
     "nynorsk": "moskusand"
   },
   {
-    "norwegian": "mandarinand",
-    "latin": "Aix galericulata",
-    "subspecies": [],
-    "nynorsk": "mandarinand"
-  },
-  {
     "norwegian": "brudeand",
     "latin": "Aix sponsa",
     "subspecies": [],
     "nynorsk": "brudeand"
   },
   {
-    "norwegian": "niland",
-    "latin": "Alopochen aegyptiaca",
-    "subspecies": [],
-    "nynorsk": "niland"
-  },
-  {
-    "norwegian": "gravand",
-    "latin": "Tadorna tadorna",
-    "subspecies": [],
-    "nynorsk": "gravand"
-  },
-  {
     "norwegian": "kapprustand",
     "latin": "Tadorna cana",
     "subspecies": [],
     "nynorsk": null
-  },
-  {
-    "norwegian": "rustand",
-    "latin": "Tadorna ferruginea",
-    "subspecies": [],
-    "nynorsk": "rustand"
-  },
-  {
-    "norwegian": "bøffeland",
-    "latin": "Bucephala albeola",
-    "subspecies": [],
-    "nynorsk": null
-  },
-  {
-    "norwegian": "hjelmfiskand",
-    "latin": "Lophodytes cucullatus",
-    "subspecies": [],
-    "nynorsk": "hjelmfiskand"
-  },
-  {
-    "norwegian": "rødhodeand",
-    "latin": "Netta rufina",
-    "subspecies": [],
-    "nynorsk": "raudhovudand"
   },
   {
     "norwegian": "kaneland",
@@ -5646,12 +5536,6 @@
     "nynorsk": "sørblesand"
   },
   {
-    "norwegian": "stokkand",
-    "latin": "Anas platyrhynchos",
-    "subspecies": [],
-    "nynorsk": "stokkand"
-  },
-  {
     "norwegian": "hvitkinnand",
     "latin": "Anas bahamensis",
     "subspecies": [],
@@ -5664,12 +5548,6 @@
     "nynorsk": "raudnebband"
   },
   {
-    "norwegian": "stjertand",
-    "latin": "Anas acuta",
-    "subspecies": [],
-    "nynorsk": "stjertand"
-  },
-  {
     "norwegian": "nordkrattvaktel",
     "latin": "Colinus virginianus",
     "subspecies": [],
@@ -5680,24 +5558,6 @@
     "latin": "Lagopus scotica",
     "subspecies": [],
     "nynorsk": null
-  },
-  {
-    "norwegian": "storfugl",
-    "latin": "Tetrao urogallus",
-    "subspecies": [],
-    "nynorsk": "storfugl"
-  },
-  {
-    "norwegian": "orrfugl",
-    "latin": "Lyrurus tetrix",
-    "subspecies": [],
-    "nynorsk": "orrfugl"
-  },
-  {
-    "norwegian": "rapphøne",
-    "latin": "Perdix perdix",
-    "subspecies": [],
-    "nynorsk": "rapphøne"
   },
   {
     "norwegian": "gullfasan",
@@ -5716,12 +5576,6 @@
     "latin": "Coturnix japonica",
     "subspecies": [],
     "nynorsk": null
-  },
-  {
-    "norwegian": "vaktel",
-    "latin": "Coturnix coturnix",
-    "subspecies": [],
-    "nynorsk": "vaktel"
   },
   {
     "norwegian": "rødhøne",
@@ -5766,20 +5620,8 @@
     "nynorsk": "palmedue"
   },
   {
-    "norwegian": "turteldue",
-    "latin": "Streptopelia turtur",
-    "subspecies": [],
-    "nynorsk": "turteldue"
-  },
-  {
     "norwegian": "latterdue",
     "latin": "Streptopelia roseogrisea var. risoria",
-    "subspecies": [],
-    "nynorsk": null
-  },
-  {
-    "norwegian": "bydue",
-    "latin": "Columba livia var. domestica",
     "subspecies": [],
     "nynorsk": null
   },
@@ -5832,22 +5674,10 @@
     "nynorsk": "gråhovudalbatross"
   },
   {
-    "norwegian": "stork",
-    "latin": "Ciconia ciconia",
-    "subspecies": [],
-    "nynorsk": "stork"
-  },
-  {
     "norwegian": "blåmaskestork",
     "latin": "Ciconia abdimii",
     "subspecies": [],
     "nynorsk": null
-  },
-  {
-    "norwegian": "hvitpelikan",
-    "latin": "Pelecanus onocrotalus",
-    "subspecies": [],
-    "nynorsk": "kvitpelikan"
   },
   {
     "norwegian": "rosenpelikan",
@@ -5862,28 +5692,10 @@
     "nynorsk": "krøllpelikan"
   },
   {
-    "norwegian": "tårnugle",
-    "latin": "Tyto alba",
-    "subspecies": [
-      {
-        "norwegian": "nan",
-        "latin": "T. a. guttata",
-        "nynorsk": null
-      }
-    ],
-    "nynorsk": "tårnugle"
-  },
-  {
     "norwegian": "kirkeugle",
     "latin": "Athene noctua",
     "subspecies": [],
     "nynorsk": "kyrkjeugle"
-  },
-  {
-    "norwegian": "hubro",
-    "latin": "Bubo bubo",
-    "subspecies": [],
-    "nynorsk": "hubro"
   },
   {
     "norwegian": "kalkunkondor",
@@ -5896,42 +5708,6 @@
     "latin": "Gypaetus barbatus",
     "subspecies": [],
     "nynorsk": "lammegribb"
-  },
-  {
-    "norwegian": "åtselgribb",
-    "latin": "Neophron percnopterus",
-    "subspecies": [
-      {
-        "norwegian": "nan",
-        "latin": "N. p. ginginianus",
-        "nynorsk": null
-      }
-    ],
-    "nynorsk": "åtselgribb"
-  },
-  {
-    "norwegian": "munkegribb",
-    "latin": "Aegypius monachus",
-    "subspecies": [],
-    "nynorsk": null
-  },
-  {
-    "norwegian": "storskrikørn",
-    "latin": "Clanga clanga",
-    "subspecies": [],
-    "nynorsk": "storskrikørn"
-  },
-  {
-    "norwegian": "steppeørn",
-    "latin": "Aquila nipalensis",
-    "subspecies": [],
-    "nynorsk": "steppeørn"
-  },
-  {
-    "norwegian": "vandrefalk",
-    "latin": "Falco peregrinus",
-    "subspecies": [],
-    "nynorsk": "vandrefalk"
   },
   {
     "norwegian": "tartarfalk",
@@ -6000,12 +5776,6 @@
     "nynorsk": null
   },
   {
-    "norwegian": "bokfink",
-    "latin": "Fringilla coelebs",
-    "subspecies": [],
-    "nynorsk": "bokfink"
-  },
-  {
     "norwegian": "gråkjernebiter",
     "latin": "Eophona personata",
     "subspecies": [],
@@ -6048,30 +5818,6 @@
     "nynorsk": "brunsisik"
   },
   {
-    "norwegian": "gulirisk",
-    "latin": "Serinus serinus",
-    "subspecies": [],
-    "nynorsk": "gulirisk"
-  },
-  {
-    "norwegian": "grønnsisik",
-    "latin": "Spinus spinus",
-    "subspecies": [],
-    "nynorsk": "grønsisik"
-  },
-  {
-    "norwegian": "gulstrupespurv",
-    "latin": "Emberiza elegans",
-    "subspecies": [],
-    "nynorsk": null
-  },
-  {
-    "norwegian": "brunhodespurv",
-    "latin": "Emberiza bruniceps",
-    "subspecies": [],
-    "nynorsk": "brunhovudsporv"
-  },
-  {
     "norwegian": "gulhodetrupial",
     "latin": "Xanthocephalus xanthocephalus",
     "subspecies": [],
@@ -6082,12 +5828,6 @@
     "latin": "Icterus waglerii",
     "subspecies": [],
     "nynorsk": null
-  },
-  {
-    "norwegian": "rosenbrysttykknebb",
-    "latin": "Pheucticus ludovicianus",
-    "subspecies": [],
-    "nynorsk": "rosenbrysttjukknebb"
   },
   {
     "norwegian": "sisselspurv",

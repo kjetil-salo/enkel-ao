@@ -172,6 +172,19 @@
 
         <div class="version">
           <div class="version-header">
+            <span class="version-number">v1.53.26</span>
+            <span class="version-date">30. september 2026</span>
+          </div>
+          <div class="section-title">Fikset</div>
+          <ul class="changes">
+            <li><strong>Søk finner nå arten uansett om du skriver bokmål eller nynorsk.</strong> Å søke på et nynorsk navn (f.eks. «raudstrupe») ga tidligere null treff i den lokale offline-artslisten, selv om bokmålsvarianten fantes – søket sjekket bare bokmål og vitenskapelig navn. Nynorsk-navnet søkes nå også, i begge søkeveiene.</li>
+            <li><strong>Fjernet 41 duplikate arter i den lokale artslisten,</strong> som kunne gi synlige dobbeltoppføringer i søkeresultatene (f.eks. «knoppsvane» to ganger). Underarter fra duplikatene er slått sammen, ingen data gikk tapt.</li>
+            <li><strong>Rettet en cache-fallgruve som gjorde at forrige versjons rettelser ikke slo gjennom for alle.</strong> <code>main.js</code> sin import av tre sentrale moduler (artssøk, observasjonslogikk) hadde aldri vært versjonert, selv om innholdet endret seg vesentlig i går – en nettleser som hadde besøkt siden tidligere kunne sitte igjen med gammel oppførsel i opptil 4 timer uten varsel.</li>
+          </ul>
+        </div>
+
+        <div class="version">
+          <div class="version-header">
             <span class="version-number">v1.53.25</span>
             <span class="version-date">30. september 2026</span>
           </div>

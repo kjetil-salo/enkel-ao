@@ -3,7 +3,7 @@
  */
 
 import { searchSpecies } from './api.js';
-import { searchOfflineSpecies, getNynorskByLatin } from './species_offline.js?v=v1.53.25';
+import { searchOfflineSpecies, getNynorskByLatin, findBokmalByNynorskTerm } from './species_offline.js?v=v1.53.26';
 import { speciesDisplayName } from './storage.js?v=v1.53.24';
 
 export function updateSubtaxaCheckboxState() {
@@ -207,7 +207,33 @@ export async function fetchResults(term, state, dom, callbacks) {
     let includeSubtaxa = false;
     const cb = document.getElementById('include-subtaxa');
     if (cb && cb.checked) includeSubtaxa = true;
-    const data = await withTimeout(searchSpecies(q, includeSubtaxa), 10000);
+    let data = await withTimeout(searchSpecies(q, includeSubtaxa), 10000);
+
+    // AO sitt eget søk forstår ikke nynorsk-TERMER i det hele tatt - søker du
+    // "raudstrupe" gir AO null treff, selv om "rødstrupe" finnes (Kjetil
+    // testet dette på staging). Sjekk derfor om søketermen matcher et
+    // nynorsk navn lokalt, og søk AO på nytt med bokmålsnavnet også hvis så -
+    // slik finner man arten uansett målform man skriver i. Skippes stille
+    // hvis oppslaget feiler (aldri la et lokalt problem her stoppe søket).
+    try {
+      const nynorskMatches = await findBokmalByNynorskTerm(q);
+      const existingNames = new Set(data.map(d => (d.taxonName || '').toLowerCase()));
+      const extraTerms = nynorskMatches.filter(name => !existingNames.has(name.toLowerCase()));
+      if (extraTerms.length) {
+        const extraResultsArrays = await Promise.all(
+          extraTerms.map(name => searchSpecies(name, includeSubtaxa).catch(() => []))
+        );
+        const seenIds = new Set(data.map(d => d.taxonId));
+        for (const extra of extraResultsArrays.flat()) {
+          if (!seenIds.has(extra.taxonId)) {
+            data.push(extra);
+            seenIds.add(extra.taxonId);
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Nynorsk-oversettelse av søketerm feilet, fortsetter uten:', e);
+    }
 
     // AO sitt eget søk har aldri nynorsk-data (verifisert: kun language=4
     // gir treff mot Taxon/PickerSearch). Beriker derfor hvert treff med

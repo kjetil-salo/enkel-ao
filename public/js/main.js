@@ -20,13 +20,28 @@ import { logPageView, loadActivities, fetchAoSites, fetchAndCachePrivateSites, h
 import { loadObservations, saveObservations, loadAoSearchRadius, saveAoSearchRadius, loadLocationSortMode, saveLocationSortMode, loadAoDirectAutoClear, saveAoDirectAutoClear } from './storage.js?v=v1.53.23';
 import { setStatus, setLocationStatus, showToast, haversine } from './ui.js';
 import { setAoSiteSuggestions, initLocation, openMap, openMapPage, updateCreateSiteBtnVisibility, initCreateSite } from './location.js';
-import { renderObservations } from './observations.js';
+// Versjonert import: observations.js sitt eget innhold (ikke bare hvilke
+// eksporter den har) endret seg vesentlig i dag (speciesDisplayName-bruk i
+// ③-lista og slett-toasten). En stale cachet kopi av selve FILEN - ikke bare
+// manglende eksport - er like reell en fallgruve: main.js sin import her har
+// ALDRI vært versjonert, så en nettleser som besøkte siden tidligere i dag
+// (før nynorsk-arbeidet) kan sitte igjen med gammel oppførsel i opptil 4
+// timer, uten noen SyntaxError som varsler om det (funksjonene fantes jo
+// allerede - bare med gammel logikk). Se species-search.js/
+// observation-commit.js under for samme fiks, og docs/CLAUDE.md.
+import { renderObservations } from './observations.js?v=v1.53.25';
 import { getVisitTimeSpan, isVisitLocked, visitExists } from './visits.js';
 
 // Nye moduler
 import { updateSectionStates, pulseSearchFieldAndFocus } from './form-state.js';
-import { fetchResults, renderResults, chooseItem, updateSubtaxaCheckboxState } from './species-search.js';
-import { commitObservation, renderActivityPills } from './observation-commit.js';
+// Versjonert import: samme begrunnelse som observations.js over - selve
+// innholdet i species-search.js (online-søk beriker nå med nynorsk via
+// getNynorskByLatin) endret vesentlig i dag, uten at denne importen noen
+// gang har vært versjonert. Dette var den faktiske årsaken til at Kjetil
+// testet v1.53.25 og fortsatt bare så gammel oppførsel i vanlig søk -
+// nettleseren hans hadde en cachet species-search.js fra v1.53.24.
+import { fetchResults, renderResults, chooseItem, updateSubtaxaCheckboxState } from './species-search.js?v=v1.53.25';
+import { commitObservation, renderActivityPills } from './observation-commit.js?v=v1.53.25';
 import { handleExport, handleCopy, handleCopyAndOpen, handleClear, handleDirectSend } from './export-operations.js';
 import { openShareDialog } from './share.js';
 import { initAutocomplete } from './autocomplete.js';
