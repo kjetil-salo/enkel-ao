@@ -1,5 +1,5 @@
 // Service Worker for offline-støtte
-const CACHE_NAME = 'fugleobs-v150';
+const CACHE_NAME = 'fugleobs-v151';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -35,7 +35,7 @@ const STATIC_ASSETS = [
   '/js/celebrate.js',
   '/data/activities.json',
   '/data/norske_arter.json',
-  '/favicon.svg'
+  '/favicon.png'
 ];
 
 // Installer og cache statiske filer
