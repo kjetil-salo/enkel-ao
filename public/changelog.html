@@ -172,102 +172,37 @@
 
         <div class="version">
           <div class="version-header">
-            <span class="version-number">v1.53.31</span>
+            <span class="version-number">v1.53.27–31</span>
             <span class="version-date">1. oktober 2026</span>
           </div>
           <div class="section-title">Nytt</div>
           <ul class="changes">
             <li>Nytt felt i «Flere felt»/rediger-observasjon: «Andrehåndsopplysning» — for når du rapporterer et funn du ikke selv har observert (f.eks. fra en lytteboks som Birdweather/Haikubox, eller et bilde en nabo har tatt).</li>
           </ul>
-        </div>
-
-        <div class="version">
-          <div class="version-header">
-            <span class="version-number">v1.53.30</span>
-            <span class="version-date">1. oktober 2026</span>
-          </div>
           <div class="section-title">Endret</div>
           <ul class="changes">
-            <li>Det lille ikonet (nettleserfane) er strammet opp – samme fugl, men mindre "barnetegning" og litt mer profesjonelt.</li>
+            <li>Nytt app-ikon: samme blå farge og hvite fugl som før, men penere og mer detaljert. Det lille ikonet i nettleserfanen er strammet opp på samme måte.</li>
           </ul>
-        </div>
-
-        <div class="version">
-          <div class="version-header">
-            <span class="version-number">v1.53.29</span>
-            <span class="version-date">1. oktober 2026</span>
-          </div>
-          <div class="section-title">Endret</div>
-          <ul class="changes">
-            <li>Nytt app-ikon: samme blå farge og hvite fugl som før, men penere og mer detaljert.</li>
-          </ul>
-        </div>
-
-        <div class="version">
-          <div class="version-header">
-            <span class="version-number">v1.53.28</span>
-            <span class="version-date">1. oktober 2026</span>
-          </div>
           <div class="section-title">Fikset</div>
           <ul class="changes">
-            <li>Kart: den blå prikken som viser din egen posisjon var for liten og kunne forsvinne under tett pakkede lokalitetsmarkører. Den er nå større og ligger alltid øverst, uansett hvor mange lokaliteter som er tegnet.</li>
-          </ul>
-        </div>
-
-        <div class="version">
-          <div class="version-header">
-            <span class="version-number">v1.53.27</span>
-            <span class="version-date">1. oktober 2026</span>
-          </div>
-          <div class="section-title">Fikset</div>
-          <ul class="changes">
+            <li>Kart: den blå prikken som viser din egen posisjon var for liten og kunne forsvinne under tett pakkede lokalitetsmarkører. Den er nå større og ligger alltid øverst.</li>
             <li>Kart: en punktlokalitets sirkel kunne ligge over en polygonlokalitet og stjele klikket, slik at det var umulig å velge polygonet der de overlappet. Polygoner løftes nå alltid over sirkler.</li>
           </ul>
         </div>
 
         <div class="version">
           <div class="version-header">
-            <span class="version-number">v1.53.26</span>
-            <span class="version-date">30. september 2026</span>
-          </div>
-          <div class="section-title">Fikset</div>
-          <ul class="changes">
-            <li><strong>Søk finner nå arten uansett om du skriver bokmål eller nynorsk.</strong> Å søke på et nynorsk navn (f.eks. «raudstrupe») ga tidligere null treff i den lokale offline-artslisten, selv om bokmålsvarianten fantes – søket sjekket bare bokmål og vitenskapelig navn. Nynorsk-navnet søkes nå også, i begge søkeveiene.</li>
-            <li><strong>Fjernet 41 duplikate arter i den lokale artslisten,</strong> som kunne gi synlige dobbeltoppføringer i søkeresultatene (f.eks. «knoppsvane» to ganger). Underarter fra duplikatene er slått sammen, ingen data gikk tapt.</li>
-            <li><strong>Rettet en cache-fallgruve som gjorde at forrige versjons rettelser ikke slo gjennom for alle.</strong> <code>main.js</code> sin import av tre sentrale moduler (artssøk, observasjonslogikk) hadde aldri vært versjonert, selv om innholdet endret seg vesentlig i går – en nettleser som hadde besøkt siden tidligere kunne sitte igjen med gammel oppførsel i opptil 4 timer uten varsel.</li>
-          </ul>
-        </div>
-
-        <div class="version">
-          <div class="version-header">
-            <span class="version-number">v1.53.25</span>
-            <span class="version-date">30. september 2026</span>
-          </div>
-          <div class="section-title">Fikset</div>
-          <ul class="changes">
-            <li><strong>Nynorsk artsnavn virker nå i vanlig søk, ikke bare i offline-modus.</strong> Nynorsk-innstillingen viste tidligere kun nynorsk når «Tving offline arts-søk» også var slått på, siden Artsobservasjoner sitt eget søk ikke har nynorsk-data. Søket beriker nå de vanlige søkeresultatene med nynorsk-navn fra den lokale artslisten, slik at innstillingen faktisk gjør noe i normal bruk.</li>
-          </ul>
-        </div>
-
-        <div class="version">
-          <div class="version-header">
-            <span class="version-number">v1.53.24</span>
-            <span class="version-date">30. september 2026</span>
-          </div>
-          <div class="section-title">Endret</div>
-          <ul class="changes">
-            <li><strong>Nynorsk-innstillingen viser nå nynorsk overalt, ikke bare som hint.</strong> Er «Nynorske artsnavn» slått på, vises nynorsk artsnavn som selve navnet i søkeresultater, i feltet og i lista over registrerte observasjoner – bokmål vises ikke lenger ved siden av. Gjelder foreløpig kun den lokale offline-artslisten. Selve registreringen som til slutt sendes til Artsobservasjoner er fortsatt alltid bokmål, uansett denne innstillingen.</li>
-          </ul>
-        </div>
-
-        <div class="version">
-          <div class="version-header">
-            <span class="version-number">v1.53.23</span>
+            <span class="version-number">v1.53.23–26</span>
             <span class="version-date">30. september 2026</span>
           </div>
           <div class="section-title">Nytt</div>
           <ul class="changes">
-            <li><strong>Nynorske artsnavn som hint i artssøket.</strong> Ny innstilling («Nynorske artsnavn (hint)») viser nynorsk artsnavn ved siden av bokmålsnavnet i søkeresultatene, der det finnes. Gjelder foreløpig kun den lokale offline-artslisten. Rent kosmetisk – navnet som faktisk registreres og sendes til Artsobservasjoner er alltid bokmål.</li>
+            <li><strong>Nynorske artsnavn.</strong> Ny innstilling viser nynorsk artsnavn i søk, felt og observasjonsliste – bygget trinnvis gjennom dagen: først som hint ved siden av bokmål, deretter som full erstatning, og til slutt virker det også i vanlig (ikke-offline) søk og når du selv skriver et nynorsk navn. Gjelder foreløpig kun den lokale offline-artslisten – selve registreringen som sendes til Artsobservasjoner er fortsatt alltid bokmål.</li>
+          </ul>
+          <div class="section-title">Fikset</div>
+          <ul class="changes">
+            <li>Fjernet 41 duplikate arter i den lokale artslisten, som kunne gi synlige dobbeltoppføringer i søkeresultatene (f.eks. «knoppsvane» to ganger).</li>
+            <li>Rettet en cache-fallgruve som gjorde at tidligere rettelser denne dagen ikke slo gjennom for alle – en nettleser som hadde besøkt siden før kunne sitte igjen med gammel oppførsel i opptil 4 timer uten varsel.</li>
           </ul>
         </div>
 
