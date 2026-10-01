@@ -59,6 +59,16 @@ const kartverketGrayscaleLayer = L.tileLayer('https://cache.kartverket.no/v1/wmt
   maxZoom: 18
 });
 
+// Egen pane for brukerens posisjonsmarkør: MÅ ligge over AO-lokalitetenes
+// markørpinner (Leaflets standard marker-pane, z-index 600) og polygon-/
+// sirkel-lagene for radiuslokaliteter (overlay-pane, z-index 400) — uten
+// dette kunne tette lokaliteter skjule den blå prikken helt, og enda verre:
+// en panorer-oppdatering (renderSites) legger nye lag SENERE i DOM-en og
+// ville da tegnet dem over brukermarkøren igjen selv om den opprinnelig lå
+// øverst.
+const userLocationPane = map.createPane('userLocationPane');
+userLocationPane.style.zIndex = 650;
+
 osmLayer.addTo(map);
 
 L.control.layers({
@@ -103,13 +113,16 @@ if (toggleLabelsBtn) {
   toggleLabelsBtn.addEventListener('click', () => setShowLabels(!showLabels));
 }
 
-// Marker for brukerens posisjon
+// Marker for brukerens posisjon. Hvit kant for kontrast mot både lyse og
+// mørke kartlag (Kartverket Gråtone spesielt), og egen pane (se over) så den
+// alltid ligger øverst.
 const userMarker = L.circleMarker([userPosition.lat, userPosition.lon], {
-  color: '#3b82f6',
+  pane: 'userLocationPane',
+  color: '#ffffff',
   fillColor: '#3b82f6',
-  fillOpacity: 0.8,
-  radius: 10,
-  weight: 3
+  fillOpacity: 1,
+  radius: 13,
+  weight: 4
 }).addTo(map);
 
 let popupContent = '<strong>📍 Din posisjon</strong>';
@@ -153,6 +166,10 @@ function renderSites(sitesToRender, { fitToBounds = false } = {}) {
   // den tilhører (site.parentId). Må fylles i et eget kart fordi
   // superlokasjonen ofte kommer SENERE i sitesToRender enn barnet sitt.
   const siteCoordsById = new Map();
+
+  // Polygon-lag tegnet i denne runden — brukes etter hovedløkken til å løfte
+  // dem over radius-sirkler (se bringToFront-kallet nedenfor).
+  const polygonLayers = [];
 
   // Filtrer og legg til AO-lokaliteter
   let siteCount = 0;
@@ -258,6 +275,7 @@ function renderSites(sitesToRender, { fitToBounds = false } = {}) {
       polygon.on('click', () => {
         if (showLabels) selectLocation(site.name || 'Ukjent lokalitet', site.id ?? null);
       });
+      polygonLayers.push(polygon);
     }
 
     // Tegn radius-sirkel hvis det er en radiuslokalitet (punkt + nøyaktighet i
@@ -335,6 +353,15 @@ function renderSites(sitesToRender, { fitToBounds = false } = {}) {
         { color: '#f97316', weight: 1.5, opacity: 0.6, dashArray: '4 6' }
       ).addTo(siteLayerGroup);
     });
+
+    // Løft polygoner over eventuelle overlappende radius-sirkler. Uten dette
+    // avgjør kun tegnerekkefølgen (vilkårlig — samme rekkefølge som
+    // sitesToRender) hvilket lag som fanger klikket der en punktlokalitets
+    // sirkel dekker en polygonlokalitet, og brukeren kan oppleve å ikke
+    // finne noe sted å trykke for å velge polygonet (rapportert i felt,
+    // 2026-10-01). Polygongrenser er en mer presis representasjon av
+    // lokaliteten enn en sirkel, så de skal alltid vinne i overlapp.
+    polygonLayers.forEach(polygon => polygon.bringToFront());
   }
 
   // Zoom kartet til å vise alle markers (kun ved første last — en
