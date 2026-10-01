@@ -236,12 +236,13 @@ describe('toCsv', () => {
     expect(columns[15]).toBe('');
   });
 
-  it('should mark uncertain/notSpontaneous/interesting/notRefound/notFound in columns 39-43', () => {
+  it('should mark secondhand/uncertain/notSpontaneous/interesting/notRefound/notFound in columns 38-43', () => {
     const observations = [{
       species: { taxonName: 'Fiskemåke' },
       placeName: 'Nes',
       count: 1,
       timestamp: '2026-01-22T12:00:00Z',
+      secondhand: true,
       uncertain: true,
       notSpontaneous: true,
       interesting: true,
@@ -251,6 +252,7 @@ describe('toCsv', () => {
 
     const csv = toCsv(observations);
     const columns = csv.split('\n')[1].split('\t');
+    expect(columns[38]).not.toBe(''); // Andrehånds
     expect(columns[39]).not.toBe(''); // Usikker artsbestemming
     expect(columns[40]).not.toBe(''); // Ikke spontan
     expect(columns[41]).not.toBe(''); // Interessant observasjon

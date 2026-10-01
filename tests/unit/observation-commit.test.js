@@ -78,6 +78,7 @@ function nyDom() {
     extraInteresting: lagCheckbox('extra-interesting'),
     extraNotRefound: lagCheckbox('extra-not-refound'),
     extraNotFound: lagCheckbox('extra-not-found'),
+    extraSecondhand: lagCheckbox('extra-secondhand'),
     extraPrivateComment: lagTextarea('extra-private-comment'),
     extraComment: lagTextarea('extra-comment'),
     extraHideUntil: lagInput('extra-hide-until', ''),
@@ -145,6 +146,7 @@ describe('commitObservation — «flere felt»-modal', () => {
     dom.extraInteresting.checked = true;
     dom.extraNotRefound.checked = true;
     dom.extraNotFound.checked = true;
+    dom.extraSecondhand.checked = true;
     dom.extraPrivateComment.value = '  Sett sammen med Kari  ';
 
     commitObservation(state, dom, nyeCallbacks());
@@ -156,6 +158,7 @@ describe('commitObservation — «flere felt»-modal', () => {
     expect(obs.interesting).toBe(true);
     expect(obs.notRefound).toBe(true);
     expect(obs.notFound).toBe(true);
+    expect(obs.secondhand).toBe(true);
     expect(obs.privateComment).toBe('Sett sammen med Kari');
   });
 
@@ -205,6 +208,7 @@ describe('commitObservation — «flere felt»-modal', () => {
     expect(obs.interesting).toBeUndefined();
     expect(obs.notRefound).toBeUndefined();
     expect(obs.notFound).toBeUndefined();
+    expect(obs.secondhand).toBeUndefined();
     expect(obs.privateComment).toBeUndefined();
   });
 
@@ -212,6 +216,7 @@ describe('commitObservation — «flere felt»-modal', () => {
     const state = nyState();
     const dom = nyDom();
     dom.extraUncertain.checked = true;
+    dom.extraSecondhand.checked = true;
     dom.extraPrivateComment.value = 'Noe midlertidig';
     dom.extraComment.value = 'Fint vær';
     dom.extraHideUntil.value = '2026-10-01';
@@ -223,6 +228,7 @@ describe('commitObservation — «flere felt»-modal', () => {
     expect(dom.extraInteresting.checked).toBe(false);
     expect(dom.extraNotRefound.checked).toBe(false);
     expect(dom.extraNotFound.checked).toBe(false);
+    expect(dom.extraSecondhand.checked).toBe(false);
     expect(dom.extraPrivateComment.value).toBe('');
     expect(dom.extraComment.value).toBe('');
     expect(dom.extraHideUntil.value).toBe('');

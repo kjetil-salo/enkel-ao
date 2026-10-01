@@ -151,10 +151,11 @@ def observations_to_csv(observations):
             else:
                 row.append('')
 
-        # Ekstra kolonner — kun «Usikker artsbestemming», «Ikke spontan», «Interessant
-        # observasjon», «Ikke gjenfunnet» og «Ikke funnet» fylles ut (indeks 12-16 i
-        # extra_cols), resten er fortsatt tomme (se AO_BOOL_TRUE-kommentaren over).
+        # Ekstra kolonner — kun «Andrehånds», «Usikker artsbestemming», «Ikke spontan»,
+        # «Interessant observasjon», «Ikke gjenfunnet» og «Ikke funnet» fylles ut (indeks
+        # 11-16 i extra_cols), resten er fortsatt tomme (se AO_BOOL_TRUE-kommentaren over).
         extra_values = [''] * len(extra_cols)
+        extra_values[11] = AO_BOOL_TRUE if obs.get('secondhand') else ''
         extra_values[12] = AO_BOOL_TRUE if obs.get('uncertain') else ''
         extra_values[13] = AO_BOOL_TRUE if obs.get('notSpontaneous') else ''
         extra_values[14] = AO_BOOL_TRUE if obs.get('interesting') else ''

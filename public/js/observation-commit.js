@@ -184,6 +184,7 @@ export function commitObservation(state, dom, callbacks) {
   if (dom.extraInteresting && dom.extraInteresting.checked) obs.interesting = true;
   if (dom.extraNotRefound && dom.extraNotRefound.checked) obs.notRefound = true;
   if (dom.extraNotFound && dom.extraNotFound.checked) obs.notFound = true;
+  if (dom.extraSecondhand && dom.extraSecondhand.checked) obs.secondhand = true;
   if (dom.extraHideUntil && dom.extraHideUntil.value) {
     obs.hideUntil = dom.extraHideUntil.value;
   }
@@ -255,6 +256,7 @@ export function commitObservation(state, dom, callbacks) {
   if (dom.extraInteresting) dom.extraInteresting.checked = false;
   if (dom.extraNotRefound) dom.extraNotRefound.checked = false;
   if (dom.extraNotFound) dom.extraNotFound.checked = false;
+  if (dom.extraSecondhand) dom.extraSecondhand.checked = false;
   if (dom.extraHideUntil) dom.extraHideUntil.value = '';
   if (dom.extraPrivateComment) dom.extraPrivateComment.value = '';
   if (dom.extraComment) dom.extraComment.value = '';

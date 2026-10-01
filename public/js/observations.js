@@ -849,7 +849,8 @@ export function toCsv(observations) {
       }
     }
 
-    // Flere felt-modalen (kolonne 39-43) — se AO_BOOL_TRUE-kommentaren over
+    // Flere felt-modalen (kolonne 38-43) — se AO_BOOL_TRUE-kommentaren over
+    if (obs.secondhand) cols[38] = AO_BOOL_TRUE;
     if (obs.uncertain) cols[39] = AO_BOOL_TRUE;
     if (obs.notSpontaneous) cols[40] = AO_BOOL_TRUE;
     if (obs.interesting) cols[41] = AO_BOOL_TRUE;

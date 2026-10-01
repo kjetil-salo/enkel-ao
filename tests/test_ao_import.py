@@ -287,12 +287,13 @@ def test_observations_to_csv_private_comment_coexists_with_photo_marker():
 
 
 def test_observations_to_csv_flere_felt_kolonner():
-    """De fem nye avkrysningsfeltene skal havne i riktig kolonne (39-43, 0-indeksert)."""
+    """De seks nye avkrysningsfeltene skal havne i riktig kolonne (38-43, 0-indeksert)."""
     observations = [{
         'species': {'taxonName': 'Fiskemåke'},
         'timestamp': '2024-06-01T08:00:00Z',
         'placeName': 'Nes',
         'count': '1',
+        'secondhand': True,
         'uncertain': True,
         'notSpontaneous': True,
         'interesting': True,
@@ -302,6 +303,7 @@ def test_observations_to_csv_flere_felt_kolonner():
 
     csv = observations_to_csv(observations)
     fields = csv.split('\r\n')[1].split('\t')
+    assert fields[38] == AO_BOOL_TRUE
     assert fields[39] == AO_BOOL_TRUE
     assert fields[40] == AO_BOOL_TRUE
     assert fields[41] == AO_BOOL_TRUE
@@ -320,6 +322,7 @@ def test_observations_to_csv_flere_felt_kolonner_tomme_som_default():
 
     csv = observations_to_csv(observations)
     fields = csv.split('\r\n')[1].split('\t')
+    assert fields[38] == ''
     assert fields[39] == ''
     assert fields[40] == ''
     assert fields[41] == ''

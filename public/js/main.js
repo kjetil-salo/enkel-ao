@@ -139,6 +139,7 @@ const dom = {
   extraInteresting: document.getElementById('extra-interesting'),
   extraNotRefound: document.getElementById('extra-not-refound'),
   extraNotFound: document.getElementById('extra-not-found'),
+  extraSecondhand: document.getElementById('extra-secondhand'),
   extraPrivateComment: document.getElementById('extra-private-comment'),
   extraComment: document.getElementById('extra-comment'),
   extraHideUntil: document.getElementById('extra-hide-until'),

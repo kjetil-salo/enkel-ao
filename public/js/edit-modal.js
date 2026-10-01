@@ -41,6 +41,7 @@ function queryEls() {
     interesting: document.getElementById('em-interesting'),
     notRefound: document.getElementById('em-not-refound'),
     notFound: document.getElementById('em-not-found'),
+    secondhand: document.getElementById('em-secondhand'),
     privateComment: document.getElementById('em-private-comment'),
     cancelBtn: document.getElementById('em-cancel-btn'),
     medobsPicker: document.getElementById('em-medobs-picker'),
@@ -146,6 +147,7 @@ export function openEditModal(observations, index, onSaved) {
   els.interesting.checked = !!obs.interesting;
   els.notRefound.checked = !!obs.notRefound;
   els.notFound.checked = !!obs.notFound;
+  els.secondhand.checked = !!obs.secondhand;
   els.privateComment.value = obs.privateComment || '';
 
   photoPicker.resetToUntouched();
@@ -218,6 +220,7 @@ function handleSubmit(e) {
   if (els.interesting.checked) obs.interesting = true; else delete obs.interesting;
   if (els.notRefound.checked) obs.notRefound = true; else delete obs.notRefound;
   if (els.notFound.checked) obs.notFound = true; else delete obs.notFound;
+  if (els.secondhand.checked) obs.secondhand = true; else delete obs.secondhand;
   if (els.privateComment.value.trim()) obs.privateComment = els.privateComment.value.trim(); else delete obs.privateComment;
 
   const photoValue = photoPicker.getValue();
