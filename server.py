@@ -62,7 +62,7 @@ from src import fellestur_store
 from src import fellestur_peer
 from src import email_notify
 from src.utils import parse_user_agent
-from src.ao_import_httpx import post_with_curl
+from src.ao_import_httpx import post_with_curl, number_of_sightings_submitted
 
 # Lokal lokasjons-database (feature toggle via LOCATION_DB_PATH)
 _location_db = None
@@ -156,6 +156,10 @@ class Handler(SimpleHTTPRequestHandler):
 
         if parsed.path == '/api/ao-import-stream':
             self._handle_ao_import_stream_post()
+            return
+
+        if parsed.path == '/api/ao-queue-count':
+            self._handle_ao_queue_count_post()
             return
 
         if parsed.path == '/api/ao-login':
@@ -653,6 +657,35 @@ class Handler(SimpleHTTPRequestHandler):
             self._send_json({'ok': ok}, status=200 if ok else 400)
         except Exception as e:
             self._send_json({'error': f'Ugyldig forespørsel: {e}'}, status=400)
+
+    def _handle_ao_queue_count_post(self):
+        """
+        Hvor mange funn ligger allerede til gjennomgang («Kontroller funn») hos AO?
+
+        Brukes til å varsle brukeren FØR sending om at køen ikke er tom, slik at det er
+        synlig hva scoped publisering vil skåne (se `post_with_curl` og
+        `docs/ao-publish-selective-capture.md`). Ren opplysning — påvirker ikke selve
+        sendingen, som teller køen på nytt når den faktisk kjører.
+
+        Svarer `{'count': N}`, eller `{'count': None}` hvis AO ikke kunne spørres. `None`
+        betyr «vet ikke», IKKE «tom» — frontend skal ikke si «køen er tom» på et None.
+        Følger ekstern-API-konvensjonen: aldri 500 ut til klienten, kun degradert svar.
+        """
+        try:
+            content_length = int(self.headers.get('Content-Length', 0))
+            data = json.loads(self.rfile.read(content_length).decode('utf-8'))
+            login_token = data.get('loginToken')
+            auth_cookie = data.get('authCookie')
+
+            if not login_token or not auth_cookie:
+                self._send_json({'count': None}, status=200)
+                return
+
+            count = number_of_sightings_submitted(login_token, auth_cookie)
+            self._send_json({'count': count}, status=200)
+        except Exception as e:
+            logger.error(f'[AO-QUEUE] Kunne ikke hente kø-antall: {e}')
+            self._send_json({'count': None}, status=200)
 
     def _handle_ao_import_post(self):
         """Håndter direkte posting av observasjoner til AO (kun for eier)."""

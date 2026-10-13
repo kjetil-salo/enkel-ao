@@ -42,7 +42,8 @@ import { updateSectionStates, pulseSearchFieldAndFocus } from './form-state.js';
 // nettleseren hans hadde en cachet species-search.js fra v1.53.24.
 import { fetchResults, renderResults, chooseItem, updateSubtaxaCheckboxState } from './species-search.js?v=v1.53.25';
 import { commitObservation, renderActivityPills } from './observation-commit.js?v=v1.53.25';
-import { handleExport, handleCopy, handleCopyAndOpen, handleClear, handleDirectSend } from './export-operations.js';
+import { handleExport, handleCopy, handleCopyAndOpen, handleClear, handleDirectSend, oppdaterAoKoHint }
+  from './export-operations.js?v=v1.53.33';
 import { openShareDialog } from './share.js';
 import { initAutocomplete } from './autocomplete.js';
 import { initNewsSplash } from './news-splash.js';
@@ -117,6 +118,7 @@ const dom = {
   aoDirectRow: document.getElementById('ao-direct-row'),
   aoDirectStatus: document.getElementById('ao-direct-status'),
   aoDirectAutoClear: document.getElementById('ao-direct-auto-clear'),
+  aoKoHint: document.getElementById('ao-queue-hint'),
   fellesturSperreHint: document.getElementById('fellestur-sperre-hint'),
   locDot: document.getElementById('loc-dot'),
   locText: document.getElementById('loc-text'),
@@ -209,6 +211,13 @@ function updateAoDirectVisibility() {
   const username = localStorage.getItem('ao_username');
   const hasCredentials = username && localStorage.getItem('ao_password');
   dom.aoDirectRow.style.display = hasCredentials ? 'block' : 'none';
+  // Ligger det funn til gjennomgang hos AO fra før, skal brukeren vite det FØR sending
+  // (scoped publisering lar dem stå). Best-effort og cachet — se oppdaterAoKoHint().
+  if (hasCredentials) {
+    oppdaterAoKoHint(dom);
+  } else if (dom.aoKoHint) {
+    dom.aoKoHint.style.display = 'none';
+  }
   // Uten innlogging: vis CTA så nye brukere ser at direkte publisering finnes
   const loginCta = document.getElementById('ao-login-cta');
   if (loginCta) loginCta.style.display = hasCredentials ? 'none' : 'flex';

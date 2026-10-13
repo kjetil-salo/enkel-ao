@@ -33,6 +33,65 @@ function _renderProgress(dom, step, totalSteps, text, pct = null) {
     <div class="ao-progress-track">${bar}</div>`;
 }
 
+// Hvor lenge et hentet kø-antall regnes som ferskt nok å vise. Køen endrer seg bare
+// ved at brukeren selv gjør noe hos AO, så et par minutter er rikelig — og sparer et
+// AO-kall per gang lista endres (renderObservations kaller inn hit ofte).
+const _KO_CACHE_MS = 120000;
+let _koCache = { ts: 0, count: null };
+let _koHenter = null;
+
+/**
+ * Vis en nøytral opplysning over «Publiser til AO» hvis det ALLEREDE ligger funn til
+ * gjennomgang («Kontroller funn») hos AO.
+ *
+ * Hensikten er at scoped publisering ikke skal være usynlig: ligger det noe der fra før,
+ * publiserer appen kun din egen sending og lar resten stå — det bør man få vite FØR man
+ * trykker send, ikke oppdage etterpå. Se docs/ao-publish-selective-capture.md.
+ *
+ * Rent opplysende og best-effort: feiler kallet, eller svarer AO «vet ikke» (null), vises
+ * ingenting. En tom kø (0) er normaltilfellet og skal heller ikke si noe.
+ */
+export async function oppdaterAoKoHint(dom) {
+  const hint = dom.aoKoHint || document.getElementById('ao-queue-hint');
+  if (!hint) return;
+
+  const vis = (count) => {
+    if (!count) { hint.style.display = 'none'; return; }
+    hint.style.display = 'block';
+    hint.innerHTML = `ℹ️ Det ligger ${count} funn til gjennomgang hos AO fra før. `
+      + '<b>De blir ikke publisert</b> når du sender herfra — kun dine egne funn fra denne listen.<br>'
+      + '<a href="https://www.artsobservasjoner.no/ReviewSighting" target="_blank" rel="noopener">Se hva som ligger der</a>';
+  };
+
+  // Fersk nok fra sist? Vis den uten å spørre AO på nytt.
+  if (Date.now() - _koCache.ts < _KO_CACHE_MS) { vis(_koCache.count); return; }
+  // Et kall er allerede underveis — ikke start et parallelt.
+  if (_koHenter) return;
+
+  const tokens = JSON.parse(localStorage.getItem('ao_tokens') || '{}');
+  if (!tokens.loginToken || !tokens.authCookie) return;
+
+  _koHenter = (async () => {
+    try {
+      const res = await fetch('/api/ao-queue-count', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ loginToken: tokens.loginToken, authCookie: tokens.authCookie })
+      });
+      const data = await res.json();
+      // null = «kunne ikke spørre AO», ikke «tom» — da cacher vi ingenting og viser ingenting.
+      if (typeof data.count === 'number') {
+        _koCache = { ts: Date.now(), count: data.count };
+        vis(data.count);
+      }
+    } catch (_) {
+      // Stille: et hint som ikke kan hentes skal aldri stå i veien for å sende.
+    } finally {
+      _koHenter = null;
+    }
+  })();
+}
+
 export function handleExport(observations, dom) {
   const csv = toCsv(observations);
   if (!csv) return;
@@ -277,13 +336,39 @@ export async function handleDirectSend(observations, dom, callbacks) {
       t.authCookie = importResult.refreshedAuthCookie;
       localStorage.setItem('ao_tokens', JSON.stringify(t));
     }
-    // AO holder tilbake rader den underkjenner — da er grønn hake feil signal.
-    if (importResult.heldBack) {
+    // To uavhengige måter noe kan ligge igjen hos AO etter en ellers vellykket sending.
+    // Begge kan skje i samme sending, så de samles i ÉN gul boks — en tidligere versjon
+    // viste bare den første og skjulte den andre.
+    //
+    //  * notPublished — appen klarte ikke å gjenfinne observasjonen entydig i
+    //    gjennomgangskøen og lot den bevisst stå (fail-safe mot å publisere andres
+    //    ventende funn, se docs/ao-publish-selective-capture.md)
+    //  * heldBack     — AO selv underkjente raden (typisk tidspunkt frem i tid)
+    //
+    // Uten dette fikk brukeren grønn «sendt!» med et stille lavere antall.
+    const notPublished = importResult.notPublished || [];
+    if (notPublished.length || importResult.heldBack) {
+      const biter = [];
+      if (importResult.count) {
+        biter.push(`✅ ${importResult.count} observasjon${importResult.count !== 1 ? 'er' : ''} publisert.`);
+      }
+      if (notPublished.length) {
+        const n = notPublished.length;
+        biter.push(`⚠️ ${n} observasjon${n !== 1 ? 'er' : ''} ble <b>ikke</b> publisert, fordi `
+          + `${n !== 1 ? 'de' : 'den'} ikke kunne gjenfinnes entydig i AOs gjennomgangskø: `
+          + `<span style="opacity:.85">${notPublished.join(', ')}</span>.`);
+      }
+      if (importResult.heldBack) {
+        const detaljer = importResult.heldBackDetails
+          ? ` <span style="opacity:.85">${importResult.heldBackDetails}</span>` : '';
+        biter.push(`⚠️ ${importResult.heldBack} observasjon${importResult.heldBack !== 1 ? 'er' : ''} `
+          + `ble <b>ikke</b> publisert og ligger til gjennomgang på AO.${detaljer}`);
+      }
+      biter.push('Det som ligger igjen kan publiseres manuelt: '
+        + '<a href="https://www.artsobservasjoner.no/ReviewSighting" target="_blank" rel="noopener">Åpne gjennomgang</a>');
+
       dom.aoDirectStatus.style.cssText = `display:block;margin-top:8px;padding:10px;border-radius:8px;font-size:0.9rem;background:rgba(234,179,8,0.1);border:1px solid rgba(234,179,8,0.4);color:${_statusColor('error')};`;
-      const detaljer = importResult.heldBackDetails
-        ? `<br><span style="opacity:.85">${importResult.heldBackDetails}</span>` : '';
-      dom.aoDirectStatus.innerHTML = `⚠️ ${importResult.heldBack} observasjon${importResult.heldBack !== 1 ? 'er' : ''} ble <b>ikke</b> publisert og ligger til gjennomgang på AO.${detaljer}<br>`
-        + '<a href="https://www.artsobservasjoner.no/ReviewSighting" target="_blank" rel="noopener">Åpne gjennomgang</a>';
+      dom.aoDirectStatus.innerHTML = biter.join('<br>');
       dom.aoDirectBtn.disabled = false;
       return;
     }

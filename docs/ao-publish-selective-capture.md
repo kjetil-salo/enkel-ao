@@ -137,6 +137,19 @@ Fire ting som ikke er åpenbare, og som alle ville gitt stille feil i felt:
   samme som verifisert — gjenstår å bekrefte i felt at scoped publisering faktisk treffer
   riktige rader over tid.
 
+## Synlighet for brukeren (v1.53.33)
+
+Scoped publisering er bevisst stille i selve mekanikken, men ikke overfor brukeren:
+
+- **Før sending:** `POST /api/ao-queue-count` → `number_of_sightings_submitted()`. Er køen
+  ikke tom, viser `oppdaterAoKoHint()` i `export-operations.js` en nøytral info-linje over
+  «Publiser til AO» med antall og at de ikke blir berørt. `count: null` («kunne ikke spørre
+  AO») viser ingenting og caches ikke — en forbigående feil skal ikke skjule et reelt
+  kø-innhold i hele TTL-en (2 min).
+- **Etter sending:** `notPublished` (vår fail-safe: fant ikke raden igjen) og `heldBack`
+  (AO underkjente raden) vises i ÉN samlet gul boks med artsnavn og lenke til
+  gjennomgangssiden. De kan opptre samtidig, og en tidligere variant viste bare den første.
+
 ## Gjenstår å verifisere i felt (etter deploy v1.53.32)
 
 Scoped publisering er bekreftet mot ekte AO manuelt i nettleseren (tre observasjoner,

@@ -1619,3 +1619,103 @@ def test_ao_import_stream_validates_before_streaming(monkeypatch):
         assert 'error' in r.json()
     finally:
         srv.shutdown()
+
+
+# ---------------------------------------------------------------------------
+# /api/ao-queue-count — varsler brukeren FØR sending om at AOs gjennomgangskø
+# ikke er tom (scoped publisering skal ikke være usynlig)
+# ---------------------------------------------------------------------------
+
+def test_ao_queue_count_returns_count(monkeypatch):
+    """Endepunktet skal returnere antallet fra AO uendret."""
+    import server as server_module
+
+    monkeypatch.setattr(server_module, 'number_of_sightings_submitted', lambda lt, ac: 3)
+
+    port = 8197
+    srv = start_server(port)
+    time.sleep(0.05)
+    try:
+        r = requests.post(
+            f'http://127.0.0.1:{port}/api/ao-queue-count',
+            json={'loginToken': 'L', 'authCookie': 'A'},
+            timeout=5,
+        )
+        assert r.status_code == 200
+        assert r.json() == {'count': 3}
+    finally:
+        srv.shutdown()
+
+
+def test_ao_queue_count_none_when_ao_unavailable(monkeypatch):
+    """
+    AO svarer ikke → `{'count': None}` med status 200, aldri 500.
+
+    `None` betyr «vet ikke», ikke «tom» — frontend viser da ingenting i stedet for å
+    påstå at køen er tom (jf. ekstern-API-konvensjonen i CLAUDE.md).
+    """
+    import server as server_module
+
+    monkeypatch.setattr(server_module, 'number_of_sightings_submitted', lambda lt, ac: None)
+
+    port = 8196
+    srv = start_server(port)
+    time.sleep(0.05)
+    try:
+        r = requests.post(
+            f'http://127.0.0.1:{port}/api/ao-queue-count',
+            json={'loginToken': 'L', 'authCookie': 'A'},
+            timeout=5,
+        )
+        assert r.status_code == 200
+        assert r.json() == {'count': None}
+    finally:
+        srv.shutdown()
+
+
+def test_ao_queue_count_exception_degrades_to_none(monkeypatch):
+    """Et unntak i AO-kallet skal degraderes til count=None/200, ikke bli en 500."""
+    import server as server_module
+
+    def boom(lt, ac):
+        raise RuntimeError('AO nede')
+
+    monkeypatch.setattr(server_module, 'number_of_sightings_submitted', boom)
+
+    port = 8195
+    srv = start_server(port)
+    time.sleep(0.05)
+    try:
+        r = requests.post(
+            f'http://127.0.0.1:{port}/api/ao-queue-count',
+            json={'loginToken': 'L', 'authCookie': 'A'},
+            timeout=5,
+        )
+        assert r.status_code == 200
+        assert r.json() == {'count': None}
+    finally:
+        srv.shutdown()
+
+
+def test_ao_queue_count_without_tokens_is_none(monkeypatch):
+    """Uinnlogget bruker skal ikke føre til et AO-kall i det hele tatt."""
+    import server as server_module
+
+    kalt = []
+    monkeypatch.setattr(server_module, 'number_of_sightings_submitted',
+                        lambda lt, ac: kalt.append(1))
+
+    port = 8194
+    srv = start_server(port)
+    time.sleep(0.05)
+    try:
+        r = requests.post(
+            f'http://127.0.0.1:{port}/api/ao-queue-count',
+            json={},
+            timeout=5,
+        )
+        assert r.status_code == 200
+        assert r.json() == {'count': None}
+        assert kalt == []
+    finally:
+        srv.shutdown()

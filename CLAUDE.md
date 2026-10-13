@@ -107,6 +107,14 @@ The `Handler` class routes requests:
     ID og risikere å dra med andres ventende funn
   - Full kartlegging av AOs feltformat, fallgruver og det som gjenstår å feltverifisere:
     `docs/ao-publish-selective-capture.md`
+- `/api/ao-queue-count` (POST) → hvor mange funn som allerede ligger til gjennomgang
+  («Kontroller funn») hos AO. Rent opplysende: brukes av `oppdaterAoKoHint()` i
+  `export-operations.js` til å varsle FØR sending om at køen ikke er tom, slik at scoped
+  publisering ikke er usynlig
+  - Svarer `{'count': N}`, eller `{'count': null}` hvis AO ikke kunne spørres. **`null`
+    betyr «vet ikke», IKKE «tom»** — frontend viser da ingenting, og cacher heller ikke
+    svaret (ellers ville en forbigående AO-feil skjult et reelt kø-innhold i 2 minutter)
+  - Påvirker ikke sendingen: `post_with_curl` teller køen på nytt når den faktisk kjører
 - `/api/ao-import-stream` (POST) → som `ao-import`, men **streamer fremdrift via SSE** (`text/event-stream`)
   - Fase-events: `importing {remaining, total}` → `publishing {total}` → `done {count}` / `error`
   - Fremdriften polles fra AOs egne endepunkter (se `docs/ao-import-fremdrift.md`):
