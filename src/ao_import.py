@@ -107,14 +107,14 @@ def observations_to_csv(observations):
             if len(parts) == 3:
                 hide_until_str = f'{parts[2]}.{parts[1]}.{parts[0]}'
 
-        # Privat kommentar deler kolonne med _photoMarker (se toppkommentar i
+        # Privat kommentar deler kolonne med _importMarker (se toppkommentar i
         # _upload_pending_images i ao_import_httpx.py) — markøren må fortsatt kunne
         # gjenfinnes som substreng i AO sin PrivateCommentLong, så den legges til i
         # tillegg til brukerens tekst i stedet for å overskrive den.
         private_comment = obs.get('privateComment', '')
-        photo_marker = obs.get('_photoMarker', '')
-        if photo_marker:
-            private_comment_col = f'{private_comment} {photo_marker}'.strip() if private_comment else photo_marker
+        import_marker = obs.get('_importMarker', '')
+        if import_marker:
+            private_comment_col = f'{private_comment} {import_marker}'.strip() if private_comment else import_marker
         else:
             private_comment_col = private_comment
 

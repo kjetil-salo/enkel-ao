@@ -17,6 +17,11 @@ from src.utils import mask_token as _mask
 
 logger = logging.getLogger('fugleobs')
 
+# Hvor mange rader vi ber AOs gjennomgangs-grid om når køens faktiske størrelse er
+# ukjent (tellerendepunktet svarte ikke). Romslig med vilje — se `queue_size` i
+# `post_with_curl`.
+_UNKNOWN_QUEUE_SIZE = 500
+
 
 def observations_to_csv(observations):
     """Samme som i ao_import.py"""
@@ -183,16 +188,25 @@ def review_queue_rows(login_token, auth_cookie, size=200):
         return None
 
 
-def _describe_held_back(login_token, auth_cookie, limit=3):
+def _describe_held_back(login_token, auth_cookie, limit=3, temp_sighting_ids=None):
     """
     Kort, menneskelig beskrivelse av hva som ble liggende igjen i gjennomgangskøen.
 
     Gir brukeren «tårnseiler 26.07 15:00» i stedet for bare et tall. Returnerer tom
     streng hvis køen ikke kan leses — da faller melding tilbake til antall alene.
+
+    `temp_sighting_ids` begrenser beskrivelsen til VÅR batch (scoped publisering) — uten
+    den ville andres ventende funn i køen blitt listet som om de var våre, se
+    docs/ao-publish-selective-capture.md.
     """
     rows = review_queue_rows(login_token, auth_cookie)
     if not rows:
         return ''
+    if temp_sighting_ids is not None:
+        wanted = {str(x) for x in temp_sighting_ids}
+        rows = [r for r in rows if str(r.get('TemporarySightingId')) in wanted]
+        if not rows:
+            return ''
     biter = []
     for row in rows[:limit]:
         navn = (row.get('TaxonName') or '').strip() or 'ukjent art'
@@ -316,15 +330,32 @@ def upload_image(sighting_id, image_bytes, filename, login_token, auth_cookie, m
         return {}
 
 
-def _upload_pending_images(observations, login_token, auth_cookie, progress_cb=None):
+def _find_row_for_marker(rows, marker):
+    """
+    Finn gjennomgangskø-raden hvis `PrivateCommentLong` inneholder `marker`.
+
+    Markøren (`_importMarker`) kan dele kolonnen med brukerens egen private kommentar
+    (se ao_import.py), så vi leter etter den som substreng i stedet for eksakt match.
+    """
+    for row in rows:
+        if marker in (row.get('PrivateCommentLong') or ''):
+            return row
+    return None
+
+
+def _upload_pending_images(observations, login_token, auth_cookie, progress_cb=None, rows=None):
     """
     Match observasjoner med vedlagt bilde mot ekte SightingId (via markøren i privat
     kommentar) og last dem opp — best-effort, aldri blokkerende for selve publiseringen.
 
+    `rows` kan sendes inn forhåndshentet (unngår et ekstra `review_queue_rows`-kall når
+    den allerede er hentet for scoped publisering, se post_with_curl) — hentes selv hvis
+    utelatt.
+
     Returnerer liste av artsnavn det IKKE lot seg gjøre å laste opp bilde for (tom liste
     hvis alt gikk bra, eller ingen bilder var vedlagt).
     """
-    photo_obs = [o for o in observations if o.get('photo') and o.get('_photoMarker')]
+    photo_obs = [o for o in observations if o.get('photo') and o.get('_importMarker')]
     if not photo_obs:
         return []
 
@@ -332,20 +363,12 @@ def _upload_pending_images(observations, login_token, auth_cookie, progress_cb=N
     if progress_cb:
         progress_cb({'phase': 'uploading-images', 'done': 0, 'total': total})
 
-    # Markøren kan nå dele kolonnen med brukerens egen private kommentar (se
-    # ao_import.py) — den er ikke nødvendigvis hele PrivateCommentLong-verdien lenger,
-    # så vi må lete etter den som substreng i stedet for eksakt match.
-    rows = review_queue_rows(login_token, auth_cookie) or []
-
-    def _find_row_for_marker(marker):
-        for row in rows:
-            if marker in (row.get('PrivateCommentLong') or ''):
-                return row
-        return None
+    if rows is None:
+        rows = review_queue_rows(login_token, auth_cookie) or []
 
     failed = []
     for i, obs in enumerate(photo_obs):
-        row = _find_row_for_marker(obs['_photoMarker'])
+        row = _find_row_for_marker(rows, obs['_importMarker'])
         if not row:
             logger.warning(f'[AO-HTTPX] Fant ikke gjennomgangsrad for bilde ({_obs_label(obs)}) — hopper over')
             failed.append(_obs_label(obs))
@@ -362,6 +385,50 @@ def _upload_pending_images(observations, login_token, auth_cookie, progress_cb=N
     return failed
 
 
+def _resolve_temp_ids_for_publish(observations, rows):
+    """
+    Slå opp `TemporarySightingId` for hver observasjon via `_importMarker`.
+
+    Brukes KUN når gjennomgangskøen hadde funn fra før denne importen startet (se
+    post_with_curl) — da må publiseringen begrenses til nøyaktig denne batchen i stedet
+    for å dra med andres ventende funn (`PublishAll` publiserer ellers hele køen). Se
+    docs/ao-publish-selective-capture.md for hvordan AOs faktiske feltformat ble bekreftet.
+
+    `TemporarySightingId` (ikke den permanente `SightingId`) er ID-typen
+    `/PublishSighting/Publish` faktisk forventer.
+
+    Umatchede observasjoner publiseres IKKE — fail-safe heller enn å gjette feil ID.
+
+    Returnerer (temp_ids: list[str], unmatched_labels: list[str]).
+    """
+    temp_ids = []
+    unmatched = []
+    for obs in observations:
+        marker = obs.get('_importMarker')
+        row = _find_row_for_marker(rows, marker) if marker else None
+        if row and row.get('TemporarySightingId') is not None:
+            temp_ids.append(str(row['TemporarySightingId']))
+        else:
+            unmatched.append(_obs_label(obs))
+    return temp_ids, unmatched
+
+
+def _poll_until_zero(get_remaining, timeout=6.0, interval=1.0):
+    """
+    Generisk poll-løkke: kall `get_remaining()` til den returnerer 0/None, eller til
+    tiden går ut. Delt av `_remaining_after_publish` og `_remaining_scoped` — eneste
+    forskjell mellom dem er HVA som telles, ikke selve ventemønsteret.
+    """
+    deadline = time.time() + timeout
+    remaining = None
+    while time.time() < deadline:
+        remaining = get_remaining()
+        if remaining is None or remaining == 0:
+            return remaining
+        time.sleep(interval)
+    return remaining
+
+
 def _remaining_after_publish(login_token, auth_cookie, timeout=6.0, interval=1.0):
     """
     Antall observasjoner som fortsatt ligger i gjennomgangskøen etter publisering.
@@ -370,24 +437,53 @@ def _remaining_after_publish(login_token, auth_cookie, timeout=6.0, interval=1.0
     passert» ved tidspunkt frem i tid) — de blir liggende i køen. Uten denne sjekken
     meldte appen «sendt til AO!» selv om observasjonen aldri ble publisert.
 
+    Kun gyldig når HELE køen er vår (ikke-scoped publisering) — se `_remaining_scoped`
+    for varianten som brukes ved scoped publisering.
+
     Returnerer antall gjenværende, eller None hvis endepunktet ikke svarer.
     """
-    deadline = time.time() + timeout
-    remaining = None
-    while time.time() < deadline:
-        remaining = number_of_sightings_submitted(login_token, auth_cookie)
-        if remaining is None or remaining == 0:
-            return remaining
-        time.sleep(interval)
-    return remaining
+    return _poll_until_zero(
+        lambda: number_of_sightings_submitted(login_token, auth_cookie), timeout, interval)
+
+
+def _remaining_scoped(login_token, auth_cookie, temp_sighting_ids, timeout=6.0, interval=1.0):
+    """
+    Som `_remaining_after_publish`, men teller kun VÅRE `temp_sighting_ids` — ikke hele
+    køen. Andres ventende funn kan fortsatt ligge der uten at VÅR publisering feilet.
+
+    Returnerer antall av våre temp_sighting_ids som fortsatt ligger i køen (0 = alt gikk
+    gjennom), eller None hvis køen ikke kunne leses.
+    """
+    wanted = {str(x) for x in temp_sighting_ids}
+
+    def get_remaining():
+        rows = review_queue_rows(login_token, auth_cookie)
+        if rows is None:
+            return None
+        present = {str(r.get('TemporarySightingId')) for r in rows}
+        return len(wanted & present)
+
+    return _poll_until_zero(get_remaining, timeout, interval)
 
 
 def _poll_importing_done(login_token, auth_cookie, total, progress_cb=None,
-                         timeout=None, interval=0.7):
+                         timeout=None, interval=0.7, expect_markers=None, queue_size=200):
     """
     Poll til AO BÅDE er ferdig med å parse (NumberOfSightingsImporting == 0) OG har
-    faktisk lagt alle observasjonene inn i gjennomgangskøen (NumberOfSightingsSubmitted
-    >= total), før vi lar publiseringen trigges.
+    faktisk lagt alle observasjonene inn i gjennomgangskøen, før publiseringen trigges.
+
+    Hvordan «lagt inn i køen» avgjøres avhenger av modus:
+
+    - `expect_markers=None` — køen var BEKREFTET tom før import (det vanlige tilfellet).
+      Da er `NumberOfSightingsSubmitted >= total` direkte sammenlignbart, og den billige
+      tellingen holder.
+    - `expect_markers={...}` — scoped publisering: køen var ikke tom, ELLER vi fikk ikke
+      svar på hvor full den var. Da kreves det at hver enkelt markør faktisk finnes igjen
+      i gjennomgangskøen. Et absolutt tall duger ikke her: i «fikk ikke svar»-tilfellet
+      vet vi ikke hvor mange fremmede rader som lå der fra før, og en terskel basert på
+      en gjettet baseline (0) ville sluppet publiseringen gjennom for tidlig — nøyaktig
+      racet denne gaten finnes for. Den tyngre grid-lesingen gjøres kun når den billige
+      «importing»-telleren allerede melder ferdig.
 
     AOs "importing"-teller kan nå 0 i god tid FØR alle radene er skrevet til
     gjennomgangstabellen — en race i AOs egen backend, størst ved flere observasjoner.
@@ -419,7 +515,19 @@ def _poll_importing_done(login_token, auth_cookie, total, progress_cb=None,
             progress_cb({'phase': 'importing', 'remaining': remaining, 'total': total})
 
         importing_done = True if remaining is None else remaining == 0
-        queue_filled = True if submitted is None else submitted >= total
+
+        if expect_markers is None:
+            queue_filled = True if submitted is None else submitted >= total
+        elif not importing_done:
+            # Ikke bruk den tunge grid-lesingen før den billige telleren melder ferdig
+            queue_filled = False
+        else:
+            rows = review_queue_rows(login_token, auth_cookie, size=queue_size)
+            if rows is None:
+                queue_filled = False  # kunne ikke lese køen — vent, ikke gjett
+            else:
+                present = '\n'.join(r.get('PrivateCommentLong') or '' for r in rows)
+                queue_filled = all(marker in present for marker in expect_markers)
 
         # Krev to påfølgende ferdig-avlesninger for å unngå å publisere før AO har startet
         if importing_done and queue_filled:
@@ -458,12 +566,38 @@ def post_with_curl(observations, login_token=None, auth_cookie=None, area_id='',
     # Hent BEGGE CSRF tokens + eventuell fornyet auth cookie
     form_token, cookie_token, refreshed_auth = fetch_csrf_tokens(login_token, auth_cookie)
 
-    # Observasjoner med vedlagt bilde får en unik markør i privat kommentar (kun synlig
-    # for reporter selv på AO), slik at vi etterpå kan koble raden i gjennomgangskøen
-    # til riktig lokal observasjon — se `_upload_pending_images` og `docs/bilde-opplasting-plan.md`.
+    # Lå det noe i gjennomgangskøen FØR denne importen (andre funn, ikke fra denne
+    # sendingen)? Da må publiseringen etterpå begrenses til nøyaktig vår batch — ellers
+    # publiserer PublishAll alt i køen, se docs/ao-publish-selective-capture.md og
+    # brukerhenvendelsen som avdekket dette (02.10.2026). For de aller fleste er køen tom
+    # her, og resten av funksjonen oppfører seg akkurat som før.
+    #
+    # Fail-safe-retning: svarer ikke endepunktet (None), VET vi ikke om køen var tom —
+    # da må vi anta at den IKKE var det. Å anta «tom» i mangel på svar ville falt
+    # tilbake til nøyaktig buggen denne fiksen skal unngå (publiserer fremmede, ventende
+    # funn). Kun en BEKREFTET tom kø (0) slår av scoped publisering.
+    pre_existing_count = number_of_sightings_submitted(login_token, auth_cookie)
+    needs_scoped_publish = pre_existing_count != 0
+
+    # Hvor mange rader må vi be AOs grid om for å se HELE køen (fremmede + vår batch)?
+    # Er køstørrelsen ukjent (endepunktet svarte ikke), kan vi ikke regne oss fram til
+    # den — da ber vi om et romslig vindu i stedet. Et for lite vindu ville gjort at
+    # egne rader falt utenfor og feilaktig ble regnet som «ikke importert».
+    if pre_existing_count is None:
+        queue_size = _UNKNOWN_QUEUE_SIZE
+    else:
+        queue_size = max(200, pre_existing_count + len(observations) + 20)
+
+    # Observasjoner får en unik markør i privat kommentar (kun synlig for reporter selv på
+    # AO), slik at vi etterpå kan koble raden i gjennomgangskøen til riktig lokal
+    # observasjon — se `_upload_pending_images`, `_resolve_temp_ids_for_publish` og
+    # `docs/bilde-opplasting-plan.md`. Bilde-observasjoner får den uansett (trengs til
+    # bildeopplasting); øvrige får den kun når scoped publisering faktisk trengs, slik at
+    # det store flertallet av sendinger aldri får en markør i privat kommentar i det hele
+    # tatt.
     for obs in observations:
-        if obs.get('photo'):
-            obs['_photoMarker'] = f'#pic-{secrets.token_hex(4)}'
+        if obs.get('photo') or needs_scoped_publish:
+            obs['_importMarker'] = f'#imp-{secrets.token_hex(4)}'
 
     csv_data = observations_to_csv(observations)
     logger.debug(f'[AO-HTTPX] CSV length: {len(csv_data)}')
@@ -527,16 +661,47 @@ def post_with_curl(observations, login_token=None, auth_cookie=None, area_id='',
         logger.error(f'[AO-HTTPX] Feil: HTTP {response.status_code}')
         raise ValueError(f'HTTP {response.status_code}')
 
-    # Steg 2: Vent på at AO er ferdig med å parse importen — poll ekte fremdrift
+    # Steg 2: Vent på at AO er ferdig med å parse importen — poll ekte fremdrift.
+    # Ved scoped publisering avgjøres «ferdig» av at våre egne markører faktisk finnes
+    # igjen i køen, ikke av et absolutt tall — se `_poll_importing_done`.
     total = len(observations)
     if progress_cb:
         progress_cb({'phase': 'importing', 'remaining': total, 'total': total})
-    _poll_importing_done(login_token, auth_cookie, total, progress_cb)
+    expect_markers = (
+        [obs['_importMarker'] for obs in observations if obs.get('_importMarker')]
+        if needs_scoped_publish else None
+    )
+    _poll_importing_done(login_token, auth_cookie, total, progress_cb,
+                         expect_markers=expect_markers, queue_size=queue_size)
+
+    # Hent gjennomgangskøen ÉN gang — brukes til bildeopplasting og/eller
+    # ID-oppslag for scoped publisering, avhengig av hva denne batchen trenger.
+    rows = None
+    if any(obs.get('_importMarker') for obs in observations):
+        rows = review_queue_rows(login_token, auth_cookie, size=queue_size) or []
 
     # Steg 2b: last opp vedlagte bilder mens funnene ligger i gjennomgangskøen — det er
     # eneste vinduet AO tillater det (PossibleToUploadImages, docs/ao-bilder-api.md).
     # Best-effort: et bilde som feiler stopper aldri selve publiseringen.
-    images_failed = _upload_pending_images(observations, login_token, auth_cookie, progress_cb)
+    images_failed = _upload_pending_images(observations, login_token, auth_cookie, progress_cb, rows=rows)
+
+    # Steg 2c: slå opp TemporarySightingId for hele batchen når publiseringen må
+    # begrenses (se merknaden ved needs_scoped_publish over). Umatchede observasjoner
+    # publiseres ikke — fail-safe heller enn å risikere å dra med andres ventende funn.
+    temp_sighting_ids = None
+    unmatched_for_publish = []
+    if needs_scoped_publish:
+        temp_sighting_ids, unmatched_for_publish = _resolve_temp_ids_for_publish(observations, rows or [])
+        if not temp_sighting_ids:
+            logger.error('[AO-HTTPX] Fant ingen av observasjonene igjen i gjennomgangskøen — avbryter uten å publisere')
+            return {
+                'success': False,
+                'error': ('Fant ingen av observasjonene igjen i AOs gjennomgangskø etter import. '
+                          'Avbryter publisering for å unngå å publisere andres ventende funn.'),
+                'count': 0,
+                'published': False,
+                'refreshedAuthCookie': refreshed_auth
+            }
 
     if progress_cb:
         progress_cb({'phase': 'publishing', 'total': total})
@@ -549,8 +714,29 @@ def post_with_curl(observations, login_token=None, auth_cookie=None, area_id='',
         if delay:
             logger.debug(f'[AO-HTTPX] Venter {delay} sekunder før forsøk {attempt}...')
             time.sleep(delay)
+        # Scoped publisering: slå opp TemporarySightingId på nytt før hvert nytt forsøk
+        # (ikke bare det første) — stabiliteten til denne ID-en over tid/flere forsøk er
+        # ikke verifisert mot AO, se docs/ao-publish-selective-capture.md. Et forsøk som
+        # gjenbruker en ID fra for 5-15 sekunder siden kan i verste fall treffe en rad
+        # som ikke lenger finnes, uten at det gir et synlig unntak.
+        if needs_scoped_publish and attempt > 1:
+            fresh_rows = review_queue_rows(login_token, auth_cookie, size=queue_size) or []
+            temp_sighting_ids, unmatched_for_publish = _resolve_temp_ids_for_publish(observations, fresh_rows)
+            if not temp_sighting_ids:
+                # Radene lå i køen før forrige forsøk, men er borte nå. Den klart mest
+                # sannsynlige forklaringen er at forrige forsøk FAKTISK lyktes hos AO og
+                # at unntaket traff på vei hjem (timeout på responsen e.l.) — ikke at
+                # importen feilet. Å melde «feilet» her ville fått brukeren til å sende
+                # på nytt og dermed duplisere funnet hos AO.
+                logger.info(
+                    f'[AO-HTTPX] Radene er borte fra gjennomgangskøen før forsøk {attempt} '
+                    '— tolker forrige forsøk som vellykket publisering'
+                )
+                publish_result = {'status': 200}
+                last_error = None
+                break
         try:
-            publish_result = publish_all(login_token, auth_cookie)
+            publish_result = publish_all(login_token, auth_cookie, temp_sighting_ids=temp_sighting_ids)
             logger.info(f'[AO-HTTPX] Publisering vellykket (forsøk {attempt}): {publish_result}')
             last_error = None
             break
@@ -579,10 +765,15 @@ def post_with_curl(observations, login_token=None, auth_cookie=None, area_id='',
         }
 
     # Steg 4: Verifiser at køen faktisk ble tømt. Rader AO underkjenner blir liggende,
-    # og da er «publisert» en løgn overfor brukeren.
-    held_back = _remaining_after_publish(login_token, auth_cookie)
+    # og da er «publisert» en løgn overfor brukeren. Scoped publisering må telle KUN
+    # våre egne temp_sighting_ids — ellers rapporteres andres ventende funn feilaktig
+    # som om VI mislyktes med å publisere dem (se docs/ao-publish-selective-capture.md).
+    if temp_sighting_ids is not None:
+        held_back = _remaining_scoped(login_token, auth_cookie, temp_sighting_ids)
+    else:
+        held_back = _remaining_after_publish(login_token, auth_cookie)
 
-    published_count = len(observations)
+    published_count = len(observations) - len(unmatched_for_publish)
     result = {
         'success': True,
         'message': f'{published_count} observasjoner importert og publisert',
@@ -592,8 +783,12 @@ def post_with_curl(observations, login_token=None, auth_cookie=None, area_id='',
     }
     if images_failed:
         result['imagesFailed'] = images_failed
+    if unmatched_for_publish:
+        result['notPublished'] = unmatched_for_publish
+        result['message'] += (f' — {len(unmatched_for_publish)} kunne ikke identifiseres entydig i AOs '
+                              'gjennomgangskø og ble ikke publisert (ligger fortsatt der)')
     if held_back:
-        detaljer = _describe_held_back(login_token, auth_cookie)
+        detaljer = _describe_held_back(login_token, auth_cookie, temp_sighting_ids=temp_sighting_ids)
         logger.warning(f'[AO-HTTPX] {held_back} observasjon(er) ble ikke publisert: {detaljer or "ukjent årsak"}')
         result['heldBack'] = held_back
         result['heldBackDetails'] = detaljer
@@ -602,8 +797,23 @@ def post_with_curl(observations, login_token=None, auth_cookie=None, area_id='',
     return result
 
 
-def publish_all(login_token, auth_cookie):
-    """Publiser alle importerte observasjoner."""
+def publish_all(login_token, auth_cookie, temp_sighting_ids=None):
+    """
+    Publiser observasjoner i gjennomgangskøen.
+
+    `temp_sighting_ids=None` (standard): publiser ALT i køen —
+    `POST /PublishSighting/PublishAll` med tom `SightingsToPublishIds`, uendret
+    oppførsel fra før. Brukes når køen var tom før denne importen startet.
+
+    `temp_sighting_ids=[...]` (ikke-tom liste av `TemporarySightingId`): publiser KUN
+    disse radene — `POST /PublishSighting/Publish`. Bodyen er den SAMME som over, bare
+    med `SightingsToPublishIds` fylt ut (kommaseparert). Brukt når køen hadde funn fra
+    før, slik at PublishAll ikke skal dra med dem.
+
+    Begge varianter er bekreftet mot ekte AO ved å lese `#PublishForm` direkte — den har
+    nøyaktig fire felt, og `SightingsToPublishIds` er det eneste ID-feltet. Se
+    docs/ao-publish-selective-capture.md.
+    """
     # Hent CSRF tokens fra ReviewSighting-siden
     cookies = {
         'logintoken': login_token,
@@ -651,11 +861,19 @@ def publish_all(login_token, auth_cookie):
     # URL-encode form token
     encoded_form_token = quote_plus(form_token, safe='', encoding='utf-8')
 
+    # Samme skjema (#PublishForm) i begge tilfeller — kun ID-feltet og URL-en skiller.
+    # Tom ID-liste + /PublishAll = «publiser alt»; utfylt ID-liste + /Publish = «publiser valgte».
+    encoded_ids = quote_plus(','.join(str(x) for x in temp_sighting_ids), safe='', encoding='utf-8') \
+        if temp_sighting_ids else ''
     post_data = (
         f'__RequestVerificationToken={encoded_form_token}&'
         f'ReviewSightingViewModel.PublicationName=&'
         f'ReviewSightingViewModel.PublicationComment=&'
-        f'ReviewSightingViewModel.SightingsToPublishIds='
+        f'ReviewSightingViewModel.SightingsToPublishIds={encoded_ids}'
+    )
+    publish_url = (
+        'https://www.artsobservasjoner.no/PublishSighting/Publish' if temp_sighting_ids
+        else 'https://www.artsobservasjoner.no/PublishSighting/PublishAll'
     )
 
     # Cookies for publish POST
@@ -686,7 +904,7 @@ def publish_all(login_token, auth_cookie):
 
     with httpx.Client() as client:
         response = client.post(
-            'https://www.artsobservasjoner.no/PublishSighting/PublishAll',
+            publish_url,
             content=post_data,
             cookies=publish_cookies,
             headers=publish_headers,

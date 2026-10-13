@@ -21,6 +21,8 @@ sys.path.insert(0, REPO_ROOT)
 from src.ao_import import observations_to_csv, AO_BOOL_TRUE
 from src.ao_import_httpx import (
     _decode_data_url,
+    _find_row_for_marker,
+    _resolve_temp_ids_for_publish,
     _upload_pending_images,
     fetch_csrf_tokens,
     number_of_sightings_importing,
@@ -222,25 +224,25 @@ def test_observations_to_csv_time_omitted_when_midnight():
 
 
 def test_observations_to_csv_photo_marker_in_private_comment():
-    """_photoMarker skal havne i «Privat kommentar»-kolonnen, ikke den offentlige."""
+    """_importMarker skal havne i «Privat kommentar»-kolonnen, ikke den offentlige."""
     observations = [{
         'species': {'taxonName': 'Låvesvale'},
         'timestamp': '2024-06-01T08:00:00Z',
         'placeName': 'Nes',
         'count': '1',
         'comment': 'Offentlig kommentar',
-        '_photoMarker': '#pic-abc12345',
+        '_importMarker': '#imp-abc12345',
     }]
 
     csv = observations_to_csv(observations)
     fields = csv.split('\r\n')[1].split('\t')
 
     assert fields[14] == 'Offentlig kommentar'  # Kommentar (synlig for alle)
-    assert fields[15] == '#pic-abc12345'  # Privat kommentar
+    assert fields[15] == '#imp-abc12345'  # Privat kommentar
 
 
 def test_observations_to_csv_no_marker_when_no_photo():
-    """Uten _photoMarker skal privat kommentar fortsatt være tom (uendret oppførsel)."""
+    """Uten _importMarker skal privat kommentar fortsatt være tom (uendret oppførsel)."""
     observations = [{
         'species': {'taxonName': 'Låvesvale'},
         'timestamp': '2024-06-01T08:00:00Z',
@@ -269,21 +271,22 @@ def test_observations_to_csv_private_comment_without_photo():
 
 
 def test_observations_to_csv_private_comment_coexists_with_photo_marker():
-    """Med bilde MÅ markøren fortsatt finnes igjen som substreng i kolonnen, ellers
-    mislykkes bildematching i _upload_pending_images — se ao_import_httpx.py."""
+    """Med markør MÅ den fortsatt finnes igjen som substreng i kolonnen, ellers
+    mislykkes matching i _upload_pending_images/_resolve_temp_ids_for_publish —
+    se ao_import_httpx.py."""
     observations = [{
         'species': {'taxonName': 'Låvesvale'},
         'timestamp': '2024-06-01T08:00:00Z',
         'placeName': 'Nes',
         'count': '1',
         'privateComment': 'Sett sammen med Kari',
-        '_photoMarker': '#pic-abc12345',
+        '_importMarker': '#imp-abc12345',
     }]
 
     csv = observations_to_csv(observations)
     fields = csv.split('\r\n')[1].split('\t')
     assert 'Sett sammen med Kari' in fields[15]
-    assert '#pic-abc12345' in fields[15]
+    assert '#imp-abc12345' in fields[15]
 
 
 def test_observations_to_csv_flere_felt_kolonner():
@@ -427,8 +430,21 @@ def test_post_with_curl_success(monkeypatch):
     # Mock time.sleep
     monkeypatch.setattr('time.sleep', lambda x: None)
 
+    # Første kall er pre_existing_count-sjekken FØR import (tom kø — ikke-scoped
+    # publisering, vanlig tilfelle). Deretter "fylles" køen opp til total (1) for
+    # pollingen, og er tom igjen ved held-back-sjekken etter publisering.
+    submitted_calls = {'n': 0}
+
+    def fake_submitted(lt, ac):
+        submitted_calls['n'] += 1
+        if submitted_calls['n'] == 1:
+            return 0
+        return 1 if submitted_calls['n'] <= 3 else 0
+
+    monkeypatch.setattr('src.ao_import_httpx.number_of_sightings_submitted', fake_submitted)
+
     # Mock publish_all
-    def fake_publish(login_token, auth_cookie):
+    def fake_publish(login_token, auth_cookie, temp_sighting_ids=None):
         return {'status': 200}
 
     monkeypatch.setattr('src.ao_import_httpx.publish_all', fake_publish)
@@ -485,9 +501,16 @@ def test_post_with_curl_reports_held_back(monkeypatch):
 
     monkeypatch.setattr('httpx.Client', lambda: mock_client)
     monkeypatch.setattr('time.sleep', lambda x: None)
-    monkeypatch.setattr('src.ao_import_httpx.publish_all', lambda lt, ac: {'status': 200})
-    # AO svarer at én observasjon fortsatt ligger til gjennomgang etter publisering
-    monkeypatch.setattr('src.ao_import_httpx.number_of_sightings_submitted', lambda lt, ac: 1)
+    monkeypatch.setattr('src.ao_import_httpx.publish_all', lambda lt, ac, temp_sighting_ids=None: {'status': 200})
+    # Første kall er pre_existing_count-sjekken FØR import (tom kø). Deretter svarer AO
+    # at én observasjon fortsatt ligger til gjennomgang etter publisering.
+    submitted_calls = {'n': 0}
+
+    def fake_submitted_held_back(lt, ac):
+        submitted_calls['n'] += 1
+        return 0 if submitted_calls['n'] == 1 else 1
+
+    monkeypatch.setattr('src.ao_import_httpx.number_of_sightings_submitted', fake_submitted_held_back)
 
     observations = [
         {'species': {'taxonName': 'Tårnseiler'}, 'count': '6', 'timestamp': '2024-01-15T14:00:00Z', 'placeName': 'Hylkje'}
@@ -524,9 +547,11 @@ def test_post_with_curl_waits_for_queue_before_publishing(monkeypatch):
     # AOs "importing"-teller melder ferdig med det samme (racet i praksis)
     monkeypatch.setattr('src.ao_import_httpx.number_of_sightings_importing', lambda lt, ac: 0)
 
-    # Gjennomgangskøen fylles opp gradvis: 1, 3, 6 (=total) — deretter tom igjen etter
-    # selve publiseringen (siste verdi brukes av _remaining_after_publish).
-    submitted_sequence = iter([1, 3, 6, 6, 0])
+    # Første kall er pre_existing_count-sjekken FØR import (tom kø — vanlig tilfelle,
+    # se post_with_curl). Deretter fylles gjennomgangskøen opp gradvis: 1, 3, 6 (=total)
+    # — så tom igjen etter selve publiseringen (siste verdi brukes av
+    # _remaining_after_publish).
+    submitted_sequence = iter([0, 1, 3, 6, 6, 0])
     submitted_seen = []
 
     def fake_submitted(lt, ac):
@@ -538,7 +563,7 @@ def test_post_with_curl_waits_for_queue_before_publishing(monkeypatch):
 
     publish_calls = []
 
-    def fake_publish(lt, ac):
+    def fake_publish(lt, ac, temp_sighting_ids=None):
         publish_calls.append(len(submitted_seen))
         return {'status': 200}
 
@@ -574,14 +599,17 @@ def test_post_with_curl_no_held_back_when_queue_empty(monkeypatch):
 
     monkeypatch.setattr('httpx.Client', lambda: mock_client)
     monkeypatch.setattr('time.sleep', lambda x: None)
-    monkeypatch.setattr('src.ao_import_httpx.publish_all', lambda lt, ac: {'status': 200})
-    # Første kall(ene) er pre-publish-gaten (venter på at køen fylles opp til total
-    # før publisering trigges) — deretter er køen tom igjen etter selve publiseringen.
+    monkeypatch.setattr('src.ao_import_httpx.publish_all', lambda lt, ac, temp_sighting_ids=None: {'status': 200})
+    # Første kall er pre_existing_count-sjekken FØR import (tom kø). Deretter er det
+    # pre-publish-gaten (venter på at køen fylles opp til total før publisering
+    # trigges) — og til slutt er køen tom igjen etter selve publiseringen.
     submitted_calls = {'n': 0}
 
     def fake_submitted(lt, ac):
         submitted_calls['n'] += 1
-        return 1 if submitted_calls['n'] <= 2 else 0
+        if submitted_calls['n'] == 1:
+            return 0
+        return 1 if submitted_calls['n'] <= 3 else 0
 
     monkeypatch.setattr('src.ao_import_httpx.number_of_sightings_submitted', fake_submitted)
 
@@ -592,6 +620,254 @@ def test_post_with_curl_no_held_back_when_queue_empty(monkeypatch):
 
     assert result['success'] is True
     assert 'heldBack' not in result
+
+
+def test_post_with_curl_scoped_publish_when_queue_not_empty(monkeypatch):
+    """
+    Når AOs gjennomgangskø IKKE er tom før import, skal publiseringen begrenses til
+    nøyaktig vår batch (scoped publisering mot /PublishSighting/Publish med
+    TemporarySightingId) — ikke dra med fremmede, ventende funn i køen.
+    Se docs/ao-publish-selective-capture.md og brukerhenvendelsen (Espen, 02.10.2026)
+    som avdekket at dette manglet.
+    """
+    monkeypatch.setattr('src.ao_import_httpx.fetch_csrf_tokens',
+                        lambda lt, ac: ('FORM123', 'COOKIE456', None))
+
+    mock_response = Mock()
+    mock_response.text = '<html>OK</html>'
+    mock_response.status_code = 200
+    mock_client = Mock()
+    mock_client.__enter__ = Mock(return_value=mock_client)
+    mock_client.__exit__ = Mock(return_value=None)
+    mock_client.post = Mock(return_value=mock_response)
+    monkeypatch.setattr('httpx.Client', lambda: mock_client)
+    monkeypatch.setattr('time.sleep', lambda x: None)
+
+    # Køen har 3 fremmede funn fra før denne importen (ikke fra denne sendingen).
+    submitted_calls = {'n': 0}
+
+    def fake_submitted(lt, ac):
+        submitted_calls['n'] += 1
+        return 3 if submitted_calls['n'] == 1 else 5  # 3 fremmede + 2 våre = 5
+
+    monkeypatch.setattr('src.ao_import_httpx.number_of_sightings_submitted', fake_submitted)
+
+    observations = [
+        {'species': {'taxonName': 'Gråspurv'}, 'count': '1', 'timestamp': '2024-01-15T14:00:00Z', 'placeName': 'Oslo'},
+        {'species': {'taxonName': 'Skjære'}, 'count': '1', 'timestamp': '2024-01-15T14:00:00Z', 'placeName': 'Oslo'},
+    ]
+
+    # Tilstandsbasert (ikke kall-telling): køen inneholder våre rader helt til
+    # publiseringen faktisk har skjedd. Både poll-gaten, ID-oppslaget og
+    # held-back-sjekken leser denne, så antall kall er et implementasjonsdetalj.
+    _FREMMED = {'TemporarySightingId': 900, 'PrivateCommentLong': 'fremmed funn, ikke vårt'}
+    state = {'published': False}
+
+    def fake_review_rows(lt, ac, size=200):
+        if state['published']:
+            # Etter publisering: våre to er borte, fremmed ligger fortsatt igjen.
+            return [_FREMMED]
+        return [
+            _FREMMED,
+            {'TemporarySightingId': 111, 'PrivateCommentLong': observations[0].get('_importMarker', '')},
+            {'TemporarySightingId': 222, 'PrivateCommentLong': observations[1].get('_importMarker', '')},
+        ]
+
+    monkeypatch.setattr('src.ao_import_httpx.review_queue_rows', fake_review_rows)
+
+    published_with = {}
+
+    def fake_publish_all(lt, ac, temp_sighting_ids=None):
+        published_with['ids'] = temp_sighting_ids
+        state['published'] = True
+        return {'status': 200}
+
+    monkeypatch.setattr('src.ao_import_httpx.publish_all', fake_publish_all)
+
+    result = post_with_curl(observations, 'LOGIN123', 'AUTH456')
+
+    assert result['success'] is True
+    assert result['count'] == 2
+    assert 'notPublished' not in result
+    assert 'heldBack' not in result
+    assert sorted(published_with['ids']) == ['111', '222']
+
+
+def test_post_with_curl_scoped_publish_aborts_when_nothing_matches(monkeypatch):
+    """
+    Hvis INGEN av observasjonene finnes igjen i gjennomgangskøen etter import, skal
+    publisering avbrytes HELT — aldri falle tilbake til å publisere alt (ville dratt med
+    fremmede, ventende funn i køen). Fail-safe fremfor å gjette.
+    """
+    monkeypatch.setattr('src.ao_import_httpx.fetch_csrf_tokens',
+                        lambda lt, ac: ('FORM123', 'COOKIE456', None))
+
+    mock_response = Mock()
+    mock_response.text = '<html>OK</html>'
+    mock_response.status_code = 200
+    mock_client = Mock()
+    mock_client.__enter__ = Mock(return_value=mock_client)
+    mock_client.__exit__ = Mock(return_value=None)
+    mock_client.post = Mock(return_value=mock_response)
+    monkeypatch.setattr('httpx.Client', lambda: mock_client)
+    monkeypatch.setattr('time.sleep', lambda x: None)
+
+    submitted_calls = {'n': 0}
+
+    def fake_submitted(lt, ac):
+        submitted_calls['n'] += 1
+        return 3 if submitted_calls['n'] == 1 else 10
+
+    monkeypatch.setattr('src.ao_import_httpx.number_of_sightings_submitted', fake_submitted)
+    monkeypatch.setattr('src.ao_import_httpx.review_queue_rows', lambda lt, ac, size=200: [])
+    # Markørene dukker aldri opp i køen, så poll-gaten ville her brukt hele sin reelle
+    # tidsgrense på å vente forgjeves. Det er riktig oppførsel i produksjon, men testen
+    # handler om hva som skjer ETTER at ventingen gir opp — så vi hopper over selve
+    # ventingen.
+    monkeypatch.setattr('src.ao_import_httpx._poll_importing_done',
+                        lambda *a, **kw: None)
+
+    publish_calls = []
+
+    def fake_publish_all(lt, ac, temp_sighting_ids=None):
+        publish_calls.append(temp_sighting_ids)
+        return {'status': 200}
+
+    monkeypatch.setattr('src.ao_import_httpx.publish_all', fake_publish_all)
+
+    observations = [
+        {'species': {'taxonName': 'Gråspurv'}, 'count': '1', 'timestamp': '2024-01-15T14:00:00Z', 'placeName': 'Oslo'}
+    ]
+    result = post_with_curl(observations, 'LOGIN123', 'AUTH456')
+
+    assert result['success'] is False
+    assert result['published'] is False
+    assert publish_calls == []  # publish_all ble ALDRI kalt
+
+
+def test_post_with_curl_retry_treats_vanished_rows_as_published(monkeypatch):
+    """
+    `publish_all` kaster unntak på forsøk 1, men AO har FAKTISK publisert radene
+    server-side (unntaket traff på vei hjem — f.eks. timeout på responsen). Ved forsøk 2
+    er radene dermed borte fra gjennomgangskøen.
+
+    Det skal tolkes som vellykket publisering, ikke som feil. Rapporterte vi «feilet»
+    her, ville brukeren sendt på nytt og duplisert funnet hos AO.
+    """
+    monkeypatch.setattr('src.ao_import_httpx.fetch_csrf_tokens',
+                        lambda lt, ac: ('FORM123', 'COOKIE456', None))
+
+    mock_response = Mock()
+    mock_response.text = '<html>OK</html>'
+    mock_response.status_code = 200
+    mock_client = Mock()
+    mock_client.__enter__ = Mock(return_value=mock_client)
+    mock_client.__exit__ = Mock(return_value=None)
+    mock_client.post = Mock(return_value=mock_response)
+    monkeypatch.setattr('httpx.Client', lambda: mock_client)
+    monkeypatch.setattr('time.sleep', lambda x: None)
+
+    # Ikke-tom kø før import → scoped publisering
+    monkeypatch.setattr('src.ao_import_httpx.number_of_sightings_submitted', lambda lt, ac: 2)
+
+    observations = [
+        {'species': {'taxonName': 'Gråspurv'}, 'count': '1', 'timestamp': '2024-01-15T14:00:00Z', 'placeName': 'Oslo'}
+    ]
+
+    _FREMMED = {'TemporarySightingId': 900, 'PrivateCommentLong': 'fremmed funn'}
+    state = {'published': False}
+
+    def fake_review_rows(lt, ac, size=200):
+        if state['published']:
+            return [_FREMMED]
+        return [
+            _FREMMED,
+            {'TemporarySightingId': 111, 'PrivateCommentLong': observations[0].get('_importMarker', '')},
+        ]
+
+    monkeypatch.setattr('src.ao_import_httpx.review_queue_rows', fake_review_rows)
+
+    attempts = []
+
+    def fake_publish_all(lt, ac, temp_sighting_ids=None):
+        attempts.append(temp_sighting_ids)
+        state['published'] = True          # AO publiserte faktisk ...
+        raise httpx.ReadTimeout('timeout på vei hjem')   # ... men vi fikk aldri svaret
+
+    monkeypatch.setattr('src.ao_import_httpx.publish_all', fake_publish_all)
+
+    result = post_with_curl(observations, 'LOGIN123', 'AUTH456')
+
+    assert result['success'] is True, 'allerede publiserte funn ble feilrapportert som feilet'
+    assert result['published'] is True
+    assert len(attempts) == 1, 'skal ikke prøve å publisere på nytt når radene alt er borte'
+    assert 'heldBack' not in result
+
+
+def test_post_with_curl_unknown_queue_count_waits_for_markers(monkeypatch):
+    """
+    Svarer ikke tellerendepunktet FØR import (None), vet vi ikke hvor mange fremmede funn
+    som lå i køen fra før. Da må poll-gaten vente på at VÅRE markører faktisk dukker opp
+    i køen — ikke på at et absolutt tall passerer en terskel regnet ut fra baseline 0.
+
+    Uten dette ville `submitted >= total` vært sann umiddelbart (køen inneholdt allerede
+    5 fremmede rader), og publiseringen gått FØR AO rakk å skrive inn våre egne rader.
+    """
+    monkeypatch.setattr('src.ao_import_httpx.fetch_csrf_tokens',
+                        lambda lt, ac: ('FORM123', 'COOKIE456', None))
+
+    mock_response = Mock()
+    mock_response.text = '<html>OK</html>'
+    mock_response.status_code = 200
+    mock_client = Mock()
+    mock_client.__enter__ = Mock(return_value=mock_client)
+    mock_client.__exit__ = Mock(return_value=None)
+    mock_client.post = Mock(return_value=mock_response)
+    monkeypatch.setattr('httpx.Client', lambda: mock_client)
+    monkeypatch.setattr('time.sleep', lambda x: None)
+
+    # Tellerendepunktet er nede hele veien → køstørrelsen er ukjent
+    monkeypatch.setattr('src.ao_import_httpx.number_of_sightings_submitted', lambda lt, ac: None)
+    # AOs "importing"-teller melder ferdig med det samme (racet i praksis)
+    monkeypatch.setattr('src.ao_import_httpx.number_of_sightings_importing', lambda lt, ac: 0)
+
+    observations = [
+        {'species': {'taxonName': 'Gråspurv'}, 'count': '1', 'timestamp': '2024-01-15T14:00:00Z', 'placeName': 'Oslo'}
+    ]
+
+    fremmede = [{'TemporarySightingId': 900 + i, 'PrivateCommentLong': f'fremmed {i}'} for i in range(5)]
+    rows_state = {'calls': 0, 'published': False, 'sizes': []}
+
+    def fake_review_rows(lt, ac, size=200):
+        rows_state['calls'] += 1
+        rows_state['sizes'].append(size)
+        if rows_state['published']:
+            return list(fremmede)
+        if rows_state['calls'] < 3:
+            return list(fremmede)      # AO har ennå ikke skrevet inn vår rad
+        return fremmede + [
+            {'TemporarySightingId': 111, 'PrivateCommentLong': observations[0].get('_importMarker', '')},
+        ]
+
+    monkeypatch.setattr('src.ao_import_httpx.review_queue_rows', fake_review_rows)
+
+    publish_at = {}
+
+    def fake_publish_all(lt, ac, temp_sighting_ids=None):
+        publish_at['calls'] = rows_state['calls']
+        publish_at['ids'] = temp_sighting_ids
+        rows_state['published'] = True
+        return {'status': 200}
+
+    monkeypatch.setattr('src.ao_import_httpx.publish_all', fake_publish_all)
+
+    result = post_with_curl(observations, 'LOGIN123', 'AUTH456')
+
+    assert result['success'] is True
+    assert publish_at['ids'] == ['111']
+    assert publish_at['calls'] >= 3, 'publiserte før vår egen rad var skrevet inn i køen'
+    # Ukjent køstørrelse → romslig vindu, ikke standard 200 (ellers kan egne rader falle utenfor)
+    assert rows_state['sizes'][0] == 500
 
 
 def test_post_with_curl_uploads_photo_via_marker_matching(monkeypatch):
@@ -609,7 +885,19 @@ def test_post_with_curl_uploads_photo_via_marker_matching(monkeypatch):
     mock_client.post = Mock(return_value=mock_response)
     monkeypatch.setattr('httpx.Client', lambda: mock_client)
     monkeypatch.setattr('time.sleep', lambda x: None)
-    monkeypatch.setattr('src.ao_import_httpx.publish_all', lambda lt, ac: {'status': 200})
+    monkeypatch.setattr('src.ao_import_httpx.publish_all', lambda lt, ac, temp_sighting_ids=None: {'status': 200})
+    # Første kall er pre_existing_count-sjekken FØR import (tom kø — ikke-scoped
+    # publisering, testen gjelder bildematching). Deretter "fylles" køen opp til total
+    # (1) for pollingen, og er tom igjen ved held-back-sjekken etter publisering.
+    submitted_calls = {'n': 0}
+
+    def fake_submitted(lt, ac):
+        submitted_calls['n'] += 1
+        if submitted_calls['n'] == 1:
+            return 0
+        return 1 if submitted_calls['n'] <= 3 else 0
+
+    monkeypatch.setattr('src.ao_import_httpx.number_of_sightings_submitted', fake_submitted)
 
     observations = [{
         'species': {'taxonName': 'Fiskemåke'}, 'count': '1',
@@ -617,10 +905,11 @@ def test_post_with_curl_uploads_photo_via_marker_matching(monkeypatch):
         'photo': 'data:image/jpeg;base64,QUJD',  # b'ABC'
     }]
 
-    # review_queue_rows leser _photoMarker fra observasjonen direkte — den settes av
+    # review_queue_rows leser _importMarker fra observasjonen direkte — den settes av
     # post_with_curl selv (secrets.token_hex), så vi kan ikke forhåndskjenne verdien.
     def fake_review_rows(login_token, auth_cookie, size=200):
-        return [{'SightingId': 999888, 'PrivateCommentLong': observations[0].get('_photoMarker', '')}]
+        return [{'SightingId': 999888, 'TemporarySightingId': 555777,
+                 'PrivateCommentLong': observations[0].get('_importMarker', '')}]
 
     upload_calls = []
 
@@ -638,7 +927,7 @@ def test_post_with_curl_uploads_photo_via_marker_matching(monkeypatch):
     assert len(upload_calls) == 1
     assert upload_calls[0][0] == 999888
     assert upload_calls[0][1] == b'ABC'
-    assert observations[0]['_photoMarker'].startswith('#pic-')
+    assert observations[0]['_importMarker'].startswith('#imp-')
 
 
 def test_post_with_curl_uploads_photo_when_marker_shares_column_with_private_comment(monkeypatch):
@@ -656,7 +945,19 @@ def test_post_with_curl_uploads_photo_when_marker_shares_column_with_private_com
     mock_client.post = Mock(return_value=mock_response)
     monkeypatch.setattr('httpx.Client', lambda: mock_client)
     monkeypatch.setattr('time.sleep', lambda x: None)
-    monkeypatch.setattr('src.ao_import_httpx.publish_all', lambda lt, ac: {'status': 200})
+    monkeypatch.setattr('src.ao_import_httpx.publish_all', lambda lt, ac, temp_sighting_ids=None: {'status': 200})
+    # Første kall er pre_existing_count-sjekken FØR import (tom kø — ikke-scoped
+    # publisering, testen gjelder bildematching). Deretter "fylles" køen opp til total
+    # (1) for pollingen, og er tom igjen ved held-back-sjekken etter publisering.
+    submitted_calls = {'n': 0}
+
+    def fake_submitted(lt, ac):
+        submitted_calls['n'] += 1
+        if submitted_calls['n'] == 1:
+            return 0
+        return 1 if submitted_calls['n'] <= 3 else 0
+
+    monkeypatch.setattr('src.ao_import_httpx.number_of_sightings_submitted', fake_submitted)
 
     observations = [{
         'species': {'taxonName': 'Fiskemåke'}, 'count': '1',
@@ -666,7 +967,7 @@ def test_post_with_curl_uploads_photo_when_marker_shares_column_with_private_com
     }]
 
     def fake_review_rows(login_token, auth_cookie, size=200):
-        marker = observations[0].get('_photoMarker', '')
+        marker = observations[0].get('_importMarker', '')
         return [{'SightingId': 999888, 'PrivateCommentLong': f'Sett sammen med Kari {marker}'}]
 
     upload_calls = []
@@ -700,8 +1001,20 @@ def test_post_with_curl_reports_failed_image_without_blocking_publish(monkeypatc
     mock_client.post = Mock(return_value=mock_response)
     monkeypatch.setattr('httpx.Client', lambda: mock_client)
     monkeypatch.setattr('time.sleep', lambda x: None)
-    monkeypatch.setattr('src.ao_import_httpx.publish_all', lambda lt, ac: {'status': 200})
-    # Tom gjennomgangskø → ingen rad matcher markøren
+    monkeypatch.setattr('src.ao_import_httpx.publish_all', lambda lt, ac, temp_sighting_ids=None: {'status': 200})
+    # Første kall er pre_existing_count-sjekken FØR import (tom kø — ikke-scoped
+    # publisering). Deretter er køen "fylt" med vår ene obs for pollingen, så tom igjen
+    # ved held-back-sjekken. Selve gjennomgangskøen (review_queue_rows) er tom gjennom
+    # hele testen → ingen rad matcher bildemarkøren.
+    submitted_calls = {'n': 0}
+
+    def fake_submitted(lt, ac):
+        submitted_calls['n'] += 1
+        if submitted_calls['n'] == 1:
+            return 0
+        return 1 if submitted_calls['n'] <= 3 else 0
+
+    monkeypatch.setattr('src.ao_import_httpx.number_of_sightings_submitted', fake_submitted)
     monkeypatch.setattr('src.ao_import_httpx.review_queue_rows', lambda lt, ac, size=200: [])
 
     observations = [{
@@ -725,6 +1038,54 @@ def test_upload_pending_images_no_photos_is_noop(monkeypatch):
     failed = _upload_pending_images(observations, 'LOGIN', 'AUTH')
     assert failed == []
     assert called == []
+
+
+# ============================================================================
+# Del 3b: _resolve_temp_ids_for_publish (scoped publisering — ID-oppslag)
+# ============================================================================
+
+def test_resolve_temp_ids_for_publish_matches_via_marker():
+    observations = [
+        {'species': {'taxonName': 'Gråspurv'}, '_importMarker': '#imp-aaa1'},
+        {'species': {'taxonName': 'Skjære'}, '_importMarker': '#imp-bbb2'},
+    ]
+    rows = [
+        {'TemporarySightingId': 111, 'PrivateCommentLong': 'Sett sammen med Kari #imp-aaa1'},
+        {'TemporarySightingId': 222, 'PrivateCommentLong': '#imp-bbb2'},
+    ]
+    temp_ids, unmatched = _resolve_temp_ids_for_publish(observations, rows)
+    assert temp_ids == ['111', '222']
+    assert unmatched == []
+
+
+def test_resolve_temp_ids_for_publish_unmatched_is_fail_safe():
+    """En observasjon vi ikke finner igjen i køen skal IKKE publiseres — rapporteres
+    som umatchet i stedet for å gjette feil ID eller droppe den stille."""
+    observations = [
+        {'species': {'taxonName': 'Gråspurv'}, '_importMarker': '#imp-aaa1'},
+        {'species': {'taxonName': 'Tårnseiler'}, '_importMarker': '#imp-missing'},
+    ]
+    rows = [
+        {'TemporarySightingId': 111, 'PrivateCommentLong': '#imp-aaa1'},
+    ]
+    temp_ids, unmatched = _resolve_temp_ids_for_publish(observations, rows)
+    assert temp_ids == ['111']
+    assert unmatched == ['Tårnseiler']
+
+
+def test_resolve_temp_ids_for_publish_no_marker_is_unmatched():
+    """En observasjon uten markør i det hele tatt (skulle ikke skje i scoped modus, men
+    skal fortsatt håndteres trygt) regnes som umatchet, ikke som en krasj."""
+    observations = [{'species': {'taxonName': 'Linerle'}}]
+    temp_ids, unmatched = _resolve_temp_ids_for_publish(observations, [])
+    assert temp_ids == []
+    assert unmatched == ['Linerle']
+
+
+def test_find_row_for_marker_substring_match():
+    rows = [{'PrivateCommentLong': 'Noe tekst #imp-xyz mer tekst', 'TemporarySightingId': 1}]
+    assert _find_row_for_marker(rows, '#imp-xyz') == rows[0]
+    assert _find_row_for_marker(rows, '#imp-annen') is None
 
 
 def test_decode_data_url():
@@ -855,6 +1216,94 @@ def test_publish_all_success(monkeypatch):
 
     assert result['status'] == 200  # int, ikke string
     assert call_count[0] == 2  # GET + POST
+
+
+def test_publish_all_scoped_posts_to_publish_endpoint_with_temp_ids(monkeypatch):
+    """
+    Med temp_sighting_ids skal /PublishSighting/Publish brukes (ikke /PublishAll), med
+    SelectedTempSightings(ToPublishIds)=<kommaseparerte TemporarySightingId> satt — det
+    bekreftede feltformatet, se docs/ao-publish-selective-capture.md.
+    """
+    call_count = [0]
+    captured = {}
+
+    def mock_client_factory():
+        call_count[0] += 1
+        mock_client = Mock()
+        mock_client.__enter__ = Mock(return_value=mock_client)
+        mock_client.__exit__ = Mock(return_value=None)
+
+        if call_count[0] == 1:
+            mock_get_response = Mock()
+            mock_get_response.text = '<input name="__RequestVerificationToken" value="REVIEWFORM" />'
+            mock_get_response.status_code = 200
+            mock_get_response.cookies = httpx.Cookies()
+            mock_get_response.cookies.set('__RequestVerificationToken', 'REVIEWCOOKIE')
+            mock_get_response.raise_for_status = Mock()
+            mock_client.get = Mock(return_value=mock_get_response)
+            return mock_client
+
+        def fake_post(url, content=None, **kwargs):
+            captured['url'] = url
+            captured['content'] = content
+            mock_post_response = Mock()
+            mock_post_response.status_code = 200
+            mock_post_response.text = '<html>Success</html>'
+            return mock_post_response
+
+        mock_client.post = Mock(side_effect=fake_post)
+        return mock_client
+
+    monkeypatch.setattr('httpx.Client', mock_client_factory)
+
+    result = publish_all('LOGIN123', 'AUTH456', temp_sighting_ids=['30655382', '30655383'])
+
+    assert result['status'] == 200
+    assert captured['url'] == 'https://www.artsobservasjoner.no/PublishSighting/Publish'
+    assert 'ReviewSightingViewModel.SightingsToPublishIds=30655382%2C30655383' in captured['content']
+    # #PublishForm har kun fire felt — ingen SelectedTempSightings (ga HTTP 500 fra AO)
+    assert 'SelectedTempSightings' not in captured['content']
+
+
+def test_publish_all_without_temp_ids_uses_publish_all_endpoint(monkeypatch):
+    """temp_sighting_ids=None (standard) skal fortsatt bruke /PublishAll, uendret."""
+    call_count = [0]
+    captured = {}
+
+    def mock_client_factory():
+        call_count[0] += 1
+        mock_client = Mock()
+        mock_client.__enter__ = Mock(return_value=mock_client)
+        mock_client.__exit__ = Mock(return_value=None)
+
+        if call_count[0] == 1:
+            mock_get_response = Mock()
+            mock_get_response.text = '<input name="__RequestVerificationToken" value="REVIEWFORM" />'
+            mock_get_response.status_code = 200
+            mock_get_response.cookies = httpx.Cookies()
+            mock_get_response.cookies.set('__RequestVerificationToken', 'REVIEWCOOKIE')
+            mock_get_response.raise_for_status = Mock()
+            mock_client.get = Mock(return_value=mock_get_response)
+            return mock_client
+
+        def fake_post(url, content=None, **kwargs):
+            captured['url'] = url
+            captured['content'] = content
+            mock_post_response = Mock()
+            mock_post_response.status_code = 200
+            mock_post_response.text = '<html>Success</html>'
+            return mock_post_response
+
+        mock_client.post = Mock(side_effect=fake_post)
+        return mock_client
+
+    monkeypatch.setattr('httpx.Client', mock_client_factory)
+
+    result = publish_all('LOGIN123', 'AUTH456')
+
+    assert result['status'] == 200
+    assert captured['url'] == 'https://www.artsobservasjoner.no/PublishSighting/PublishAll'
+    assert captured['content'].endswith('ReviewSightingViewModel.SightingsToPublishIds=')
 
 
 # ============================================================================
@@ -1078,7 +1527,7 @@ def test_post_with_curl_emits_progress(monkeypatch):
     monkeypatch.setattr('httpx.Client', lambda: client)
 
     monkeypatch.setattr('time.sleep', lambda x: None)
-    monkeypatch.setattr('src.ao_import_httpx.publish_all', lambda lt, ac: {'status': 200})
+    monkeypatch.setattr('src.ao_import_httpx.publish_all', lambda lt, ac, temp_sighting_ids=None: {'status': 200})
 
     # Simuler nedtelling: 2 igjen → 0 ferdig
     counts = iter([2, 0])
@@ -1086,6 +1535,20 @@ def test_post_with_curl_emits_progress(monkeypatch):
         'src.ao_import_httpx.number_of_sightings_importing',
         lambda lt, ac: next(counts, 0),
     )
+    # Første kall er pre_existing_count-sjekken FØR import (tom kø — ikke-scoped
+    # publisering). Deretter "fylles" køen opp til total (2) og holdes der til
+    # "importing"-nedtellingen over faktisk har nådd 0 (2 poll-iterasjoner, ikke 1) —
+    # for romslig margin holdes den klar i flere kall enn strengt nødvendig. Til slutt
+    # er køen tom igjen ved held-back-sjekken etter publisering.
+    submitted_calls = {'n': 0}
+
+    def fake_submitted(lt, ac):
+        submitted_calls['n'] += 1
+        if submitted_calls['n'] == 1:
+            return 0
+        return 2 if submitted_calls['n'] <= 6 else 0
+
+    monkeypatch.setattr('src.ao_import_httpx.number_of_sightings_submitted', fake_submitted)
 
     events = []
     observations = [

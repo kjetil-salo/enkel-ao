@@ -35,6 +35,10 @@ export function flashButton(button, successLabel) {
 export function showToast(msg, options = {}) {
   const { onUndo, duration = 1500, raw = false, borderColor = null } = options;
 
+  // Lyst tema snur fargene i både toast og Angre-knapp. Leses ved hvert kall,
+  // siden toast-elementet gjenbrukes på tvers av temabytte.
+  const lysttema = document.body.classList.contains('theme-light');
+
   let toast = document.getElementById('registered-toast');
   if (!toast) {
     toast = document.createElement('div');
@@ -44,8 +48,8 @@ export function showToast(msg, options = {}) {
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%) scale(0.7);
-      background: ${document.body.classList.contains('theme-light') ? 'rgba(255,255,255,0.97)' : 'rgba(34,34,34,0.97)'};
-      color: ${document.body.classList.contains('theme-light') ? '#1a1a1a' : '#fff'};
+      background: rgba(34,34,34,0.97);
+      color: #fff;
       font-size: 1.2em;
       padding: 12px 28px;
       border-radius: 12px;
@@ -60,6 +64,9 @@ export function showToast(msg, options = {}) {
     `;
     document.body.appendChild(toast);
   }
+
+  toast.style.background = lysttema ? 'rgba(255,255,255,0.97)' : 'rgba(34,34,34,0.97)';
+  toast.style.color = lysttema ? '#1a1a1a' : '#fff';
 
   // Clear existing content
   toast.innerHTML = '';
@@ -88,10 +95,12 @@ export function showToast(msg, options = {}) {
   if (onUndo) {
     undoBtn = document.createElement('button');
     undoBtn.textContent = 'Angre';
+    const undoBg = lysttema ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.2)';
+    const undoBgAktiv = lysttema ? 'rgba(0,0,0,0.18)' : 'rgba(255,255,255,0.3)';
     undoBtn.style.cssText = `
-      background: rgba(255,255,255,0.2);
-      border: 1px solid rgba(255,255,255,0.3);
-      color: #fff;
+      background: ${undoBg};
+      border: 1px solid ${lysttema ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.3)'};
+      color: ${lysttema ? '#1a1a1a' : '#fff'};
       padding: 4px 12px;
       border-radius: 6px;
       cursor: pointer;
@@ -101,10 +110,10 @@ export function showToast(msg, options = {}) {
       pointer-events: auto;
     `;
     undoBtn.addEventListener('mousedown', () => {
-      undoBtn.style.background = 'rgba(255,255,255,0.3)';
+      undoBtn.style.background = undoBgAktiv;
     });
     undoBtn.addEventListener('mouseup', () => {
-      undoBtn.style.background = 'rgba(255,255,255,0.2)';
+      undoBtn.style.background = undoBg;
     });
     undoBtn.addEventListener('click', (e) => {
       e.stopPropagation();

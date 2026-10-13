@@ -94,6 +94,19 @@ The `Handler` class routes requests:
   - Full analyse: `docs/sjeldenhetsvarsel.md`
 - `/api/ao-login` (POST) → logger inn på AO med brukernavn/passord, returnerer `loginToken` + `authCookie`
 - `/api/ao-import` (POST) → direkte publisering av observasjoner til AO (CSV-import + publish). Enkelt JSON-svar.
+  - **Scoped publisering** (v1.53.32): lå det funn i AOs gjennomgangskø FØR importen, publiseres
+    kun vår egen batch (`POST /PublishSighting/Publish` med `SightingsToPublishIds` utfylt med
+    `TemporarySightingId`-er), ikke hele køen. Var køen bekreftet tom (teller = `0`), brukes
+    `PublishAll` som før — det vanlige tilfellet, uendret oppførsel
+  - Radene gjenfinnes via en unik markør (`#imp-xxxx`) lagt i privat kommentar. Markøren settes
+    KUN når scoped faktisk trengs (eller ved bilde, som bruker samme mekanisme) — flertallet av
+    sendinger får aldri en markør
+  - **Fail-safe-retning:** svarer kø-telleren `None` (nettverksfeil), antas køen IKKE tom. Å gjette
+    «tom» ville falt tilbake til buggen. Kun en BEKREFTET `0` slår av scoped publisering
+  - Umatchede observasjoner publiseres IKKE (returneres som `notPublished`) — tryggere enn å gjette
+    ID og risikere å dra med andres ventende funn
+  - Full kartlegging av AOs feltformat, fallgruver og det som gjenstår å feltverifisere:
+    `docs/ao-publish-selective-capture.md`
 - `/api/ao-import-stream` (POST) → som `ao-import`, men **streamer fremdrift via SSE** (`text/event-stream`)
   - Fase-events: `importing {remaining, total}` → `publishing {total}` → `done {count}` / `error`
   - Fremdriften polles fra AOs egne endepunkter (se `docs/ao-import-fremdrift.md`):

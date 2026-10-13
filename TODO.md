@@ -1,5 +1,71 @@
 # TODO
 
+## 32. Pilotere OpenSpec på neste feature (vurdert 2026-10-12)
+
+OpenSpec er et spec-drevet arbeidsflyt-verktøy for AI-assistert utvikling:
+et `openspec/`-tre med `project.md` (konvensjoner), `specs/` (gjeldende
+sannhet per capability) og `changes/<navn>/` (forslag + oppgaveliste som
+godkjennes før koding, og arkiveres inn i `specs/` når den er implementert).
+
+**Vurdering:** ikke innfør det på hele appen. Appen har allerede de samme
+leddene — `CLAUDE.md`/`AGENTS.md` som konvensjonsfil, `docs/*-plan.md` med
+Mål/Nøkkelbeslutninger/Faseinndeling/Risiko/Teststrategi som forslag,
+`TODO.md` som backlog, skills (`agent-produkteier` →
+`agent-solution-architect` → `agent-feature-lifecycle`) som godkjenningsport,
+og `docs/archive/`. Et `openspec/specs/`-tre blir en konkurrerende
+autoritativ kilde ved siden av `docs/`, formatet og kommandoene er engelske
+(prosjektregelen er norsk bokmål), og tempoet i repoet (~38 commits/30 dager,
+mange mikroversjoner) er feil granularitet for en forslagssyklus per endring.
+
+**Beslutning:** test det likevel på ÉN feature — neste feature av en viss
+størrelse, uansett hvilken. Ikke konverter eksisterende dokumentasjon.
+
+- `openspec init` i repoet, men kun én `changes/`-mappe for den ene featuren
+- `docs/` og `CLAUDE.md` forblir autoritative i piloten; OpenSpec-treet er
+  kun arbeidsflyt for denne ene endringen
+- Skriv innholdet på norsk selv om malene er engelske, og noter hvor
+  valideringen (Requirement/Scenario/SHALL) krangler med det
+- Avgjør etterpå: ga forslags- og arkiveringsstegene noe `docs/*-plan.md` +
+  TODO ikke alt gir? Hvis nei — fjern `openspec/` igjen
+
+**Relatert sidefunn fra samme vurdering:** ingen av de fire
+`docs/*-plan.md` er endret etter at de ble skrevet, så de sier ikke om de er
+gjennomført, delvis bygget eller døde (deling ER bygget, server-lagring er
+ikke). Det er nettopp gapet OpenSpecs arkiveringssteg skal lukke. Billig
+alternativ uavhengig av piloten: en statuslinje øverst i hvert plandokument
+(`Status: planlagt | under arbeid (vNN) | implementert vNN | forkastet`) og
+flytting til `docs/archive/` når punktet lukkes.
+
+## 31. Offline kart med lokasjoner (planlagt 2026-09-29, ikke startet)
+
+Bruker skal kunne velge et geografisk område (a la Google Maps' «last ned
+område for offline bruk») og laste ned det — karttiler OG AO-lokasjoner
+innenfor området — for bruk uten nett, både i kartvisningen og i
+lokalitetsliste/autocomplete andre steder i appen. Naturlig neste steg
+oppå panorer-og-cache-arbeidet i v1.53.19–22 (se punkt 21.3 over).
+
+**Full plan ligger i Obsidian** (ikke duplisert her):
+`02-projects/enkel-ao/offline-kart-med-lokasjoner-plan.md` — faseplan
+(F1 MVP → F2 administrasjon av nedlastede områder → F3
+autocomplete-integrasjon), konkrete kodepunkter i `map.js`/`api.js`/
+`sw.js`/`api_handlers.py`, og kritiske arkitekturfunn:
+- Offline-tiler må i EGEN Cache API-cache, ikke i `sw.js` sin `CACHE_NAME`
+  (den slettes ved hver versjonsbump)
+- Lokasjonsdata for nedlastede områder trenger egen, TTL-fri lagring —
+  ikke gjenbruk av `ao_bbox_cache_v1` (7 dagers TTL, maks 5 innslag)
+- Default tile-kilde = Kartverket, ikke OSM (OSMs brukspolicy forbyr
+  bulk-nedlasting)
+
+**Vurdert effekt/risiko (2026-10-01):** mer arbeid enn vanlige
+enkel-ao-funksjoner — F1 alene realistisk 3–5 dager, mest pga.
+rektangel-velger-UI (ingen draw-plugin i dag) og nedlastingsflytens
+hjørnetilfeller (fremdrift, avbryt, kvote). Største reelle risiko: Safari/
+iOS sin Cache API kaster ut lagrede cacher mer aggressivt enn desktop under
+lagringspress — kan undergrave hele poenget for en app som brukes primært
+på mobil i felt. **Forslag:** start enda trangere enn planen sier — dropp
+det justerbare rektangelet først, tilby bare «last ned synlig utsnitt», for
+å teste selve lagringsmekanikken billig før UI-investeringen.
+
 ## 22. UX-review 2026-09-26 (Claude + Codex som uavhengig andre reviewer)
 
 Full UX-gjennomgang av appen (onboarding, feltregistrering, etterregistrering,
@@ -173,8 +239,12 @@ Ikkje prioritert/implementert enno — sjå plan under kvar gruppe.
    FL).~~ ✅ Implementert 2026-09-09: kartknappen (🗺️) er no alltid synleg.
    Har du ikkje GPS-fix enno, hentar han posisjonen først (som «Bruk
    GPS»-knappen) og opnar kartet automatisk når han er klar.
-3. Last nye lokalitetar etter kvart som ein panorerer i kartet (som i FL) –
-   i dag hentast lokalitetar berre rundt eitt fast punkt/radius.
+3. ~~Last nye lokalitetar etter kvart som ein panorerer i kartet (som i FL) –
+   i dag hentast lokalitetar berre rundt eitt fast punkt/radius.~~ ✅
+   Implementert 2026-09-28/29 (v1.53.19–22): `moveend`-lytting på Leaflet-
+   kartet hentar nye lokalitetar for kartets nye senter, med ein fast trygg
+   maksradius (uavhengig av zoom) og lokal 7-dagars cache for bbox-kall. Se
+   `docs/kart-viewport-radius-og-cache.md`.
 4. ~~Gjer det mogleg å velja polygon-lokalitetar ved å trykkja kor som helst
    inne i polygonet, ikkje berre på «pinnen» (som i FL).~~ ✅ Implementert
    2026-09-09: polygon-laget i `map.js` har no ein eigen klikk-handler som
@@ -201,29 +271,37 @@ Ikkje prioritert/implementert enno — sjå plan under kvar gruppe.
 
 **Større, meir spekulative ønske:**
 - Kunne registrera andre artsgrupper enn fugl.
-- Nynorsk språk i grensesnittet, og nynorske artsnamn (finst under kvar art
-  i Artsdatabanken – uavklart om dei enkelt kan hentast inn i appen via API).
+- ~~Nynorske artsnamn.~~ ✅ Implementert 2026-09-30 (v1.53.23–26) som ei eiga
+  innstilling, bygd trinnvis gjennom éin dag: hint → full erstatning → virkar
+  i vanleg (ikkje-offline) søk òg. Gjeld foreløpig kun den lokale
+  offline-artslista – sjølve registreringa til Artsobservasjoner er framleis
+  alltid bokmål.
+- Nynorsk språk i resten av grensesnittet (knappar, etiketter, hjelpetekst)
+  – framleis ikkje starta, større omsetjingsarbeid enn artsnamn-biten.
 
 **Status:** dei fire «kjappe vinn» (#1, #2, #4, #7) er implementert og
-verifisert 2026-09-09 (sjå ✅-merka punkt over) — kun lokalt/staging så
-langt, ikkje deployet til produksjon enno. Testdekning: nye unit-testar i
-`tests/unit/observation-commit.test.js` (checkbox → kommentar), samt
+verifisert 2026-09-09 (sjå ✅-merka punkt over). Testdekning: nye unit-testar
+i `tests/unit/observation-commit.test.js` (checkbox → kommentar), samt
 manuell Playwright-verifisering av kartknapp-synlighet, polygonklikk og
 label-toggle (localStorage-persistens bekrefta med reload).
 
+**Oppdatering 2026-10-01:** også #3 (pan-basert lasting av lokalitetar) og
+nynorske artsnamn (under «Større, meir spekulative ønske») er no
+implementert og deployet til produksjon (v1.53.19–26). Alt punkt 21 sitt
+innhald er dermed enten ✅ ferdig eller ført opp i grovplanen under som
+framleis ikkje starta.
+
 **Grovplan for resten (kode faktisk sjekka, ikkje starta):**
 - *Middels*: #8 (kommentar-knapp i obs-vindauget – ny UI-tilstand i
-  observations.js), #3 (pan-basert lasting av lokalitetar – debounced
-  `moveend`-lytting på Leaflet-kartet mot `/api/ao-sites`, går utover
-  dagens faste GPS-punkt+radius-modell).
+  observations.js).
 - *Større*: #5 (kartvel-knapp + nærleikssøk i edit.html), #6 (bulk-rediger
   alle obsar på ein lokalitet), #9 (treng ei datakjelde for
   sjeldenheit/rarity per art – uavklart om AO eller Artsdatabanken har dette
   tilgjengeleg via API).
-- *Eigne prosjekt* (ikkje del av vanleg feature-arbeid): nynorsk (stort
-  omsetjingsarbeid + éin ny datakjelde for artsnamn) og andre artsgrupper
-  (grunnleggande arkitekturendring – artssøk/lokal artsliste er i dag
-  fugle-spesifikk).
+- *Eigne prosjekt* (ikkje del av vanleg feature-arbeid): nynorsk UI-språk
+  (stort omsetjingsarbeid, sjå status over – artsnamn-delen er allerede
+  gjort) og andre artsgrupper (grunnleggande arkitekturendring –
+  artssøk/lokal artsliste er i dag fugle-spesifikk).
 
 Neste steg: avklar med Kjetil kva for punkt som skal inn i neste
 feature-runde, og kva «FL» faktisk er (for å sjå konkret korleis dei har
