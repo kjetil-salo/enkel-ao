@@ -538,12 +538,16 @@ function expandLocation() {
   // ventetid før noe vises, men fortsatt fersk data uten et eget GPS-trykk.
   // Gjenbruker «Bruk GPS»-knappen (samme knapp/flyt brukeren selv trykker) i
   // stedet for å duplisere GPS-/fetch-logikken fra location.js.
+  // Samme regel som i handlePositionUpdate: GPS-dropdownen hører ikke hjemme i
+  // etterregistrering. GPS-hentingen under beholdes likevel — den mater
+  // kartknappen og autocomplete-sorteringen — den skal bare ikke tegne noe.
+  const visDropdown = !erEtterregistreringsmodus();
   const hadCachedSites = !!(appState.currentAoSites && appState.currentAoSites.length && dom.placeInput);
   if (hadCachedSites) {
     appState.currentAoSites = setAoSiteSuggestions(
       appState.currentAoSites,
       appState.currentPosition,
-      dom.aoSitesDropdown,
+      visDropdown ? dom.aoSitesDropdown : null,
       dom.aoSitesEl,
       dom.placeInput,
       makeSetCurrentPlaceAndUpdate(),
@@ -572,7 +576,7 @@ function expandLocation() {
   // aoSitesEl — ryddes automatisk bort av NESTE setAoSiteSuggestions-kall
   // (den nullstiller alltid aoSitesEl aller først), altså når den ferske
   // bakgrunnsdataen faktisk er klar og lista tegnes på nytt.
-  if (hadCachedSites && dom.locBtn && dom.aoSitesEl && gpsStøttet) {
+  if (hadCachedSites && visDropdown && dom.locBtn && dom.aoSitesEl && gpsStøttet) {
     dom.aoSitesEl.textContent = '🔄 Henter oppdaterte lokaliteter …';
     dom.aoSitesEl.style.display = 'block';
   }
@@ -600,6 +604,11 @@ function makeSetCurrentPlaceAndUpdate() {
 // før) — så kartet kan åpnes automatisk så snart posisjonen er klar, i
 // stedet for at brukeren må trykke «Bruk GPS» og så kartknappen på nytt.
 let apneKartEtterGps = false;
+
+// Er appen i etterregistreringsmodus? (samme nøkkel som updateModeUI leser)
+function erEtterregistreringsmodus() {
+  return localStorage.getItem('afterRegistrationMode') === '1';
+}
 
 // Hvor lenge et tidligere bbox-resultat regnes som en gyldig fallback ved en
 // tom fersk henting (se handlePositionUpdate) — kort nok til at det kun bygger
@@ -678,10 +687,17 @@ function handlePositionUpdate(position, sites, radiusUsed = appState.currentAoSi
     ? radiusUsed
     : (forrigeBboxFortsattRelevant ? appState.lastBboxSizeMeters : appState.currentAoSizeMeters);
 
+  // I etterregistrering skal GPS-dropdownen ALDRI vises — der velger man
+  // lokalitet med autocomplete eller kart, og en posisjonsbasert liste over
+  // «lokaliteter nær deg nå» er direkte misvisende for et besøk som fant sted
+  // et annet sted. GPS hentes likevel (kartknappen trigger den), og resultatet
+  // er fortsatt verdt å ta vare på i appState: autocomplete sorterer etter
+  // avstand fra appState.currentPosition. Null-dropdown gjør at
+  // setAoSiteSuggestions kun merger og returnerer, uten å tegne noe.
   appState.currentAoSites = setAoSiteSuggestions(
     bboxSites,
     appState.currentPosition,
-    dom.aoSitesDropdown,
+    erEtterregistreringsmodus() ? null : dom.aoSitesDropdown,
     dom.aoSitesEl,
     dom.placeInput,
     makeSetCurrentPlaceAndUpdate(),
@@ -907,7 +923,9 @@ function setupEventListeners() {
   if (dom.locMapBtn) {
     // Alltid synlig — trenger ikke posisjon fra før. Har vi ikke GPS-fix
     // ennå, henter vi det først (som ved «Bruk GPS»-knappen) og åpner
-    // kartet automatisk når posisjonen er klar.
+    // kartet automatisk når posisjonen er klar. Gjelder BEGGE modi: i
+    // etterregistrering er «Bruk GPS»-knappen skjult, men den gjenbrukes
+    // her programmatisk slik at kartflyten er én og samme kode.
     dom.locMapBtn.style.display = '';
     dom.locMapBtn.addEventListener('click', () => {
       if (appState.currentPosition && typeof appState.currentPosition.lat === 'number') {
@@ -915,6 +933,13 @@ function setupEventListeners() {
         return;
       }
       apneKartEtterGps = true;
+      // Statuslinja er skjult i etterregistrering. Uten å vise den her ville
+      // trykket se ut som om ingenting skjedde i de sekundene GPS-fiksen tar
+      // — knappen som trigger hentingen er jo skjult i denne modusen.
+      if (erEtterregistreringsmodus()) {
+        const locStatusRow = document.getElementById('loc-status-row');
+        if (locStatusRow) locStatusRow.style.display = 'flex';
+      }
       if (dom.locBtn) dom.locBtn.click();
     });
   }
@@ -1110,6 +1135,9 @@ function updateModeUI() {
   const gpsControlsRow = document.getElementById('gps-controls-row');
   const radiusRow = document.getElementById('radius-row');
   const aoSitesDropdown = document.getElementById('ao-sites-dropdown');
+  const mapBtnLabel = document.getElementById('loc-map-btn-label');
+  const locBtnEl = document.getElementById('loc-btn');
+  const locMapBtnEl = document.getElementById('loc-map-btn');
 
   if (!modePill || !datetimeFields) return;
 
@@ -1120,9 +1148,17 @@ function updateModeUI() {
     modePill.className = 'pill mode-pill after-mode';
     datetimeFields.style.display = 'block';
 
-    // Skjul GPS-relaterte rader
+    // Skjul GPS-relaterte rader. Knapperaden beholdes derimot SYNLIG for
+    // kartknappens skyld: å finne riktig AO-lokalitet på kartet er like
+    // nyttig når man etterregistrerer hjemme som ute i felt (etterspurt av
+    // betatester). Kun selve «Bruk GPS»-knappen og statuslinja skjules —
+    // GPS-posisjonen er uinteressant i seg selv her, den hentes kun i
+    // bakgrunnen når kartknappen faktisk trykkes (se klikk-handleren).
     if (locStatusRow) locStatusRow.style.display = 'none';
-    if (gpsControlsRow) gpsControlsRow.style.display = 'none';
+    if (gpsControlsRow) gpsControlsRow.style.display = 'flex';
+    if (locBtnEl) locBtnEl.style.display = 'none';
+    if (locMapBtnEl) locMapBtnEl.style.display = '';
+    if (mapBtnLabel) mapBtnLabel.style.display = 'inline-block';
     if (radiusRow) radiusRow.style.display = 'none';
     if (aoSitesDropdown) aoSitesDropdown.style.display = 'none';
 
@@ -1143,6 +1179,11 @@ function updateModeUI() {
     // Vis GPS-relaterte rader
     if (locStatusRow) locStatusRow.style.display = 'flex';
     if (gpsControlsRow) gpsControlsRow.style.display = 'flex';
+    // Tilbakestill det etterregistreringsmodus skrudde av over. 'flex' er
+    // verdien knappen har i HTML-en — tom streng ville fjernet inline-stilen
+    // og gitt knappen en annen intern layout enn resten av raden.
+    if (locBtnEl) locBtnEl.style.display = 'flex';
+    if (mapBtnLabel) mapBtnLabel.style.display = 'none';
     if (radiusRow) radiusRow.style.display = 'flex';
     // aoSitesDropdown styres av egen logikk
   }
