@@ -205,6 +205,20 @@ function doRenderObservations() {
   // Lista kan ha endret besøket vi etterregistrerer i (låst, tømt, nye tider)
   oppdaterEtterregMerke();
   oppdaterListeTeller();
+  oppdaterSendTomHint();
+}
+
+/**
+ * ④ Send inn sto med tre grå knapper og ingen forklaring når lista var tom —
+ * ③ har en tomtilstandstekst, ④ hadde ingen. Skjules når en fellestur er
+ * aktiv: da eier fellestur-sperren allerede forklaringen i den seksjonen, og
+ * to hint over hverandre er verre enn ett.
+ */
+function oppdaterSendTomHint() {
+  const el = document.getElementById('send-empty-hint');
+  if (!el) return;
+  const tom = appState.observations.length === 0;
+  el.style.display = (tom && !hentAktivFellestur()) ? 'block' : 'none';
 }
 
 /**
@@ -324,6 +338,8 @@ function oppdaterInnsendingssperreForFellestur(aktiv) {
     btn.title = aktiv ? 'Deaktivert under fellestur — bruk 👥 Fellestur-siden for å hente inn og sende til AO' : '';
   });
   if (dom.fellesturSperreHint) dom.fellesturSperreHint.style.display = aktiv ? 'block' : 'none';
+  // Fellestur-sperren og tom-hinten deler plass i ④ og utelukker hverandre.
+  oppdaterSendTomHint();
 }
 
 /**
@@ -1171,6 +1187,9 @@ function updateLocationTuningVisibility() {
  */
 function updateModeUI() {
   const modePill = document.getElementById('mode-pill');
+  // Kun teksten byttes — bytte-ikonet i pillen er statisk markup og skal
+  // overleve modusskiftet.
+  const modePillText = document.getElementById('mode-pill-text');
   const datetimeFields = document.getElementById('datetime-fields');
   const obsDateInput = document.getElementById('obs-date');
   const obsTimeInput = document.getElementById('obs-time');
@@ -1188,8 +1207,9 @@ function updateModeUI() {
   const isAfterMode = localStorage.getItem('afterRegistrationMode') === '1';
 
   if (isAfterMode) {
-    modePill.textContent = 'Etterregistrering';
+    if (modePillText) modePillText.textContent = 'Etterregistrering';
     modePill.className = 'pill mode-pill after-mode';
+    modePill.setAttribute('aria-label', 'Modus: Etterregistrering. Trykk for å bytte til Felt.');
     datetimeFields.style.display = 'block';
 
     // Skjul GPS-relaterte rader. Knapperaden beholdes derimot SYNLIG for
@@ -1202,7 +1222,12 @@ function updateModeUI() {
     if (gpsControlsRow) gpsControlsRow.style.display = 'flex';
     if (locBtnEl) locBtnEl.style.display = 'none';
     if (locMapBtnEl) locMapBtnEl.style.display = '';
-    if (mapBtnLabel) mapBtnLabel.style.display = 'inline-block';
+    // Etterregistrering: «Bruk GPS» er skjult, så raden har plass til den
+    // lange, mest forklarende varianten.
+    if (mapBtnLabel) {
+      mapBtnLabel.style.display = 'inline-block';
+      mapBtnLabel.textContent = 'Velg fra kart';
+    }
     if (aoSitesDropdown) aoSitesDropdown.style.display = 'none';
 
     // Sett dagens dato som default
@@ -1215,8 +1240,9 @@ function updateModeUI() {
     const obsTimeToInput = document.getElementById('obs-time-to');
     if (obsTimeToInput) obsTimeToInput.value = ''; // Clear "til"-tid
   } else {
-    modePill.textContent = 'Felt';
+    if (modePillText) modePillText.textContent = 'Felt';
     modePill.className = 'pill mode-pill field-mode';
+    modePill.setAttribute('aria-label', 'Modus: Felt. Trykk for å bytte til Etterregistrering.');
     datetimeFields.style.display = 'none';
 
     // Vis GPS-relaterte rader
@@ -1226,7 +1252,14 @@ function updateModeUI() {
     // verdien knappen har i HTML-en — tom streng ville fjernet inline-stilen
     // og gitt knappen en annen intern layout enn resten av raden.
     if (locBtnEl) locBtnEl.style.display = 'flex';
-    if (mapBtnLabel) mapBtnLabel.style.display = 'none';
+    // Feltmodus: knappen var tidligere et bart 🗺️ uten tekst, selv om kart er
+    // den ene av to hovedveier til en lokalitet. Kort etikett i stedet for
+    // ingen — «Velg fra kart» får ikke plass ved siden av «Bruk GPS» og ➕ på
+    // en 430 px-skjerm.
+    if (mapBtnLabel) {
+      mapBtnLabel.style.display = 'inline-block';
+      mapBtnLabel.textContent = 'Kart';
+    }
     // aoSitesDropdown styres av egen logikk
   }
 

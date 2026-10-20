@@ -75,16 +75,30 @@
   transition: all var(--transition-base);
   user-select: none;
   cursor: pointer;
+  /* Er et ekte <button> nå (var <span> med klikk-handler): tastaturfokus,
+     Enter/Space og korrekt rolle gratis. Arver derfor .pill-flatene i stedet
+     for nettleserens standard knappestil. */
+  font-size: 0.7rem;
+  appearance: none;
+  -webkit-appearance: none;
 }
 
-/* Bytte-pil signaliserer tydelig at pillen er en klikkbar modus-bryter. */
-.mode-pill::after {
-  content: ' ⇄';
-  opacity: 1;
-  font-weight: var(--font-weight-bold);
-  font-size: 1.25em;
-  margin-left: 3px;
-  vertical-align: -1px;
+/* Bytte-ikonet signaliserer at pillen er en klikkbar modus-bryter.
+   Var tidligere ⇄ via ::after. Det tegnet renderes tynt og med ulik
+   grunnlinje på tvers av plattformer, og i 0.7rem-pillen forsvant det nesten
+   — selve signalet om at pillen i det hele tatt er trykkbar. To tykke,
+   motsatte piler tegnet selv leser i samme størrelse, og arver currentColor
+   så ikonet følger grønn/gul-skiftet med modusen. */
+.mode-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: inherit;
+  line-height: 1.4;
+}
+
+.mode-pill-swap {
+  flex-shrink: 0;
 }
 
 .mode-pill.field-mode {
@@ -97,14 +111,19 @@ body.theme-light .mode-pill.field-mode {
   color: #16a34a;
 }
 
+/* Gul, ikke rød. Rødt leses som «noe er galt», men etterregistrering er en
+   helt normal modus brukeren selv har valgt — nøyaktig samme resonnement som
+   .ao-status-dot rett under fikk da den sluttet å bruke en rød prikk for
+   «ikke innlogget». Gult skiller seg fortsatt tydelig fra den grønne
+   feltmodus-pillen, men varsler i stedet for å anklage. */
 .mode-pill.after-mode {
-  background: var(--color-error-soft);
-  border-color: var(--color-error);
-  color: #fca5a5;
+  background: var(--color-warning-soft);
+  border-color: var(--color-warning);
+  color: #facc15;
 }
 
 body.theme-light .mode-pill.after-mode {
-  color: #dc2626;
+  color: #b45309;
 }
 
 .mode-pill:hover {

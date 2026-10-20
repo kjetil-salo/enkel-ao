@@ -1,5 +1,5 @@
 // Service Worker for offline-støtte
-const CACHE_NAME = 'fugleobs-v156';
+const CACHE_NAME = 'fugleobs-v157';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -9,6 +9,19 @@ const STATIC_ASSETS = [
   '/js/fellestur-sync.js',
   '/js/autocomplete.js',
   '/style.css',
+  // style.css er en ren @import-fil — uten disse sju precaches selve stilene
+  // ALDRI av service workeren, bare omslaget rundt dem. To følger: en offline
+  // PWA-start kan lande på en ustilt side, og enhver CSS-endring kan bli
+  // liggende bak Cloudflares max-age=14400 i opptil fire timer etter deploy
+  // selv om CACHE_NAME er bumpet. Må holdes i synk med @import-lista i
+  // style.css når en modul kommer til eller forsvinner.
+  '/css/1-tokens.css',
+  '/css/2-base.css',
+  '/css/3-layout.css',
+  '/css/4-components.css',
+  '/css/5-utilities.css',
+  '/css/6-animations.css',
+  '/css/7-page-specific.css',
   '/js/theme.js',
   '/js/main.js',
   '/js/api.js',

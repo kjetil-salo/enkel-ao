@@ -54,6 +54,27 @@ header {
   margin-bottom: var(--space-sm);
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+/* Moduspillen og navigasjonsikonene får ikke plass på samme linje på de
+   smaleste mobilene, særlig når teksten er «Etterregistrering». La
+   navigasjonen gå kontrollert til en ny, høyrejustert linje i stedet for å
+   gjøre siden bredere enn viewporten og skyve ikoner utenfor skjermen. */
+@media (max-width: 430px) {
+  .app-header {
+    flex-wrap: wrap;
+  }
+
+  .header-actions {
+    margin-left: auto;
+    gap: var(--space-xs);
+  }
+}
+
 .title {
   font-size: var(--font-md);
   font-weight: var(--font-weight-semibold);

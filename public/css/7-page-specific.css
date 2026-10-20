@@ -116,25 +116,11 @@
         background: radial-gradient(circle at top left, rgba(248, 250, 252, 0.06), rgba(15, 23, 42, 0.7));
       }
 
-      .mode-pill {
-        margin-left: 8px;
-        font-weight: 600;
-        transition: all 0.2s;
-        user-select: none;
-      }
-
-      .mode-pill.field-mode {
-        background: rgba(34, 197, 94, 0.2);
-        border-color: #22c55e;
-        color: #4ade80;
-      }
-
-      .mode-pill.after-mode {
-        background: rgba(239, 68, 68, 0.2);
-        border-color: #ef4444;
-        color: #fca5a5;
-      }
-
+      /* .mode-pill bodde i to filer med identiske verdier (8px = --space-sm,
+         600 = --font-weight-semibold, 200ms ease = --transition-base). Denne
+         fila lastes SIST og vant derfor stille over 4-components.css — en
+         fargeendring der fikk ingen effekt før duplikatet her ble fjernet.
+         Kanonisk definisjon ligger nå i 4-components.css alene. */
       .mode-pill:hover {
         transform: scale(1.05);
         opacity: 0.8;
@@ -745,10 +731,13 @@ body.theme-light #search:disabled::placeholder {
         filter: brightness(1.1);
       }
 
-      /* Sekundær innsendingsknapp: nedtonet */
+      /* Sekundær innsendingsknapp: nedtonet. Gjennomsiktig flate, ikke bare
+         lavere opasitet — ved siden av en fylt primærknapp er det flaten som
+         skiller «hovedveien» fra «de andre måtene», ikke skriftstørrelsen. */
       .btn-secondary-action {
         opacity: 0.75;
         font-size: 0.8rem !important;
+        background: transparent !important;
       }
 
       /* Tøm-knapp: diskret, utenfor sendeseksjonen */
@@ -1833,6 +1822,25 @@ body.theme-light .btn:hover {
   border-color: #2563eb !important;
 }
 
+/* «body.theme-light .btn» (0,2,1) slo .btn-primary-action (0,1,0) på
+   spesifisitet selv om begge er !important — så «Publiser til AO» ble flatet
+   ut til samme lyse outline-knapp som «Kopier & åpne AO-import» og «Del
+   funnene». Tre tilsynelatende like knapper, der bare én er hovedveien.
+   Disse to reglene gir tilbake hierarkiet: fylt primær, gjennomsiktig
+   sekundær. Gjelder begge lys-temaene (clean arver .theme-light og gjør
+   --accent svart, som er meningen der). */
+body.theme-light .btn.btn-primary-action,
+body.theme-clean .btn.btn-primary-action {
+  background: var(--accent) !important;
+  border-color: var(--accent) !important;
+  color: #ffffff !important;
+}
+
+body.theme-light .btn.btn-secondary-action,
+body.theme-clean .btn.btn-secondary-action {
+  background: transparent !important;
+}
+
 body.theme-light .icon-btn {
   background: rgba(37, 99, 235, 0.06) !important;
   border-color: #2563eb !important;
@@ -1867,9 +1875,12 @@ body.theme-light .mode-pill.field-mode {
   background: rgba(22, 163, 74, 0.08) !important;
 }
 
+/* Gul, ikke rød — se begrunnelsen ved .mode-pill.after-mode i
+   4-components.css. Denne overstyringen er den som faktisk vises i lyst
+   tema, så fargen må byttes begge steder. */
 body.theme-light .mode-pill.after-mode {
-  color: #dc2626 !important;
-  background: rgba(220, 38, 38, 0.08) !important;
+  color: #b45309 !important;
+  background: rgba(234, 179, 8, 0.14) !important;
 }
 
 /* --- Seksjoner --- */

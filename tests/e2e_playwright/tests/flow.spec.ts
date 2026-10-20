@@ -147,15 +147,14 @@ test.describe('Artssøk', () => {
 
 // Test for loading-indikator
 test.describe('Brukergrensesnitt', () => {
-  test('viser status-tekst', async ({ page }) => {
+  test('holder søkestatus skjult til den trengs', async ({ page }) => {
     const base = process.env.BASE_URL || 'http://localhost:3000';
     await page.goto(base);
 
-    // Status-elementet bør være synlig ved lasting
+    // Førsteskjermen skal være rolig: status finnes fortsatt for dynamiske
+    // søkemeldinger, men raden tar ikke plass før den faktisk trengs.
     const statusEl = page.locator('#status-text');
-    await expect(statusEl).toBeVisible();
-    
-    // Standard tekst ved oppstart
+    await expect(statusEl).toBeHidden();
     await expect(statusEl).toContainText('Klar');
   });
 

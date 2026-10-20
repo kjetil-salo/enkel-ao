@@ -27,13 +27,16 @@
     <script src="/js/migration-banner.js"></script>
     <div class="shell">
       <div class="card">
-        <header>
+        <header class="app-header">
           <div class="title">
             <img src="/favicon.png" alt="" style="width:28px;height:28px;border-radius:6px;flex-shrink:0;">
             <span id="app-title" style="cursor:default;user-select:none;">Enkel-AO</span>
-            <span class="pill mode-pill" id="mode-pill" style="cursor:pointer;" title="Klikk for å bytte modus">Felt</span>
+            <!-- Teksten bor i sin egen span fordi updateModeUI() skriver den ved hvert
+                 modusbytte — satte den textContent på selve pillen, ville
+                 bytte-ikonet blitt slettet med det samme. -->
+            <button type="button" class="pill mode-pill" id="mode-pill" title="Klikk for å bytte mellom Felt og Etterregistrering" aria-label="Modus: Felt. Trykk for å bytte til Etterregistrering."><span id="mode-pill-text">Felt</span><svg class="mode-pill-swap" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8.5h14"/><path d="M13.5 4.5 17.5 8.5 13.5 12.5"/><path d="M21 15.5H7"/><path d="M10.5 11.5 6.5 15.5 10.5 19.5"/></svg></button>
           </div>
-          <div style="display: flex; align-items: center; gap: 8px;">
+          <div class="header-actions">
             <a href="/settings.html" id="ao-status-dot" class="ao-status-dot" aria-label="AO-innloggingsstatus"></a>
             <!-- Fellestur hører hjemme i nav-ikonraden, ikke i ④ Send inn der den
                  lå før: en tur må startes FØR man registrerer noe, ellers havner
@@ -116,7 +119,7 @@
                 .row .icon-btn { height:34px !important; }
               }
             </style>
-            <button class="icon-btn" id="loc-map-btn" aria-label="Åpne kart" title="Åpne kart" style="font-size:1.5em;padding:6px 10px;border:2px solid var(--accent);border-radius:8px;background:var(--accent-soft);color:var(--text);height:38px;min-width:46px;transition:all 0.2s;box-shadow:0 2px 8px rgba(59,130,246,0.10);">🗺️<span id="loc-map-btn-label" style="display:none;font-size:0.8rem;font-weight:600;margin-left:6px;vertical-align:middle;">Velg fra kart</span></button>
+            <button class="icon-btn" id="loc-map-btn" aria-label="Åpne kart" title="Åpne kart" style="font-size:1.5em;padding:6px 10px;border:2px solid var(--accent);border-radius:8px;background:var(--accent-soft);color:var(--text);height:38px;min-width:46px;transition:all 0.2s;box-shadow:0 2px 8px rgba(59,130,246,0.10);">🗺️<span id="loc-map-btn-label" style="font-size:0.8rem;font-weight:600;margin-left:6px;vertical-align:middle;">Kart</span></button>
             <button class="icon-btn" id="create-site-btn" aria-label="Opprett ny AO-lokasjon" title="Opprett ny AO-lokasjon" style="font-size:1.3em;padding:6px 10px;border:2px solid var(--accent);border-radius:8px;background:var(--accent-soft);color:var(--text);height:38px;min-width:46px;transition:all 0.2s;display:none;box-shadow:0 2px 8px rgba(59,130,246,0.10);">➕</button>
           </div>
           <div id="radius-row" class="radius-row" style="display:none;">
@@ -289,8 +292,15 @@
                 id="extra-fields-open-btn"
                 class="activity-submit-btn activity-submit-btn-secondary"
                 title="Flere felt (usikker artsbestemming, privat kommentar m.m.) for neste registrering"
+                aria-label="Flere felt for neste registrering"
               >
-                ☰
+                <!-- ☰ er hamburgerikonet og leses som «meny/navigasjon». Denne
+                     knappen åpner ekstra AO-felt for NESTE registrering, som er
+                     en handling, ikke en meny. Tre prikker er den etablerte
+                     «flere valg»-formen. SVG, ikke «⋯»-tegnet: ellipsen
+                     renderes tynn og vertikalt ustabilt på tvers av
+                     plattformer i denne størrelsen. -->
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
               </button>
             </div>
           </div>
@@ -331,6 +341,9 @@
             👥 Du er på en fellestur — sending til AO gjøres samlet av én person via
             <a href="/fellestur.html" style="color:var(--accent);">Fellestur-siden</a> når turen er ferdig,
             ikke herfra (ellers kan flere sende det samme).
+          </p>
+          <p id="send-empty-hint" style="display:none;font-size:0.85em;color:var(--muted);margin:0 0 10px;line-height:1.4;">
+            Registrer minst én observasjon først — da kan du publisere til AO eller dele funnene herfra.
           </p>
           <div class="export-row">
             <div id="ao-direct-row" style="display:none;">
@@ -376,20 +389,20 @@
 
     </div>
 
-    <script type="module" src="/js/main.js?v=v1.53.35"></script>
+    <script type="module" src="/js/main.js?v=v1.53.36"></script>
     <script type="module">
       // Registrer Service Worker for offline-støtte.
       // Versjonert URL: Cloudflare overstyrer origin sin max-age=300 med 4 timer, så
       // en endret /sw.js kan bli liggende i edge-cachen og aldri nå installerte apper.
       // Bruk inline versjon her: /js/version.js kan selv være cachet i gammel versjon.
-      const VERSION = 'v1.53.35';
+      const VERSION = 'v1.53.36';
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register(`/sw.js?v=${VERSION}`).catch(() => {});
       }
     </script>
     <footer class="footer-credit">Versjon <span id="version"></span>  |  <a href="/changelog.html" style="color:var(--accent);text-decoration:none;">Endringslogg</a>  |  <a href="/feedback.html" style="color:var(--accent);text-decoration:none;">Gi tilbakemelding</a>  |  © 2026 Kjetil Salomonsen</footer>
     <script type="module">
-      const VERSION = 'v1.53.35';
+      const VERSION = 'v1.53.36';
       document.getElementById('version').textContent = VERSION;
     </script>
 
@@ -654,7 +667,7 @@
       });
     </script>
 
-    <!-- Modal: Flere felt (☰-knappen ved siden av ✓ i ② Registrer art). AO-felt appen
+    <!-- Modal: Flere felt (⋯-knappen ved siden av ✓ i ② Registrer art). AO-felt appen
          ellers ikke fanger: usikker artsbestemming, ikke spontan, privat kommentar,
          interessant observasjon, ikke gjenfunnet/funnet, andrehåndsopplysning
          (f.eks. lytteboksfunn eller andres bilder — du rapporterer, men har ikke
@@ -726,7 +739,7 @@
     </div>
 
     <style>
-      /* Liten prikk på ☰-knappen når ett eller flere «flere felt»-felt er satt */
+      /* Liten prikk på ⋯-knappen når ett eller flere «flere felt»-felt er satt */
       #extra-fields-open-btn { position: relative; }
       #extra-fields-open-btn.has-extra::after {
         content: '';
