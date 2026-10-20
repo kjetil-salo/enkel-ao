@@ -1,51 +1,67 @@
-# Facebook-reklame: sommerutkast for Enkel-AO
+# Facebook-reklame for Enkel-AO
 
-Ekte screenshots:
+Markedsføringsmateriell. Ligger bevisst utenfor det som deployes.
 
-- `screens/enkel-ao-screen-gps-mobile.png`
-- `screens/enkel-ao-screen-settings-ao.png`
-- `screens/enkel-ao-screen-map-mobile.png`
-- `screens/enkel-ao-screen-main-klepp-results.png`
+## Gjeldende sett — oktober 2026 (v1.53.38)
 
-Disse er hentet fra den faktiske appen i mobilvisning.
+Laget for **Artsobservasjoner-brukerforum**, derfor saklig og litt ydmuk
+tone: appen presenteres som et hjelpemiddel for AO-brukere, ikke som en
+kritikk av AO.
 
-Filer:
+**Én samlet plansje:**
 
-- `enkel-ao-plansje-sommer-2026.svg`
-- `enkel-ao-karusell-1-lokalitet.svg`
-- `enkel-ao-karusell-2-kart.svg`
-- `enkel-ao-karusell-3-moduser.svg`
+- `enkel-ao-plansje-fellestur-2026.svg` / `.png` (1080×1315)
+- `enkel-ao-plansje-fellestur-2026-tekst.md`
 
-Anbefalt rekkefolge:
+**Karusell, tre bilder (1080×1350):**
 
-1. `screens/enkel-ao-screen-gps-mobile.png`
-2. `screens/enkel-ao-screen-map-mobile.png`
-3. `screens/enkel-ao-screen-settings-ao.png`
+1. `enkel-ao-karusell-2026-1-fellestur.svg` / `.png`
+2. `enkel-ao-karusell-2026-2-registrering.svg` / `.png`
+3. `enkel-ao-karusell-2026-3-sjeldenhet.svg` / `.png`
+- `enkel-ao-karusell-2026-tekst.md`
 
-Hovedvinkel:
+Plansjen og karusellen er to alternativer for samme budskap — velg én.
 
-`Kjenner fuglen. Ikke stedsnavnet.`
+### Skjermbilder (`screens/`, prefiks `enkel-ao-v15338-`)
 
-Anbefalt bruk av ekte skjermbilder:
+| Fil | Mål | Viser |
+|---|---|---|
+| `hovedskjerm.png` | 500×1210 | Hele hovedsiden, lyst tema |
+| `fellestur-kode.png` | 460×245 | Delingskoden og turnavnet |
+| `fellestur-logg.png` | 500×372 | Den delte loggen, fem rader |
+| `fellestur-logg3.png` | 500×198 | Tre rader, tre ulike personer |
+| `sjeldenhetsvarsel.png` | 500×592 | Ekte AO-varsel for rosenstare |
 
-1. GPS-skjermen er hovedbildet.
-2. Kartskjermen er bilde to.
-3. AO-oppsett / valgfri innlogging er bilde tre.
+Alle er tatt mot den kjørende appen i mobilvisning. `hovedskjerm.png` er sydd
+sammen av to fangster fordi Chrome ikke gir vindusbredde under 500 px — den
+festede lokasjonslinja måtte settes til `position: static` før nedre fangst,
+ellers kom den med i begge.
 
-Alternativ:
+### To ting som må bevares ved neste oppdatering
 
-- Hvis du vil ha enda mer fokus pa selve lista, bruk `screens/enkel-ao-screen-main-klepp-results.png` som bilde to i stedet for kart.
+**Navnene i fellestur-loggen må være lesbare.** At Heilo, Sandlo og
+Lappspove er registrert av tre ulike personer er hele poenget med
+funksjonen. I et tidlig utkast lå loggen som et lite støttebilde og navnene
+forsvant — da sier bildet ingenting.
 
-Kort caption-forslag:
+**Sjeldenhetsvarselet er et ekte AO-svar.** «Meget sjelden (11-100) i
+Hordaland» for rosenstare på Herdla kom fra Artsobservasjoner, ikke fra
+appen. Ikke bytt det mot en oppdiktet art.
 
-`Pa ferie kjenner du kanskje fuglen, men ikke stedsnavnet. Enkel-AO bruker GPS til a finne aktuelle lokaliteter der du star, sa det blir lettere a registrere riktig sted i Artsobservasjoner.`
+## Eldre sett
 
-Tryggere og tydeligere tekstforslag:
+- `enkel-ao-plansje-deling-bilder-2026.*` — august 2026, bilder og deling
+- `enkel-ao-plansje-sommer-2026.*` — juni 2026
+- `enkel-ao-karusell-1-lokalitet.svg`, `-2-kart.svg`, `-3-moduser.svg` — juni 2026
 
-`Enkel-AO er ikke en erstatning for Artsobservasjoner. Det er et brukervennlig overbygg som gjor registreringen enklere, spesielt ute i felt eller pa reise. Du kan bruke appen helt fint uten a oppgi brukernavn og passord. Hvis du vil ha enklest mulig eksport videre til Artsobservasjoner, finnes det en valgfri innlogging. Brukernavn og passord lagres ikke pa serveren min.`
+Skjermbildene i disse viser et eldre UI («② Observasjon», «Bytt plass») og
+bør ikke gjenbrukes.
 
-Merk:
+## Rendre på nytt
 
-- SVG-flatene er eldre kodebaserte utkast.
-- Bruk de ekte screenshotene i `screens/` som grunnlag videre.
-- `enkel-ao-plansje-sommer-2026.svg` er den nye samlede plansjen basert på ekte mobilskjermer.
+```bash
+rsvg-convert -o fil.png fil.svg
+```
+
+`<image href>` peker på absolutte lokale filstier — `rsvg-convert` leser dem
+rett fra disk, ingen webserver nødvendig. Flyttes mappa, må stiene oppdateres.

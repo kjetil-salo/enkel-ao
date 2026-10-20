@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1350" viewBox="0 0 1080 1350" role="img" aria-labelledby="title desc">
+  <title id="title">Enkel-AO karusell 2: rask registrering i felt</title>
+  <desc id="desc">Hovedskjermen i Enkel-AO v1.53.38 — lokalitet øverst, artsøk, aktivitet som hurtigknapper, lista med registrerte funn og publisering til Artsobservasjoner.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0f1b38"/>
+      <stop offset="52%" stop-color="#17406f"/>
+      <stop offset="100%" stop-color="#0c6b68"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="20" stdDeviation="23" flood-color="#050c18" flood-opacity="0.26"/>
+    </filter>
+
+    <!-- hovedskjerm 500x1210 (0.41322) → 380x920 (0.41304) -->
+    <clipPath id="heroClip">
+      <rect x="600" y="170" width="380" height="920" rx="30" ry="30"/>
+    </clipPath>
+  </defs>
+
+  <rect width="1080" height="1350" fill="url(#bg)"/>
+  <circle cx="110" cy="170" r="136" fill="#7dd3fc" opacity="0.13"/>
+  <circle cx="950" cy="156" r="152" fill="#fde68a" opacity="0.14"/>
+  <circle cx="190" cy="1150" r="200" fill="#86efac" opacity="0.11"/>
+
+  <rect x="390" y="56" width="300" height="62" rx="27" ry="27" fill="#ecfeff" opacity="0.96"/>
+  <text x="540" y="98" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="33" font-weight="800" fill="#12314d">ENKEL-AO</text>
+
+  <text x="76" y="238" font-family="Helvetica, Arial, sans-serif" font-size="56" font-weight="800" fill="#f8fbff">
+    <tspan x="76" dy="0">Fra GPS til</tspan>
+    <tspan x="76" dy="68">ferdig liste</tspan>
+    <tspan x="76" dy="68">på noen trykk</tspan>
+  </text>
+
+  <text x="78" y="470" font-family="Helvetica, Arial, sans-serif" font-size="27" fill="#dce8ff">
+    <tspan x="78" dy="0">Enkel-AO erstatter ikke AO. Det er</tspan>
+    <tspan x="78" dy="42">et enklere lag oppå, laget for å</tspan>
+    <tspan x="78" dy="42">registrere raskt ute i felt.</tspan>
+  </text>
+
+  <text x="78" y="640" font-family="Helvetica, Arial, sans-serif" font-size="26" fill="#bfe3ff">
+    <tspan x="78" dy="0">✓  GPS finner AO-lokalitetene</tspan>
+    <tspan x="78" dy="44">✓  Aktivitet som hurtigknapper</tspan>
+    <tspan x="78" dy="44">✓  Egne besøk per stopp</tspan>
+    <tspan x="78" dy="44">✓  Publiser med ett trykk</tspan>
+    <tspan x="78" dy="44">✓  Virker offline</tspan>
+  </text>
+
+  <g filter="url(#shadow)">
+    <image href="/Users/kjetil/git/enkel-ao/docs/facebook-reklame-assets/screens/enkel-ao-v15338-hovedskjerm.png"
+           x="600" y="170" width="380" height="920"
+           preserveAspectRatio="xMidYMin meet" clip-path="url(#heroClip)"/>
+    <rect x="600" y="170" width="380" height="920" rx="30" ry="30" fill="none" stroke="#facc15" stroke-width="5"/>
+  </g>
+
+  <text x="540" y="1130" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="21" fill="#9fc4e8">Lokaliteter og artsdata hentes fra artsobservasjoner.no</text>
+
+  <rect x="76" y="1180" width="928" height="86" rx="30" ry="30" fill="#facc15"/>
+  <text x="540" y="1234" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="34" font-weight="800" fill="#13233d">ao.efugl.no  •  gratis, uten reklame</text>
+</svg>
