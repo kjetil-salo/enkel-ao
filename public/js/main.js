@@ -4,11 +4,13 @@
  */
 
 // Eksisterende moduler
-// Versjonert import: hasFreshPrivateSitesCache er en NY navngitt eksport i
-// api.js (v1.53.20). Uten ?v= her kan Cloudflare servere en cachet, gammel
-// api.js uten denne eksporten i opptil 4 timer etter deploy — samme fallgruve
-// som storage.js-importen under og map.js sin api.js-import.
-import { logPageView, loadActivities, fetchAoSites, fetchAndCachePrivateSites, hasFreshPrivateSitesCache } from './api.js?v=v1.53.20';
+// Versjonert import: hasFreshPrivateSitesCache (v1.53.20) og ensureAoTokens
+// (v1.53.38, brukt av hentLokaliteterForRadius) hentes herfra. Uten ?v= kan
+// Cloudflare servere en cachet, gammel api.js i opptil 4 timer etter deploy —
+// og en manglende navngitt eksport gir SyntaxError som stopper HELE main.js,
+// ikke bare den ene funksjonen. Bump ved hver nye eksport vi blir avhengige
+// av. Samme fallgruve som storage.js-importen under og map.js sin api.js-import.
+import { logPageView, loadActivities, fetchAoSites, fetchAndCachePrivateSites, hasFreshPrivateSitesCache, ensureAoTokens } from './api.js?v=v1.53.38';
 // Versjonert import: denne linjen har en HARD avhengighet til to navngitte
 // eksporter (loadAoDirectAutoClear/saveAoDirectAutoClear) som ikke fantes i
 // tidligere versjoner av storage.js. Uten ?v= her kan Cloudflare servere en
@@ -566,7 +568,7 @@ function expandLocation() {
   // brukeren rørte feltet selv. Hent samtidig en fersk GPS-posisjon og nye
   // AO-lokaliteter i BAKGRUNNEN, som oppdaterer lista når den er klar — ingen
   // ventetid før noe vises, men fortsatt fersk data uten et eget GPS-trykk.
-  // Gjenbruker «Bruk GPS»-knappen (samme knapp/flyt brukeren selv trykker) i
+  // Gjenbruker «Hent lokasjoner»-knappen (samme knapp/flyt brukeren selv trykker) i
   // stedet for å duplisere GPS-/fetch-logikken fra location.js.
   // Samme regel som i handlePositionUpdate: GPS-dropdownen hører ikke hjemme i
   // etterregistrering. GPS-hentingen under beholdes likevel — den mater
@@ -633,7 +635,7 @@ function makeSetCurrentPlaceAndUpdate() {
 
 // Satt av kartknappen når den trigger GPS-henting selv (ingen posisjon fra
 // før) — så kartet kan åpnes automatisk så snart posisjonen er klar, i
-// stedet for at brukeren må trykke «Bruk GPS» og så kartknappen på nytt.
+// stedet for at brukeren må trykke «Hent lokasjoner» og så kartknappen på nytt.
 let apneKartEtterGps = false;
 
 // Er appen i etterregistreringsmodus? (samme nøkkel som updateModeUI leser)
@@ -956,9 +958,9 @@ function setupEventListeners() {
 
   if (dom.locMapBtn) {
     // Alltid synlig — trenger ikke posisjon fra før. Har vi ikke GPS-fix
-    // ennå, henter vi det først (som ved «Bruk GPS»-knappen) og åpner
+    // ennå, henter vi det først (som ved «Hent lokasjoner»-knappen) og åpner
     // kartet automatisk når posisjonen er klar. Gjelder BEGGE modi: i
-    // etterregistrering er «Bruk GPS»-knappen skjult, men den gjenbrukes
+    // etterregistrering er «Hent lokasjoner»-knappen skjult, men den gjenbrukes
     // her programmatisk slik at kartflyten er én og samme kode.
     dom.locMapBtn.style.display = '';
     dom.locMapBtn.addEventListener('click', () => {
@@ -1029,6 +1031,24 @@ window.updateMapBtnVisibility = updateMapBtnVisibility;
       appState.currentAoSizeMeters = v;
       saveAoSearchRadius(v);
       renderRadiusValue(v);
+    });
+
+    // Hent lokaliteter på nytt når slideren slippes. Uten dette var radiusen
+    // en innstilling uten synlig virkning: man dro den til 3 km, ingenting
+    // skjedde, og man måtte gjette seg til at «Hent lokasjoner» måtte trykkes
+    // på nytt for at den skulle bety noe.
+    //
+    // 'change' og ikke 'input': 'input' fyrer for hvert piksel man drar, og
+    // ville sendt en byge med AO-kall under ett eneste dratak. 'change' fyrer
+    // når brukeren slipper — ett kall per bevisst endring. Debouncen under er
+    // likevel beholdt, siden tastaturnavigasjon på en range-input (piltaster)
+    // sender 'change' per trinn.
+    let radiusHentTimer = null;
+    dom.aoSizeInput.addEventListener('change', () => {
+      const v = parseFloat(dom.aoSizeInput.value);
+      if (isNaN(v) || v <= 0) return;
+      clearTimeout(radiusHentTimer);
+      radiusHentTimer = setTimeout(() => hentLokaliteterForRadius(v), 250);
     });
   }
 
@@ -1156,6 +1176,57 @@ async function init() {
 }
 
 /**
+ * Hent AO-lokaliteter på nytt for den posisjonen vi allerede har, med en ny
+ * søkeradius. Trigges når brukeren slipper radius-slideren.
+ *
+ * Gjenbruker bevisst den kjente posisjonen i stedet for å trykke
+ * «Hent lokasjoner»-knappen på nytt: et nytt GPS-oppslag tar sekunder og ville
+ * gjort en ren radiusjustering unødig treg. Radius-raden vises uansett først
+ * etter at et søk har gitt treff (se updateLocationTuningVisibility), så en
+ * posisjon finnes alltid når slideren er synlig.
+ *
+ * Radiusen fanges i en lokal variabel FØR kallet, slik at en ny dragning mens
+ * dette kallet pågår ikke feilmerker resultatet med feil radius i
+ * handlePositionUpdate() sin ferskhets-sjekk — samme mønster som
+ * initCreateSite() sin re-henting.
+ */
+let radiusHentSeq = 0;
+
+async function hentLokaliteterForRadius(radiusMeters) {
+  const pos = appState.currentPosition;
+  if (!pos || typeof pos.lat !== 'number' || typeof pos.lon !== 'number') return;
+
+  const seq = ++radiusHentSeq;
+  setLocationStatus(dom.locDot, dom.locText, 'pending', `Henter lokaliteter innenfor ${formatRadius(radiusMeters)} …`);
+
+  let sites = [];
+  try {
+    // Som i location.js: uten ferske tokens sender fetchAoSites ingen
+    // auth-headere, og AO svarer kun med offentlige lokaliteter selv for en
+    // innlogget bruker. No-op med én gang hvis ingen credentials er lagret.
+    await ensureAoTokens();
+    sites = await fetchAoSites(pos.lat, pos.lon, radiusMeters);
+  } catch (e) {
+    // Eksterne AO-feil degraderes stille, som ellers i appen.
+    // handlePositionUpdate beholder en allerede god liste ved tomt svar.
+    console.warn('Feil ved henting av AO-lokaliteter for ny radius', e);
+    sites = [];
+  }
+
+  // Et eldre, tregere kall som kommer tilbake etter en nyere dragning skal
+  // ikke overskrive det ferskere resultatet — og skal heller ikke stoppe
+  // pulsen på statusprikken mens det nyere kallet fortsatt pågår.
+  if (seq !== radiusHentSeq) return;
+
+  handlePositionUpdate(pos, sites, radiusMeters);
+
+  // handlePositionUpdate rører ikke statuslinja (location.js eier den
+  // ellers), så pulsen må stoppes her — uten dette ble «Henter lokaliteter
+  // …» stående for alltid etter en radiusjustering.
+  setLocationStatus(dom.locDot, dom.locText, 'ok', `Lokaliteter innenfor ${formatRadius(radiusMeters)}`);
+}
+
+/**
  * «Radius» og «Sortering» styrer lista over AO-lokaliteter fra GPS-søket.
  * Før det første søket finnes ingen slik liste — da er de to radene tuning av
  * noe usynlig på det aller første skjermbildet en ny bruker ser («sortering»
@@ -1215,14 +1286,14 @@ function updateModeUI() {
     // Skjul GPS-relaterte rader. Knapperaden beholdes derimot SYNLIG for
     // kartknappens skyld: å finne riktig AO-lokalitet på kartet er like
     // nyttig når man etterregistrerer hjemme som ute i felt (etterspurt av
-    // betatester). Kun selve «Bruk GPS»-knappen og statuslinja skjules —
+    // betatester). Kun selve «Hent lokasjoner»-knappen og statuslinja skjules —
     // GPS-posisjonen er uinteressant i seg selv her, den hentes kun i
     // bakgrunnen når kartknappen faktisk trykkes (se klikk-handleren).
     if (locStatusRow) locStatusRow.style.display = 'none';
     if (gpsControlsRow) gpsControlsRow.style.display = 'flex';
     if (locBtnEl) locBtnEl.style.display = 'none';
     if (locMapBtnEl) locMapBtnEl.style.display = '';
-    // Etterregistrering: «Bruk GPS» er skjult, så raden har plass til den
+    // Etterregistrering: «Hent lokasjoner» er skjult, så raden har plass til den
     // lange, mest forklarende varianten.
     if (mapBtnLabel) {
       mapBtnLabel.style.display = 'inline-block';
@@ -1254,7 +1325,7 @@ function updateModeUI() {
     if (locBtnEl) locBtnEl.style.display = 'flex';
     // Feltmodus: knappen var tidligere et bart 🗺️ uten tekst, selv om kart er
     // den ene av to hovedveier til en lokalitet. Kort etikett i stedet for
-    // ingen — «Velg fra kart» får ikke plass ved siden av «Bruk GPS» og ➕ på
+    // ingen — «Velg fra kart» får ikke plass ved siden av «Hent lokasjoner» og ➕ på
     // en 430 px-skjerm.
     if (mapBtnLabel) {
       mapBtnLabel.style.display = 'inline-block';

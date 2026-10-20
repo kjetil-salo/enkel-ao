@@ -90,7 +90,7 @@ function showHint() {
 
   const body = document.createElement('p');
   body.className = 'coachmark-body';
-  body.textContent = 'Enkel-AO hjelper deg å registrere fugleobservasjoner i felt og sende dem til Artsobservasjoner. Velg lokasjon først — trykk «Bruk GPS». Deretter kan du søke etter art.';
+  body.textContent = 'Enkel-AO hjelper deg å registrere fugleobservasjoner i felt og sende dem til Artsobservasjoner. Velg lokasjon først — trykk «Hent lokasjoner». Deretter kan du søke etter art.';
 
   const more = document.createElement('p');
   more.className = 'coachmark-body';

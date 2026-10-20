@@ -365,11 +365,11 @@ export function initLocation(elements, onPositionUpdate, aoSizeMeters = 1000) {
         }
       }
     } else {
-      setLocationStatus(locDot, locText, 'idle', 'Trykk «Bruk GPS» før registrering.');
+      setLocationStatus(locDot, locText, 'idle', 'Trykk «Hent lokasjoner» før registrering.');
     }
   } catch (e) {
     // Hvis localStorage feiler, bruk default
-    setLocationStatus(locDot, locText, 'idle', 'Trykk «Bruk GPS» før registrering.');
+    setLocationStatus(locDot, locText, 'idle', 'Trykk «Hent lokasjoner» før registrering.');
   }
 
   locBtn.addEventListener('click', () => {
