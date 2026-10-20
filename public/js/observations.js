@@ -285,7 +285,17 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
 
     const lockBtn = document.createElement('button');
     lockBtn.type = 'button';
-    lockBtn.textContent = visitLocked ? '🔒' : '🔓';
+    // Egentegnet hengelås i stedet for 🔓/🔒-emoji. De to emojiene skiller seg
+    // kun på bøylens vinkel, og i 34 px-knappen var «åpent besøk» i praksis
+    // umulig å skille fra «avsluttet» — flere leste den grønne, åpne låsen som
+    // lukket. Samme kur som klokka over fikk.
+    // Her er forskjellen hele silhuetten: lukket har bøylen symmetrisk over
+    // husets midte, åpen har den svingt ut til HØYRE med den frie enden
+    // hengende utenfor huset. Forskjellen bæres av form, ikke av detalj, og
+    // leser derfor også i småformat og uten farge.
+    lockBtn.innerHTML = visitLocked
+      ? '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="10.5" width="14" height="10.5" rx="2.5"/><path d="M7.5 10.5V7a3.5 3.5 0 0 1 7 0v3.5"/></svg>'
+      : '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="10.5" width="14" height="10.5" rx="2.5"/><path d="M14.5 10.5V7a3.5 3.5 0 0 1 7 0v2"/></svg>';
     lockBtn.setAttribute('aria-label', visitLocked ? 'Besøk avsluttet' : 'Besøk åpent');
     lockBtn.title = visitLocked
       ? 'Åpne besøket igjen - nye observasjoner kan legges her'

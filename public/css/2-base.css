@@ -47,6 +47,17 @@ label {
   cursor: pointer;
 }
 
+/* Versaler er riktig for korte feltetiketter over en input («ART», «ANTALL»),
+   men avkryssingsetiketter er hele setninger («Tøm listen automatisk ved
+   vellykket sending»). Versalsatt setningstekst leses merkbart saktere og
+   veier visuelt tyngre enn knappene den står ved siden av. Faller trygt
+   tilbake til dagens versaler i nettlesere uten :has(). */
+label:has(input[type='checkbox']),
+label:has(input[type='radio']) {
+  text-transform: none;
+  letter-spacing: normal;
+}
+
 /* === Links === */
 a {
   color: var(--color-accent);

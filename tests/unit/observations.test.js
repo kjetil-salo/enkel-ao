@@ -355,7 +355,13 @@ describe('renderObservations besøk', () => {
     expect(observations[1].visitLocked).toBeFalsy();
     expect(saveState).toHaveBeenCalled();
     const updatedLockButtons = obsListEl.querySelectorAll('.obs-group-lock-btn');
-    expect(updatedLockButtons[0].textContent).toBe('🔒');
+    // Låsen er en egentegnet SVG, ikke 🔓/🔒-emoji (de to skilte seg kun på
+    // bøylens vinkel og var i praksis like i 34 px-knappen). Tilstanden leses
+    // derfor av klassen og aria-label, ikke av tegninnholdet.
+    expect(updatedLockButtons[0].classList.contains('is-locked')).toBe(true);
+    expect(updatedLockButtons[1].classList.contains('is-locked')).toBe(false);
+    expect(updatedLockButtons[0].querySelector('svg')).toBeTruthy();
     expect(updatedLockButtons[0].getAttribute('aria-label')).toBe('Besøk avsluttet');
+    expect(updatedLockButtons[1].getAttribute('aria-label')).toBe('Besøk åpent');
   });
 });

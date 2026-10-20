@@ -204,6 +204,20 @@ function doRenderObservations() {
   oppdaterInnsendingssperreForFellestur(!!hentAktivFellestur());
   // Lista kan ha endret besøket vi etterregistrerer i (låst, tømt, nye tider)
   oppdaterEtterregMerke();
+  oppdaterListeTeller();
+}
+
+/**
+ * Teller i ③-overskrifta. ② heter «Registrer art» og ③ «Lista di» — tidligere
+ * het de «Observasjon» og «Observasjoner», som skiller seg med én bokstav og
+ * står rett over hverandre så snart ① er kollapset til den festede linja.
+ * Telleren gjør i tillegg at man ser hvor mye som ligger usendt uten å scrolle.
+ */
+function oppdaterListeTeller() {
+  const el = document.getElementById('obs-list-count');
+  if (!el) return;
+  const n = appState.observations.length;
+  el.textContent = n ? ` (${n})` : '';
 }
 
 function updateAoDirectVisibility() {
@@ -554,6 +568,7 @@ function expandLocation() {
       appState.currentAoSizeMeters,
       appState.locationSortMode
     );
+    updateLocationTuningVisibility();
   }
   // location.js sin initLocation() fester ALDRI noen click-listener på locBtn
   // hvis nettleseren mangler geolokasjon-støtte (navigator.geolocation) i det
@@ -707,6 +722,9 @@ function handlePositionUpdate(position, sites, radiusUsed = appState.currentAoSi
   updateSectionStates(appState, dom);
   updateMapBtnVisibility();
   updateCreateSiteBtnVisibility(appState.currentPosition);
+  // Første gang et søk faktisk ga lokaliteter, er det noe å avgrense og
+  // sortere — da først hører Radius/Sortering hjemme på skjermen.
+  updateLocationTuningVisibility();
 
   if (apneKartEtterGps) {
     apneKartEtterGps = false;
@@ -1122,6 +1140,33 @@ async function init() {
 }
 
 /**
+ * «Radius» og «Sortering» styrer lista over AO-lokaliteter fra GPS-søket.
+ * Før det første søket finnes ingen slik liste — da er de to radene tuning av
+ * noe usynlig på det aller første skjermbildet en ny bruker ser («sortering»
+ * av hva?). De vises derfor først når det faktisk ligger forslag å styre.
+ *
+ * Flagget er bevisst enveis: radene blir stående resten av økta etter første
+ * treff. Uten det ville de blinke bort hver gang et AO-kall kom tomt tilbake
+ * (forbigående feil, eller brukeren snevret inn radiusen for mye) — og da
+ * ville nettopp radius-slideren brukeren trenger for å rette opp forsvinne i
+ * samme øyeblikk som den ble nødvendig.
+ */
+let harHattLokalitetsforslag = false;
+
+function updateLocationTuningVisibility() {
+  if (appState.currentAoSites && appState.currentAoSites.length) {
+    harHattLokalitetsforslag = true;
+  }
+  const radiusRow = document.getElementById('radius-row');
+  const sortRow = document.getElementById('loc-sort-row');
+  // I etterregistrering er GPS-søket skrudd av helt (se updateModeUI), så det
+  // finnes ingen posisjonsbasert liste å verken avgrense eller sortere.
+  const vis = harHattLokalitetsforslag && !erEtterregistreringsmodus();
+  if (radiusRow) radiusRow.style.display = vis ? 'flex' : 'none';
+  if (sortRow) sortRow.style.display = vis ? 'flex' : 'none';
+}
+
+/**
  * Oppdater UI for modus-pill (Felt vs Etterregistrering)
  */
 function updateModeUI() {
@@ -1133,7 +1178,6 @@ function updateModeUI() {
   // GPS-relaterte rader
   const locStatusRow = document.getElementById('loc-status-row');
   const gpsControlsRow = document.getElementById('gps-controls-row');
-  const radiusRow = document.getElementById('radius-row');
   const aoSitesDropdown = document.getElementById('ao-sites-dropdown');
   const mapBtnLabel = document.getElementById('loc-map-btn-label');
   const locBtnEl = document.getElementById('loc-btn');
@@ -1159,7 +1203,6 @@ function updateModeUI() {
     if (locBtnEl) locBtnEl.style.display = 'none';
     if (locMapBtnEl) locMapBtnEl.style.display = '';
     if (mapBtnLabel) mapBtnLabel.style.display = 'inline-block';
-    if (radiusRow) radiusRow.style.display = 'none';
     if (aoSitesDropdown) aoSitesDropdown.style.display = 'none';
 
     // Sett dagens dato som default
@@ -1184,9 +1227,12 @@ function updateModeUI() {
     // og gitt knappen en annen intern layout enn resten av raden.
     if (locBtnEl) locBtnEl.style.display = 'flex';
     if (mapBtnLabel) mapBtnLabel.style.display = 'none';
-    if (radiusRow) radiusRow.style.display = 'flex';
     // aoSitesDropdown styres av egen logikk
   }
+
+  // Radius/Sortering har sin egen betingelse (finnes det forslag i det hele
+  // tatt?) på toppen av modusen — begge deler avgjøres ett sted.
+  updateLocationTuningVisibility();
 }
 
 /**

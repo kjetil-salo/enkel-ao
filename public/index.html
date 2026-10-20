@@ -35,6 +35,19 @@
           </div>
           <div style="display: flex; align-items: center; gap: 8px;">
             <a href="/settings.html" id="ao-status-dot" class="ao-status-dot" aria-label="AO-innloggingsstatus"></a>
+            <!-- Fellestur hører hjemme i nav-ikonraden, ikke i ④ Send inn der den
+                 lå før: en tur må startes FØR man registrerer noe, ellers havner
+                 ikke funnene i den delte loggen. ④ står dessuten grå og død
+                 akkurat når lista er tom — altså nøyaktig når man starter en tur.
+                 Ikon uten tekst er et bevisst valg: funksjonen brukes sjelden og
+                 skal ikke koste en hel rad i hver eneste økt.
+                 TRE hoder, ikke 👥-emojiens to: 👥 betyr allerede
+                 «Medobservatører» på knappen i ② Registrer art, og to like
+                 ikoner for to ulike ting på samme skjerm er verre enn ingen
+                 ikoner. Tre hoder sier dessuten «gruppe», som er hele poenget
+                 med en fellestur. SVG arver currentColor, så den følger
+                 muted→accent på hover slik emoji-naboene ikke gjør. -->
+            <a href="/fellestur.html" aria-label="Fellestur – registrer sammen med andre i én delt logg" style="color: var(--muted); text-decoration: none; font-size: 1.2rem; padding: 4px 8px; border-radius: 8px; transition: all 0.2s; display: flex; align-items: center;" title="Fellestur – registrer sammen med andre i én delt logg" onmouseover="this.style.color='var(--accent)'; this.style.background='var(--accent-soft)'" onmouseout="this.style.color='var(--muted)'; this.style.background='transparent'"><svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="3.4"/><path d="M5.8 20v-1.2A4.2 4.2 0 0 1 10 14.6h4a4.2 4.2 0 0 1 4.2 4.2V20"/><circle cx="4.2" cy="9.8" r="2.1"/><path d="M1.4 19.4v-1a3.4 3.4 0 0 1 2.5-3.3"/><circle cx="19.8" cy="9.8" r="2.1"/><path d="M22.6 19.4v-1a3.4 3.4 0 0 0-2.5-3.3"/></svg></a>
             <a href="/help.html" aria-label="Hjelp" style="color: var(--muted); text-decoration: none; font-size: 1.2rem; padding: 4px 8px; border-radius: 8px; transition: all 0.2s; display: flex; align-items: center;" title="Hjelp" onmouseover="this.style.color='var(--accent)'; this.style.background='var(--accent-soft)'" onmouseout="this.style.color='var(--muted)'; this.style.background='transparent'">📖</a>
             <a href="/settings.html" aria-label="Innstillinger" style="color: var(--muted); text-decoration: none; font-size: 1.2rem; padding: 4px 8px; border-radius: 8px; transition: all 0.2s; display: flex; align-items: center;" title="Innstillinger" onmouseover="this.style.color='var(--accent)'; this.style.background='var(--accent-soft)'" onmouseout="this.style.color='var(--muted)'; this.style.background='transparent'">⚙️</a>
             <div class="kbd-hint">
@@ -106,7 +119,7 @@
             <button class="icon-btn" id="loc-map-btn" aria-label="Åpne kart" title="Åpne kart" style="font-size:1.5em;padding:6px 10px;border:2px solid var(--accent);border-radius:8px;background:var(--accent-soft);color:var(--text);height:38px;min-width:46px;transition:all 0.2s;box-shadow:0 2px 8px rgba(59,130,246,0.10);">🗺️<span id="loc-map-btn-label" style="display:none;font-size:0.8rem;font-weight:600;margin-left:6px;vertical-align:middle;">Velg fra kart</span></button>
             <button class="icon-btn" id="create-site-btn" aria-label="Opprett ny AO-lokasjon" title="Opprett ny AO-lokasjon" style="font-size:1.3em;padding:6px 10px;border:2px solid var(--accent);border-radius:8px;background:var(--accent-soft);color:var(--text);height:38px;min-width:46px;transition:all 0.2s;display:none;box-shadow:0 2px 8px rgba(59,130,246,0.10);">➕</button>
           </div>
-          <div id="radius-row" class="radius-row">
+          <div id="radius-row" class="radius-row" style="display:none;">
             <label for="ao-size">Radius</label>
             <input
               type="range"
@@ -119,7 +132,7 @@
             />
             <span id="ao-size-value" class="radius-value">1 km</span>
           </div>
-          <div class="loc-sort-row" role="radiogroup" aria-label="Sortering av lokasjonsforslag">
+          <div class="loc-sort-row" id="loc-sort-row" role="radiogroup" aria-label="Sortering av lokasjonsforslag" style="display:none;">
             <span class="loc-sort-label">Sortering</span>
             <button type="button" id="loc-sort-standard" class="loc-sort-btn" role="radio" aria-checked="true" title="Gruppert etter type: egne private, superlokasjon, offentlig, andres private — nærmest først innad i hver gruppe">Gruppert</button>
             <button type="button" id="loc-sort-avstand" class="loc-sort-btn" role="radio" aria-checked="false" title="Kun avstand, uansett type lokasjon">Avstand</button>
@@ -143,7 +156,7 @@
         </fieldset>
 
         <fieldset class="section-main section-observasjon" style="margin:0 0 16px 0;padding:0 6px 12px 6px;box-sizing:border-box;">
-          <legend>② Observasjon</legend>
+          <legend>② Registrer art</legend>
           <!-- TODO: Skjul status-raden til søk faktisk pågår. Vis kun når brukeren har begynt å skrive (>0 tegn). -->
           <div class="status-row" style="display:none;">
             <div class="status-left">
@@ -308,7 +321,7 @@
 
         <div class="tablet-list-column">
         <fieldset class="section-main section-liste">
-          <legend>③ Observasjoner</legend>
+          <legend>③ Lista di<span id="obs-list-count"></span></legend>
           <div class="obs-list" id="obs-list"></div>
         </fieldset>
 
@@ -349,7 +362,6 @@
           <div style="margin-top:10px;text-align:center;display:flex;gap:14px;justify-content:center;">
             <a href="/sendt.html" style="color:var(--muted);font-size:0.8em;text-decoration:none;">📤 Tidligere sendt</a>
             <a href="/mine-delinger.html" style="color:var(--muted);font-size:0.8em;text-decoration:none;">🔗 Mine delinger</a>
-            <a href="/fellestur.html" style="color:var(--muted);font-size:0.8em;text-decoration:none;">👥 Fellestur</a>
           </div>
         </fieldset>
         <div style="margin-top:8px;text-align:center;">
@@ -364,20 +376,20 @@
 
     </div>
 
-    <script type="module" src="/js/main.js?v=v1.53.34"></script>
+    <script type="module" src="/js/main.js?v=v1.53.35"></script>
     <script type="module">
       // Registrer Service Worker for offline-støtte.
       // Versjonert URL: Cloudflare overstyrer origin sin max-age=300 med 4 timer, så
       // en endret /sw.js kan bli liggende i edge-cachen og aldri nå installerte apper.
       // Bruk inline versjon her: /js/version.js kan selv være cachet i gammel versjon.
-      const VERSION = 'v1.53.34';
+      const VERSION = 'v1.53.35';
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register(`/sw.js?v=${VERSION}`).catch(() => {});
       }
     </script>
     <footer class="footer-credit">Versjon <span id="version"></span>  |  <a href="/changelog.html" style="color:var(--accent);text-decoration:none;">Endringslogg</a>  |  <a href="/feedback.html" style="color:var(--accent);text-decoration:none;">Gi tilbakemelding</a>  |  © 2026 Kjetil Salomonsen</footer>
     <script type="module">
-      const VERSION = 'v1.53.34';
+      const VERSION = 'v1.53.35';
       document.getElementById('version').textContent = VERSION;
     </script>
 
@@ -642,7 +654,7 @@
       });
     </script>
 
-    <!-- Modal: Flere felt (☰-knappen ved siden av ✓ i ② Observasjon). AO-felt appen
+    <!-- Modal: Flere felt (☰-knappen ved siden av ✓ i ② Registrer art). AO-felt appen
          ellers ikke fanger: usikker artsbestemming, ikke spontan, privat kommentar,
          interessant observasjon, ikke gjenfunnet/funnet, andrehåndsopplysning
          (f.eks. lytteboksfunn eller andres bilder — du rapporterer, men har ikke

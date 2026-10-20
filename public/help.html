@@ -432,7 +432,7 @@
         <div class="quickstart">
           <div class="qs-step">
             <div class="qs-num">1</div>
-            <div><strong>Hent posisjon</strong><span>Trykk «Bruk GPS» så finner appen lokaliteter i nærheten. Du kan justere søkeradius (500 m – 3 km).</span></div>
+            <div><strong>Hent posisjon</strong><span>Trykk «Bruk GPS» så finner appen lokaliteter i nærheten. Når lista er hentet, dukker «Radius» (500 m – 3 km) og «Sortering» opp så du kan finjustere søket.</span></div>
           </div>
           <div class="qs-step">
             <div class="qs-num">2</div>
@@ -464,8 +464,9 @@
           <div class="icon-item"><span class="ic">📍</span><div><strong>Bruk GPS</strong><span>Hent posisjonen din</span></div></div>
           <div class="icon-item"><span class="ic">🗺️</span><div><strong>Kart</strong><span>Se lokaliteter rundt deg</span></div></div>
           <div class="icon-item"><span class="ic">➕</span><div><strong>Ny lokasjon</strong><span>Opprett lokalitet (krever innlogging)</span></div></div>
-          <div class="icon-item"><span class="ic">👥</span><div><strong>Medobservatører</strong><span>Legg til dem du var med</span></div></div>
-          <div class="icon-item"><span class="ic">🔒</span><div><strong>Lås besøk</strong><span>Skille flere besøk samme dag</span></div></div>
+          <div class="icon-item"><span class="ic"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-4px;"><circle cx="12" cy="8" r="3.4"/><path d="M5.8 20v-1.2A4.2 4.2 0 0 1 10 14.6h4a4.2 4.2 0 0 1 4.2 4.2V20"/><circle cx="4.2" cy="9.8" r="2.1"/><path d="M1.4 19.4v-1a3.4 3.4 0 0 1 2.5-3.3"/><circle cx="19.8" cy="9.8" r="2.1"/><path d="M22.6 19.4v-1a3.4 3.4 0 0 0-2.5-3.3"/></svg></span><div><strong>Fellestur</strong><span>Øverst til høyre – delt logg for en gruppe</span></div></div>
+          <div class="icon-item"><span class="ic">👥</span><div><strong>Medobservatører</strong><span>Knappen i «② Registrer art» – legg til dem du var med</span></div></div>
+          <div class="icon-item"><span class="ic"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px;"><rect x="4" y="10.5" width="14" height="10.5" rx="2.5"/><path d="M7.5 10.5V7a3.5 3.5 0 0 1 7 0v3.5"/></svg></span><div><strong>Lås besøk</strong><span>Skille flere besøk samme dag</span></div></div>
           <div class="icon-item"><span class="ic">↩</span><div><strong>Tilbake til besøket</strong><span>Legg inn flere arter i et tidligere besøk</span></div></div>
           <div class="icon-item"><span class="ic">⚙️</span><div><strong>Innstillinger</strong><span>Tema, innlogging, kopi</span></div></div>
           <div class="icon-item"><span class="ic">✓</span><div><strong>Registrer</strong><span>Legg observasjonen i lista</span></div></div>
@@ -548,8 +549,8 @@
         <h3>Besøk – én gruppe per stopp</h3>
         <p>Hver gruppe i observasjonslisten er ett <strong>besøk</strong>: én runde på én lokalitet. Går du fra Tovo til Kvitingen, får du to grupper. Kommer du tilbake til Tovo senere samme dag, kan det bli et tredje besøk – det styrer du med låsen:</p>
         <ul>
-          <li><strong>🔓 Åpent besøk</strong> – nye observasjoner på denne lokaliteten legges til her.</li>
-          <li><strong>🔒 Avsluttet besøk</strong> – trykk låsen for å avslutte. Registrerer du senere på samme sted, starter det et <strong>nytt besøk</strong> i stedet for å blande seg inn i det gamle. Trykk igjen for å åpne besøket på nytt.</li>
+          <li><strong><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px;"><rect x="4" y="10.5" width="14" height="10.5" rx="2.5"/><path d="M14.5 10.5V7a3.5 3.5 0 0 1 7 0v2"/></svg> Åpent besøk</strong> – nye observasjoner på denne lokaliteten legges til her. Bøylen henger ut til høyre, og knappen er grønn.</li>
+          <li><strong><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px;"><rect x="4" y="10.5" width="14" height="10.5" rx="2.5"/><path d="M7.5 10.5V7a3.5 3.5 0 0 1 7 0v3.5"/></svg> Avsluttet besøk</strong> – trykk låsen for å avslutte. Registrerer du senere på samme sted, starter det et <strong>nytt besøk</strong> i stedet for å blande seg inn i det gamle. Trykk igjen for å åpne besøket på nytt.</li>
         </ul>
         <div class="tip">
           <strong>Nyttig når:</strong> du gjentar en runde samme dag (f.eks. morgen og kveld på samme lokalitet) og vil holde tellingene fra hvert besøk adskilt.
@@ -563,7 +564,7 @@
         </div>
         <p>Så lenge du legger inn i et tidligere besøk, viser lokasjonslinja øverst hvilken tid du får, for eksempel «↩ 17:09–17:18». Tida settes altså aldri i det skjulte. Vil du justere tidene på hele besøket etterpå, bruker du 🕐 som før.</p>
         <div class="tip">
-          <strong>Avsluttet besøk (🔒):</strong> ↩ virker der også. Låsen hindrer bare at nye arter havner der <em>av seg selv</em> – trykker du ↩, er det et bevisst valg. Du får en beskjed om at klokka settes tilbake i tid, og arten arver låsen slik at besøket forblir avsluttet.
+          <strong>Avsluttet besøk (<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px;"><rect x="4" y="10.5" width="14" height="10.5" rx="2.5"/><path d="M7.5 10.5V7a3.5 3.5 0 0 1 7 0v3.5"/></svg>):</strong> ↩ virker der også. Låsen hindrer bare at nye arter havner der <em>av seg selv</em> – trykker du ↩, er det et bevisst valg. Du får en beskjed om at klokka settes tilbake i tid, og arten arver låsen slik at besøket forblir avsluttet.
         </div>
         <div class="tip">
           <strong>Tilbake til «nå»:</strong> trykk <strong>Bytt lokasjon</strong>. Da er du ute av det gamle besøket, og nye arter får dagens klokkeslett igjen. Er du faktisk tilbake på lokaliteten på ordentlig, er det slik du gjør det – ikke med ↩.
@@ -581,7 +582,7 @@
         <p style="font-size:0.9em;color:var(--muted);">Teknisk detalj: appen setter en liten, usynlig markør i det <strong>private</strong> kommentarfeltet (kun synlig for deg selv på AO) for å koble bildet til riktig funn. Den fjernes ikke etterpå, men er ufarlig – ingen andre ser den. Har du selv skrevet noe i privat kommentar (se under), står markøren sammen med din egen tekst i det samme feltet.</p>
 
         <h3>Flere felt</h3>
-        <p>Det finnes felt på AO du sjelden trenger: en åpen <strong>kommentar</strong> (synlig for alle), <strong>Usikker artsbestemming</strong>, <strong>Ikke spontan</strong>, <strong>Interessant kommentar</strong>, <strong>Ikke gjenfunnet</strong>, <strong>Ikke funnet</strong>, <strong>Skjul funn til dato</strong>, <strong>bilde</strong>, og en egen <strong>privat kommentar</strong> (kun synlig for deg selv på AO – atskilt fra den åpne kommentaren). Trykk ☰ ved siden av den grønne ✓-knappen i «② Observasjon» for å sette dem <em>før</em> du registrerer – de gjelder da kun for den ene arten du er i ferd med å registrere, og nullstilles automatisk etterpå. Vil du rette dem i etterkant på en observasjon som allerede er registrert, ligger de samme feltene (pluss art, antall, alder, kjønn, sted, dato/tid og medobservatører) i «Rediger» (✏️-ikonet i observasjonslisten) – en liten modal, ikke en egen side.</p>
+        <p>Det finnes felt på AO du sjelden trenger: en åpen <strong>kommentar</strong> (synlig for alle), <strong>Usikker artsbestemming</strong>, <strong>Ikke spontan</strong>, <strong>Interessant kommentar</strong>, <strong>Ikke gjenfunnet</strong>, <strong>Ikke funnet</strong>, <strong>Skjul funn til dato</strong>, <strong>bilde</strong>, og en egen <strong>privat kommentar</strong> (kun synlig for deg selv på AO – atskilt fra den åpne kommentaren). Trykk ☰ ved siden av den grønne ✓-knappen i «② Registrer art» for å sette dem <em>før</em> du registrerer – de gjelder da kun for den ene arten du er i ferd med å registrere, og nullstilles automatisk etterpå. Vil du rette dem i etterkant på en observasjon som allerede er registrert, ligger de samme feltene (pluss art, antall, alder, kjønn, sted, dato/tid og medobservatører) i «Rediger» (✏️-ikonet i observasjonslisten) – en liten modal, ikke en egen side.</p>
 
         <h2 id="sende">📤 Sende til Artsobservasjoner</h2>
 
@@ -623,7 +624,7 @@
         </div>
         <p>Er dere flere fuglefolk på samme tur, kan dere dele på registreringsarbeidet i stedet for at hver enkelt fører sin egen liste.</p>
         <ol>
-          <li>Åpne <strong>«👥 Fellestur»</strong> og trykk <strong>«🆕 Start ny fellestur»</strong>, eller <strong>«🔑 Bli med (har kode)»</strong> hvis noen andre allerede har startet en.</li>
+          <li>Trykk <strong><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-4px;"><circle cx="12" cy="8" r="3.4"/><path d="M5.8 20v-1.2A4.2 4.2 0 0 1 10 14.6h4a4.2 4.2 0 0 1 4.2 4.2V20"/><circle cx="4.2" cy="9.8" r="2.1"/><path d="M1.4 19.4v-1a3.4 3.4 0 0 1 2.5-3.3"/><circle cx="19.8" cy="9.8" r="2.1"/><path d="M22.6 19.4v-1a3.4 3.4 0 0 0-2.5-3.3"/></svg></strong> øverst til høyre på hovedsiden (ved siden av 📖 og ⚙️) og velg <strong>«🆕 Start ny fellestur»</strong> – eller <strong>«🔑 Bli med (har kode)»</strong> hvis noen andre allerede har startet en. Gjør dette <em>før</em> dere begynner å registrere: funn du legger inn på forhånd blir liggende i din egen liste og havner ikke i den delte loggen.</li>
           <li>Del den 5-sifrede koden (eller lenken «🔗 Kopier delbar lenke») med resten av gruppa.</li>
           <li>Så lenge fellesturen er aktiv, registrerer alle på <strong>hovedsiden akkurat som vanlig</strong> – art, sted, antall, aktivitet. Et blått bånd øverst viser at dere er på fellestur, og på denne siden vil du se at «④ Send inn»-knappene er sperret – innsending gjøres samlet til slutt, av én person (se under), ikke løpende av hver enkelt.</li>
           <li>Det som registreres havner i en <strong>delt logg</strong>: alle deltakerne ser hverandres funn dukke opp i løpet av noen sekunder, kan rette tall og slette feilregistreringer.</li>
