@@ -1345,7 +1345,11 @@ body.theme-light #search:disabled::placeholder {
 
       .news-splash-panel {
         width: min(420px, 100%);
-        max-height: min(88vh, 620px);
+        /* 620px var det bindende taket på en vanlig mobilskjerm (88vh ≈ 714px
+           der), og klippet «Se endringslogg» bort selv når innholdet hadde
+           fått plass. 700px lar 88vh-regelen styre på høye skjermer og
+           beholder vernet mot et absurd høyt panel på en lav desktop-vindu. */
+        max-height: min(88vh, 700px);
         overflow: auto;
         border: 1px solid rgba(148, 163, 184, 0.26);
         border-radius: 14px;
@@ -1384,6 +1388,23 @@ body.theme-light #search:disabled::placeholder {
         color: var(--muted);
         font-size: 0.88rem;
         line-height: 1.42;
+      }
+
+      /* E-postadressen i nyhetspunktet. Skal være et tydelig, trykkbart mål på
+         mobil — ikke en adresse man må skrive av for hånd. Derfor egen linje,
+         større enn brødteksten og i aksentfarge. */
+      .news-splash-item-link {
+        display: inline-block;
+        margin-top: 8px;
+        color: var(--accent);
+        font-size: 1rem;
+        font-weight: 700;
+        text-decoration: none;
+        word-break: break-all;
+      }
+
+      .news-splash-item-link:hover {
+        text-decoration: underline;
       }
 
       .news-splash-button {

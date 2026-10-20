@@ -36,9 +36,42 @@ describe('news-splash', () => {
 
     expect(document.querySelector('.news-splash')).toBeTruthy();
     expect(document.body.textContent).toContain('Nytt i Enkel-AO');
-    expect(document.body.textContent).toContain('⚠️ Varsel ved sjeldne funn');
-    expect(document.body.textContent).toContain('Krever nett og innlogging');
     expect(document.body.textContent).toContain('Se endringslogg');
+
+    // Les forventningen ut av konfigen i stedet for å gjenta nyhetsteksten
+    // her. Testen hardkodet tidligere punktene fra én bestemt nyhet, og falt
+    // derfor hver gang en ny nyhet ble publisert — uten at noe faktisk var
+    // galt. Det den skal verne om er at ALLE aktive punkter havner i DOM-en.
+    CURRENT_NEWS_SPLASH.items.forEach((item) => {
+      expect(document.body.textContent).toContain(item.title);
+      expect(document.body.textContent).toContain(item.body);
+    });
+  });
+
+  it('rendrer valgfri lenke på et punkt som har den', () => {
+    CURRENT_NEWS_SPLASH.items = [
+      { title: 'Med lenke', body: 'Tekst', link: { href: 'mailto:a@b.no', text: 'a@b.no' } },
+      { title: 'Uten lenke', body: 'Tekst' },
+    ];
+
+    initNewsSplash();
+
+    const lenker = document.querySelectorAll('.news-splash-item-link');
+    expect(lenker).toHaveLength(1);
+    expect(lenker[0].getAttribute('href')).toBe('mailto:a@b.no');
+    expect(lenker[0].textContent).toBe('a@b.no');
+  });
+
+  it('hopper over ufullstendig lenke uten å kaste', () => {
+    CURRENT_NEWS_SPLASH.items = [
+      { title: 'Mangler text', body: 'Tekst', link: { href: 'mailto:a@b.no' } },
+      { title: 'Mangler href', body: 'Tekst', link: { text: 'a@b.no' } },
+    ];
+
+    initNewsSplash();
+
+    expect(document.querySelector('.news-splash')).toBeTruthy();
+    expect(document.querySelectorAll('.news-splash-item-link')).toHaveLength(0);
   });
 
   it('skjuler nyheter etter at nyeste er lest', () => {
@@ -71,7 +104,7 @@ describe('news-splash', () => {
     initNewsSplash();
 
     expect(document.querySelector('.news-splash')).toBeTruthy();
-    expect(document.body.textContent).toContain('⚠️ Varsel ved sjeldne funn');
+    expect(document.body.textContent).toContain(CURRENT_NEWS_SPLASH.items[0].title);
     expect(hasReadNews(CURRENT_NEWS_SPLASH.id)).toBe(false);
   });
 });

@@ -18,18 +18,25 @@ const MAX_VISIBLE = 4;
 
 export const CURRENT_NEWS_SPLASH = {
   enabled: true,
-  id: 'september-2026-sjeldenhetsvarsel-v1',
+  id: 'oktober-2026-fellestur-og-brukeropplevelse-v1',
   items: [
     {
-      title: '⚠️ Varsel ved sjeldne funn',
-      body: 'Skjemaet forteller deg nå med en gang hvis arten er uvanlig på stedet du har valgt – rett fra Artsobservasjoner sin egen vurdering. Nyttig på flere måter: du oppdager fort om du har trykket feil i artslista, du får vite hvis du faktisk har gjort et sjeldent funn, og reiser du fra en landsdel til en annen ser du raskt om noe du tar for gitt hjemme faktisk er uvanlig akkurat der du er.',
+      title: '👥 Prøv Fellestur!',
+      body: 'Slipp at én må være sekretær mens de andre ser på fugl. Den som starter turen deler en kode med de andre, og alle fører inn i den samme lista – til slutt sender én person alt til AO. Nå testet ut i praksis. Du finner den øverst til høyre; start den før dere registrerer.',
     },
     {
-      title: 'Krever nett og innlogging',
-      body: 'Varselet virker kun når artssøket går mot ekte Artsobservasjoner. Bruker du offline-artslista (eget valg, eller automatisk fallback uten nett), får du ingen advarsel – samme som om du ikke er innlogget.',
+      title: '✨ Ryddigere og tydeligere skjermbilde',
+      body: 'Appen har fått en grundig gjennomgang, slik at symboler og tekst skal være mest mulig selvforklarende.',
+    },
+    {
+      title: '📣 Jeg setter stor pris på tilbakemeldinger',
+      body: 'Dette er en app jeg lager på fritida, og tilbakemeldingene fra dere styrer hva som blir bedre. Stort og smått, ros og ris – bruk «Gi tilbakemelding» nederst i appen, eller send en e-post:',
+      link: { href: 'mailto:k@vikebo.com', text: 'k@vikebo.com' },
     },
   ],
 };
+
+
 
 function getCookieValue(name) {
   const prefix = `${encodeURIComponent(name)}=`;
@@ -109,6 +116,19 @@ function createNewsSplash(items) {
 
     row.appendChild(itemTitle);
     row.appendChild(body);
+
+    // Valgfri lenke per punkt. body settes bevisst med textContent (aldri
+    // innerHTML), så en e-postadresse i brødteksten ville blitt en død streng
+    // brukeren måtte skrive av for hånd. Dette gir et ekte <a> uten å åpne
+    // for HTML i selve teksten.
+    if (item.link && item.link.href && item.link.text) {
+      const link = document.createElement('a');
+      link.className = 'news-splash-item-link';
+      link.href = item.link.href;
+      link.textContent = item.link.text;
+      row.appendChild(link);
+    }
+
     list.appendChild(row);
   });
 
