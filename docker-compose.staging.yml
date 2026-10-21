@@ -7,6 +7,9 @@ services:
     env_file:
       - .env
     environment:
+      # Merker hjemskjerm-ikonet «Enkel-AO-S» og gråtoner det, slik at
+      # staging ikke kan forveksles med prod på telefonen.
+      - APP_ENV=staging
       - LOCATION_DB_PATH=/shared/locations.db
       - LOG_DIR=/data/logs
     volumes:

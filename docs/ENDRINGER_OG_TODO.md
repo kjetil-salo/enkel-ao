@@ -141,6 +141,18 @@ Se **[sending-deling-2026-07.md](sending-deling-2026-07.md)** for full oversikt.
   - **Beslutning (valgt):** ✅ **Hybrid** — vi kuraterer forslag for standard-aktivitetene («Foreslå forkortelser»-knapp), men brukeren kan redigere/skrive egne kortnavn (maks 5 tegn). Tomt felt = fullt navn.
   - **Berører:** `storage.js` (utvid pill-format + migrering), `settings.html` (kortnavn-felt i pill-liste), `observation-commit.js` (render `short` på pills). Bakoverkompatibel migrering fra dagens `{label, value}`.
   - **✅ IMPLEMENTERT (2026-07-09):** Valgfritt `short`-felt (maks 5 tegn) i `activityPills_v1`, kortnavn-input per rad i innstillinger, «Foreslå forkortelser»-knapp (`ACTIVITY_SHORT_SUGGESTIONS`, fyller kun tomme felt), pills viser `short` med fullt navn som tooltip. Klikk matcher fortsatt på fullt `label`. Bakoverkompatibelt.
+- **Sjeldenhet synlig i observasjonslista (idé, ikke besluttet)**: Lista i ③ viser i dag kun
+  ⚠️-merke når AO faktisk ga en `Warning` ved registrering (`obs.rarityWarning`, se
+  [sjeldenhetsvarsel.md](sjeldenhetsvarsel.md)). Vurder om lista bør gjenspeile hvor sjelden arten
+  er mer generelt — f.eks. gradert merking (vanlig / uvanlig / sjelden) eller sortering/fremheving
+  av de sjeldne funnene, slik at det mest interessante i en lang liste er lett å se før sending.
+  - **Åpne spørsmål:** Hvor kommer sjeldenhetsgraden fra? AOs `ValidateTaxonAndArea` gir kun en
+    vurdering per art×område×dato, krever innlogging, og virker ikke med offline-artslista (mangler
+    `taxonId`). Et generelt «sjeldenhetstall» per art finnes ikke lokalt i dag. Alternativ: utlede
+    noe grovt fra Norgeslisten / egen bruksstatistikk, men da er det ikke AOs vurdering.
+  - **Avgrensning:** må ikke gjøre lista tregere eller trigge ekstra AO-kall per rad — sjeldenhet
+    bør i så fall fanges ved registrering (som i dag), ikke beregnes ved rendering.
+
 - **Dropdown uten layout-forskyvning**: Vurder å vise søkeresultater med `position: absolute` så de ligger over innholdet under i stedet for å forskyve det ned. Gir mer stabil layout under søk.
 - **Performance optimaliseringer**: Raskere artsøk og lokalitetshenting
 - **Optimaliser dropdown-design**: Grupper alder-valg logisk (Egg | Ungfugl: 1K-serie | Voksen: Adult)

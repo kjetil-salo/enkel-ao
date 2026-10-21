@@ -6,6 +6,10 @@
     <link rel="icon" href="/favicon.png" type="image/png" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/manifest.json" />
+    <!-- iOS bruker denne som navn under hjemskjerm-ikonet (ikke manifestets
+         short_name). Uten den avleder iOS navnet fra <title> og kutter det.
+         Staging overstyrer verdien server-side, se _send_env_index i server.py. -->
+    <meta name="apple-mobile-web-app-title" content="Enkel-AO" />
     <meta name="theme-color" content="#0f172a" />
     <title>Enkel-AO – rask fugleregistrering til Artsobservasjoner</title>
     <meta name="description" content="Rask digital feltnotatbok for fugleobservasjoner. Registrer art, antall og aktivitet på sekunder – og publiser rett til Artsobservasjoner.no. Fungerer offline." />
@@ -394,20 +398,20 @@
 
     </div>
 
-    <script type="module" src="/js/main.js?v=v1.53.39"></script>
+    <script type="module" src="/js/main.js?v=v1.53.40"></script>
     <script type="module">
       // Registrer Service Worker for offline-støtte.
       // Versjonert URL: Cloudflare overstyrer origin sin max-age=300 med 4 timer, så
       // en endret /sw.js kan bli liggende i edge-cachen og aldri nå installerte apper.
       // Bruk inline versjon her: /js/version.js kan selv være cachet i gammel versjon.
-      const VERSION = 'v1.53.39';
+      const VERSION = 'v1.53.40';
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register(`/sw.js?v=${VERSION}`).catch(() => {});
       }
     </script>
     <footer class="footer-credit">Versjon <span id="version"></span>  |  <a href="/changelog.html" style="color:var(--accent);text-decoration:none;">Endringslogg</a>  |  <a href="/feedback.html" style="color:var(--accent);text-decoration:none;">Gi tilbakemelding</a>  |  © 2026 Kjetil Salomonsen</footer>
     <script type="module">
-      const VERSION = 'v1.53.39';
+      const VERSION = 'v1.53.40';
       document.getElementById('version').textContent = VERSION;
     </script>
 

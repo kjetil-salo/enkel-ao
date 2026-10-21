@@ -393,6 +393,13 @@ except Exception as e:
 
 ### Environment Variables
 - `PORT` (default: 3000)
+- `APP_ENV` (default: tom = produksjon) — settes til `staging` i `docker-compose.staging.yml`.
+  Da genereres `/manifest.json` og `/index.html` dynamisk med «Enkel-AO-S» som navn under
+  hjemskjerm-ikonet og gråtonede ikoner (`public/*-staging*.png`), slik at testmiljøet ikke
+  kan forveksles med prod på telefonen. **Navnet må settes BEGGE steder:** manifestets
+  `short_name` (Android/Chrome) og `apple-mobile-web-app-title` i HTML (iOS). Uten flagget
+  serveres begge filene helt statisk som før. Nytt ikon i `manifest.json` trenger en
+  nedtonet variant i `STAGING_ICON_MAP` (server.py) — `tests/test_env_merking.py` vokter dette
 - `AO_URL` (default: `https://www.artsobservasjoner.no`) — base-URL for artssøk
 - `AO_MOBILE_URL` (default: `https://mobil.artsobservasjoner.no`) — base-URL for AO-lokaliteter
 - `NOMINATIM_URL` (default: `https://nominatim.openstreetmap.org/reverse`) — reverse geokoding

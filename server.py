@@ -77,6 +77,22 @@ if _location_db_path:
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 PUBLIC_DIR = os.path.join(BASE_DIR, 'public')
 
+# Miljømerking av snarveien på hjemskjermen. Staging og prod serverer identiske
+# filer, så uten dette får begge navnet «Enkel-AO» og samme ikon — umulig å se
+# hvilken app man faktisk registrerer funn i. Tom verdi = produksjon, og da
+# serveres manifest.json og index.html helt statisk som før (null ekstra arbeid
+# i den varme stien).
+APP_ENV = os.environ.get('APP_ENV', '').strip().lower()
+APP_NAME_SUFFIX = '-S' if APP_ENV == 'staging' else ''
+
+# Nedtonede (gråtonede) ikonvarianter — se public/*-staging*.png.
+STAGING_ICON_MAP = {
+    '/favicon.png': '/favicon-staging.png',
+    '/icon-192.png': '/icon-staging-192.png',
+    '/icon-512.png': '/icon-staging-512.png',
+    '/apple-touch-icon.png': '/apple-touch-icon-staging.png',
+}
+
 # Enkel in-memory statistikk (beskyttet av lock)
 _stats_lock = threading.Lock()
 _stats = {
@@ -950,6 +966,9 @@ class Handler(SimpleHTTPRequestHandler):
                 import time
                 self._send_json({'status': 'ok', 'timestamp': time.time()})
                 return
+            if parsed.path == '/manifest.json' and APP_NAME_SUFFIX:
+                self._handle_env_manifest()
+                return
             if parsed.path == '/stats':
                 self._handle_stats_page(parsed)
                 return
@@ -1255,6 +1274,69 @@ class Handler(SimpleHTTPRequestHandler):
             logger.warning(f'[AO-RARITY] Feil: {e}')
             self._send_json({})
 
+    def _handle_env_manifest(self):
+        """Serve manifest.json med miljøsuffiks i navnet og nedtonet ikon.
+
+        Det er `short_name` som blir teksten under ikonet når appen legges til
+        hjemskjermen, så navnet må inn i selve manifestet — en meta-tag i HTML
+        holder ikke. Kalles kun når APP_NAME_SUFFIX er satt; feiler noe her,
+        faller vi tilbake til den statiske filen (staging uten merking er bedre
+        enn staging uten manifest).
+        """
+        try:
+            with open(os.path.join(PUBLIC_DIR, 'manifest.json'), encoding='utf-8') as f:
+                manifest = json.load(f)
+        except Exception as e:
+            logger.warning(f'[MANIFEST] Kunne ikke generere miljømanifest: {e}')
+            self.path = '/public/manifest.json'
+            super().do_GET()
+            return
+
+        for key in ('name', 'short_name'):
+            if manifest.get(key):
+                manifest[key] = f'{manifest[key]}{APP_NAME_SUFFIX}'
+        if manifest.get('description'):
+            manifest['description'] = f"TESTMILJØ — {manifest['description']}"
+        for icon in manifest.get('icons', []):
+            icon['src'] = STAGING_ICON_MAP.get(icon.get('src'), icon.get('src'))
+
+        payload = json.dumps(manifest, ensure_ascii=False, indent=2).encode('utf-8')
+        self.send_response(200)
+        self.send_header('Content-Type', 'application/manifest+json; charset=utf-8')
+        self.send_header('Content-Length', str(len(payload)))
+        # Cloudflare cacher ellers manifestet i en time (max-age=3600-grenen i
+        # end_headers) — en endring i merkingen skal slå inn med én gang.
+        self.send_header('Cache-Control', 'no-cache, must-revalidate')
+        self._cache_header_set = True
+        self.end_headers()
+        self.wfile.write(payload)
+
+    def _send_env_index(self):
+        """Serve index.html med miljømerket iOS-navn og nedtonede ikoner.
+
+        iOS leser `apple-mobile-web-app-title` fra HTML-en, ikke manifestets
+        `short_name`, så merkingen må inn begge steder. Returnerer False hvis
+        noe gikk galt — da serveres filen statisk som vanlig.
+        """
+        try:
+            with open(os.path.join(PUBLIC_DIR, 'index.html'), encoding='utf-8') as f:
+                html = f.read()
+        except Exception as e:
+            logger.warning(f'[INDEX] Kunne ikke generere miljømerket index: {e}')
+            return False
+
+        # Match hele meta-tagen: `content="Enkel-AO"` alene treffer også
+        # og:site_name lenger nede i head.
+        html = html.replace(
+            'name="apple-mobile-web-app-title" content="Enkel-AO"',
+            f'name="apple-mobile-web-app-title" content="Enkel-AO{APP_NAME_SUFFIX}"',
+        )
+        for prod_icon, staging_icon in STAGING_ICON_MAP.items():
+            html = html.replace(f'href="{prod_icon}"', f'href="{staging_icon}"')
+
+        self._send_html_response(html)
+        return True
+
     def _handle_static_files(self, parsed):
         """Håndter statiske filer."""
         if parsed.path == '/':
@@ -1282,7 +1364,11 @@ class Handler(SimpleHTTPRequestHandler):
                     return
                 # Pene URL-er uten filendelse faller tilbake til index.html
                 self.path = '/public/index.html'
-        
+
+        if APP_NAME_SUFFIX and self.path == '/public/index.html':
+            if self._send_env_index():
+                return
+
         return super().do_GET()
 
     def translate_path(self, path):
