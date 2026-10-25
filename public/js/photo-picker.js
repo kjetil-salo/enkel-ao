@@ -9,7 +9,11 @@ const MAX_SIDE = 1600;
 // Skalerer ned til maks 1600px langside (samme grense AO selv bruker server-side)
 // og komprimerer til JPEG — mobilkamera leverer ofte langt større bilder enn
 // nødvendig for et artsfunn, og base64 i JSON øker størrelsen med ~33 %.
-function downscaleImage(file) {
+//
+// Eksportert fordi «Tidligere sendt» trenger nøyaktig samme nedskalering når et
+// bilde legges på et allerede publisert funn, uten å trenge resten av velgeren.
+// Et Z9-bilde er 40–60 MB; uten dette ville det gått rått gjennom JSON-bodyen.
+export function downscaleImage(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => {

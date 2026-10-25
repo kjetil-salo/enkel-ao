@@ -4,6 +4,16 @@
 **Status:** Fase 0 avklart (`docs/ao-bilder-api.md`). **POC av fase A+B bygget** samme dag —
 se «Implementert (POC)» nederst for hva som faktisk er kodet og hva som gjenstår før dette
 er mer enn en proof-of-concept.
+
+> **Rettet 25.10.2026:** antakelsen om at bilder bare kan lastes opp **mens funnet ligger i
+> gjennomgangskøen, før publisering**, er feil. Opplastingsskjemaet rendres også på funnsiden
+> til et publisert funn, og opplasting mot et publisert `SightingId` er verifisert mot ekte AO
+> (gråspurv 42030658, `{ok: true, imageId: 3688976}`). Det gjorde «berik hjemmefra» mulig —
+> se `docs/ao-mine-funn-api.md` og `/api/ao-upload-image`. Punkt 2 under (markør i privat
+> kommentar for å matche rad mot lokal obs) er fortsatt riktig for bilder som følger selve
+> sendingen, men er **ikke** nødvendig for bilder som legges på i etterkant: da leses
+> `SightingId` rett fra AO.
+
 **Bakgrunn:** Bruker ønsker å kunne legge ved bilde på en observasjon i enkel-ao. Hintet som
 startet undersøkelsen stemte: AO lar deg ikke laste opp bilder før funnet har fått en ekte
 `SightingId` — bekreftet gjennom feltet `PossibleToUploadImages` i AOs egen gjennomgangskø.

@@ -4,6 +4,11 @@
 Den andre fangsten inneholdt hele side-HTML-en for «Kontrollér funn»
 (`/ReviewSighting`), inkludert selve opplastingsskjemaet — det avklarer nesten alt.
 
+> **Rettet 25.10.2026:** kortversjonen under sier at opplastingsvinduet er begrenset til
+> tiden funnet ligger i gjennomgangskøen. Det stemmer ikke — opplasting mot et **publisert**
+> funn er verifisert mot ekte AO. Se `docs/ao-mine-funn-api.md` punkt 4. Resten av dette
+> dokumentet (feltnavn, lisenser, grensen på 10 bilder) står seg.
+
 ## Kortversjon
 
 Bilder kan først lastes opp til en observasjon når den har fått en **ekte `SightingId`** —
