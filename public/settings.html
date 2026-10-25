@@ -227,7 +227,7 @@
         </div>
         <button type="button" id="test-ao-login"
           style="margin-top:14px;width:100%;padding:10px;border-radius:8px;border:none;background:#3b82f6;color:white;font-size:1em;cursor:pointer;">
-          🔐 Test innlogging
+          🔐 Logg inn
         </button>
         <div id="ao-login-status" style="display:none;margin-top:8px;padding:10px;border-radius:8px;font-size:0.85em;"></div>
         <button type="button" id="clear-ao-login"
@@ -547,7 +547,7 @@
         }
 
         testLoginBtn.disabled = true;
-        testLoginBtn.textContent = '⏳ Tester...';
+        testLoginBtn.textContent = '⏳ Logger inn...';
         loginStatus.style.cssText = `display:block;margin-top:8px;padding:10px;border-radius:8px;font-size:0.85em;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.3);color:${_sc('info')};`;
         loginStatus.textContent = '⏳ Kobler til Artsobservasjoner...';
 
@@ -559,8 +559,19 @@
           });
           const result = await resp.json();
           if (resp.ok && result.success) {
+            // LAGRE tokenene, ikke bare meld at innloggingen gikk bra. Før gjorde
+            // knappen kun en tilkoblingstest, og en bruker som kom hit fra en side
+            // som sa «sesjonen er utløpt» fikk «✅ Innlogging OK!» — og var fortsatt
+            // utlogget. Eneste vei ut var å innom kartet, som logger inn som en
+            // bieffekt. Rapportert fra staging 25.10.2026.
+            const lagret = JSON.parse(localStorage.getItem('ao_tokens') || '{}');
+            lagret.loginToken = result.loginToken;
+            lagret.authCookie = result.authCookie;
+            if (!lagret.userId) lagret.userId = result.userId;
+            localStorage.setItem('ao_tokens', JSON.stringify(lagret));
+
             loginStatus.style.cssText = `display:block;margin-top:8px;padding:10px;border-radius:8px;font-size:0.85em;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);color:${_sc('success')};`;
-            loginStatus.textContent = `✅ Innlogging OK! Bruker-ID: ${result.userId}`;
+            loginStatus.textContent = `✅ Innlogget! Bruker-ID: ${result.userId}`;
           } else {
             throw new Error(result.error || 'Innlogging feilet');
           }
@@ -569,7 +580,7 @@
           loginStatus.textContent = `❌ ${e.message}`;
         } finally {
           testLoginBtn.disabled = false;
-          testLoginBtn.textContent = '🔐 Test innlogging';
+          testLoginBtn.textContent = '🔐 Logg inn';
           updateClearLoginVisibility();
         }
       });

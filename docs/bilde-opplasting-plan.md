@@ -13,6 +13,9 @@ er mer enn en proof-of-concept.
 > kommentar for å matche rad mot lokal obs) er fortsatt riktig for bilder som følger selve
 > sendingen, men er **ikke** nødvendig for bilder som legges på i etterkant: da leses
 > `SightingId` rett fra AO.
+>
+> **Ferdig bygget i v1.54.0–v1.54.4 (25.10.2026).** Se `docs/bilder-i-etterkant.md`
+> for hva som faktisk ble laget, og `docs/ao-mine-funn-api.md` for endepunktene.
 
 **Bakgrunn:** Bruker ønsker å kunne legge ved bilde på en observasjon i enkel-ao. Hintet som
 startet undersøkelsen stemte: AO lar deg ikke laste opp bilder før funnet har fått en ekte

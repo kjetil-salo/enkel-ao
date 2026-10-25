@@ -8,7 +8,11 @@
 > **(2) ID-fangst trenger ikke markør-matching** — AO lar oss lese våre egne publiserte funn
 > som JSON, med `SightingId`, via `/ViewSighting/BindSightingsGrid`. Det gjorde både
 > `aoIds`-feltet og en egen synk-løsning overflødig. Se `docs/ao-mine-funn-api.md`.
-> Fase C (redigering i appen) er fortsatt ikke bygget, og vurderingen av den står.
+> Fase C (redigering i appen) er fortsatt ikke bygget, og vurderingen av den står —
+> nå underbygget med tall: `docs/ao-mine-funn-api.md` punkt 3b.
+>
+> **Fase B er erstattet av noe bedre i v1.54.0 (25.10.2026):** «Tidligere sendt» henter
+> funnene fra AO i stedet for å stole på en lokal logg. Se `docs/bilder-i-etterkant.md`.
 
 **Status:** Fase 0 ferdig (se `ao-rediger-api.md`). **Fase B implementert i v1.41.0**
 (27.07.2026). **Fase C besluttet utsatt til etter BirdLife-lanseringen** (27.07.2026) —

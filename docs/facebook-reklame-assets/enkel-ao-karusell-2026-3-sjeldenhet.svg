@@ -49,7 +49,7 @@
   </text>
 
   <g filter="url(#shadow)">
-    <image href="/Users/kjetil/git/enkel-ao/docs/facebook-reklame-assets/screens/enkel-ao-v15338-sjeldenhetsvarsel.png"
+    <image href="screens/enkel-ao-v15338-sjeldenhetsvarsel.png"
            x="550" y="430" width="470" height="556"
            preserveAspectRatio="xMidYMin meet" clip-path="url(#varselClip)"/>
     <rect x="550" y="430" width="470" height="556" rx="28" ry="28" fill="none" stroke="#facc15" stroke-width="5"/>

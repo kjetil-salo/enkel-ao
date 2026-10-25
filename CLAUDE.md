@@ -114,15 +114,19 @@ The `Handler` class routes requests:
     `validationStatus`, `triggeredRules` og dyplenke `/Sighting/<id>` per funn
   - **Dette er synken mellom enheter**: lista bor hos AO, så mobilen i felt og PC-en
     hjemme ser det samme uten noe eget synk-lag. Dekker også funn registrert utenom appen
-  - `MyReportedSightings=true` filtrerer serverside til egne rapporter — uten den kommer
-    funn andre har rapportert for deg med, og de kan verken redigeres eller få bilde
+  - `MyObservedSightings=true` gir ALT brukeren er med på, også funn andre har rapportert
+    med henne som observatør. Det er riktig her: AO tillater bildeopplasting på dem
+    (verifisert — opplastingsskjemaet rendres og `EditableImagesForSightingId` svarer),
+    men IKKE redigering (AO skjuler selv «Endre» for andre enn rapportøren). Skillet
+    bæres av `isReporter` per rad, og frontend viser «Endre» kun der den er sann
   - **Cookies må settes på httpx-KLIENTEN**, ikke per request: søket svarer 302, og httpx
     bygger Cookie-headeren på nytt fra klientens jar ved redirect. Per-request-cookies gir
     en uinnlogget resultatside uten `TotalPageCount` → permanent tom liste
   - Overstyringen av søkefelt er fail-closed (`_override` kaster ved ukjent feltnavn) —
     ellers ville en AO-endring gitt feil filtrerte funn helt uten feilmelding
   - Svarer `{sightings, total, truncated}`. Uinnlogget eller AO-feil → tom liste, 200
-  - Full kartlegging: `docs/ao-mine-funn-api.md`
+  - Full kartlegging: `docs/ao-mine-funn-api.md`. Oversikt over hele funksjonen,
+    inkludert hva som gikk galt underveis: `docs/bilder-i-etterkant.md`
 - `/api/ao-upload-image` (POST) → legg et bilde på et funn som ALLEREDE er publisert
   - «Berik hjemmefra»: funnet ble rapportert fra mobilen i felt, bildet kommer fra kamera
     flere timer senere. Egen flyt fra bildene som følger selve sendingen, som må skje mens
@@ -344,19 +348,36 @@ Pure ES6 modules with no framework:
 - `autocomplete.js` — Lokalitet-autocomplete med avstand og ikoner (🏷️ super, 👤 privat, ⭐ mine)
   - Aktivt i **begge** modi (Felt og Etterregistrering)
   - `initAutocomplete(placeInput, onSelect, getPosition)` — getPosition gir GPS-posisjon for sortering
+- `bilde-editor.js` — beskjæring og eksponering før opplasting, uten bibliotek
+  - Beskjæringsrammen tegnes på SAMME lerret som bildet, ikke som DOM-elementer over.
+    Det gir identisk oppførsel med mus og finger uten to sett hendelser å holde i synk
+  - Eksponering er fotografisk (`2^(trinn/100)`), ikke lineær: ±100 = ett blenderstrinn.
+    Forhåndsvisningen bruker samme pikselløkke som eksporten, ikke et CSS-filter — da
+    lyver ikke forhåndsvisningen om hva som faktisk lastes opp
+  - `hentResultat()` regner ALLTID fra originalbildet, aldri fra visningslerretet, så
+    oppløsningen er uavhengig av hvor stor modalen var
+  - Rene funksjoner (`eksponeringsfaktor`, `klemUtsnitt`, `visningsmaal`,
+    `anvendEksponering`) er eksportert og dekket av `tests/unit/bilde-editor.test.js`
+- `api.js` sin `loggInnMedLagretLegitimasjon()` — logger inn med lagret brukernavn/passord
+  OG lagrer tokenene. Skilt ut fra `ensureAoTokens()`, som bare logger inn når tokens
+  MANGLER: en utløpt sesjon har fortsatt tokens i localStorage, så den hjalp ikke der.
+  Sider som får `needsLogin` fra serveren kaller denne og prøver på nytt
+  - Bakgrunn (v1.54.3): «Test innlogging» i `settings.html` lagret ikke tokenene — den
+    var kun en tilkoblingstest. En bruker som kom fra en side som sa «sesjonen er
+    utløpt», fikk «✅ Innlogging OK!» og var fortsatt utlogget. Eneste vei ut var å gå
+    innom kartet, som logger inn som bieffekt. Knappen lagrer nå, og heter «Logg inn»
 - `sendt.html` (ikke en modul, men hører hjemme her) — «Tidligere sendt» har to kilder:
   - **«Mine funn på Artsobservasjoner»** fra `/api/ao-my-sightings`. Dette er synken mellom
     enheter: lista bor hos AO, ikke i localStorage. Per funn: dyplenke `/Sighting/<id>`,
     ⚠️ når AO har en innvending, og 📷 «Legg til bilde» når `hasImage` er falsk
   - **«Sendt fra denne enheten»** = den lokale `sent_observations_v1` som før, uendret.
     Beholdt bevisst: den virker offline og uten innlogging, og eier «Del disse»/«Kopier til lista»
-  - Bildeopplasting gjenbruker `downscaleImage` fra `photo-picker.js` (1600 px, JPEG 0.85) —
-    et Z9-bilde er 40–60 MB og må aldri gå rått gjennom JSON-bodyen. Importen er versjonert
-    (`?v=`) fordi `downscaleImage` er en NY eksport; en stale modul ville gitt SyntaxError
-    som stopper hele siden (samme felle som v1.53.15)
-  - Hvilken rad som venter på en fil ligger i `data-funn` på den delte `<input type=file>`,
-    ikke i en modulvariabel — tilstanden er synlig i DOM-en og flyten kan drives i test uten
-    å åpne en filvelger-dialog
+  - «Legg til bilde» åpner en modal som gjenbruker `initPhotoPicker` (fil, utklippstavle,
+    dra-og-slipp) og sender bildet videre inn i `bilde-editor.js`. Hvilket funn modalen
+    gjelder står i `data-funn` på selve modalen
+  - `photo-picker.js` har fått valgfri `dropZone`. Den svelger dragover/drop på HELE
+    dokumentet mens velgeren er aktiv — bommer man på sonen, ville nettleseren ellers
+    åpnet bildet i fanen og brukeren mistet både siden og bildet
   - Ved vellykket opplasting byttes knappen til «🖼️ Har bilde» lokalt i stedet for å hente
     hele lista på nytt — et AO-kall per bilde ville vært merkbart tregt (målt 12 sek for en
     full henting), når flere bilder legges til etter tur

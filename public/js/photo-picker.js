@@ -39,7 +39,8 @@ export function downscaleImage(file) {
 }
 
 /**
- * @param {object} els - { fileInput, pickBtn, pasteBtn (valgfri), previewWrap, previewImg, removeBtn }
+ * @param {object} els - { fileInput, pickBtn, pasteBtn (valgfri), dropZone (valgfri),
+ *   previewWrap, previewImg, removeBtn }
  * @param {() => boolean} isActive - lim inn med Ctrl/Cmd+V håndteres kun når denne returnerer true
  *   (f.eks. «modalen er åpen») — ellers ville et bilde limt inn hvor som helst på siden
  *   uventet havnet i et skjult skjema.
@@ -48,7 +49,7 @@ export function downscaleImage(file) {
  *   (f.eks. et inline-script) og trenger verdien speilet i et skjult DOM-felt.
  */
 export function initPhotoPicker(els, isActive, onChange) {
-  const { fileInput, pickBtn, pasteBtn, previewWrap, previewImg, removeBtn } = els;
+  const { fileInput, pickBtn, pasteBtn, dropZone, previewWrap, previewImg, removeBtn } = els;
   const notify = () => { if (onChange) onChange(photoDataUrl); };
 
   // null = urørt (behold det obs allerede har, om noe). '' = eksplisitt fjernet.
@@ -143,6 +144,36 @@ export function initPhotoPicker(els, isActive, onChange) {
       }
       console.warn('Utklippstavla hadde ingen elementer med bilde-type');
       alert('Fant ikke noe bilde på utklippstavla — velg bildet fra fil i stedet.');
+    });
+  }
+
+  // Dra og slipp — den naturlige veien på PC når bildet ligger i Finder eller er
+  // nettopp eksportert fra Lightroom. Valgfri: kallere uten en dropsone er uberørt.
+  if (dropZone) {
+    const stopp = (e) => { e.preventDefault(); e.stopPropagation(); };
+
+    // Nettleseren åpner som standard filen i fanen hvis man bommer på sonen, og da
+    // mister man både siden og bildet. Vi svelger derfor dragover/drop på hele
+    // dokumentet så lenge velgeren er aktiv.
+    ['dragenter', 'dragover', 'drop'].forEach((navn) => {
+      document.addEventListener(navn, (e) => { if (isActive()) stopp(e); });
+    });
+
+    ['dragenter', 'dragover'].forEach((navn) => {
+      dropZone.addEventListener(navn, (e) => { stopp(e); dropZone.classList.add('drar-over'); });
+    });
+    ['dragleave', 'drop'].forEach((navn) => {
+      dropZone.addEventListener(navn, (e) => { stopp(e); dropZone.classList.remove('drar-over'); });
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+      const fil = [...(e.dataTransfer && e.dataTransfer.files || [])]
+        .find((f) => f.type.startsWith('image/'));
+      if (fil) {
+        handlePickedFile(fil);
+      } else {
+        alert('Det du slapp var ikke et bilde — prøv en JPEG eller PNG.');
+      }
     });
   }
 

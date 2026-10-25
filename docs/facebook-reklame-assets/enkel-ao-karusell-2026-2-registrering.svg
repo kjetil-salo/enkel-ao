@@ -46,7 +46,7 @@
   </text>
 
   <g filter="url(#shadow)">
-    <image href="/Users/kjetil/git/enkel-ao/docs/facebook-reklame-assets/screens/enkel-ao-v15338-hovedskjerm.png"
+    <image href="screens/enkel-ao-v15338-hovedskjerm.png"
            x="600" y="170" width="380" height="920"
            preserveAspectRatio="xMidYMin meet" clip-path="url(#heroClip)"/>
     <rect x="600" y="170" width="380" height="920" rx="30" ry="30" fill="none" stroke="#facc15" stroke-width="5"/>

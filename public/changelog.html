@@ -172,6 +172,60 @@
 
         <div class="version">
           <div class="version-header">
+            <span class="version-number">v1.54.4</span>
+            <span class="version-date">25. oktober 2026</span>
+          </div>
+          <div class="section-title">Fikset</div>
+          <ul class="changes">
+            <li><strong>Bildeopplasting prøver en gang til.</strong> Artsobservasjoner svarer av og til med en serverfeil på et bilde som er helt likt et som nettopp gikk gjennom. Appen forsøker nå på nytt før den gir opp, så du slipper å velge og beskjære bildet om igjen.</li>
+          </ul>
+        </div>
+
+        <div class="version">
+          <div class="version-header">
+            <span class="version-number">v1.54.3</span>
+            <span class="version-date">25. oktober 2026</span>
+          </div>
+          <div class="section-title">Fikset</div>
+          <ul class="changes">
+            <li><strong>«Test innlogging» logger deg nå faktisk inn.</strong> Knappen sjekket bare at brukernavn og passord virket, og kastet deretter innloggingen. Sa du ja til «✅ Innlogging OK», var du fortsatt utlogget. Den heter nå «Logg inn», og sesjonen blir værende.</li>
+            <li><strong>Utløpt innlogging fornyes av seg selv.</strong> «Tidligere sendt» logger inn på nytt med den lagrede innloggingen din og henter funnene, i stedet for å be deg ordne opp. Før måtte du innom kartet, som fornyet sesjonen som en tilfeldig bieffekt.</li>
+          </ul>
+        </div>
+
+        <div class="version">
+          <div class="version-header">
+            <span class="version-number">v1.54.2</span>
+            <span class="version-date">25. oktober 2026</span>
+          </div>
+          <div class="section-title">Nytt</div>
+          <ul class="changes">
+            <li><strong>Bilder på alt du er med på.</strong> Lista viser nå også funn andre har rapportert med deg som observatør – typisk fra en fellestur. Artsobservasjoner lar alle involverte legge til bilder, så kameraknappen står på alle sammen.</li>
+            <li><strong>Flere bilder per funn.</strong> Etter en opplasting står vinduet åpent med «Legg til ett til», og forteller hvor mange av de ti tillatte bildene funnet har. Nærbilde og habitatbilde på samme funn, med andre ord.</li>
+            <li><strong>«Endre» vises bare på dine egne rapporter.</strong> Artsobservasjoner tillater ikke at andre endrer et funn, så knappen er borte der den ikke ville virket. Hvem som rapporterte står i stedet under lokaliteten.</li>
+          </ul>
+        </div>
+
+        <div class="version">
+          <div class="version-header">
+            <span class="version-number">v1.54.1</span>
+            <span class="version-date">25. oktober 2026</span>
+          </div>
+          <div class="section-title">Nytt</div>
+          <ul class="changes">
+            <li><strong>«Legg til bilde» åpner nå et eget vindu.</strong> Du kan velge fil, lime inn fra utklippstavla (⌘V), eller dra bildet rett inn fra Finder – det siste er gjerne raskest når bildet nettopp er eksportert fra kameraet.</li>
+            <li><strong>Beskjær før du sender.</strong> Dra i hjørnene for å kutte vekk alt som ikke er fuglen, eller inni rammen for å flytte utsnittet. Tredjedelslinjer hjelper deg å plassere motivet.</li>
+            <li><strong>Juster eksponering.</strong> En skala fra mørkere til lysere for bilder som ble for mørke. Hele veien ut tilsvarer ett blenderstrinn.</li>
+            <li><strong>Ventemeldingen har fått en spinner</strong>, siden hentingen fra Artsobservasjoner kan ta noen sekunder.</li>
+          </ul>
+          <div class="section-title">Fikset</div>
+          <ul class="changes">
+            <li><strong>Utløpt innlogging sa «ingen funn».</strong> Når Artsobservasjoner svarte med en videreføring til innloggingssiden, tolket appen det som at du ikke hadde funn. Nå får du beskjed om å logge inn.</li>
+          </ul>
+        </div>
+
+        <div class="version">
+          <div class="version-header">
             <span class="version-number">v1.54.0</span>
             <span class="version-date">25. oktober 2026</span>
           </div>

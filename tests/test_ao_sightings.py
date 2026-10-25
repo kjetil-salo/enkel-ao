@@ -22,7 +22,9 @@ sys.path.insert(0, REPO_ROOT)
 from src.ao_sightings import (
     MAX_DAYS,
     AoSessionExpired,
+    _er_jeg_med,
     _has_image,
+    _only_mine,
     _override,
     fetch_my_sightings,
     normalize_row,
@@ -158,8 +160,16 @@ def test_override_krever_bare_de_pakrevde_feltene():
 # Normalisering av AOs grid-rader
 # ============================================================================
 
+# AO markerer den innloggede observatøren med `iscurrentuser`. Basis-raden er et
+# funn brukeren selv har rapportert og observert.
+MEG = ("<span class='observerlist'><span data-useralias='kjetils' data-userId='15969' "
+       "class='iscurrentuser'>Kjetil Salomonsen</span></span>")
+ANDRE = "<span class='observerlist'><span data-useralias='bert'>Bert</span></span>"
+
 AO_RAD = {
     'SightingId': 42022329,
+    'ReporterUserAlias': 'kjetils',
+    'Observers': MEG,
     'TaxonId': 4173,
     'TaxonName': "<span data-taxonid='4173'>spettmeis</span>",
     'ScientificTaxonName': '<i>Sitta europaea</i>',
@@ -303,8 +313,8 @@ def test_fetch_my_sightings_normal_vei(monkeypatch):
     # Søket må be AO filtrere på egne rapporter — ellers får vi med funn der noen
     # andre er rapportør, som vi verken kan redigere eller legge bilde på.
     body = client.post.call_args_list[0].kwargs['content']
-    assert 'MyReportedSightings=true' in body
-    assert 'MyObservedSightings=false' in body
+    assert 'MyObservedSightings=true' in body
+    assert 'MyReportedSightings=false' in body
     assert 'LastNumberOfDays=7' in body
 
     # Grid-kallet må ha med TotalPageCount — uten den svarer AO HTTP 500
@@ -389,6 +399,28 @@ def test_fetch_my_sightings_sier_fra_nar_lista_er_avkortet(monkeypatch):
     assert res['truncated'] is True
 
 
+def test_utlopt_sesjon_som_redirect_oppdages_ogsa(monkeypatch):
+    """
+    AO kan svare på to måter når sesjonen er utløpt: 200 med den anonyme siden,
+    eller 302 til /LogOn. Observert begge deler i praksis. Uten follow_redirects
+    ble den siste en navnløs «HTTP 302»-feil, og brukeren fikk «ingen funn» i
+    stedet for en lenke til å logge inn.
+    """
+    innloggingsside = '<html><body><a href="/LogOn">Logg inn</a></body></html>'
+    client = _mock_client({'get': [_resp(200, innloggingsside)], 'post': []})
+    sett = {}
+
+    def fake_client(**kw):
+        return client
+    monkeypatch.setattr('httpx.Client', fake_client)
+
+    res = fetch_my_sightings('UTLOPT', 'UTLOPT')
+
+    assert res['needsLogin'] is True
+    # Videreføringen MÅ følges, ellers ser vi aldri innloggingssiden
+    assert client.get.call_args.kwargs['follow_redirects'] is True
+
+
 def test_fetch_my_sightings_skjema_nede_gir_tom_liste(monkeypatch):
     client = _mock_client({'get': [_resp(503, 'nede')], 'post': []})
     monkeypatch.setattr('httpx.Client', lambda **kw: client)
@@ -457,6 +489,57 @@ def test_fetch_my_sightings_hopper_over_rader_uten_id(monkeypatch):
     monkeypatch.setattr('httpx.Client', lambda **kw: client)
 
     assert len(fetch_my_sightings('LOGIN', 'AUTH')['sightings']) == 1
+
+
+# ============================================================================
+# Medobservasjoner: bilder på alt, redigering bare på egne rapporter
+# ============================================================================
+
+EGEN_RAD = {**AO_RAD, 'SightingId': 1, 'ReporterUserAlias': 'kjetils', 'Observers': MEG}
+MEDOBS_RAD = {**AO_RAD, 'SightingId': 2, 'ReporterUserAlias': 'bert', 'Observers': MEG}
+FREMMED_RAD = {**AO_RAD, 'SightingId': 3, 'ReporterUserAlias': 'bert', 'Observers': ANDRE}
+
+
+def test_er_jeg_med_godtar_bade_observator_og_rapportor():
+    assert _er_jeg_med(MEDOBS_RAD, 'kjetils') is True      # observatør, andres rapport
+    assert _er_jeg_med(EGEN_RAD, 'kjetils') is True        # egen rapport
+    assert _er_jeg_med(FREMMED_RAD, 'kjetils') is False    # verken eller
+
+
+def test_only_mine_slipper_gjennom_medobservasjoner():
+    """
+    Funn andre har rapportert med deg som observatør SKAL med: AO tillater
+    bildeopplasting på dem (verifisert mot ekte AO 25.10.2026, der både
+    opplastingsskjemaet og EditableImagesForSightingId svarte).
+    """
+    ut = _only_mine([EGEN_RAD, MEDOBS_RAD, FREMMED_RAD])
+
+    assert [r['SightingId'] for r in ut] == [1, 2]
+
+
+def test_isreporter_skiller_egne_rapporter_fra_medobservasjoner():
+    """
+    Bare rapportøren kan endre funnet — AO skjuler selv «Endre»-knappen for andre.
+    Frontend bruker dette flagget til å gjøre det samme.
+    """
+    assert normalize_row(EGEN_RAD, 'kjetils')['isReporter'] is True
+    assert normalize_row(MEDOBS_RAD, 'kjetils')['isReporter'] is False
+    assert normalize_row(MEDOBS_RAD, 'kjetils')['reporter'] == 'bert'
+
+
+def test_ukjent_alias_gir_ikke_falsk_rapportorstatus():
+    """Uten alias skal ingen rad påstås å være min — det ville vist «Endre» på andres."""
+    assert normalize_row(EGEN_RAD, None)['isReporter'] is False
+
+
+def test_medobservasjoner_kommer_med_i_lista(monkeypatch):
+    client = _mock_client(_oppsett_som_virker([[EGEN_RAD, MEDOBS_RAD, FREMMED_RAD]]))
+    monkeypatch.setattr('httpx.Client', lambda **kw: client)
+
+    funn = fetch_my_sightings('LOGIN', 'AUTH')['sightings']
+
+    assert [f['sightingId'] for f in funn] == [1, 2]
+    assert [f['isReporter'] for f in funn] == [True, False]
 
 
 # ============================================================================

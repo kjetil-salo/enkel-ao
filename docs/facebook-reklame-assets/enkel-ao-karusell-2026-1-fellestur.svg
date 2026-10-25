@@ -50,7 +50,7 @@
 
   <!-- Koden gruppa deler -->
   <g filter="url(#shadow)">
-    <image href="/Users/kjetil/git/enkel-ao/docs/facebook-reklame-assets/screens/enkel-ao-v15338-fellestur-kode.png"
+    <image href="screens/enkel-ao-v15338-fellestur-kode.png"
            x="570" y="400" width="450" height="240"
            preserveAspectRatio="xMidYMin meet" clip-path="url(#kodeClip)"/>
     <rect x="570" y="400" width="450" height="240" rx="22" ry="22" fill="none" stroke="#facc15" stroke-width="5"/>
@@ -60,7 +60,7 @@
 
   <!-- Den delte loggen: tre arter, tre ulike personer -->
   <g filter="url(#shadow)">
-    <image href="/Users/kjetil/git/enkel-ao/docs/facebook-reklame-assets/screens/enkel-ao-v15338-fellestur-logg3.png"
+    <image href="screens/enkel-ao-v15338-fellestur-logg3.png"
            x="570" y="702" width="450" height="178"
            preserveAspectRatio="xMidYMin meet" clip-path="url(#loggClip)"/>
     <rect x="570" y="702" width="450" height="178" rx="22" ry="22" fill="none" stroke="#facc15" stroke-width="5"/>

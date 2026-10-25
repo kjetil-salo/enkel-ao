@@ -1,5 +1,68 @@
 # TODO
 
+## 35. Nyhet i appen: bilder på sendte funn (fra v1.54.0–v1.54.4, 2026-10-25)
+
+Dette er den mest nyttige funksjonen på lenge, og den er usynlig for den som
+ikke går inn i «Tidligere sendt». Den fortjener en nyhetssplash
+(`news-splash.js`, samme mønster som fellestur-nyheten i v1.53.37).
+
+Hva som er verdt å si, i den rekkefølgen brukeren bryr seg om det:
+- Registrer med mobilen i felt, legg på de gode bildene fra kameraet når du
+  kommer hjem
+- Lista er lik på alle enhetene dine — den bor hos Artsobservasjoner, ikke på
+  telefonen. Overlever også bytte av telefon
+- Bilder på **alt du er med på**, også funn andre har rapportert fra fellesturer
+- Beskjær og juster eksponering før du sender
+- Inntil 10 bilder per funn
+
+Vis den kun til innloggede brukere — funksjonen krever AO-innlogging, og for
+andre blir den en reklame for noe de ikke kan bruke.
+
+## 34. Nyhet: enkel-ao er åpen kildekode
+
+Repoet er offentlig (se punkt 33), men det står ingen steder i appen eller mot
+brukerne. Lag en nyhet om det.
+
+Verdt å tenke gjennom før den skrives:
+- Hva er poenget for en vanlig bruker? Trolig tillit — at man kan se hva appen
+  gjør med innloggingen sin mot Artsobservasjoner — mer enn at noen skal bidra
+- Punkt 33 (deploy-config ut av sporede skript) bør være gjort først. En nyhet
+  som sender folk til repoet er en god grunn til å rydde ferdig der
+- Avklar hva som skal stå om lisens
+
+## 33. Flytt deploy-config ut av sporede skript (funnet 2026-10-22, skal fikses 2026-10-23)
+
+Repoet er offentlig, og en kald salgshenvendelse 2026-10-21 (Agensi.io)
+viste at innholdet faktisk scrapes: de hadde lest repo-beskrivelsen,
+`.agents/skills/`, og hentet e-postadressen fra commit-metadata. Det er
+ikke et sikkerhetsbrudd, men det er en god grunn til å slutte å ha lokal
+maskin-config i sporede filer.
+
+**Ryddet samtidig (ingen oppfølging nødvendig):**
+- `.agents/skills/app-reklame-plansje/SKILL.md` — fjernet redundant
+  `hjemkopi: /Users/kjetil/...`-linje
+- de seks `docs/facebook-reklame-assets/*.svg` — 11 `<image href>` gjort
+  relative (`screens/x.png`). Ren forbedring: SVG-ene rendrer nå
+  skjermbildene for andre enn eieren av maskinen, noe absolutte stier
+  aldri kunne. Ferdige PNG-er er uberørt
+
+**Gjenstår — `update-ao-pi.sh` og `deploy-staging-pi.sh`:**
+- `PI_HOST` (brukernavn + Tailscale-IP) og `PI_DIR` ut i en gitignorert
+  `deploy.env` som skriptene `source`-er, med en sporet `deploy.env.example`
+  som mal. Tailscale-IP-en er i seg selv lite verdt for andre (CGNAT,
+  kun nåbar innenfor tailnettet), men brukernavn + vertsoppsett hører
+  ikke i et offentlig repo
+- rsync-kilden `/Users/kjetil/git/enkel-ao/` → `"$(cd "$(dirname "$0")" && pwd)/"`,
+  slik at skriptet virker uavhengig av hvor repoet står
+
+Ikke gjort umiddelbart fordi dette er deploy-maskineri: en feil på
+rsync-kilden synker feil mappe til Pi-en. Gjør begge skriptene i én
+endring, og test staging-deployen før produksjonsskriptet tas i bruk.
+
+Mønsteret og triageringen ligger nå i vault-skillen `offentlig-repo-hygiene`
+(`AIOS/skills/`), som også har `scan.sh` for å skanne alle de offentlige
+repoene. Bruk den når dette gjøres — da blir `kauth-go` tatt i samme runde.
+
 ## 32. Pilotere OpenSpec på neste feature (vurdert 2026-10-12)
 
 OpenSpec er et spec-drevet arbeidsflyt-verktøy for AI-assistert utvikling:
