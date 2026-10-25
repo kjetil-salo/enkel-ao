@@ -296,6 +296,24 @@ def _fetch_sighting_csrf(sighting_id, login_token, auth_cookie):
         login_token, auth_cookie)
 
 
+def _feilutdrag(html, lengde=300):
+    """
+    Plukk ut noe lesbart fra en ASP.NET-feilside.
+
+    Sidene er flere kilobyte markup rundt én setning som faktisk sier noe. Vi leter
+    etter den vanlige plasseringen først, og faller tilbake på ren tekst.
+    """
+    if not html:
+        return ''
+    treff = re.search(r'<title>(.*?)</title>', html, re.IGNORECASE | re.DOTALL)
+    if treff:
+        tittel = re.sub(r'\s+', ' ', treff.group(1)).strip()
+        if tittel:
+            return tittel[:lengde]
+    ren = re.sub(r'\s+', ' ', re.sub(r'<[^>]*>', ' ', html)).strip()
+    return ren[:lengde]
+
+
 def upload_image(sighting_id, image_bytes, filename, login_token, auth_cookie,
                  media_license='10', csrf=None):
     """
@@ -332,14 +350,31 @@ def upload_image(sighting_id, image_bytes, filename, login_token, auth_cookie,
         'UploadImageViewModel.Image': (filename, image_bytes, 'image/jpeg'),
     }
 
-    with httpx.Client() as client:
-        response = client.post(
-            'https://www.artsobservasjoner.no/Media/UploadImageAction',
-            data=data, files=files, cookies=cookies, headers=headers, timeout=30,
+    # AO svarer av og til HTTP 500 på en opplasting som er helt lik en som nettopp
+    # lyktes mot samme funn (observert i felt 25.10.2026). Vi vet ikke hvorfor, og
+    # svaret er en ASP.NET-feilside, ikke noe maskinlesbart. Ett nytt forsøk er
+    # billig og løser et forbigående problem; er det vedvarende, kommer feilen fram
+    # som før — og nå med AOs egen tekst i loggen, så vi slipper å gjette neste gang.
+    siste_svar = None
+    for forsok, pause in enumerate([0, 2], start=1):
+        if pause:
+            time.sleep(pause)
+        with httpx.Client() as client:
+            siste_svar = client.post(
+                'https://www.artsobservasjoner.no/Media/UploadImageAction',
+                data=data, files=files, cookies=cookies, headers=headers, timeout=30,
+            )
+        if siste_svar.status_code < 400:
+            break
+        logger.warning(
+            f'[AO-BILDE] Opplasting til funn {sighting_id} svarte HTTP '
+            f'{siste_svar.status_code} (forsøk {forsok}). AO sa: '
+            f'{_feilutdrag(siste_svar.text)!r}'
         )
 
+    response = siste_svar
     if response.status_code >= 400:
-        raise ValueError(f'Bildeopplasting feilet: HTTP {response.status_code}')
+        raise ValueError(f'Artsobservasjoner svarte HTTP {response.status_code} — prøv igjen om litt')
 
     # HTTP < 400 er selve beviset på at AO tok imot bildet — se docs/ao-bilder-api.md.
     # Responsen er ikke nødvendigvis ren JSON: AOs eget UI bruker en iframe-postback, og
@@ -452,7 +487,7 @@ def upload_photo_to_published_sighting(sighting_id, photo_data_url, login_token,
                             login_token, auth_cookie, media_license, csrf=csrf)
     except Exception as e:
         logger.warning(f'[AO-BILDE] Opplasting feilet for funn {sighting_id}: {e}')
-        return {'ok': False, 'error': f'Opplasting feilet: {e}'}
+        return {'ok': False, 'error': str(e)}
 
     image_id = svar.get('id') if isinstance(svar, dict) else None
 

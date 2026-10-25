@@ -26,6 +26,8 @@ sys.path.insert(0, REPO_ROOT)
 from src.ao_import_httpx import (
     MAX_IMAGES_PER_SIGHTING,
     _fetch_sighting_csrf,
+    _feilutdrag,
+    upload_image,
     sighting_images,
     upload_photo_to_published_sighting,
 )
@@ -39,6 +41,14 @@ def start_server(port):
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
     return server
+
+
+def _ao_svar(status, tekst):
+    r = Mock()
+    r.status_code = status
+    r.text = tekst
+    r.json = Mock(return_value={'id': 99} if status < 400 else {})
+    return r
 
 
 def _bilde(bilde_id):
@@ -191,6 +201,56 @@ def test_opplasting_som_kaster_blir_pen_feilmelding(monkeypatch):
 
     assert res['ok'] is False
     assert 'HTTP 500' in res['error']
+
+
+def test_prover_en_gang_til_nar_ao_svarer_500(monkeypatch):
+    """
+    AO har svart HTTP 500 på en opplasting som er helt lik en som nettopp lyktes mot
+    samme funn (observert i felt 25.10.2026). Ett nytt forsøk er billig, og sparer
+    brukeren for å måtte velge bildet på nytt.
+    """
+    svar = [_ao_svar(500, '<html><title>Runtime Error</title></html>'),
+            _ao_svar(200, '{"id": 99}')]
+    kall = {'n': 0}
+
+    def fake_post(*a, **kw):
+        r = svar[min(kall['n'], len(svar) - 1)]
+        kall['n'] += 1
+        return r
+
+    client = Mock()
+    client.__enter__ = Mock(return_value=client)
+    client.__exit__ = Mock(return_value=None)
+    client.post = Mock(side_effect=fake_post)
+    monkeypatch.setattr('httpx.Client', lambda **kw: client)
+    monkeypatch.setattr('src.ao_import_httpx.time.sleep', lambda s: None)
+
+    res = upload_image(42022330, b'ABC', 'bilde.jpg', 'L', 'A', csrf=('F', 'C'))
+
+    assert res == {'id': 99}
+    assert kall['n'] == 2
+
+
+def test_gir_opp_og_tar_med_aos_egen_tekst(monkeypatch, caplog):
+    """Vedvarende feil skal fortsatt feile — men AOs egen tekst skal havne i loggen."""
+    client = Mock()
+    client.__enter__ = Mock(return_value=client)
+    client.__exit__ = Mock(return_value=None)
+    client.post = Mock(return_value=_ao_svar(500, '<html><title>Runtime Error</title></html>'))
+    monkeypatch.setattr('httpx.Client', lambda **kw: client)
+    monkeypatch.setattr('src.ao_import_httpx.time.sleep', lambda s: None)
+
+    with caplog.at_level('WARNING'):
+        with pytest.raises(ValueError, match='HTTP 500'):
+            upload_image(42022330, b'ABC', 'bilde.jpg', 'L', 'A', csrf=('F', 'C'))
+
+    assert 'Runtime Error' in caplog.text
+
+
+def test_feilutdrag_plukker_ut_noe_lesbart():
+    assert _feilutdrag('<html><title>Runtime Error</title><body>x</body></html>') == 'Runtime Error'
+    assert 'noe gikk galt' in _feilutdrag('<div><p>noe gikk galt</p></div>')
+    assert _feilutdrag('') == ''
 
 
 def test_ugyldig_bildedata(monkeypatch):
