@@ -1,6 +1,15 @@
 # Rette observasjoner etter sending til AO — vurdering og plan
 
 **Dato:** 2026-07-27
+
+> **Rettet 25.10.2026:** to konklusjoner i dette dokumentet er motbevist.
+> **(1) Dyplenking ER mulig** — `GET /Sighting/<SightingId>` finnes og svarer 200. Det er
+> riktig at *redigering* bare åpnes med POST, men funnsiden har sin egen URL.
+> **(2) ID-fangst trenger ikke markør-matching** — AO lar oss lese våre egne publiserte funn
+> som JSON, med `SightingId`, via `/ViewSighting/BindSightingsGrid`. Det gjorde både
+> `aoIds`-feltet og en egen synk-løsning overflødig. Se `docs/ao-mine-funn-api.md`.
+> Fase C (redigering i appen) er fortsatt ikke bygget, og vurderingen av den står.
+
 **Status:** Fase 0 ferdig (se `ao-rediger-api.md`). **Fase B implementert i v1.41.0**
 (27.07.2026). **Fase C besluttet utsatt til etter BirdLife-lanseringen** (27.07.2026) —
 fase A er neste.

@@ -107,6 +107,32 @@ The `Handler` class routes requests:
     ID og risikere å dra med andres ventende funn
   - Full kartlegging av AOs feltformat, fallgruver og det som gjenstår å feltverifisere:
     `docs/ao-publish-selective-capture.md`
+- `/api/ao-my-sightings` (POST) → brukerens EGNE publiserte funn hos AO, nyeste først
+  - `src/ao_sightings.py`: henter AOs søkeskjema, overstyrer kun søkekriteriene, poster
+    tilbake, og leser resultatet som JSON fra `/ViewSighting/BindSightingsGrid`
+  - Gir `sightingId`, art, antall, aktivitet, dato/tid, lokalitet, `hasImage`,
+    `validationStatus`, `triggeredRules` og dyplenke `/Sighting/<id>` per funn
+  - **Dette er synken mellom enheter**: lista bor hos AO, så mobilen i felt og PC-en
+    hjemme ser det samme uten noe eget synk-lag. Dekker også funn registrert utenom appen
+  - `MyReportedSightings=true` filtrerer serverside til egne rapporter — uten den kommer
+    funn andre har rapportert for deg med, og de kan verken redigeres eller få bilde
+  - **Cookies må settes på httpx-KLIENTEN**, ikke per request: søket svarer 302, og httpx
+    bygger Cookie-headeren på nytt fra klientens jar ved redirect. Per-request-cookies gir
+    en uinnlogget resultatside uten `TotalPageCount` → permanent tom liste
+  - Overstyringen av søkefelt er fail-closed (`_override` kaster ved ukjent feltnavn) —
+    ellers ville en AO-endring gitt feil filtrerte funn helt uten feilmelding
+  - Svarer `{sightings, total, truncated}`. Uinnlogget eller AO-feil → tom liste, 200
+  - Full kartlegging: `docs/ao-mine-funn-api.md`
+- `/api/ao-upload-image` (POST) → legg et bilde på et funn som ALLEREDE er publisert
+  - «Berik hjemmefra»: funnet ble rapportert fra mobilen i felt, bildet kommer fra kamera
+    flere timer senere. Egen flyt fra bildene som følger selve sendingen, som må skje mens
+    funnet ligger i gjennomgangskøen
+  - CSRF hentes fra `/Sighting/<id>` der skjemaet faktisk står — gjennomgangskøen kan være
+    tom for en bruker uten ventende funn
+  - Bildelista (`/Media/EditableImagesForSightingId/`) telles FØR og ETTER: uendret antall
+    = AO tok ikke imot. Opplastingsresponsen alene er ikke til å stole på (kommer av og til
+    som HTML, se `upload_image`). Stopper også på AOs grense på 10 bilder per funn
+  - Svarer alltid 200 med `{ok, imageId}` eller `{ok: false, error}`
 - `/api/ao-queue-count` (POST) → hvor mange funn som allerede ligger til gjennomgang
   («Kontroller funn») hos AO. Rent opplysende: brukes av `oppdaterAoKoHint()` i
   `export-operations.js` til å varsle FØR sending om at køen ikke er tom, slik at scoped
@@ -312,6 +338,22 @@ Pure ES6 modules with no framework:
 - `autocomplete.js` — Lokalitet-autocomplete med avstand og ikoner (🏷️ super, 👤 privat, ⭐ mine)
   - Aktivt i **begge** modi (Felt og Etterregistrering)
   - `initAutocomplete(placeInput, onSelect, getPosition)` — getPosition gir GPS-posisjon for sortering
+- `sendt.html` (ikke en modul, men hører hjemme her) — «Tidligere sendt» har to kilder:
+  - **«Mine funn på Artsobservasjoner»** fra `/api/ao-my-sightings`. Dette er synken mellom
+    enheter: lista bor hos AO, ikke i localStorage. Per funn: dyplenke `/Sighting/<id>`,
+    ⚠️ når AO har en innvending, og 📷 «Legg til bilde» når `hasImage` er falsk
+  - **«Sendt fra denne enheten»** = den lokale `sent_observations_v1` som før, uendret.
+    Beholdt bevisst: den virker offline og uten innlogging, og eier «Del disse»/«Kopier til lista»
+  - Bildeopplasting gjenbruker `downscaleImage` fra `photo-picker.js` (1600 px, JPEG 0.85) —
+    et Z9-bilde er 40–60 MB og må aldri gå rått gjennom JSON-bodyen. Importen er versjonert
+    (`?v=`) fordi `downscaleImage` er en NY eksport; en stale modul ville gitt SyntaxError
+    som stopper hele siden (samme felle som v1.53.15)
+  - Hvilken rad som venter på en fil ligger i `data-funn` på den delte `<input type=file>`,
+    ikke i en modulvariabel — tilstanden er synlig i DOM-en og flyten kan drives i test uten
+    å åpne en filvelger-dialog
+  - Ved vellykket opplasting byttes knappen til «🖼️ Har bilde» lokalt i stedet for å hente
+    hele lista på nytt — et AO-kall per bilde ville vært merkbart tregt (målt 12 sek for en
+    full henting), når flere bilder legges til etter tur
 - `map.js` — Kartvisning (Leaflet) med brukerposisjon, AO-lokaliteter og pin-drop for ny lokasjon
   - Kartlag: OpenStreetMap (standard), Kartverket Topo, Kartverket Gråtone — velges via `L.control.layers` nederst til venstre
   - Kartverket-tiles er gratis WMTS uten nøkkel (`cache.kartverket.no/v1/wmts/1.0.0/{topo|topograatone}/...`)
