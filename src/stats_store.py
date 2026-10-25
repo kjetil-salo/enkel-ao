@@ -20,6 +20,16 @@ from src import sqlite_log, supabase_log
 
 logger = logging.getLogger('fugleobs')
 
+# Hendelsestyper i `exports`-tabellen. Den het opprinnelig bare «eksporter», men
+# er i praksis en generell hendelseslogg — vi gjenbruker den i stedet for å lage
+# enda en tabell for to tellere.
+EKSPORT_KOPIER = 'copy_open'       # kopiert til utklippstavla, åpnet AOs importside
+EKSPORT_DIREKTE = 'direct'         # sendt direkte til AO fra appen
+BILDE_VED_SENDING = 'photo_send'   # bilde fulgte med selve sendingen
+BILDE_ETTERPA = 'photo_later'      # bilde lagt på et allerede publisert funn
+
+KJENTE_HENDELSER = (EKSPORT_KOPIER, EKSPORT_DIREKTE, BILDE_VED_SENDING, BILDE_ETTERPA)
+
 
 def log_view(ip: str, user_agent: str, device_id: str = '') -> bool:
     """Logg en sidevisning til alle tilgjengelige backends.

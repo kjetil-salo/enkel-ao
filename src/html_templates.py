@@ -48,6 +48,13 @@ def generate_stats_page(recent_ips, per_ua, total, per_device=None, per_os=None,
     export_direct = exports.get('direct', 0)
     export_total = export_copy_open + export_direct
 
+    # Bilder telles serverside ved faktisk opplasting til AO. Skilt i to fordi det
+    # er to ulike vaner: legge bildet på med én gang, eller komme hjem med kamera
+    # og gjøre det etterpå.
+    bilde_ved_sending = exports.get('photo_send', 0)
+    bilde_etterpa = exports.get('photo_later', 0)
+    bilde_total = bilde_ved_sending + bilde_etterpa
+
     # recent_ips er liste av (ip, count) tuples, allerede sortert nyeste først
     ip_rows = ''.join(f'<tr><td><a href="https://ipinfo.io/{ip}" target="_blank" rel="noopener">{ip}</a></td><td>{count}</td></tr>'
                      for ip, count in recent_ips)
@@ -256,6 +263,11 @@ def generate_stats_page(recent_ips, per_ua, total, per_device=None, per_os=None,
             <span>📤 {export_total} eksporter totalt</span>
             <span>📋 {export_copy_open} via importside</span>
             <span>📡 {export_direct} direkte til AO</span>
+        </div>
+        <div class="stat-row" style="font-size:1.1em;">
+            <span>🖼️ {bilde_total} bilder lastet opp</span>
+            <span>📎 {bilde_ved_sending} ved sending</span>
+            <span>🏠 {bilde_etterpa} i etterkant</span>
         </div>
 
         {chartjs_load}

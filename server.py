@@ -159,6 +159,28 @@ def _rate_ok(hits, ip, max_per_window, window_sec):
         return True
 
 
+def _tell_bilder_ved_sending(observations, result):
+    """
+    Tell bilder som fulgte med selve sendingen til AO.
+
+    Bare bilder som FAKTISK kom fram telles: `imagesFailed` trekkes fra. Et
+    forsøk som endte i ingenting er ikke en opplasting, og skal ikke se ut som
+    en i statistikken.
+
+    Egen hendelse fra `BILDE_ETTERPA`, slik at vi kan se om folk legger bilder
+    på med én gang eller når de kommer hjem — det er to ganske ulike vaner.
+    """
+    try:
+        med_bilde = sum(1 for o in observations if o.get('photo'))
+        if not med_bilde:
+            return
+        feilet = len(result.get('imagesFailed') or [])
+        for _ in range(max(0, med_bilde - feilet)):
+            stats_store.log_export(stats_store.BILDE_VED_SENDING)
+    except Exception as e:
+        logger.warning(f'[stats] Kunne ikke telle bilder ved sending: {e}')
+
+
 class Handler(SimpleHTTPRequestHandler):
     """HTTP request handler med API-routing."""
 
@@ -265,7 +287,7 @@ class Handler(SimpleHTTPRequestHandler):
             content_length = int(self.headers.get('Content-Length', 0))
             body = json.loads(self.rfile.read(content_length)) if content_length else {}
             export_type = body.get('type', 'unknown')
-            if export_type not in ('copy_open', 'direct'):
+            if export_type not in stats_store.KJENTE_HENDELSER:
                 export_type = 'unknown'
             stats_store.log_export(export_type)
         except Exception as e:
@@ -804,6 +826,9 @@ class Handler(SimpleHTTPRequestHandler):
 
             if result.get('ok'):
                 logger.info(f'[AO-BILDE] Bilde lagt på funn {sighting_id}')
+                # Telles serverside, ikke i frontend: da er det faktiske opplastinger
+                # til AO som telles, ikke knappetrykk som kanskje feilet.
+                stats_store.log_export(stats_store.BILDE_ETTERPA)
             else:
                 logger.warning(f'[AO-BILDE] Funn {sighting_id}: {result.get("error")}')
             self._send_json(result)
@@ -837,6 +862,7 @@ class Handler(SimpleHTTPRequestHandler):
             result = post_with_curl(observations, login_token, auth_cookie, area_id=area_id)
 
             logger.info(f'[AO-IMPORT] Suksess: {result}')
+            _tell_bilder_ved_sending(observations, result)
             self._send_json(result)
 
         except ValueError as e:
@@ -895,6 +921,7 @@ class Handler(SimpleHTTPRequestHandler):
             result = post_with_curl(observations, login_token, auth_cookie,
                                     area_id=area_id, progress_cb=emit)
             if result.get('success'):
+                _tell_bilder_ved_sending(observations, result)
                 emit({'phase': 'done', **result})
             else:
                 emit({'phase': 'error', **result})

@@ -157,6 +157,15 @@ The `Handler` class routes requests:
     - `POST /ImportSighting/NumberOfSightingsImporting` (body `null`) → `{"Count":N}`, teller ned til 0 = ferdig parset
     - `POST /ReviewSighting/NumberOfSightingsSubmitted` (body `null`) → `{"Count":N}` i review-kø
   - Erstatter tidligere blind `sleep(3)` i `src/ao_import_httpx.py` med reell polling
+- **Bildetellere** (`stats_store.BILDE_VED_SENDING` / `BILDE_ETTERPA`) — logges
+  SERVERSIDE ved faktisk vellykket opplasting til AO, ikke fra frontend. Da telles
+  opplastinger, ikke knappetrykk som kanskje feilet
+  - Gjenbruker `exports`-tabellen, som i praksis er en generell hendelseslogg.
+    `stats_store.KJENTE_HENDELSER` er hvitelista `/api/log-export` validerer mot
+  - `_tell_bilder_ved_sending()` i server.py trekker fra `imagesFailed` — et bilde
+    AO ikke tok imot skal ikke se ut som ett som kom fram
+  - Skilt i to fordi det er to ulike vaner: legge bildet på med én gang, eller komme
+    hjem med kamera og gjøre det etterpå. Vises som egen rad på `/stats`
 - `/api/logview` (POST) → logs page views to Supabase
 - `/api/feedback` (POST) → tar imot brukertilbakemelding (feil/ønske/annet) uten innlogging
   - Lagrer i `src/feedback_store.py` (SQLite), genererer saksnummer `AO-XXXXX`
