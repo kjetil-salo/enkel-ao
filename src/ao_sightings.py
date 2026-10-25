@@ -216,24 +216,34 @@ def _current_user_alias(rows):
     return None
 
 
-def _only_my_reports(rows):
+def _er_jeg_med(row, alias):
     """
-    Siste skanse mot å vise funn andre har rapportert.
+    Er brukeren involvert i dette funnet — som observatør eller som rapportør?
 
-    Vi ber AO filtrere serverside (`MyReportedSightings`), men den filtreringen
+    AO markerer den innloggede observatøren med `class='iscurrentuser'` i
+    `Observers`. Det er et sterkere signal enn aliaset, fordi det kommer fra AO
+    selv og ikke krever at vi gjetter hvem «jeg» er.
+    """
+    if 'iscurrentuser' in str(row.get('Observers') or ''):
+        return True
+    return bool(alias) and str(row.get('ReporterUserAlias') or '') == alias
+
+
+def _only_mine(rows):
+    """
+    Siste skanse mot å vise funn brukeren ikke er med på.
+
+    Vi ber AO filtrere serverside (`MyObservedSightings`), men den filtreringen
     hviler på at feltnavnet fortsatt stemmer. Denne sjekken hviler bare på data i
-    svaret, og fanger derfor opp at AO har endret skjemaet. Funn andre har
-    rapportert kan verken redigeres eller få bilde, så de hører ikke hjemme i lista.
+    svaret, og fanger derfor opp at AO har endret skjemaet.
 
-    Klarer vi ikke å fastslå aliaset, slipper vi radene gjennom. Det er forsvarlig fordi
-    AOs eget filter nå er obligatorisk: `_FIELD_MY_REPORTED` ligger i `required`, så
-    søket avbrytes hvis feltet ikke finnes i skjemaet. Denne sjekken er altså et ekstra
-    lag, ikke eneste forsvar — og en tom liste ville vært verre enn en litt for romslig.
+    Klarer vi ikke å fastslå aliaset, slipper vi radene gjennom. Det er forsvarlig
+    fordi AOs eget filter er obligatorisk (`_FIELD_MY_OBSERVED` ligger i `required`),
+    så søket avbrytes hvis feltet mangler. Denne sjekken er et ekstra lag, ikke
+    eneste forsvar.
     """
     alias = _current_user_alias(rows)
-    if not alias:
-        return rows
-    return [r for r in rows if str(r.get('ReporterUserAlias') or '') == alias]
+    return [r for r in rows if _er_jeg_med(r, alias)]
 
 
 _TAG_RE = re.compile(r'<[^>]*>')
@@ -273,7 +283,7 @@ def _has_image(media_link_html):
     return _IMAGE_ANCHOR in str(media_link_html or '')
 
 
-def normalize_row(row):
+def normalize_row(row, alias=None):
     """
     Gjør én rad fra AOs grid om til det frontend trenger — og ikke mer.
 
@@ -301,6 +311,10 @@ def normalize_row(row):
         'validationStatus': _strip_html(row.get('ValidationStatusLabel')),
         'triggeredRules': _strip_html(row.get('TriggeredValidationRulesText')),
         'publicComment': _strip_html(row.get('PublicComment')),
+        'reporter': _strip_html(row.get('ReporterUserAlias')),
+        # Kun rapportøren kan endre funnet — AO skjuler selv «Endre»-knappen for
+        # andre. Bilder kan derimot alle involverte legge til.
+        'isReporter': bool(alias) and str(row.get('ReporterUserAlias') or '') == alias,
         'url': f'{AO_BASE}/Sighting/{sighting_id}' if sighting_id else '',
     }
 
@@ -334,15 +348,17 @@ def _create_stored_search(client, days):
         logger.warning('[AO-FUNN] Fant ikke søkeskjemaet i HTML-en fra AO')
         return None, None
 
-    # Bare egne rapporter: MyReportedSightings gjør filtreringen serverside hos AO,
-    # så vi slipper å vite hvilket brukeralias som er «meg». MyObservedSightings slås
-    # av samtidig — den tar med funn andre har rapportert der du er medobservatør,
-    # og de kan vi verken redigere eller legge bilde på.
+    # Alt brukeren er observatør på — også funn andre har rapportert der hun står som
+    # medobservatør. AO tillater nemlig bildeopplasting på dem (verifisert 25.10.2026:
+    # opplastingsskjemaet rendres, og `EditableImagesForSightingId` svarer), selv om
+    # den ikke tillater å endre dem. Skillet håndteres per rad med `isReporter`.
+    #
+    # `MyReportedSightings` slås av: den ville snevret inn til kun egne rapporter.
     fields = _override(fields, {
         _FIELD_DAYS: str(days),
-        _FIELD_MY_REPORTED: 'true',
-        _FIELD_MY_OBSERVED: 'false',
-    }, required=[_FIELD_DAYS, _FIELD_MY_REPORTED])
+        _FIELD_MY_OBSERVED: 'true',
+        _FIELD_MY_REPORTED: 'false',
+    }, required=[_FIELD_DAYS, _FIELD_MY_OBSERVED])
 
     post = client.post(
         f'{AO_BASE}/ViewSighting/ViewSightingAsTable',
@@ -452,11 +468,12 @@ def fetch_my_sightings(login_token, auth_cookie, days=DEFAULT_DAYS, limit=DEFAUL
                     total = total_fra_ao
                 sett += len(rows)
 
-                egne = _only_my_reports([r for r in rows
-                                         if isinstance(r, dict) and r.get('SightingId')])
+                gyldige = [r for r in rows if isinstance(r, dict) and r.get('SightingId')]
+                alias = _current_user_alias(gyldige)
+                egne = _only_mine(gyldige)
                 # En rad uten brukbar numerisk ID kan vi verken lenke til eller laste
                 # opp bilde på — da er den bare støy i lista.
-                funn.extend(n for n in (normalize_row(r) for r in egne) if n['sightingId'])
+                funn.extend(n for n in (normalize_row(r, alias) for r in egne) if n['sightingId'])
 
                 # Færre rader enn vi ba om betyr at vi har nådd slutten. AO kan også
                 # kutte `size` selv, og da er dette eneste pålitelige stoppsignalet.

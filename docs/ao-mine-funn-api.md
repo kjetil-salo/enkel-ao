@@ -206,6 +206,29 @@ en validator-flagg eller en reell sperre er ikke undersøkt.
 **Status 25.10.2026:** ikke bygget. Besluttet utsatt til senere samme dag, etter at
 bildedelen av v1 var verifisert og deployet til staging.
 
+## 3c. Hvem kan gjøre hva: bilder vs. redigering
+
+**Verifisert 25.10.2026** på funn 42022052 (stokkand), rapportert av `bert` med
+Kjetil som observatør:
+
+| | |
+|---|---|
+| `/Media/EditableImagesForSightingId/` | `[]`, status 200 — tillatt |
+| Opplastingsskjema på `/Sighting/<id>` | **ja** |
+| «Endre»-lenke (`/Edit/<id>`) på samme side | **nei** |
+
+AO håndhever altså skillet selv: **alle involverte kan legge til bilder, bare
+rapportøren kan endre funnet.** Appen speiler det i stedet for å tilby noe som
+ville blitt avvist.
+
+Derfor søker vi med `MyObservedSightings=true` (alt brukeren er med på), ikke
+`MyReportedSightings=true` (bare egne rapporter). Per rad settes `isReporter` ved
+å sammenligne `ReporterUserAlias` med brukerens eget alias, som leses ut av
+`Observers` der AO markerer den innloggede med `class='iscurrentuser'`.
+
+Sikringsfilteret `_only_mine()` beholder rader der brukeren er observatør **eller**
+rapportør — begge deler gir rett til å laste opp bilde.
+
 ## 4. Bilder på et PUBLISERT funn
 
 Funnsiden til et publisert funn inneholder AOs eget opplastingsskjema:

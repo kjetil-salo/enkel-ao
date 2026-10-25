@@ -85,17 +85,17 @@
 
   <g filter="url(#shadow)">
     <rect x="688" y="128" width="310" height="565" rx="30" ry="30" fill="#ffffff" stroke="#6ea8ff" stroke-width="5"/>
-    <image href="/Users/kjetil/git/enkel-ao/docs/facebook-reklame-assets/screens/enkel-ao-light-share-edit-now.png" x="688" y="128" width="310" height="565" preserveAspectRatio="xMidYMin meet" clip-path="url(#shareScreen)"/>
+    <image href="screens/enkel-ao-light-share-edit-now.png" x="688" y="128" width="310" height="565" preserveAspectRatio="xMidYMin meet" clip-path="url(#shareScreen)"/>
   </g>
 
   <g filter="url(#shadow)">
     <rect x="634" y="720" width="214" height="390" rx="24" ry="24" fill="#ffffff" stroke="#8be0c8" stroke-width="4"/>
-    <image href="/Users/kjetil/git/enkel-ao/docs/facebook-reklame-assets/screens/enkel-ao-light-share-edit-now-2.png" x="634" y="720" width="214" height="390" preserveAspectRatio="xMidYMin meet" clip-path="url(#imageScreen)"/>
+    <image href="screens/enkel-ao-light-share-edit-now-2.png" x="634" y="720" width="214" height="390" preserveAspectRatio="xMidYMin meet" clip-path="url(#imageScreen)"/>
   </g>
 
   <g filter="url(#shadow)">
     <rect x="872" y="720" width="136" height="248" rx="20" ry="20" fill="#ffffff" stroke="#8be0c8" stroke-width="4"/>
-    <image href="/Users/kjetil/git/enkel-ao/docs/facebook-reklame-assets/screens/enkel-ao-light-share-index-now.png" x="866" y="716" width="148" height="270" preserveAspectRatio="xMidYMin meet" clip-path="url(#listScreen)"/>
+    <image href="screens/enkel-ao-light-share-index-now.png" x="866" y="716" width="148" height="270" preserveAspectRatio="xMidYMin meet" clip-path="url(#listScreen)"/>
   </g>
 
   <text x="541" y="1192" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="18" fill="#b9d5ed">Bygger på Artsobservasjoner.no</text>

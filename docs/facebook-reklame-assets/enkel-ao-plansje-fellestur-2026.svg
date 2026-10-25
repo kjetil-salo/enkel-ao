@@ -88,7 +88,7 @@
 
   <!-- Hovedskjermbilde -->
   <g filter="url(#shadow)">
-    <image href="/Users/kjetil/git/enkel-ao/docs/facebook-reklame-assets/screens/enkel-ao-v15338-hovedskjerm.png"
+    <image href="screens/enkel-ao-v15338-hovedskjerm.png"
            x="660" y="155" width="314" height="760"
            preserveAspectRatio="xMidYMin meet" clip-path="url(#heroScreen)"/>
     <rect x="660" y="155" width="314" height="760" rx="28" ry="28" fill="none" stroke="#facc15" stroke-width="5"/>
@@ -97,7 +97,7 @@
   <!-- Den delte loggen: tre arter, tre ulike personer. Vist i full bredde og
        uskalert, slik at navnene faktisk er lesbare — det er hele poenget. -->
   <g filter="url(#softShadow)">
-    <image href="/Users/kjetil/git/enkel-ao/docs/facebook-reklame-assets/screens/enkel-ao-v15338-fellestur-logg3.png"
+    <image href="screens/enkel-ao-v15338-fellestur-logg3.png"
            x="76" y="912" width="500" height="198"
            preserveAspectRatio="xMidYMin meet" clip-path="url(#loggScreen)"/>
     <rect x="76" y="912" width="500" height="198" rx="18" ry="18" fill="none" stroke="#facc15" stroke-width="4"/>
@@ -105,7 +105,7 @@
 
   <!-- Koden gruppa deler. Bunnjustert mot loggen til venstre. -->
   <g filter="url(#softShadow)">
-    <image href="/Users/kjetil/git/enkel-ao/docs/facebook-reklame-assets/screens/enkel-ao-v15338-fellestur-kode.png"
+    <image href="screens/enkel-ao-v15338-fellestur-kode.png"
            x="660" y="943" width="314" height="167"
            preserveAspectRatio="xMidYMin meet" clip-path="url(#kodeScreen)"/>
     <rect x="660" y="943" width="314" height="167" rx="18" ry="18" fill="none" stroke="#facc15" stroke-width="4"/>

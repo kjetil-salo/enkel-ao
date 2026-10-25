@@ -80,27 +80,27 @@
 
   <g filter="url(#shadow)">
     <rect x="692" y="154" width="292" height="674" rx="28" ry="28" fill="#ffffff" stroke="#6ea8ff" stroke-width="4"/>
-    <image href="/Users/kjetil/git/enkel-ao/docs/facebook-reklame-assets/screens/enkel-ao-screen-gps-mobile.png" x="692" y="154" width="292" height="674" preserveAspectRatio="xMidYMin slice" clip-path="url(#mainScreen)"/>
+    <image href="screens/enkel-ao-screen-gps-mobile.png" x="692" y="154" width="292" height="674" preserveAspectRatio="xMidYMin slice" clip-path="url(#mainScreen)"/>
   </g>
 
   <g filter="url(#shadow)">
     <rect x="79" y="947" width="112" height="236" rx="20" ry="20" fill="#ffffff" stroke="#8be0c8" stroke-width="3"/>
-    <image href="/Users/kjetil/git/enkel-ao/docs/facebook-reklame-assets/screens/enkel-ao-screen-gps-mobile.png" x="79" y="947" width="112" height="236" preserveAspectRatio="xMidYMin slice" clip-path="url(#thumb1Screen)"/>
+    <image href="screens/enkel-ao-screen-gps-mobile.png" x="79" y="947" width="112" height="236" preserveAspectRatio="xMidYMin slice" clip-path="url(#thumb1Screen)"/>
   </g>
 
   <g filter="url(#shadow)">
     <rect x="325" y="947" width="112" height="236" rx="20" ry="20" fill="#ffffff" stroke="#8be0c8" stroke-width="3"/>
-    <image href="/Users/kjetil/git/enkel-ao/docs/facebook-reklame-assets/screens/enkel-ao-screen-map-mobile.png" x="325" y="947" width="112" height="236" preserveAspectRatio="xMidYMin slice" clip-path="url(#thumb2Screen)"/>
+    <image href="screens/enkel-ao-screen-map-mobile.png" x="325" y="947" width="112" height="236" preserveAspectRatio="xMidYMin slice" clip-path="url(#thumb2Screen)"/>
   </g>
 
   <g filter="url(#shadow)">
     <rect x="571" y="947" width="112" height="236" rx="20" ry="20" fill="#ffffff" stroke="#8be0c8" stroke-width="3"/>
-    <image href="/Users/kjetil/git/enkel-ao/docs/facebook-reklame-assets/screens/enkel-ao-screen-art-autocomplete-mobile.png" x="571" y="947" width="112" height="236" preserveAspectRatio="xMidYMin slice" clip-path="url(#thumb3Screen)"/>
+    <image href="screens/enkel-ao-screen-art-autocomplete-mobile.png" x="571" y="947" width="112" height="236" preserveAspectRatio="xMidYMin slice" clip-path="url(#thumb3Screen)"/>
   </g>
 
   <g filter="url(#shadow)">
     <rect x="817" y="947" width="112" height="236" rx="20" ry="20" fill="#ffffff" stroke="#8be0c8" stroke-width="3"/>
-    <image href="/Users/kjetil/git/enkel-ao/docs/facebook-reklame-assets/screens/enkel-ao-screen-settings-ao.png" x="817" y="947" width="112" height="236" preserveAspectRatio="xMidYMin slice" clip-path="url(#thumb4Screen)"/>
+    <image href="screens/enkel-ao-screen-settings-ao.png" x="817" y="947" width="112" height="236" preserveAspectRatio="xMidYMin slice" clip-path="url(#thumb4Screen)"/>
   </g>
 
   <rect x="74" y="1230" width="934" height="88" rx="32" ry="32" fill="#facc15"/>

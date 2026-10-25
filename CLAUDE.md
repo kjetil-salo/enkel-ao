@@ -114,8 +114,11 @@ The `Handler` class routes requests:
     `validationStatus`, `triggeredRules` og dyplenke `/Sighting/<id>` per funn
   - **Dette er synken mellom enheter**: lista bor hos AO, så mobilen i felt og PC-en
     hjemme ser det samme uten noe eget synk-lag. Dekker også funn registrert utenom appen
-  - `MyReportedSightings=true` filtrerer serverside til egne rapporter — uten den kommer
-    funn andre har rapportert for deg med, og de kan verken redigeres eller få bilde
+  - `MyObservedSightings=true` gir ALT brukeren er med på, også funn andre har rapportert
+    med henne som observatør. Det er riktig her: AO tillater bildeopplasting på dem
+    (verifisert — opplastingsskjemaet rendres og `EditableImagesForSightingId` svarer),
+    men IKKE redigering (AO skjuler selv «Endre» for andre enn rapportøren). Skillet
+    bæres av `isReporter` per rad, og frontend viser «Endre» kun der den er sann
   - **Cookies må settes på httpx-KLIENTEN**, ikke per request: søket svarer 302, og httpx
     bygger Cookie-headeren på nytt fra klientens jar ved redirect. Per-request-cookies gir
     en uinnlogget resultatside uten `TotalPageCount` → permanent tom liste

@@ -77,6 +77,7 @@
       .funn-lenke { color: var(--accent, #3b82f6); text-decoration: none; font-size: 0.85rem;
                     padding: 10px 4px; min-height: 44px; display: inline-flex; align-items: center; }
       .funn-lenke.endre { color: var(--muted, #9ca3af); }
+      .rapportert-av { font-style: italic; }
       .har-bilde { color: #86efac; font-size: 0.85rem; }
       .advarsel { margin-top: 8px; padding: 8px 10px; border-radius: 8px; font-size: 0.85rem;
                   background: rgba(234,179,8,0.1); border: 1px solid rgba(234,179,8,0.4); }
@@ -122,6 +123,9 @@
       .skyv input[type=range] { flex: 1; min-height: 44px; }
       .skyv output { min-width: 3ch; text-align: right; font-variant-numeric: tabular-nums; }
       .modal-verktoy { display: flex; gap: 8px; flex-wrap: wrap; }
+      .kvittering { text-align: center; padding: 22px 16px; }
+      .kvittering-ikon { font-size: 1.8rem; margin-bottom: 8px; }
+      .kvittering p { margin: 0 0 14px; line-height: 1.5; }
       .modal-status { font-size: 0.85rem; margin: 12px 0 0; min-height: 1.2em; }
       .modal-status.feil { color: #fca5a5; }
       .modal-bunn { display: flex; gap: 8px; justify-content: flex-end; margin-top: 14px; flex-wrap: wrap; }
@@ -155,13 +159,15 @@
 
       <h2>🔭 Mine funn på Artsobservasjoner</h2>
       <p class="seksjon-info">
-        Hentes fra Artsobservasjoner, så den er lik på alle enhetene dine. Her kan du
-        legge til bilder i etterkant — typisk når du kommer hjem fra felt med kamera.
+        Alt du er med på hos Artsobservasjoner — både det du har rapportert selv og
+        det andre har rapportert med deg som observatør. Lista er lik på alle enhetene
+        dine, og her kan du legge til bilder i etterkant.
       </p>
       <p class="seksjon-info">
-        <strong>✏️ Endre</strong> åpner funnet i Artsobservasjoners eget skjema, der du kan
-        rette antall, art, tid og lokalitet. Merk at AO gjør funnet <em>upublisert</em> i det
-        du åpner det — du må trykke «Publiser» hos AO etterpå, også om du ikke endret noe.
+        <strong>✏️ Endre</strong> vises bare på funn du selv har rapportert — Artsobservasjoner
+        tillater ikke at andre endrer et funn. Bilder kan du derimot legge til på alt du er med
+        på. Merk at AO gjør funnet <em>upublisert</em> i det du åpner redigeringen — du må trykke
+        «Publiser» hos AO etterpå, også om du ikke endret noe.
       </p>
       <div class="ao-topp">
         <select id="ao-dager" class="ao-dager" aria-label="Hvor langt tilbake">
@@ -230,6 +236,15 @@
           </div>
         </div>
 
+        <!-- Steg 3: kvittering, med mulighet for å legge på enda et bilde -->
+        <div id="bm-kvittering" hidden>
+          <div class="kvittering">
+            <div class="kvittering-ikon">🖼️</div>
+            <p id="bm-kvittering-tekst"></p>
+            <button type="button" class="btn-liten primar" id="bm-en-til">➕ Legg til ett til</button>
+          </div>
+        </div>
+
         <div class="modal-status" id="bm-status"></div>
         <div class="modal-bunn">
           <button type="button" class="btn-liten" id="bm-avbryt">Avbryt</button>
@@ -244,8 +259,8 @@
       // Begge importene er versjonert: photo-picker.js har fått ny dropZone-støtte,
       // og bilde-editor.js er helt ny. En cachet gammel kopi ville gitt SyntaxError
       // som stopper hele denne modulen. Se «Versjonering» i CLAUDE.md (v1.53.15).
-      import { initPhotoPicker } from '/js/photo-picker.js?v=v1.54.1';
-      import { lagBildeEditor } from '/js/bilde-editor.js?v=v1.54.1';
+      import { initPhotoPicker } from '/js/photo-picker.js?v=v1.54.2';
+      import { lagBildeEditor } from '/js/bilde-editor.js?v=v1.54.2';
 
       const MND = ['januar', 'februar', 'mars', 'april', 'mai', 'juni',
         'juli', 'august', 'september', 'oktober', 'november', 'desember'];
@@ -309,9 +324,23 @@
           ? `<div class="advarsel">⚠️ Artsobservasjoner har en merknad til dette funnet:
              ${tekst(funn.triggeredRules)}</div>`
           : '';
-        const bildeknapp = funn.hasImage
-          ? '<span class="har-bilde">🖼️ Har bilde</span>'
-          : `<button class="btn-liten primar" data-bilde="${attr(funn.sightingId)}">📷 Legg til bilde</button>`;
+        // Knappen blir stående også etter første bilde: AO tillater inntil 10 per
+        // funn, og en fugl fortjener gjerne både nærbilde og habitatbilde. Merket
+        // ved siden av forteller at det alt ligger noe der.
+        const harMerke = funn.hasImage ? '<span class="har-bilde">🖼️ Har bilde</span>' : '';
+        const bildeknapp = `<button class="btn-liten ${funn.hasImage ? '' : 'primar'}"
+          data-bilde="${attr(funn.sightingId)}">${funn.hasImage ? '➕ Legg til ett til' : '📷 Legg til bilde'}</button>`;
+
+        // Bilder kan alle involverte legge til, men bare rapportøren kan endre
+        // funnet. AO skjuler selv «Endre» for andre, så vi speiler den regelen i
+        // stedet for å tilby noe som ville blitt avvist.
+        const endre = funn.isReporter
+          ? `<a class="funn-lenke endre" href="https://www.artsobservasjoner.no/Edit/${attr(funn.sightingId)}"
+               target="_blank" rel="noopener"
+               title="Åpner funnet i redigering hos Artsobservasjoner. Husk å publisere det på nytt etterpå.">✏️ Endre</a>`
+          : '';
+        const rapportor = funn.isReporter || !funn.reporter ? ''
+          : `<span class="rapportert-av">Rapportert av ${tekst(funn.reporter)}</span>`;
 
         return `
           <div class="funn" id="funn-${attr(funn.sightingId)}">
@@ -320,14 +349,13 @@
                 ${tekst(funn.taxonName)}</span>
               <span class="funn-meta">${tekst(formatDato(funn.date))}${detaljer ? ' · ' + tekst(detaljer) : ''}</span>
             </div>
-            <div class="funn-meta">${tekst(funn.siteName)}</div>
+            <div class="funn-meta">${tekst(funn.siteName)}${rapportor ? ' · ' + rapportor : ''}</div>
             ${advarsel}
             <div class="funn-handling">
+              ${harMerke}
               ${bildeknapp}
               <a class="funn-lenke" href="${attr(funn.url)}" target="_blank" rel="noopener">↗ Vis på AO</a>
-              <a class="funn-lenke endre" href="https://www.artsobservasjoner.no/Edit/${attr(funn.sightingId)}"
-                 target="_blank" rel="noopener"
-                 title="Åpner funnet i redigering hos Artsobservasjoner. Husk å publisere det på nytt etterpå.">✏️ Endre</a>
+              ${endre}
             </div>
             <div class="rad-status" data-status="${attr(funn.sightingId)}"></div>
           </div>`;
@@ -392,7 +420,7 @@
 
         if (!funnCache.length) {
           aoListeEl.innerHTML = `<div class="tom">
-            Ingen funn registrert på deg de siste ${tekst(dagerEl.value)} dagene.
+            Ingen funn du er med på de siste ${tekst(dagerEl.value)} dagene.
           </div>`;
           return;
         }
@@ -422,9 +450,16 @@
       const bmStatus = document.getElementById('bm-status');
       const bmSend = document.getElementById('bm-send');
       const bmEksp = document.getElementById('bm-eksponering');
+      const bmKvittering = document.getElementById('bm-kvittering');
+      const bmKvitteringTekst = document.getElementById('bm-kvittering-tekst');
+      const bmEnTil = document.getElementById('bm-en-til');
       const bmEkspVerdi = document.getElementById('bm-eksponering-verdi');
 
       const editor = lagBildeEditor(document.getElementById('bm-lerret'));
+
+      // AOs egen grense, speilet her bare for å kunne si «3 av 10» og for å slutte
+      // å tilby flere. Serveren håndhever den uansett.
+      const MAKS_BILDER = 10;
 
       // Fil, utklippstavle og dra-og-slipp kommer fra den delte velgeren — samme
       // oppførsel som registreringsmodalen i appen, inkludert ⌘V og alle
@@ -449,11 +484,44 @@
         }
       });
 
+      function oppdaterRad(sightingId) {
+        const funn = funnCache.find((f) => String(f.sightingId) === String(sightingId));
+        const rad = document.getElementById(`funn-${sightingId}`);
+        if (!funn || !rad) return;
+        const knapp = rad.querySelector('[data-bilde]');
+        if (knapp) {
+          knapp.textContent = '➕ Legg til ett til';
+          knapp.classList.remove('primar');
+        }
+        if (!rad.querySelector('.har-bilde')) {
+          const merke = document.createElement('span');
+          merke.className = 'har-bilde';
+          merke.textContent = '🖼️ Har bilde';
+          rad.querySelector('.funn-handling').prepend(merke);
+        }
+      }
+
+      // Etter en vellykket opplasting står modalen igjen åpen: den vanlige
+      // fortsettelsen er å legge på enda et bilde av samme fugl.
+      function visKvittering(melding, erFull) {
+        settModalStatus('');   // «Laster opp …» skal ikke bli stående under kvitteringen
+        bmVelg.hidden = true;
+        bmRediger.hidden = true;
+        bmKvittering.hidden = false;
+        bmKvitteringTekst.textContent = melding;
+        bmEnTil.hidden = erFull;
+        bmSend.hidden = true;
+        document.getElementById('bm-avbryt').textContent = 'Ferdig';
+      }
+
       function visSteg(steg) {
         const redigerer = steg === 'rediger';
+        bmKvittering.hidden = true;
         bmVelg.hidden = redigerer;
         bmRediger.hidden = !redigerer;
+        bmSend.hidden = false;
         bmSend.disabled = !redigerer;
+        document.getElementById('bm-avbryt').textContent = 'Avbryt';
       }
 
       function settModalStatus(melding, type) {
@@ -485,6 +553,13 @@
         if (!knapp) return;
         const funn = funnCache.find((f) => String(f.sightingId) === knapp.dataset.bilde);
         if (funn) apneModal(funn);
+      });
+
+      bmEnTil.addEventListener('click', () => {
+        velger.resetToUntouched();
+        visSteg('velg');
+        settModalStatus('');
+        document.getElementById('bm-fil').focus();
       });
 
       document.getElementById('bm-lukk').addEventListener('click', lukkModal);
@@ -538,17 +613,24 @@
           // til etter tur.
           const funn = funnCache.find((f) => String(f.sightingId) === String(sightingId));
           if (funn) funn.hasImage = true;
-          const knapp = aoListeEl.querySelector(`[data-bilde="${attr(sightingId)}"]`);
-          if (knapp) knapp.outerHTML = '<span class="har-bilde">🖼️ Har bilde</span>';
+          oppdaterRad(sightingId);
 
           // Serveren skiller mellom «bekreftet hos AO» og «sendt, men vi fikk ikke
           // talt bildene før og etter». Det siste skal ikke presenteres som en
           // kvittering — da ville vi lovet noe vi ikke har dekning for.
-          settStatus(sightingId, svar.verified === false
-            ? 'Bildet ble sendt, men vi fikk ikke bekreftet det hos Artsobservasjoner. Sjekk funnet.'
-            : 'Bildet er lagt til på funnet.',
-            svar.verified === false ? '' : 'ok');
-          lukkModal();
+          const bekreftet = svar.verified !== false;
+          settStatus(sightingId, bekreftet
+            ? 'Bildet er lagt til på funnet.'
+            : 'Bildet ble sendt, men vi fikk ikke bekreftet det hos Artsobservasjoner. Sjekk funnet.',
+            bekreftet ? 'ok' : '');
+
+          // Ikke lukk: de fleste som legger på ett bilde vil legge på flere. Hvor
+          // mange som ligger der nå kommer fra AO, ikke fra vår egen telling.
+          const antall = svar.imageCount;
+          visKvittering(antall
+            ? `Bildet er lagt til. Funnet har nå ${antall} av ${MAKS_BILDER} bilder.`
+            : 'Bildet er lagt til.',
+            antall ? antall >= MAKS_BILDER : false);
         } catch (e) {
           settModalStatus(`Kunne ikke laste opp bildet: ${e.message}`, 'feil');
           bmSend.disabled = false;
