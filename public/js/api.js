@@ -386,15 +386,25 @@ export async function fetchAoSitesCached(lat, lon, radiusMeters) {
  * Sikre at ao_tokens er satt — logg inn automatisk hvis de mangler
  * @returns {Promise<boolean>} true hvis tokens er tilgjengelige
  */
-export async function ensureAoTokens() {
-  const tokens = JSON.parse(localStorage.getItem('ao_tokens') || '{}');
-  let ok = !!(tokens.loginToken && tokens.authCookie);
+/**
+ * Logg inn på AO med legitimasjonen som ligger lagret på enheten, og LAGRE
+ * tokenene.
+ *
+ * Skilt ut fra `ensureAoTokens()` fordi den bare logger inn når tokens MANGLER.
+ * En utløpt sesjon har fortsatt tokens i localStorage, og da hjalp den ikke —
+ * brukeren satt igjen med en side som sa «logg inn», uten noen vei videre.
+ * Sider som får et «sesjonen er utløpt»-svar fra serveren kaller denne direkte
+ * og prøver på nytt.
+ *
+ * @returns {Promise<boolean>} false hvis det ikke finnes lagret legitimasjon,
+ *   eller AO avviste den.
+ */
+export async function loggInnMedLagretLegitimasjon() {
+  const username = localStorage.getItem('ao_username');
+  const password = localStorage.getItem('ao_password');
+  if (!username || !password) return false;
 
-  if (!ok) {
-    const username = localStorage.getItem('ao_username');
-    const password = localStorage.getItem('ao_password');
-    if (!username || !password) return false;
-
+  try {
     const resp = await fetch('/api/ao-login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -408,7 +418,20 @@ export async function ensureAoTokens() {
     saved.authCookie = result.authCookie;
     if (!saved.userId) saved.userId = result.userId;
     localStorage.setItem('ao_tokens', JSON.stringify(saved));
-    ok = true;
+    return true;
+  } catch (e) {
+    console.warn('Kunne ikke logge inn med lagret legitimasjon', e);
+    return false;
+  }
+}
+
+export async function ensureAoTokens() {
+  const tokens = JSON.parse(localStorage.getItem('ao_tokens') || '{}');
+  let ok = !!(tokens.loginToken && tokens.authCookie);
+
+  if (!ok) {
+    ok = await loggInnMedLagretLegitimasjon();
+    if (!ok) return false;
   }
 
   // Både «tokens akkurat etablert» og «tokens fantes fra før, men cachen med

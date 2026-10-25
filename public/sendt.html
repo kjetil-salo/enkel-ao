@@ -261,6 +261,7 @@
       // som stopper hele denne modulen. Se «Versjonering» i CLAUDE.md (v1.53.15).
       import { initPhotoPicker } from '/js/photo-picker.js?v=v1.54.2';
       import { lagBildeEditor } from '/js/bilde-editor.js?v=v1.54.2';
+      import { loggInnMedLagretLegitimasjon } from '/js/api.js?v=v1.54.3';
 
       const MND = ['januar', 'februar', 'mars', 'april', 'mai', 'juni',
         'juli', 'august', 'september', 'oktober', 'november', 'desember'];
@@ -366,7 +367,8 @@
         if (!t.loginToken || !t.authCookie) {
           aoListeEl.innerHTML = `<div class="beskjed">
             Du er ikke innlogget på Artsobservasjoner i appen.
-            <a href="/settings.html">Logg inn i innstillinger</a>, så dukker funnene dine opp her.
+            <a href="/settings.html">Legg inn brukernavn og passord i innstillinger</a>,
+            så henter vi funnene dine herfra.
           </div>`;
           return;
         }
@@ -380,18 +382,30 @@
         oppdaterEl.disabled = true;
         dagerEl.disabled = true;
 
-        let data;
-        try {
+        async function hent(tokens) {
           const r = await fetch('/api/ao-my-sightings', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              loginToken: t.loginToken,
-              authCookie: t.authCookie,
+              loginToken: tokens.loginToken,
+              authCookie: tokens.authCookie,
               days: Number(dagerEl.value) || 14,
             }),
           });
-          data = await r.json();
+          return r.json();
+        }
+
+        let data;
+        try {
+          data = await hent(t);
+
+          // Utløpt sesjon skal repareres her, ikke sendes brukeren på rundtur.
+          // «Test innlogging» i Innstillinger lagret ikke tokenene, så den veien
+          // var en blindgate — og å måtte innom kartet for å få en fungerende
+          // sesjon er ingen forklaring et menneske skal trenge å kjenne til.
+          if (data.needsLogin && await loggInnMedLagretLegitimasjon()) {
+            data = await hent(hentTokens());
+          }
         } catch (e) {
           if (minSeq !== hentSeq) return;
           aoListeEl.innerHTML = `<div class="beskjed">
@@ -409,9 +423,11 @@
         dagerEl.disabled = false;
 
         if (data.needsLogin) {
+          // Hit kommer vi bare når den automatiske fornyelsen over ikke nådde fram —
+          // altså når det ikke finnes lagret passord, eller AO avviste det.
           aoListeEl.innerHTML = `<div class="beskjed">
-            Innloggingen mot Artsobservasjoner er utløpt.
-            <a href="/settings.html">Logg inn på nytt</a>, så henter vi funnene dine.
+            Innloggingen mot Artsobservasjoner er utløpt, og vi klarte ikke å fornye den
+            automatisk. <a href="/settings.html">Sjekk brukernavn og passord i innstillinger</a>.
           </div>`;
           return;
         }

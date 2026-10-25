@@ -357,6 +357,14 @@ Pure ES6 modules with no framework:
     oppløsningen er uavhengig av hvor stor modalen var
   - Rene funksjoner (`eksponeringsfaktor`, `klemUtsnitt`, `visningsmaal`,
     `anvendEksponering`) er eksportert og dekket av `tests/unit/bilde-editor.test.js`
+- `api.js` sin `loggInnMedLagretLegitimasjon()` — logger inn med lagret brukernavn/passord
+  OG lagrer tokenene. Skilt ut fra `ensureAoTokens()`, som bare logger inn når tokens
+  MANGLER: en utløpt sesjon har fortsatt tokens i localStorage, så den hjalp ikke der.
+  Sider som får `needsLogin` fra serveren kaller denne og prøver på nytt
+  - Bakgrunn (v1.54.3): «Test innlogging» i `settings.html` lagret ikke tokenene — den
+    var kun en tilkoblingstest. En bruker som kom fra en side som sa «sesjonen er
+    utløpt», fikk «✅ Innlogging OK!» og var fortsatt utlogget. Eneste vei ut var å gå
+    innom kartet, som logger inn som bieffekt. Knappen lagrer nå, og heter «Logg inn»
 - `sendt.html` (ikke en modul, men hører hjemme her) — «Tidligere sendt» har to kilder:
   - **«Mine funn på Artsobservasjoner»** fra `/api/ao-my-sightings`. Dette er synken mellom
     enheter: lista bor hos AO, ikke i localStorage. Per funn: dyplenke `/Sighting/<id>`,
