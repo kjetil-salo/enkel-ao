@@ -237,12 +237,13 @@ def _obs_label(obs):
     return (navn or 'ukjent art').strip()
 
 
-def _fetch_review_csrf(login_token, auth_cookie):
+def _fetch_csrf_from_page(url, login_token, auth_cookie):
     """
-    Hent CSRF-token fra /ReviewSighting (samme mønster som `publish_all`).
+    Hent (form_token, cookie_token) fra en vilkårlig innlogget AO-side.
 
-    Brukes til bildeopplasting, som skjer FØR publisering mens funnet fortsatt ligger i
-    gjennomgangskøen.
+    Begge opplastingsskjemaene vi bruker ligger på hver sin side — gjennomgangskøen
+    for funn som ennå ikke er publisert, og funnsiden for dem som er det — men
+    token-mønsteret er identisk.
     """
     cookies = {
         'logintoken': login_token,
@@ -254,8 +255,7 @@ def _fetch_review_csrf(login_token, auth_cookie):
     }
     with httpx.Client() as client:
         response = client.get(
-            'https://www.artsobservasjoner.no/ReviewSighting',
-            cookies=cookies, headers=headers, timeout=15, follow_redirects=True,
+            url, cookies=cookies, headers=headers, timeout=15, follow_redirects=True,
         )
         response.raise_for_status()
 
@@ -272,16 +272,46 @@ def _fetch_review_csrf(login_token, auth_cookie):
     return form_token, cookie_token
 
 
-def upload_image(sighting_id, image_bytes, filename, login_token, auth_cookie, media_license='10'):
+def _fetch_review_csrf(login_token, auth_cookie):
     """
-    Last opp ett bilde til en observasjon i gjennomgangskøen.
+    Hent CSRF-token fra /ReviewSighting (samme mønster som `publish_all`).
 
-    Krever en ekte `SightingId` — funnet må ha blitt ferdig parset av AO og ligge i
-    gjennomgangskøen (se `PossibleToUploadImages` i `review_queue_rows()`,
-    `docs/ao-bilder-api.md`). `media_license` er AOs lisensvalg for bildet:
-    10=CC BY (default), 20=CC BY-SA, 30=CC BY-NC-SA, 60=Ingen (alle rettigheter forbeholdt).
+    Brukes til bildeopplasting som skjer FØR publisering, mens funnet fortsatt ligger
+    i gjennomgangskøen.
     """
-    form_token, cookie_token = _fetch_review_csrf(login_token, auth_cookie)
+    return _fetch_csrf_from_page(
+        'https://www.artsobservasjoner.no/ReviewSighting', login_token, auth_cookie)
+
+
+def _fetch_sighting_csrf(sighting_id, login_token, auth_cookie):
+    """
+    Hent CSRF-token fra funnsiden til et PUBLISERT funn.
+
+    `/Sighting/<id>` rendrer AOs eget `<form action="/Media/UploadImageAction">` — se
+    `docs/ao-mine-funn-api.md`. Vi henter tokenet der skjemaet faktisk står, i stedet
+    for fra gjennomgangskøen, som kan være tom for en bruker uten ventende funn.
+    """
+    return _fetch_csrf_from_page(
+        f'https://www.artsobservasjoner.no/Sighting/{int(sighting_id)}',
+        login_token, auth_cookie)
+
+
+def upload_image(sighting_id, image_bytes, filename, login_token, auth_cookie,
+                 media_license='10', csrf=None):
+    """
+    Last opp ett bilde til en observasjon.
+
+    Krever en ekte `SightingId`. Funnet kan enten ligge i gjennomgangskøen (se
+    `PossibleToUploadImages` i `review_queue_rows()`) eller være publisert — begge
+    deler er bekreftet mot AO, se `docs/ao-bilder-api.md`.
+
+    `media_license` er AOs lisensvalg for bildet: 10=CC BY (default), 20=CC BY-SA,
+    30=CC BY-NC-SA, 60=Ingen (alle rettigheter forbeholdt).
+
+    `csrf` kan sendes inn ferdig hentet som `(form_token, cookie_token)`. Utelatt
+    hentes det fra gjennomgangskøen, som er riktig kilde under selve sendingen.
+    """
+    form_token, cookie_token = csrf or _fetch_review_csrf(login_token, auth_cookie)
 
     cookies = {
         'AcceptCookies': '1',
@@ -328,6 +358,134 @@ def upload_image(sighting_id, image_bytes, filename, login_token, auth_cookie, m
                 pass
         logger.debug(f'[AO-HTTPX] Opplastingsrespons var ikke JSON, ignorerer: {response.text[:200]!r}')
         return {}
+
+
+# AO tillater maks 10 bilder per funn (`MediaFilePerSightingRestriction` i
+# opplastingsskjemaet, se docs/ao-bilder-api.md).
+MAX_IMAGES_PER_SIGHTING = 10
+
+# AOs lisensvalg. Hvitelistet fordi verdien går rett inn i et skjema hos AO — vi
+# sender aldri videre noe klienten finner på selv.
+MEDIA_LICENSES = {'10', '20', '30', '60'}
+
+# Hvor mange ganger bildelista sjekkes etter en opplasting før vi konkluderer med at
+# AO ikke tok imot. AO kan bruke et øyeblikk på å gjøre bildet synlig, og en for rask
+# konklusjon får brukeren til å laste opp på nytt — med dublett som resultat.
+_IMAGE_VERIFY_ATTEMPTS = 3
+_IMAGE_VERIFY_DELAY = 1.0
+
+
+def sighting_images(sighting_id, login_token, auth_cookie):
+    """
+    Hvilke bilder ligger på dette funnet nå?
+
+    `/Media/EditableImagesForSightingId/` svarer med en liste (tom hvis ingen bilder)
+    for funn brukeren selv kan redigere — verifisert mot et publisert funn 25.10.2026.
+    Returnerer None hvis AO ikke kunne spørres, slik at kalleren kan skille «ingen
+    bilder» fra «vet ikke».
+    """
+    cookies = {
+        'logintoken': login_token,
+        '.ASPXAUTHNO': auth_cookie,
+        'AcceptCookies': '1',
+    }
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:147.0) Gecko/20100101 Firefox/147.0',
+        'Content-Type': 'application/json; charset=utf-8',
+        'X-Requested-With': 'XMLHttpRequest',
+    }
+    try:
+        with httpx.Client() as client:
+            resp = client.post(
+                'https://www.artsobservasjoner.no/Media/EditableImagesForSightingId/',
+                content=json.dumps({'sightingId': int(sighting_id)}),
+                cookies=cookies, headers=headers, timeout=15,
+            )
+        if resp.status_code != 200:
+            return None
+        data = resp.json()
+        return data if isinstance(data, list) else None
+    except Exception as e:
+        logger.warning(f'[AO-BILDE] Kunne ikke hente bildeliste for funn {sighting_id}: {e}')
+        return None
+
+
+def upload_photo_to_published_sighting(sighting_id, photo_data_url, login_token, auth_cookie,
+                                       media_license='10'):
+    """
+    Legg et bilde på et funn som allerede er publisert — «berik hjemmefra».
+
+    Dette er den delen av bildestøtten som IKKE henger sammen med selve sendingen:
+    funnet ble kanskje rapportert fra mobilen i felt, og bildet kommer fra kamera
+    flere timer senere. Derfor hentes CSRF fra funnsiden, ikke fra gjennomgangskøen.
+
+    Returnerer en dict med `ok` og enten `imageId` eller `error`. Kaster ikke —
+    kalleren er et endepunkt som skal svare brukeren, ikke en intern flyt.
+    """
+    if media_license not in MEDIA_LICENSES:
+        media_license = '10'
+
+    try:
+        sighting_id = int(sighting_id)
+    except (TypeError, ValueError):
+        return {'ok': False, 'error': 'Ugyldig funn-ID'}
+
+    try:
+        image_bytes = _decode_data_url(photo_data_url)
+    except Exception:
+        return {'ok': False, 'error': 'Kunne ikke lese bildet'}
+
+    if not image_bytes:
+        return {'ok': False, 'error': 'Bildet var tomt'}
+
+    # Tell før: både for å stoppe på AOs egen grense, og for å kunne si med sikkerhet
+    # etterpå om bildet faktisk kom fram. Opplastingsresponsen er ikke til å stole
+    # på alene — den kommer av og til som HTML (se upload_image).
+    for_opplasting = sighting_images(sighting_id, login_token, auth_cookie)
+    if for_opplasting is not None and len(for_opplasting) >= MAX_IMAGES_PER_SIGHTING:
+        return {'ok': False,
+                'error': f'Funnet har allerede {MAX_IMAGES_PER_SIGHTING} bilder, som er AOs grense'}
+
+    try:
+        csrf = _fetch_sighting_csrf(sighting_id, login_token, auth_cookie)
+        svar = upload_image(sighting_id, image_bytes, 'bilde.jpg',
+                            login_token, auth_cookie, media_license, csrf=csrf)
+    except Exception as e:
+        logger.warning(f'[AO-BILDE] Opplasting feilet for funn {sighting_id}: {e}')
+        return {'ok': False, 'error': f'Opplasting feilet: {e}'}
+
+    image_id = svar.get('id') if isinstance(svar, dict) else None
+
+    # Kunne vi ikke telle FØR opplastingen, kan vi heller ikke sammenligne etterpå.
+    # Da sier vi det, i stedet for å gjette: et «ok» uten dekning er nøyaktig løgnen
+    # denne verifiseringen finnes for å unngå. Å lese siste bilde i lista som «vårt»
+    # ville i verste fall rapportert ID-en til et bilde som lå der fra før.
+    if for_opplasting is None:
+        logger.info(f'[AO-BILDE] Kunne ikke telle bilder før opplasting på funn {sighting_id} '
+                    '— rapporterer ubekreftet')
+        return {'ok': True, 'verified': False, 'imageId': image_id, 'imageCount': None}
+
+    # AO kan bruke et øyeblikk på å gjøre bildet synlig i lista. Å konkludere med
+    # «ikke mottatt» på første forsøk ville fått brukeren til å laste opp på nytt —
+    # og da ligger det to like bilder på funnet.
+    etter = None
+    for forsok in range(_IMAGE_VERIFY_ATTEMPTS):
+        if forsok:
+            time.sleep(_IMAGE_VERIFY_DELAY)
+        etter = sighting_images(sighting_id, login_token, auth_cookie)
+        if etter is not None and len(etter) > len(for_opplasting):
+            break
+
+    if etter is None:
+        return {'ok': True, 'verified': False, 'imageId': image_id, 'imageCount': None}
+
+    if len(etter) <= len(for_opplasting):
+        return {'ok': False, 'error': 'AO tok ikke imot bildet'}
+
+    if image_id is None:
+        image_id = etter[-1].get('id')
+
+    return {'ok': True, 'verified': True, 'imageId': image_id, 'imageCount': len(etter)}
 
 
 def _find_row_for_marker(rows, marker):

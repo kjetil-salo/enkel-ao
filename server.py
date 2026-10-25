@@ -62,7 +62,9 @@ from src import fellestur_store
 from src import fellestur_peer
 from src import email_notify
 from src.utils import parse_user_agent
-from src.ao_import_httpx import post_with_curl, number_of_sightings_submitted
+from src.ao_import_httpx import (post_with_curl, number_of_sightings_submitted,
+                                 upload_photo_to_published_sighting)
+from src.ao_sightings import fetch_my_sightings
 
 # Lokal lokasjons-database (feature toggle via LOCATION_DB_PATH)
 _location_db = None
@@ -132,6 +134,16 @@ _fellestur_peer_hits = {}
 FELLESTUR_PEER_MAX_PER_WINDOW = 200
 FELLESTUR_PEER_WINDOW_SEC = 600
 
+# Tak for ett enkelt bilde som lastes opp til et publisert AO-funn, målt i tegn i
+# data-URL-en. Klienten skalerer til maks 1600 px (samme grense AO selv bruker), så
+# et reelt bilde lander typisk under 1 MB. Taket er en ren minnebeskyttelse mot en
+# vilt stor body, ikke en kvalitetsgrense — AO komprimerer uansett selv.
+MAX_UPLOAD_PHOTO_CHARS = 12 * 1024 * 1024
+
+# Samme tak, men på hele request-bodyen, håndhevet på Content-Length før noe leses.
+# Litt romsligere enn bildet selv, siden JSON-en har litt omkringliggende felt.
+MAX_UPLOAD_BODY_BYTES = 13 * 1024 * 1024
+
 
 def _rate_ok(hits, ip, max_per_window, window_sec):
     """Vindusbasert throttling for anonyme skrive-endepunkter."""
@@ -176,6 +188,14 @@ class Handler(SimpleHTTPRequestHandler):
 
         if parsed.path == '/api/ao-queue-count':
             self._handle_ao_queue_count_post()
+            return
+
+        if parsed.path == '/api/ao-my-sightings':
+            self._handle_ao_my_sightings_post()
+            return
+
+        if parsed.path == '/api/ao-upload-image':
+            self._handle_ao_upload_image_post()
             return
 
         if parsed.path == '/api/ao-login':
@@ -702,6 +722,94 @@ class Handler(SimpleHTTPRequestHandler):
         except Exception as e:
             logger.error(f'[AO-QUEUE] Kunne ikke hente kø-antall: {e}')
             self._send_json({'count': None}, status=200)
+
+    def _handle_ao_my_sightings_post(self):
+        """
+        Brukerens EGNE publiserte funn hos AO, nyeste først.
+
+        Gjør «Tidligere sendt» uavhengig av hvilken enhet funnene ble sendt fra:
+        lista bor hos AO, så mobilen i felt og PC-en hjemme ser det samme. Dekker
+        også funn registrert utenom appen, og overlever bytte av telefon.
+
+        Svarer `{'sightings': [...]}`. Uinnlogget bruker eller AO-feil gir en tom
+        liste med status 200 — aldri 500, jf. ekstern-API-konvensjonen.
+        """
+        try:
+            data = self._read_json_body()
+            login_token = data.get('loginToken')
+            auth_cookie = data.get('authCookie')
+
+            if not login_token or not auth_cookie:
+                self._send_json({'sightings': [], 'total': 0, 'truncated': False,
+                                 'needsLogin': True}, status=200)
+                return
+
+            # `days` kommer fra klienten. Alt som ikke er et tall faller tilbake til
+            # standardvinduet i stedet for å velte kallet lenger nede.
+            try:
+                days = int(data.get('days') or 14)
+            except (TypeError, ValueError):
+                days = 14
+
+            result = fetch_my_sightings(login_token, auth_cookie, days=days)
+            logger.info(f'[AO-FUNN] Hentet {len(result["sightings"])} egne funn fra AO')
+            self._send_json(result, status=200)
+        except Exception as e:
+            logger.error(f'[AO-FUNN] Kunne ikke hente egne funn: {e}')
+            self._send_json({'sightings': [], 'total': 0, 'truncated': False}, status=200)
+
+    def _handle_ao_upload_image_post(self):
+        """
+        Legg et bilde på et funn som allerede er publisert hos AO.
+
+        Brukes fra «Tidligere sendt» når brukeren kommer hjem med bilder fra kamera
+        til funn som ble rapportert fra mobilen i felt. Egen flyt fra bildene som
+        følger med selve sendingen (`post_with_curl`), som må skje mens funnet ligger
+        i gjennomgangskøen.
+
+        Svarer alltid 200 med `{'ok': bool}` — en feil her er brukerens å forholde seg
+        til, ikke en serverfeil, og skal vises som tekst i grensesnittet.
+        """
+        try:
+            # Taket må håndheves på Content-Length, FØR bodyen leses. _read_json_body()
+            # leser hele lengden klienten oppgir rett inn i minnet, så en sjekk på
+            # len(photo) etterpå verner ikke mot noe — da ligger alt der allerede.
+            # Pi-en har 4 GB; noen samtidige forespørsler med oppblåst Content-Length
+            # ville holdt for å ta den ned.
+            if int(self.headers.get('Content-Length', 0)) > MAX_UPLOAD_BODY_BYTES:
+                self._send_json({'ok': False, 'error': 'Bildet er for stort'})
+                return
+
+            data = self._read_json_body()
+            sighting_id = data.get('sightingId')
+            photo = data.get('photo')
+            login_token = data.get('loginToken')
+            auth_cookie = data.get('authCookie')
+            media_license = str(data.get('mediaLicense') or '10')
+
+            if not login_token or not auth_cookie:
+                self._send_json({'ok': False, 'error': 'Du må være innlogget på Artsobservasjoner'})
+                return
+
+            if not sighting_id or not photo:
+                self._send_json({'ok': False, 'error': 'Mangler funn-ID eller bilde'})
+                return
+
+            if len(photo) > MAX_UPLOAD_PHOTO_CHARS:
+                self._send_json({'ok': False, 'error': 'Bildet er for stort'})
+                return
+
+            result = upload_photo_to_published_sighting(
+                sighting_id, photo, login_token, auth_cookie, media_license=media_license)
+
+            if result.get('ok'):
+                logger.info(f'[AO-BILDE] Bilde lagt på funn {sighting_id}')
+            else:
+                logger.warning(f'[AO-BILDE] Funn {sighting_id}: {result.get("error")}')
+            self._send_json(result)
+        except Exception as e:
+            logger.error(f'[AO-BILDE] Uventet feil ved bildeopplasting: {e}')
+            self._send_json({'ok': False, 'error': 'Kunne ikke laste opp bildet'})
 
     def _handle_ao_import_post(self):
         """Håndter direkte posting av observasjoner til AO (kun for eier)."""
