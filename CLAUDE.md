@@ -133,6 +133,12 @@ The `Handler` class routes requests:
     = AO tok ikke imot. Opplastingsresponsen alene er ikke til å stole på (kommer av og til
     som HTML, se `upload_image`). Stopper også på AOs grense på 10 bilder per funn
   - Svarer alltid 200 med `{ok, imageId}` eller `{ok: false, error}`
+  - **Redigering av antall er IKKE bygget** (status 25.10.2026). `/Edit/<id>` gir et
+    GET-skjema, men de redigerbare verdiene (`Quantity`, `StartDate`, `Activity`) rendres
+    av JavaScript og finnes ikke i rå HTML — en serverside-parse ville tømt dem på et
+    publisert funn. Måling, risiko og rekkefølgen for å gjøre det trygt står i
+    `docs/ao-mine-funn-api.md` punkt 3b. **Mål alltid fra ren tilstand**: `/Edit/<id>`
+    svarer med et kort 6-felts skjema hvis funnet allerede ligger i gjennomgangskøen
 - `/api/ao-queue-count` (POST) → hvor mange funn som allerede ligger til gjennomgang
   («Kontroller funn») hos AO. Rent opplysende: brukes av `oppdaterAoKoHint()` i
   `export-operations.js` til å varsle FØR sending om at køen ikke er tom, slik at scoped

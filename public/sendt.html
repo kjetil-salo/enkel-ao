@@ -35,6 +35,27 @@
       .btn-liten.primar { background: var(--accent, #3b82f6); border-color: transparent; color: #fff; }
       .btn-liten:disabled { opacity: 0.55; cursor: default; }
       .tom { text-align: center; color: var(--muted, #9ca3af); padding: 40px 16px; line-height: 1.5; }
+
+      /* Hentingen fra AO tar typisk 5–12 sekunder (tre kall i kjede mot et tregt
+         ASP.NET-grid). Uten en bevegelig indikator ser siden ut som om den har
+         hengt seg — teksten alene er ikke nok når ventetiden er så lang. */
+      .laster { display: flex; flex-direction: column; align-items: center; gap: 14px;
+                padding: 40px 16px; color: var(--muted, #9ca3af); text-align: center;
+                line-height: 1.5; }
+      .spinner { width: 28px; height: 28px; border-radius: 50%;
+                 border: 3px solid rgba(148,163,184,0.25);
+                 border-top-color: var(--accent, #3b82f6);
+                 animation: spinn 0.9s linear infinite; }
+      @keyframes spinn { to { transform: rotate(360deg); } }
+      .laster-hint { font-size: 0.8rem; opacity: 0.75; }
+
+      /* Respekter at noen slår av bevegelse i systemet — da pulserer den i stedet. */
+      @media (prefers-reduced-motion: reduce) {
+        .spinner { animation: pulser 1.6s ease-in-out infinite;
+                   border-top-color: rgba(148,163,184,0.25);
+                   background: var(--accent, #3b82f6); }
+        @keyframes pulser { 0%, 100% { opacity: 0.35; } 50% { opacity: 1; } }
+      }
       footer { margin-top: 24px; text-align: center; color: var(--muted, #9ca3af); font-size: 0.8rem; line-height: 1.5; }
       footer a { color: var(--accent, #3b82f6); }
 
@@ -235,7 +256,11 @@
         }
 
         const minSeq = ++hentSeq;
-        aoListeEl.innerHTML = '<div class="tom">Henter funnene dine fra Artsobservasjoner …</div>';
+        aoListeEl.innerHTML = `<div class="laster">
+          <div class="spinner" role="status" aria-label="Henter"></div>
+          <div>Henter funnene dine fra Artsobservasjoner …</div>
+          <div class="laster-hint">Det kan ta noen sekunder</div>
+        </div>`;
         oppdaterEl.disabled = true;
         dagerEl.disabled = true;
 

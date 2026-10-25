@@ -118,7 +118,7 @@ varianter som **ikke** finnes: `/ViewSighting/Sighting/<id>`, `/Sighting/Details
 Dette gjør at «Tidligere sendt» kan lenke rett til funnet i stedet for til Mine sider.
 Redigering har sin egen GET-URL, men den har en bieffekt man må kjenne til — se 3b.
 
-## 3b. Redigering: `/Edit/<id>` finnes, men er en felle å dyplenke blindt
+## 3b. Redigering: `/Edit/<id>` finnes, men åpner en økt som må lukkes
 
 Funnsiden har knappen «Endre», som peker på **`GET /Edit/<SightingId>`** og redirigerer til
 `/ReviewSighting/EditPublishedSightings?sightingIds=<id>`. Også dette motbeviser
@@ -141,27 +141,70 @@ To konsekvenser:
 2. Et slikt etterlatt funn blir plukket opp av `PublishAll` ved neste sending fra appen —
    samme mekanisme som `docs/ao-publish-selective-capture.md` beskriver.
 
-### Hvorfor vi IKKE kan endre antall fra appen
+### Antall-redigering: status og hva som gjenstår
 
-Redigeringsskjemaet poster **149 felt** til `/ReviewSighting/Save`. Målt på samme funn:
+**Målt 25.10.2026, fra verifisert ren tilstand (funnet publisert, kø = 0).**
 
-| Kilde | Antall feltnavn |
+> ⚠️ En tidligere versjon av dette avsnittet oppga «6 felt i rå HTML». Den målingen var
+> tatt mot en **allerede åpen redigeringsøkt**, og var feil. `/Edit/<id>` svarer med et
+> kort 6-felts skjema når funnet allerede ligger i køen, og med det fulle skjemaet når
+> funnet faktisk er publisert. Mål alltid fra ren tilstand.
+
+| | Antall felt |
 |---|---|
-| Nettleserens `FormData` (etter at AOs JS har kjørt) | **149** |
-| `name="..."` i rå HTML fra en GET | **6** |
+| Nettleserens `FormData` på `#report` | **149** |
+| `SightingViewModel.*` som `name=` i rå HTML (319 KB) | **113** |
+| Unike `name=` totalt i rå HTML | 177 |
 
-Skjemaet bygges altså nesten i sin helhet av JavaScript. En serverside-parser som vår
-`_FormParser` ville sett 6 felt og postet 6 felt — og de resterende 143 ville blitt tomme
-på et publisert funn i den nasjonale artsdatabasen.
+Gapet er altså **36 felt** — og det er *hvilke* som er problemet. Sjekket navngitt:
 
-Dette er ikke en teoretisk bekymring: nøyaktig den feilklassen traff oss allerede på
-søkeskjemaet, der `FromDate`/`ToDate` fantes i nettleserens `FormData` men ikke i rå HTML.
-Der var konsekvensen et dårlig søk. Her ville den vært ødelagte data hos andre.
+| Felt | I rå HTML? |
+|---|---|
+| `...TemporarySighting.Sighting.Quantity` | **nei** |
+| `...TemporarySighting.Sighting.StartDate` | **nei** |
+| `...TemporarySighting.Sighting.Activity` | **nei** |
+| `...TemporarySighting.Sighting.Taxon` | ja |
+| `EditableProperties.Quantity.IsEditable` | ja |
+| `SightingViewModel.Observers[0].User` | ja |
+| `__RequestVerificationToken`, `SelectedTempSightings` | ja |
 
-**Konklusjon:** fase C (redigering i appen) krever en ekte nettlesermotor, ikke
-HTML-parsing. Vurderingen i `rediger-sendte-obs-plan.md` står — og er nå underbygget med
-tall i stedet for antakelser. Appen lenker i stedet til `/Edit/<id>` med en tydelig advarsel
-om at funnet må publiseres på nytt.
+Det er nøyaktig **de redigerbare verdiene** som bygges av JavaScript. Bare de skjulte
+«er dette feltet redigerbart»-partnerne ligger i HTML-en.
+
+**Konsekvensen:** poster vi de 113 feltene vi klarer å lese, sender vi et skjema uten
+startdato og uten aktivitet. ASP.NET binder dem som tomme, og funnet mister tid og
+aktivitet i den nasjonale artsdatabasen — uten feilmelding. At vi kan *legge på*
+`Quantity` selv hjelper ikke (ASP.NET binder felt som aldri ble rendret — det er slik
+`MyReportedSightings` fungerer), for de 35 andre forsvinner i samme operasjon.
+
+### Veien videre, hvis dette skal bygges
+
+Verdiene som mangler kjenner vi allerede fra funn-lista (`UniversalDate`,
+`FormattedTime`, `ActivityId`, `Quantity`). Vi kan altså **syntetisere** de 36 feltene
+i stedet for å parse dem. Det er gjennomførbart, men det er å bygge skjemabodyen delvis
+fra hukommelsen mot en database andre bruker. Rekkefølgen må være:
+
+1. **Fang nettleserens nøyaktige 149-feltsliste** og diff mot de 113 vi leser, så vi vet
+   presist hva som må syntetiseres — ikke omtrent.
+2. **No-op round-trip på et testfunn:** post alt tilbake *uendret*, og verifiser mot
+   `BindSightingsGrid` at funnet er identisk etterpå. Dette er prosjektets egen
+   dokumenterte milepæl (`rediger-sendte-obs-plan.md`), og den må være grønn før ett
+   eneste felt endres.
+3. Først da: endre `Quantity`.
+4. **Alltid publisere på nytt, også på feilstier.** Å åpne skjemaet gjør funnet
+   upublisert (se over). En avbrutt flyt som ikke publiserer igjen, etterlater funnet
+   usynlig for alle andre — og det blir plukket opp av neste `PublishAll` fra appen.
+
+### Kortere alternativ som ikke er utredet
+
+Slette funnet og sende det inn på nytt med riktig antall, gjennom importflyten vi
+allerede stoler på. Funnet får ny `SightingId`, og bilder/kommentarer på det går tapt —
+så det kan i så fall bare tilbys for funn uten bilde og uten kommentarer. Merk at
+`UserCanDeleteSighting` var `false` på egne publiserte rader i grid-dataene; om det er
+en validator-flagg eller en reell sperre er ikke undersøkt.
+
+**Status 25.10.2026:** ikke bygget. Besluttet utsatt til senere samme dag, etter at
+bildedelen av v1 var verifisert og deployet til staging.
 
 ## 4. Bilder på et PUBLISERT funn
 
