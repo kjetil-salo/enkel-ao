@@ -95,6 +95,21 @@ iframe-blindsone som selve requesten):
 {"Thumbnail": "...", "Fileurl": "...", "id": 3546122, "Description": "", "SightingId": 41326426, "ImagePosition": 0}
 ```
 
+## AO svarer av og til HTTP 500 — ett nytt forsøk holder
+
+**Observert i felt 25.10.2026.** `/Media/UploadImageAction` svarte HTTP 500 på et
+ekte bilde, mot et funn som hadde tatt imot et annet bilde seks minutter tidligere.
+Samme bruker, samme sesjon, samme funn — og `EditableImagesForSightingId` svarte 200
+rett før. Det er altså verken sesjon, rettigheter eller bildegrensen.
+
+Et nytt forsøk to sekunder senere gikk gjennom. `upload_image()` retrier derfor én
+gang på 4xx/5xx før den gir opp, og logger AOs egen feiltekst (tittelen fra
+ASP.NET-feilsiden) ved hvert mislykket forsøk.
+
+Lærdommen er generell nok til å gjenta: **ikke kast AOs svarkropp.** Første gang
+dette traff oss hadde vi bare statuskoden å gå på, og ingen måte å skille en
+forbigående hikke fra en reell avvisning.
+
 ## Andre Media-endepunkter (fra `Content/MasterJs`, widgeten `ui.ap2ImageUpload`)
 
 | Endepunkt | Metode | Body | Bruk |
