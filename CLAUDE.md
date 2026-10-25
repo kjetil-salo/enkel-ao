@@ -125,7 +125,8 @@ The `Handler` class routes requests:
   - Overstyringen av søkefelt er fail-closed (`_override` kaster ved ukjent feltnavn) —
     ellers ville en AO-endring gitt feil filtrerte funn helt uten feilmelding
   - Svarer `{sightings, total, truncated}`. Uinnlogget eller AO-feil → tom liste, 200
-  - Full kartlegging: `docs/ao-mine-funn-api.md`
+  - Full kartlegging: `docs/ao-mine-funn-api.md`. Oversikt over hele funksjonen,
+    inkludert hva som gikk galt underveis: `docs/bilder-i-etterkant.md`
 - `/api/ao-upload-image` (POST) → legg et bilde på et funn som ALLEREDE er publisert
   - «Berik hjemmefra»: funnet ble rapportert fra mobilen i felt, bildet kommer fra kamera
     flere timer senere. Egen flyt fra bildene som følger selve sendingen, som må skje mens

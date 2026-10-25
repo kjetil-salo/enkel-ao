@@ -37,19 +37,24 @@ tilbake slik det kom, og kun overstyre søkekriteriene vi bryr oss om:
 | Felt (prefiks `SearchViewModel.StoredSearchCriterias.SearchCriterias.`) | Vår verdi |
 |---|---|
 | `LastNumberOfDays` | antall dager bakover (default 14) |
-| `MyReportedSightings` | `true` |
-| `MyObservedSightings` | `false` |
+| `MyObservedSightings` | `true` — alt brukeren er med på |
+| `MyReportedSightings` | `false` — ville snevret inn til kun egne rapporter |
 
 Merk at `FromDate`/`ToDate` **ikke** finnes som skjemafelt i rå HTML — de lages av
 AOs datovelger-widget i nettleseren. Å overstyre dem feilet derfor fail-closed-sjekken i
 `_override` og ga tom liste for alle. De utelates nå; utelatt periode er det samme som tom.
 
-**`MyReportedSightings` filtrerer serverside hos AO.** Det er viktigere enn det ser ut:
-alternativet var å hente alt og filtrere på brukeralias selv, og da måtte vi først finne
-ut hvilket alias som er «meg». Med `MyObservedSightings=true` (AOs standard) kommer det
-også med funn **andre har rapportert** der du står som medobservatør — bekreftet i
-fangsten, der rapportør `bert` dukket opp blant «mine» funn. Slike funn kan vi verken
-redigere eller legge bilde på, så de skal ikke vises som om vi kan det.
+**AO filtrerer serverside.** Alternativet var å hente alt og sile på brukeralias selv,
+og da måtte vi først finne ut hvilket alias som er «meg».
+
+`MyObservedSightings=true` tar med funn **andre har rapportert** der brukeren står som
+medobservatør — typisk fra en fellestur. Det er med vilje: AO tillater bildeopplasting
+på dem, men ikke redigering. Se punkt 3c for hvordan skillet håndteres.
+
+> **Historisk:** første versjon brukte `MyReportedSightings=true` (kun egne rapporter),
+> basert på en antakelse om at medobservasjoner ikke kunne få bilder. Den var feil, og
+> kostet brukeren 83 av 100 funn i lista. Antakelsen sto i både kodekommentarer og dette
+> dokumentet som om den var etablert, uten at noen hadde testet den.
 
 **Kritisk detalj:** skjemaet må postes med cookies satt på **klienten**, ikke på hver
 enkelt request. Søket svarer med en 302, og httpx bygger `Cookie`-headeren på nytt fra
@@ -64,10 +69,10 @@ fordi et felt vi reproduserer feil blir **tomt i den nasjonale artsdatabasen**. 
 konsekvensen av samme feil et dårlig søk. Forskjellen er lesing mot skriving, ikke
 antall felt.
 
-Overstyringen er likevel **fail-closed** (`_override` kaster hvis et felt mangler):
-endrer AO navnet på `MyReportedSightings`, ville en stille ignorert parameter fått søket
-til å falle tilbake til skjemaets egne standardvalg — og vi hadde vist funn andre har
-rapportert, uten en eneste feilmelding.
+Overstyringen er likevel **fail-closed** (`_override` kaster hvis et felt i `required`
+mangler): endrer AO navnet på `MyObservedSightings`, ville en stille ignorert parameter
+fått søket til å falle tilbake til skjemaets egne standardvalg — og vi hadde vist funn
+brukeren ikke er med på i det hele tatt, uten en eneste feilmelding.
 
 ## 2. Grid-endepunktet
 
