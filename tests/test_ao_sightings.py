@@ -389,6 +389,28 @@ def test_fetch_my_sightings_sier_fra_nar_lista_er_avkortet(monkeypatch):
     assert res['truncated'] is True
 
 
+def test_utlopt_sesjon_som_redirect_oppdages_ogsa(monkeypatch):
+    """
+    AO kan svare på to måter når sesjonen er utløpt: 200 med den anonyme siden,
+    eller 302 til /LogOn. Observert begge deler i praksis. Uten follow_redirects
+    ble den siste en navnløs «HTTP 302»-feil, og brukeren fikk «ingen funn» i
+    stedet for en lenke til å logge inn.
+    """
+    innloggingsside = '<html><body><a href="/LogOn">Logg inn</a></body></html>'
+    client = _mock_client({'get': [_resp(200, innloggingsside)], 'post': []})
+    sett = {}
+
+    def fake_client(**kw):
+        return client
+    monkeypatch.setattr('httpx.Client', fake_client)
+
+    res = fetch_my_sightings('UTLOPT', 'UTLOPT')
+
+    assert res['needsLogin'] is True
+    # Videreføringen MÅ følges, ellers ser vi aldri innloggingssiden
+    assert client.get.call_args.kwargs['follow_redirects'] is True
+
+
 def test_fetch_my_sightings_skjema_nede_gir_tom_liste(monkeypatch):
     client = _mock_client({'get': [_resp(503, 'nede')], 'post': []})
     monkeypatch.setattr('httpx.Client', lambda **kw: client)

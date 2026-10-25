@@ -87,7 +87,48 @@
                  background: rgba(255,255,255,0.04); border: 1px solid rgba(148,163,184,0.15); }
       .beskjed a { color: var(--accent, #3b82f6); }
 
+      /* ---- Bildemodal ---- */
+      .modal-bakgrunn { position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+                        display: flex; align-items: center; justify-content: center;
+                        padding: 16px; z-index: 50; overflow-y: auto; }
+      .modal-bakgrunn[hidden] { display: none; }
+      .modal { background: var(--bg, #0f172a); color: var(--text, #e5e7eb);
+               border: 1px solid rgba(148,163,184,0.25); border-radius: 14px;
+               padding: 16px; width: 100%; max-width: 620px; margin: auto; }
+      .modal-topp { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+      .modal-topp h2 { font-size: 1.05rem; margin: 0; }
+      .lukk { background: transparent; border: none; color: var(--muted, #9ca3af);
+              font-size: 1.2rem; cursor: pointer; min-width: 44px; min-height: 44px; }
+      .modal-funn { color: var(--muted, #9ca3af); font-size: 0.85rem; margin: 2px 0 14px; }
+
+      .dropsone { border: 2px dashed rgba(148,163,184,0.35); border-radius: 12px;
+                  padding: 26px 16px; text-align: center; transition: border-color .15s, background .15s; }
+      .dropsone.drar-over { border-color: var(--accent, #3b82f6); background: rgba(59,130,246,0.08); }
+      .dropsone-ikon { font-size: 1.8rem; margin-bottom: 8px; }
+      .dropsone-eller { color: var(--muted, #9ca3af); font-size: 0.85rem; margin: 10px 0; }
+      .dropsone-knapper { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+      .dropsone-hint { color: var(--muted, #9ca3af); font-size: 0.8rem; margin: 12px 0 0; }
+      .skjult { display: none; }
+
+      /* Dra-og-slipp og tastatur-innliming finnes ikke på mobil — skjul det som
+         bare forvirrer der, i stedet for å love noe som ikke virker. */
+      @media (pointer: coarse) { .bare-mus { display: none; } }
+
+      .lerret-ramme { display: flex; justify-content: center; margin: 4px 0 10px; }
+      #bm-lerret { max-width: 100%; border-radius: 8px; touch-action: none;
+                   background: #000; display: block; }
+      .skyv { display: flex; align-items: center; gap: 10px; font-size: 0.85rem;
+              color: var(--muted, #9ca3af); margin: 10px 0; }
+      .skyv input[type=range] { flex: 1; min-height: 44px; }
+      .skyv output { min-width: 3ch; text-align: right; font-variant-numeric: tabular-nums; }
+      .modal-verktoy { display: flex; gap: 8px; flex-wrap: wrap; }
+      .modal-status { font-size: 0.85rem; margin: 12px 0 0; min-height: 1.2em; }
+      .modal-status.feil { color: #fca5a5; }
+      .modal-bunn { display: flex; gap: 8px; justify-content: flex-end; margin-top: 14px; flex-wrap: wrap; }
+
       body.theme-light { background: #ffffff !important; color: #1a1a1a !important; }
+      body.theme-light .modal { background: #ffffff !important; border-color: #e2e8f0 !important; }
+      body.theme-light .modal-status.feil { color: #b91c1c !important; }
       body.theme-light .batch,
       body.theme-light .funn,
       body.theme-light .beskjed { background: #f8fafc !important; border-color: #e2e8f0 !important; }
@@ -146,17 +187,65 @@
       </footer>
     </div>
 
-    <!-- Felles filvelger for hele AO-lista. Én input gjenbrukes av alle radene;
-         hvilken rad som venter på en fil står i `data-funn` på selve inputen. -->
-    <input type="file" id="bilde-input" accept="image/*" style="display:none" />
+    <!-- Bildemodal. Én modal for hele lista; hvilket funn den gjelder står i
+         `data-funn` på selve modalen. -->
+    <div id="bilde-modal" class="modal-bakgrunn" hidden>
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="bm-tittel">
+        <div class="modal-topp">
+          <h2 id="bm-tittel">Legg til bilde</h2>
+          <button type="button" class="lukk" id="bm-lukk" aria-label="Lukk">✕</button>
+        </div>
+        <p class="modal-funn" id="bm-funn"></p>
+
+        <!-- Steg 1: velg bilde -->
+        <div id="bm-velg">
+          <div class="dropsone" id="bm-drop">
+            <div class="dropsone-ikon">🖼️</div>
+            <div class="bare-mus"><strong>Dra bildet hit</strong></div>
+            <div class="bare-mus dropsone-eller">eller</div>
+            <div class="dropsone-knapper">
+              <button type="button" class="btn-liten primar" id="bm-fil">📁 Velg fil</button>
+              <button type="button" class="btn-liten skjult" id="bm-lim">📋 Lim inn</button>
+            </div>
+            <p class="dropsone-hint bare-mus">Du kan også lime inn med ⌘V / Ctrl+V</p>
+          </div>
+          <input type="file" id="bm-fil-input" accept="image/*" style="display:none" />
+          <!-- initPhotoPicker krever en forhåndsvisning; her går bildet rett videre
+               inn i editoren, så den holdes skjult. -->
+          <div id="bm-preview-wrap" style="display:none"><img id="bm-preview" alt="" /></div>
+        </div>
+
+        <!-- Steg 2: beskjær og juster -->
+        <div id="bm-rediger" hidden>
+          <div class="lerret-ramme"><canvas id="bm-lerret"></canvas></div>
+          <p class="dropsone-hint">Dra i hjørnene for å beskjære, eller inni for å flytte utsnittet.</p>
+          <label class="skyv">
+            <span>Eksponering</span>
+            <input type="range" id="bm-eksponering" min="-100" max="100" value="0" step="5" />
+            <output id="bm-eksponering-verdi">0</output>
+          </label>
+          <div class="modal-verktoy">
+            <button type="button" class="btn-liten" id="bm-nullstill">↺ Tilbakestill</button>
+            <button type="button" class="btn-liten" id="bm-bytt">🔄 Bytt bilde</button>
+          </div>
+        </div>
+
+        <div class="modal-status" id="bm-status"></div>
+        <div class="modal-bunn">
+          <button type="button" class="btn-liten" id="bm-avbryt">Avbryt</button>
+          <button type="button" class="btn-liten primar" id="bm-send" disabled>Last opp til AO</button>
+        </div>
+      </div>
+    </div>
 
     <script type="module">
       import { loadSentBatches, loadObservations, saveObservations, SENT_MAX_DAYS } from '/js/storage.js';
       import { openShareDialog } from '/js/share.js';
-      // Versjonert: `downscaleImage` er en NY eksport, og en cachet gammel kopi av
-      // photo-picker.js ville gitt SyntaxError som stopper hele denne modulen.
-      // Se «Versjonering» i CLAUDE.md (samme felle som v1.53.15).
-      import { downscaleImage } from '/js/photo-picker.js?v=v1.54.0';
+      // Begge importene er versjonert: photo-picker.js har fått ny dropZone-støtte,
+      // og bilde-editor.js er helt ny. En cachet gammel kopi ville gitt SyntaxError
+      // som stopper hele denne modulen. Se «Versjonering» i CLAUDE.md (v1.53.15).
+      import { initPhotoPicker } from '/js/photo-picker.js?v=v1.54.1';
+      import { lagBildeEditor } from '/js/bilde-editor.js?v=v1.54.1';
 
       const MND = ['januar', 'februar', 'mars', 'april', 'mai', 'juni',
         'juli', 'august', 'september', 'oktober', 'november', 'desember'];
@@ -193,7 +282,6 @@
       const aoListeEl = document.getElementById('ao-liste');
       const dagerEl = document.getElementById('ao-dager');
       const oppdaterEl = document.getElementById('ao-oppdater');
-      const bildeInput = document.getElementById('bilde-input');
       let funnCache = [];
       // Teller som forkaster svar fra en eldre, tregere henting når en nyere
       // allerede har tegnet. Uten den kan et 60-dagers svar lande etter at
@@ -323,34 +411,109 @@
         el.textContent = melding;
       }
 
+      // ===================================================================
+      // Bildemodal: velg → beskjær/juster → last opp
+      // ===================================================================
+
+      const modal = document.getElementById('bilde-modal');
+      const bmFunn = document.getElementById('bm-funn');
+      const bmVelg = document.getElementById('bm-velg');
+      const bmRediger = document.getElementById('bm-rediger');
+      const bmStatus = document.getElementById('bm-status');
+      const bmSend = document.getElementById('bm-send');
+      const bmEksp = document.getElementById('bm-eksponering');
+      const bmEkspVerdi = document.getElementById('bm-eksponering-verdi');
+
+      const editor = lagBildeEditor(document.getElementById('bm-lerret'));
+
+      // Fil, utklippstavle og dra-og-slipp kommer fra den delte velgeren — samme
+      // oppførsel som registreringsmodalen i appen, inkludert ⌘V og alle
+      // feilmeldingene som allerede er finslipt der.
+      const velger = initPhotoPicker({
+        fileInput: document.getElementById('bm-fil-input'),
+        pickBtn: document.getElementById('bm-fil'),
+        pasteBtn: document.getElementById('bm-lim'),
+        dropZone: document.getElementById('bm-drop'),
+        previewWrap: document.getElementById('bm-preview-wrap'),
+        previewImg: document.getElementById('bm-preview'),
+        removeBtn: document.getElementById('bm-bytt'),
+      }, () => !modal.hidden, async (dataUrl) => {
+        if (!dataUrl) { visSteg('velg'); return; }
+        try {
+          await editor.settBilde(dataUrl);
+          bmEksp.value = 0;
+          bmEkspVerdi.textContent = '0';
+          visSteg('rediger');
+        } catch (e) {
+          settModalStatus('Kunne ikke lese bildet — prøv et annet.', 'feil');
+        }
+      });
+
+      function visSteg(steg) {
+        const redigerer = steg === 'rediger';
+        bmVelg.hidden = redigerer;
+        bmRediger.hidden = !redigerer;
+        bmSend.disabled = !redigerer;
+      }
+
+      function settModalStatus(melding, type) {
+        bmStatus.className = `modal-status${type ? ' ' + type : ''}`;
+        bmStatus.textContent = melding || '';
+      }
+
+      function apneModal(funn) {
+        modal.dataset.funn = funn.sightingId;
+        bmFunn.textContent = `${funn.quantity} ${funn.taxonName} · ${funn.siteName} · ${formatDato(funn.date)}`;
+        velger.resetToUntouched();
+        visSteg('velg');
+        settModalStatus('');
+        modal.hidden = false;
+        document.body.style.overflow = 'hidden';
+        document.getElementById('bm-fil').focus();
+      }
+
+      function lukkModal() {
+        modal.hidden = true;
+        delete modal.dataset.funn;
+        document.body.style.overflow = '';
+        velger.resetToUntouched();
+        settModalStatus('');
+      }
+
       aoListeEl.addEventListener('click', (e) => {
         const knapp = e.target.closest('[data-bilde]');
         if (!knapp) return;
-        // Hvilken rad som venter på en fil holdes på selve input-elementet, ikke i en
-        // modulvariabel. Da er tilstanden synlig i DOM-en, og flyten kan drives uten
-        // å åpne filvelgeren — nyttig både for feilsøking og for test.
-        bildeInput.dataset.funn = knapp.dataset.bilde;
-        bildeInput.value = '';   // samme fil to ganger skal fortsatt utløse change
-        bildeInput.click();
+        const funn = funnCache.find((f) => String(f.sightingId) === knapp.dataset.bilde);
+        if (funn) apneModal(funn);
       });
 
-      bildeInput.addEventListener('change', async () => {
-        const fil = bildeInput.files && bildeInput.files[0];
-        const sightingId = bildeInput.dataset.funn;
-        delete bildeInput.dataset.funn;
-        if (!fil || !sightingId) return;
+      document.getElementById('bm-lukk').addEventListener('click', lukkModal);
+      document.getElementById('bm-avbryt').addEventListener('click', lukkModal);
+      modal.addEventListener('click', (e) => { if (e.target === modal) lukkModal(); });
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && !modal.hidden) lukkModal();
+      });
 
-        const knapp = aoListeEl.querySelector(`[data-bilde="${sightingId}"]`);
-        if (knapp) knapp.disabled = true;
-        settStatus(sightingId, 'Skalerer ned bildet …');
+      bmEksp.addEventListener('input', () => {
+        bmEkspVerdi.textContent = bmEksp.value;
+        editor.settEksponering(bmEksp.value);
+      });
+
+      document.getElementById('bm-nullstill').addEventListener('click', () => {
+        editor.tilbakestill();
+        bmEksp.value = 0;
+        bmEkspVerdi.textContent = '0';
+      });
+
+      bmSend.addEventListener('click', async () => {
+        const sightingId = modal.dataset.funn;
+        if (!sightingId || !editor.harBilde()) return;
+
+        bmSend.disabled = true;
+        settModalStatus('Laster opp til Artsobservasjoner …');
 
         try {
-          // Nedskalering først: et Z9-bilde er 40–60 MB, og AO skalerer uansett ned
-          // til 1600 px selv. Uten dette ville vi sendt titalls megabyte gjennom
-          // JSON-bodyen til ingen nytte.
-          const photo = await downscaleImage(fil);
-          settStatus(sightingId, 'Laster opp til Artsobservasjoner …');
-
+          const photo = editor.hentResultat();
           const t = hentTokens();
           const r = await fetch('/api/ao-upload-image', {
             method: 'POST',
@@ -365,30 +528,30 @@
           const svar = await r.json();
 
           if (!svar.ok) {
-            settStatus(sightingId, `Bildet ble ikke lagt til: ${svar.error || 'ukjent årsak'}`, 'feil');
-            if (knapp) knapp.disabled = false;
+            settModalStatus(`Bildet ble ikke lagt til: ${svar.error || 'ukjent årsak'}`, 'feil');
+            bmSend.disabled = false;
             return;
           }
 
-          // Bytt knappen med «har bilde» i stedet for å hente hele lista på nytt —
-          // et nytt AO-kall per bilde ville vært tregt når flere legges til etter tur.
+          // Oppdater raden lokalt i stedet for å hente hele lista på nytt — en full
+          // henting tar 5-12 sekunder, og blir uutholdelig når flere bilder legges
+          // til etter tur.
           const funn = funnCache.find((f) => String(f.sightingId) === String(sightingId));
           if (funn) funn.hasImage = true;
+          const knapp = aoListeEl.querySelector(`[data-bilde="${attr(sightingId)}"]`);
           if (knapp) knapp.outerHTML = '<span class="har-bilde">🖼️ Har bilde</span>';
 
           // Serveren skiller mellom «bekreftet hos AO» og «sendt, men vi fikk ikke
           // talt bildene før og etter». Det siste skal ikke presenteres som en
           // kvittering — da ville vi lovet noe vi ikke har dekning for.
-          if (svar.verified === false) {
-            settStatus(sightingId,
-              'Bildet ble sendt, men vi fikk ikke bekreftet det hos Artsobservasjoner. '
-              + 'Sjekk funnet før du laster opp på nytt.');
-          } else {
-            settStatus(sightingId, 'Bildet er lagt til på funnet.', 'ok');
-          }
+          settStatus(sightingId, svar.verified === false
+            ? 'Bildet ble sendt, men vi fikk ikke bekreftet det hos Artsobservasjoner. Sjekk funnet.'
+            : 'Bildet er lagt til på funnet.',
+            svar.verified === false ? '' : 'ok');
+          lukkModal();
         } catch (e) {
-          settStatus(sightingId, `Kunne ikke laste opp bildet: ${e.message}`, 'feil');
-          if (knapp) knapp.disabled = false;
+          settModalStatus(`Kunne ikke laste opp bildet: ${e.message}`, 'feil');
+          bmSend.disabled = false;
         }
       });
 

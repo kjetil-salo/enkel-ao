@@ -344,19 +344,28 @@ Pure ES6 modules with no framework:
 - `autocomplete.js` — Lokalitet-autocomplete med avstand og ikoner (🏷️ super, 👤 privat, ⭐ mine)
   - Aktivt i **begge** modi (Felt og Etterregistrering)
   - `initAutocomplete(placeInput, onSelect, getPosition)` — getPosition gir GPS-posisjon for sortering
+- `bilde-editor.js` — beskjæring og eksponering før opplasting, uten bibliotek
+  - Beskjæringsrammen tegnes på SAMME lerret som bildet, ikke som DOM-elementer over.
+    Det gir identisk oppførsel med mus og finger uten to sett hendelser å holde i synk
+  - Eksponering er fotografisk (`2^(trinn/100)`), ikke lineær: ±100 = ett blenderstrinn.
+    Forhåndsvisningen bruker samme pikselløkke som eksporten, ikke et CSS-filter — da
+    lyver ikke forhåndsvisningen om hva som faktisk lastes opp
+  - `hentResultat()` regner ALLTID fra originalbildet, aldri fra visningslerretet, så
+    oppløsningen er uavhengig av hvor stor modalen var
+  - Rene funksjoner (`eksponeringsfaktor`, `klemUtsnitt`, `visningsmaal`,
+    `anvendEksponering`) er eksportert og dekket av `tests/unit/bilde-editor.test.js`
 - `sendt.html` (ikke en modul, men hører hjemme her) — «Tidligere sendt» har to kilder:
   - **«Mine funn på Artsobservasjoner»** fra `/api/ao-my-sightings`. Dette er synken mellom
     enheter: lista bor hos AO, ikke i localStorage. Per funn: dyplenke `/Sighting/<id>`,
     ⚠️ når AO har en innvending, og 📷 «Legg til bilde» når `hasImage` er falsk
   - **«Sendt fra denne enheten»** = den lokale `sent_observations_v1` som før, uendret.
     Beholdt bevisst: den virker offline og uten innlogging, og eier «Del disse»/«Kopier til lista»
-  - Bildeopplasting gjenbruker `downscaleImage` fra `photo-picker.js` (1600 px, JPEG 0.85) —
-    et Z9-bilde er 40–60 MB og må aldri gå rått gjennom JSON-bodyen. Importen er versjonert
-    (`?v=`) fordi `downscaleImage` er en NY eksport; en stale modul ville gitt SyntaxError
-    som stopper hele siden (samme felle som v1.53.15)
-  - Hvilken rad som venter på en fil ligger i `data-funn` på den delte `<input type=file>`,
-    ikke i en modulvariabel — tilstanden er synlig i DOM-en og flyten kan drives i test uten
-    å åpne en filvelger-dialog
+  - «Legg til bilde» åpner en modal som gjenbruker `initPhotoPicker` (fil, utklippstavle,
+    dra-og-slipp) og sender bildet videre inn i `bilde-editor.js`. Hvilket funn modalen
+    gjelder står i `data-funn` på selve modalen
+  - `photo-picker.js` har fått valgfri `dropZone`. Den svelger dragover/drop på HELE
+    dokumentet mens velgeren er aktiv — bommer man på sonen, ville nettleseren ellers
+    åpnet bildet i fanen og brukeren mistet både siden og bildet
   - Ved vellykket opplasting byttes knappen til «🖼️ Har bilde» lokalt i stedet for å hente
     hele lista på nytt — et AO-kall per bilde ville vært merkbart tregt (målt 12 sek for en
     full henting), når flere bilder legges til etter tur

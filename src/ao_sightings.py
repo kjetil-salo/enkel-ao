@@ -312,8 +312,12 @@ def _create_stored_search(client, days):
     Returnerer (None, None) hvis AO ikke svarte som forventet. `client` må allerede
     bære innloggings-cookiene — se merknaden i `fetch_my_sightings`.
     """
+    # follow_redirects: en utløpt sesjon kan gi BÅDE en 302 til /LogOn og en 200 med
+    # den anonyme siden — observert begge deler i praksis. Ved å følge videreføringen
+    # havner vi uansett på en side `_looks_logged_in` kan dømme, i stedet for at den
+    # ene varianten blir en navnløs «HTTP 302»-feil og brukeren får «ingen funn».
     resp = client.get(f'{AO_BASE}/ViewSighting/SearchSighting',
-                      headers=_HEADERS, timeout=15)
+                      headers=_HEADERS, timeout=15, follow_redirects=True)
     if resp.status_code != 200:
         logger.warning(f'[AO-FUNN] Søkeskjemaet svarte HTTP {resp.status_code}')
         return None, None
