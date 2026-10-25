@@ -12,8 +12,10 @@
       .shell { max-width: 640px; margin: 0 auto; }
       header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 4px; }
       h1 { font-size: 1.25rem; margin: 0; }
+      h2 { font-size: 1rem; margin: 26px 0 6px; }
       .back-link { color: var(--accent, #3b82f6); text-decoration: none; font-size: 0.9rem; }
       .ingress { color: var(--muted, #9ca3af); font-size: 0.85rem; line-height: 1.4; margin: 0 0 18px; }
+      .seksjon-info { color: var(--muted, #9ca3af); font-size: 0.8rem; line-height: 1.4; margin: 0 0 12px; }
       .batch { background: rgba(255,255,255,0.04); border: 1px solid rgba(148,163,184,0.15);
                border-radius: 12px; padding: 14px 16px; margin-bottom: 14px; }
       .batch-head { display: flex; justify-content: space-between; align-items: baseline;
@@ -27,16 +29,54 @@
       .antall { color: #86efac; font-weight: 600; }
       .detalj { color: var(--muted, #9ca3af); font-size: 0.85rem; }
       .knapper { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
-      .btn-liten { padding: 7px 12px; border-radius: 8px; font-size: 0.85rem; cursor: pointer;
-                   border: 1px solid rgba(148,163,184,0.25); background: transparent; color: var(--text, #e5e7eb); }
+      .btn-liten { padding: 10px 14px; border-radius: 8px; font-size: 0.85rem; cursor: pointer;
+                   min-height: 44px; border: 1px solid rgba(148,163,184,0.25);
+                   background: transparent; color: var(--text, #e5e7eb); }
       .btn-liten.primar { background: var(--accent, #3b82f6); border-color: transparent; color: #fff; }
+      .btn-liten:disabled { opacity: 0.55; cursor: default; }
       .tom { text-align: center; color: var(--muted, #9ca3af); padding: 40px 16px; line-height: 1.5; }
       footer { margin-top: 24px; text-align: center; color: var(--muted, #9ca3af); font-size: 0.8rem; line-height: 1.5; }
       footer a { color: var(--accent, #3b82f6); }
+
+      /* AO-seksjonen */
+      .ao-topp { display: flex; align-items: center; gap: 10px;
+                 flex-wrap: wrap; margin-bottom: 10px; }
+      /* style.css gir alle select-er width:100% — her skal den dele linje med
+         Oppdater-knappen, ikke dytte den ned på egen rad. */
+      .ao-dager { width: auto; flex: 0 1 auto; font-size: 16px; padding: 8px 32px 8px 12px;
+                  min-height: 44px; border-radius: 8px; background: transparent;
+                  color: var(--text, #e5e7eb); border: 1px solid rgba(148,163,184,0.25); }
+      .funn { background: rgba(255,255,255,0.04); border: 1px solid rgba(148,163,184,0.15);
+              border-radius: 12px; padding: 12px 14px; margin-bottom: 10px; }
+      .funn-hode { display: flex; justify-content: space-between; align-items: baseline;
+                   gap: 10px; flex-wrap: wrap; }
+      .funn-art { font-weight: 600; }
+      .funn-meta { color: var(--muted, #9ca3af); font-size: 0.85rem; }
+      .funn-handling { display: flex; gap: 8px; align-items: center; margin-top: 10px; flex-wrap: wrap; }
+      .funn-lenke { color: var(--accent, #3b82f6); text-decoration: none; font-size: 0.85rem;
+                    padding: 10px 4px; min-height: 44px; display: inline-flex; align-items: center; }
+      .funn-lenke.endre { color: var(--muted, #9ca3af); }
+      .har-bilde { color: #86efac; font-size: 0.85rem; }
+      .advarsel { margin-top: 8px; padding: 8px 10px; border-radius: 8px; font-size: 0.85rem;
+                  background: rgba(234,179,8,0.1); border: 1px solid rgba(234,179,8,0.4); }
+      .rad-status { font-size: 0.85rem; margin-top: 8px; }
+      .rad-status.feil { color: #fca5a5; }
+      .rad-status.ok { color: #86efac; }
+      .beskjed { padding: 14px 16px; border-radius: 12px; line-height: 1.5; font-size: 0.9rem;
+                 background: rgba(255,255,255,0.04); border: 1px solid rgba(148,163,184,0.15); }
+      .beskjed a { color: var(--accent, #3b82f6); }
+
       body.theme-light { background: #ffffff !important; color: #1a1a1a !important; }
-      body.theme-light .batch { background: #f8fafc !important; border-color: #e2e8f0 !important; }
+      body.theme-light .batch,
+      body.theme-light .funn,
+      body.theme-light .beskjed { background: #f8fafc !important; border-color: #e2e8f0 !important; }
       body.theme-light .sted { color: #1d4ed8 !important; }
       body.theme-light .antall { color: #16a34a !important; }
+      body.theme-light .har-bilde,
+      body.theme-light .rad-status.ok { color: #16a34a !important; }
+      body.theme-light .rad-status.feil { color: #b91c1c !important; }
+      body.theme-light .ao-dager,
+      body.theme-light .btn-liten { color: #1a1a1a !important; }
     </style>
   </head>
   <body>
@@ -47,19 +87,55 @@
         <a href="/" class="back-link">← Tilbake</a>
       </header>
       <p class="ingress">
-        Kvittering for det du har publisert til Artsobservasjoner de siste 7 dagene.
-        Lagres bare på denne enheten.
+        Funnene dine hos Artsobservasjoner, og kvitteringen for det du har publisert
+        fra denne enheten.
+      </p>
+
+      <h2>🔭 Mine funn på Artsobservasjoner</h2>
+      <p class="seksjon-info">
+        Hentes fra Artsobservasjoner, så den er lik på alle enhetene dine. Her kan du
+        legge til bilder i etterkant — typisk når du kommer hjem fra felt med kamera.
+      </p>
+      <p class="seksjon-info">
+        <strong>✏️ Endre</strong> åpner funnet i Artsobservasjoners eget skjema, der du kan
+        rette antall, art, tid og lokalitet. Merk at AO gjør funnet <em>upublisert</em> i det
+        du åpner det — du må trykke «Publiser» hos AO etterpå, også om du ikke endret noe.
+      </p>
+      <div class="ao-topp">
+        <select id="ao-dager" class="ao-dager" aria-label="Hvor langt tilbake">
+          <option value="7">Siste 7 dager</option>
+          <option value="14" selected>Siste 14 dager</option>
+          <option value="30">Siste 30 dager</option>
+          <option value="60">Siste 60 dager</option>
+        </select>
+        <button id="ao-oppdater" class="btn-liten">↻ Oppdater</button>
+      </div>
+      <div id="ao-liste"></div>
+
+      <h2>📱 Sendt fra denne enheten</h2>
+      <p class="seksjon-info">
+        Lokal kvittering for det du har publisert de siste 7 dagene. Virker uten nett
+        og uten innlogging.
       </p>
       <div id="liste"></div>
+
       <footer>
         Skal du rette et funn, gjør du det på
         <a href="https://www.artsobservasjoner.no/User/MyPages" target="_blank" rel="noopener">Mine sider hos Artsobservasjoner</a>.
       </footer>
     </div>
 
+    <!-- Felles filvelger for hele AO-lista. Én input gjenbrukes av alle radene;
+         hvilken rad som venter på en fil står i `data-funn` på selve inputen. -->
+    <input type="file" id="bilde-input" accept="image/*" style="display:none" />
+
     <script type="module">
       import { loadSentBatches, loadObservations, saveObservations, SENT_MAX_DAYS } from '/js/storage.js';
       import { openShareDialog } from '/js/share.js';
+      // Versjonert: `downscaleImage` er en NY eksport, og en cachet gammel kopi av
+      // photo-picker.js ville gitt SyntaxError som stopper hele denne modulen.
+      // Se «Versjonering» i CLAUDE.md (samme felle som v1.53.15).
+      import { downscaleImage } from '/js/photo-picker.js?v=v1.54.0';
 
       const MND = ['januar', 'februar', 'mars', 'april', 'mai', 'juni',
         'juli', 'august', 'september', 'oktober', 'november', 'desember'];
@@ -79,6 +155,225 @@
         el.textContent = v == null ? '' : String(v);
         return el.innerHTML;
       }
+
+      // tekst() escaper IKKE anførselstegn (textContent→innerHTML gjør ikke det), og
+      // duger derfor bare mellom tagger. Alt som havner inne i et attributt må hit,
+      // ellers kan en verdi med " bryte ut av attributtet og injisere markup.
+      function attr(v) {
+        return String(v == null ? '' : v)
+          .replace(/&/g, '&amp;').replace(/"/g, '&quot;')
+          .replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      }
+
+      // ===================================================================
+      // Mine funn på Artsobservasjoner
+      // ===================================================================
+
+      const aoListeEl = document.getElementById('ao-liste');
+      const dagerEl = document.getElementById('ao-dager');
+      const oppdaterEl = document.getElementById('ao-oppdater');
+      const bildeInput = document.getElementById('bilde-input');
+      let funnCache = [];
+      // Teller som forkaster svar fra en eldre, tregere henting når en nyere
+      // allerede har tegnet. Uten den kan et 60-dagers svar lande etter at
+      // brukeren har byttet til 7 dager, og lista beskriver feil tidsrom.
+      // Samme mønster som `fetchSeq` i map.js.
+      let hentSeq = 0;
+
+      function hentTokens() {
+        try {
+          return JSON.parse(localStorage.getItem('ao_tokens') || '{}');
+        } catch (e) {
+          return {};
+        }
+      }
+
+      function formatDato(iso) {
+        const [aar, mnd, dag] = String(iso || '').split('-');
+        if (!dag) return iso || '';
+        return `${Number(dag)}. ${MND[Number(mnd) - 1]}`;
+      }
+
+      function renderFunn(funn) {
+        const detaljer = [funn.time, funn.activity].filter(Boolean).join(' · ');
+        const advarsel = funn.triggeredRules
+          ? `<div class="advarsel">⚠️ Artsobservasjoner har en merknad til dette funnet:
+             ${tekst(funn.triggeredRules)}</div>`
+          : '';
+        const bildeknapp = funn.hasImage
+          ? '<span class="har-bilde">🖼️ Har bilde</span>'
+          : `<button class="btn-liten primar" data-bilde="${attr(funn.sightingId)}">📷 Legg til bilde</button>`;
+
+        return `
+          <div class="funn" id="funn-${attr(funn.sightingId)}">
+            <div class="funn-hode">
+              <span class="funn-art"><span class="antall">${tekst(funn.quantity)}</span>
+                ${tekst(funn.taxonName)}</span>
+              <span class="funn-meta">${tekst(formatDato(funn.date))}${detaljer ? ' · ' + tekst(detaljer) : ''}</span>
+            </div>
+            <div class="funn-meta">${tekst(funn.siteName)}</div>
+            ${advarsel}
+            <div class="funn-handling">
+              ${bildeknapp}
+              <a class="funn-lenke" href="${attr(funn.url)}" target="_blank" rel="noopener">↗ Vis på AO</a>
+              <a class="funn-lenke endre" href="https://www.artsobservasjoner.no/Edit/${attr(funn.sightingId)}"
+                 target="_blank" rel="noopener"
+                 title="Åpner funnet i redigering hos Artsobservasjoner. Husk å publisere det på nytt etterpå.">✏️ Endre</a>
+            </div>
+            <div class="rad-status" data-status="${attr(funn.sightingId)}"></div>
+          </div>`;
+      }
+
+      async function lastAoFunn() {
+        const t = hentTokens();
+        if (!t.loginToken || !t.authCookie) {
+          aoListeEl.innerHTML = `<div class="beskjed">
+            Du er ikke innlogget på Artsobservasjoner i appen.
+            <a href="/settings.html">Logg inn i innstillinger</a>, så dukker funnene dine opp her.
+          </div>`;
+          return;
+        }
+
+        const minSeq = ++hentSeq;
+        aoListeEl.innerHTML = '<div class="tom">Henter funnene dine fra Artsobservasjoner …</div>';
+        oppdaterEl.disabled = true;
+        dagerEl.disabled = true;
+
+        let data;
+        try {
+          const r = await fetch('/api/ao-my-sightings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              loginToken: t.loginToken,
+              authCookie: t.authCookie,
+              days: Number(dagerEl.value) || 14,
+            }),
+          });
+          data = await r.json();
+        } catch (e) {
+          if (minSeq !== hentSeq) return;
+          aoListeEl.innerHTML = `<div class="beskjed">
+            Fikk ikke kontakt med serveren. Prøv igjen senere — kvitteringen under
+            ligger trygt på denne enheten uansett.
+          </div>`;
+          oppdaterEl.disabled = false;
+          dagerEl.disabled = false;
+          return;
+        }
+
+        // En nyere henting har overtatt — ikke tegn over den med et gammelt svar.
+        if (minSeq !== hentSeq) return;
+        oppdaterEl.disabled = false;
+        dagerEl.disabled = false;
+
+        if (data.needsLogin) {
+          aoListeEl.innerHTML = `<div class="beskjed">
+            Innloggingen mot Artsobservasjoner er utløpt.
+            <a href="/settings.html">Logg inn på nytt</a>, så henter vi funnene dine.
+          </div>`;
+          return;
+        }
+
+        funnCache = Array.isArray(data.sightings) ? data.sightings : [];
+
+        if (!funnCache.length) {
+          aoListeEl.innerHTML = `<div class="tom">
+            Ingen funn registrert på deg de siste ${tekst(dagerEl.value)} dagene.
+          </div>`;
+          return;
+        }
+
+        const avkortet = data.truncated
+          ? `<p class="seksjon-info">Viser ${funnCache.length} av ${tekst(data.total)} funn.
+             Velg et kortere tidsrom for å se alle.</p>`
+          : '';
+        aoListeEl.innerHTML = avkortet + funnCache.map(renderFunn).join('');
+      }
+
+      function settStatus(sightingId, melding, type) {
+        const el = aoListeEl.querySelector(`[data-status="${sightingId}"]`);
+        if (!el) return;
+        el.className = `rad-status${type ? ' ' + type : ''}`;
+        el.textContent = melding;
+      }
+
+      aoListeEl.addEventListener('click', (e) => {
+        const knapp = e.target.closest('[data-bilde]');
+        if (!knapp) return;
+        // Hvilken rad som venter på en fil holdes på selve input-elementet, ikke i en
+        // modulvariabel. Da er tilstanden synlig i DOM-en, og flyten kan drives uten
+        // å åpne filvelgeren — nyttig både for feilsøking og for test.
+        bildeInput.dataset.funn = knapp.dataset.bilde;
+        bildeInput.value = '';   // samme fil to ganger skal fortsatt utløse change
+        bildeInput.click();
+      });
+
+      bildeInput.addEventListener('change', async () => {
+        const fil = bildeInput.files && bildeInput.files[0];
+        const sightingId = bildeInput.dataset.funn;
+        delete bildeInput.dataset.funn;
+        if (!fil || !sightingId) return;
+
+        const knapp = aoListeEl.querySelector(`[data-bilde="${sightingId}"]`);
+        if (knapp) knapp.disabled = true;
+        settStatus(sightingId, 'Skalerer ned bildet …');
+
+        try {
+          // Nedskalering først: et Z9-bilde er 40–60 MB, og AO skalerer uansett ned
+          // til 1600 px selv. Uten dette ville vi sendt titalls megabyte gjennom
+          // JSON-bodyen til ingen nytte.
+          const photo = await downscaleImage(fil);
+          settStatus(sightingId, 'Laster opp til Artsobservasjoner …');
+
+          const t = hentTokens();
+          const r = await fetch('/api/ao-upload-image', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              sightingId: Number(sightingId),
+              photo,
+              loginToken: t.loginToken,
+              authCookie: t.authCookie,
+            }),
+          });
+          const svar = await r.json();
+
+          if (!svar.ok) {
+            settStatus(sightingId, `Bildet ble ikke lagt til: ${svar.error || 'ukjent årsak'}`, 'feil');
+            if (knapp) knapp.disabled = false;
+            return;
+          }
+
+          // Bytt knappen med «har bilde» i stedet for å hente hele lista på nytt —
+          // et nytt AO-kall per bilde ville vært tregt når flere legges til etter tur.
+          const funn = funnCache.find((f) => String(f.sightingId) === String(sightingId));
+          if (funn) funn.hasImage = true;
+          if (knapp) knapp.outerHTML = '<span class="har-bilde">🖼️ Har bilde</span>';
+
+          // Serveren skiller mellom «bekreftet hos AO» og «sendt, men vi fikk ikke
+          // talt bildene før og etter». Det siste skal ikke presenteres som en
+          // kvittering — da ville vi lovet noe vi ikke har dekning for.
+          if (svar.verified === false) {
+            settStatus(sightingId,
+              'Bildet ble sendt, men vi fikk ikke bekreftet det hos Artsobservasjoner. '
+              + 'Sjekk funnet før du laster opp på nytt.');
+          } else {
+            settStatus(sightingId, 'Bildet er lagt til på funnet.', 'ok');
+          }
+        } catch (e) {
+          settStatus(sightingId, `Kunne ikke laste opp bildet: ${e.message}`, 'feil');
+          if (knapp) knapp.disabled = false;
+        }
+      });
+
+      dagerEl.addEventListener('change', lastAoFunn);
+      oppdaterEl.addEventListener('click', lastAoFunn);
+      lastAoFunn();
+
+      // ===================================================================
+      // Lokal sendt-logg (uendret oppførsel)
+      // ===================================================================
 
       function renderBatch(batch, idx) {
         const obs = batch.obs || [];
