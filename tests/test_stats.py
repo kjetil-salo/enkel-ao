@@ -21,43 +21,50 @@ def start_server(port):
     return server
 
 
-def test_stats_page_no_key():
-    """Test at /stats krever nøkkel."""
+def test_gammel_stats_url_finnes_ikke_lenger():
+    """
+    `/stats?key=salo` er fjernet. Standardnøkkelen sto i klartekst i et offentlig
+    repo, altså ingen beskyttelse for den som leste koden.
+    """
     port = 38010
     srv = start_server(port)
     time.sleep(0.05)
+    try:
+        # Ukjente stier faller gjennom til selve appen, så statuskoden er 200.
+        # Det som betyr noe er at ingen admin-data serveres.
+        for url in (f'http://127.0.0.1:{port}/stats',
+                    f'http://127.0.0.1:{port}/stats?key=salo'):
+            r = requests.get(url)
+            assert 'Brukerstatistikk' not in r.text
+            assert 'sidevisninger' not in r.text
+    finally:
+        srv.shutdown()
 
-    # Uten key parameter
-    r = requests.get(f'http://127.0.0.1:{port}/stats')
-    assert r.status_code == 200
-    # Sjekk for login-form i HTML
-    assert 'Logg inn' in r.text or 'stats-key' in r.text
 
-    srv.shutdown()
-
-
-def test_stats_page_wrong_key():
-    """Test at /stats avviser feil nøkkel."""
+def test_feil_hemmelighet_gir_404_ikke_hint(monkeypatch):
+    """
+    Feil hemmelighet skal se ut som at siden ikke finnes. En 403 eller en
+    innloggingsside ville bekreftet at det ER noe der — og det er hele poenget
+    med en hemmelig adresse.
+    """
+    monkeypatch.setenv('ADMIN_STI', 'riktig-hemmelighet')
     port = 38011
     srv = start_server(port)
     time.sleep(0.05)
+    try:
+        r = requests.get(f'http://127.0.0.1:{port}/s/feil-hemmelighet')
+        assert r.status_code == 404
+        assert 'Brukerstatistikk' not in r.text
+        assert 'Logg inn' not in r.text
+    finally:
+        srv.shutdown()
 
-    r = requests.get(f'http://127.0.0.1:{port}/stats?key=wrongkey')
-    assert r.status_code == 200
-    # Sjekk for login-form i HTML
-    assert 'Logg inn' in r.text or 'stats-key' in r.text
 
-    srv.shutdown()
-
-
-def test_stats_page_correct_key(monkeypatch):
-    """Test at /stats viser data med korrekt nøkkel."""
-    # Sett STATS_KEY for test og disable Supabase
-    monkeypatch.setenv('STATS_KEY', 'testkey')
+def test_riktig_hemmelighet_viser_statistikk(monkeypatch):
+    monkeypatch.setenv('ADMIN_STI', 'testhemmelighet')
     monkeypatch.delenv('SUPABASE_URL', raising=False)
     monkeypatch.delenv('SUPABASE_KEY', raising=False)
 
-    # Reset stats
     _stats['total'] = 5
     _stats['per_ip'] = {'127.0.0.1': 3, '192.168.1.1': 2}
     _stats['per_ua'] = {'TestAgent/1.0': 4, 'OtherAgent/2.0': 1}
@@ -65,21 +72,16 @@ def test_stats_page_correct_key(monkeypatch):
     port = 38012
     srv = start_server(port)
     time.sleep(0.05)
-
-    r = requests.get(f'http://127.0.0.1:{port}/stats?key=testkey')
-    assert r.status_code == 200
-    # Sjekk at stats-siden vises (enten fra Supabase eller in-memory)
-    assert 'Brukerstatistikk' in r.text or 'sidevisninger' in r.text
-    # Ikke sjekk spesifikk data siden Supabase kan være aktiv
-
-    srv.shutdown()
+    try:
+        r = requests.get(f'http://127.0.0.1:{port}/s/testhemmelighet')
+        assert r.status_code == 200
+        assert 'Brukerstatistikk' in r.text or 'sidevisninger' in r.text
+    finally:
+        srv.shutdown()
 
 
-def test_stats_page_empty_stats(monkeypatch):
-    """Test at /stats håndterer tomme stats."""
-    monkeypatch.setenv('STATS_KEY', 'testkey')
-
-    # Reset stats til tom
+def test_tomme_stats_gir_fortsatt_side(monkeypatch):
+    monkeypatch.setenv('ADMIN_STI', 'testhemmelighet')
     _stats['total'] = 0
     _stats['per_ip'] = {}
     _stats['per_ua'] = {}
@@ -87,13 +89,24 @@ def test_stats_page_empty_stats(monkeypatch):
     port = 38013
     srv = start_server(port)
     time.sleep(0.05)
+    try:
+        r = requests.get(f'http://127.0.0.1:{port}/s/testhemmelighet')
+        assert r.status_code == 200
+        assert 'Brukerstatistikk' in r.text or 'sidevisninger' in r.text
+    finally:
+        srv.shutdown()
 
-    r = requests.get(f'http://127.0.0.1:{port}/stats?key=testkey')
-    assert r.status_code == 200
-    # Sjekk at stats-siden er returnert (enten med data eller melding om tom stats)
-    assert 'Brukerstatistikk' in r.text or 'sidevisninger' in r.text
 
-    srv.shutdown()
+def test_ukjent_underside_bak_hemmeligheten_gir_404(monkeypatch):
+    monkeypatch.setenv('ADMIN_STI', 'testhemmelighet')
+    port = 38014
+    srv = start_server(port)
+    time.sleep(0.05)
+    try:
+        r = requests.get(f'http://127.0.0.1:{port}/s/testhemmelighet/noe-annet')
+        assert r.status_code == 404
+    finally:
+        srv.shutdown()
 
 
 def test_stats_increment():

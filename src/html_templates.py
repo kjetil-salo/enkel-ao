@@ -7,36 +7,6 @@ Genererer HTML-sider for statistikk og login.
 import html as _html
 
 
-def generate_stats_login_page():
-    """Generer login-side for statistikk."""
-    return """
-<html>
-<head><meta name='viewport' content='width=device-width,initial-scale=1'><title>Logg inn for statistikk</title></head>
-<body style="font-family:system-ui, sans-serif;padding:18px;">
-    <h2>Logg inn</h2>
-    <p>Oppgi nøkkel for å se statistikk.</p>
-    <input id="stats-key" type="text" placeholder="Skriv inn nøkkel" style="padding:8px;font-size:16px;" />
-    <button id="stats-go" style="padding:8px 10px;margin-left:8px;">Vis</button>
-    <p style="color:#666;margin-top:12px;font-size:0.9rem">Nøkkelen lagres i din nettleser slik at du ikke må skrive den igjen.</p>
-    <script>
-        (function(){
-            const inp = document.getElementById('stats-key');
-            const btn = document.getElementById('stats-go');
-            const saved = localStorage.getItem('stats_key');
-            if (saved) inp.value = saved;
-            btn.addEventListener('click', () => {
-                const v = inp.value.trim();
-                if (!v) return alert('Skriv inn nøkkel');
-                localStorage.setItem('stats_key', v);
-                location.search = '?key=' + encodeURIComponent(v);
-            });
-        })();
-    </script>
-</body>
-</html>
-"""
-
-
 def generate_stats_page(recent_ips, per_ua, total, per_device=None, per_os=None, per_browser=None, total_unique_ips=0, source="Supabase", total_unique_devices=0, exports=None, trend_30d=None, trend_7d=None, unique_devices_per_day=None, unique_users_per_week=None):
     """Generer statistikk-side med data fra enten Supabase eller in-memory."""
     per_device = per_device or {}
@@ -309,8 +279,14 @@ _FEEDBACK_STATUS_COLOR = {
 }
 
 
-def generate_feedback_admin_page(items, counts, key, status_filter=''):
-    """Generer key-beskyttet admin-visning av innmeldte tilbakemeldinger."""
+def generate_feedback_admin_page(items, counts, hemmelighet, status_filter=''):
+    """
+    Admin-visning av innmeldte tilbakemeldinger.
+
+    `hemmelighet` er den hemmelige stien siden ble nådd gjennom. Den føres videre
+    i statusfilter-lenkene og i statusendrings-kallet, slik at man ikke faller ut
+    av adressen ved første klikk.
+    """
     counts = counts or {}
     total = sum(counts.values())
 
@@ -319,7 +295,7 @@ def generate_feedback_admin_page(items, counts, key, status_filter=''):
         n = total if not value else counts.get(value, 0)
         active = (status_filter == value)
         style = 'font-weight:700;text-decoration:underline;' if active else ''
-        q = f'?key={_html.escape(key)}'
+        q = f'?s={_html.escape(hemmelighet)}'
         if value:
             q += f'&status={value}'
         return f'<a href="{q}" style="margin-right:14px;color:#2563eb;{style}">{label} ({n})</a>'
@@ -398,10 +374,10 @@ def generate_feedback_admin_page(items, counts, key, status_filter=''):
         </table>
     </div>
     <script>
-        const KEY = {_html.escape(repr(key))};
+        const HEMMELIGHET = {_html.escape(repr(hemmelighet))};
         async function setStatus(caseNo, status) {{
             try {{
-                const r = await fetch('/api/feedback-status?key=' + encodeURIComponent(KEY), {{
+                const r = await fetch('/api/feedback-status?s=' + encodeURIComponent(HEMMELIGHET), {{
                     method: 'POST',
                     headers: {{ 'Content-Type': 'application/json' }},
                     body: JSON.stringify({{ caseNo, status }})

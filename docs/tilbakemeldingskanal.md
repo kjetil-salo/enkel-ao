@@ -45,7 +45,10 @@ device_type, os, browser, ip, status, ts`.
 Funksjoner: `create_feedback`, `list_feedback`, `set_status`, `count_by_status`.
 Status-verdier: `ny | under_arbeid | løst | avvist`.
 
-### Admin-visning `/feedback?key=STATS_KEY`
+### Admin-visning `/s/<hemmelighet>/tilbakemeldinger`
+
+> Flyttet fra `/feedback?key=STATS_KEY` 26.10.2026. Hemmeligheten genereres
+> automatisk, se `src/adminsti.py` og `CLAUDE.md`.
 Key-beskyttet (samme nøkkel som `/stats`). Tabell med alle saker, statusfilter,
 og statusendring (POST `/api/feedback-status?key=…`). E-postadresser vises som
 `mailto:`-lenke med saksnr i emnet, så eier kan svare manuelt.

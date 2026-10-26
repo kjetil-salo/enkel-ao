@@ -52,10 +52,11 @@ logging.basicConfig(
 logger = logging.getLogger('fugleobs')
 
 from src.api_handlers import handle_species_search, handle_reverse_geocoding, handle_ao_sites_search, login_to_ao, mask_token
-from src.html_templates import (generate_stats_login_page, generate_stats_page, generate_error_page,
+from src.html_templates import (generate_stats_page, generate_error_page,
                                 generate_feedback_admin_page, generate_share_page,
                                 generate_share_missing_page)
 from src import stats_store
+from src import adminsti
 from src import feedback_store
 from src import share_store
 from src import fellestur_store
@@ -703,10 +704,9 @@ class Handler(SimpleHTTPRequestHandler):
 
     def _handle_feedback_status_post(self, parsed):
         """Oppdater status på en sak (key-beskyttet admin-handling)."""
-        expected_key = os.environ.get('STATS_KEY', 'salo')
         qs = parse_qs(parsed.query)
-        if qs.get('key', [''])[0] != expected_key:
-            self._send_json({'error': 'Ugyldig nøkkel'}, status=403)
+        if not adminsti.sti_stemmer(qs.get('s', [''])[0]):
+            self._send_json({'error': 'Ugyldig adresse'}, status=404)
             return
         try:
             content_length = int(self.headers.get('Content-Length', 0))
@@ -1104,11 +1104,10 @@ class Handler(SimpleHTTPRequestHandler):
             if parsed.path == '/manifest.json' and APP_NAME_SUFFIX:
                 self._handle_env_manifest()
                 return
-            if parsed.path == '/stats':
-                self._handle_stats_page(parsed)
-                return
-            if parsed.path == '/feedback':
-                self._handle_feedback_page(parsed)
+            # Admin-sidene ligger bak en hemmelig sti, ikke en nøkkel i query.
+            # Se src/adminsti.py for hva det faktisk beskytter mot.
+            if parsed.path.startswith('/s/'):
+                self._handle_admin_side(parsed)
                 return
             if parsed.path.startswith('/d/'):
                 self._handle_share_page(parsed)
@@ -1135,17 +1134,31 @@ class Handler(SimpleHTTPRequestHandler):
             logger.error(f"Feil i {parsed.path}: {e}")
             self._send_error_response(str(e))
     
-    def _handle_stats_page(self, parsed):
-        """Håndter statistikk-siden."""
-        expected_key = os.environ.get('STATS_KEY', 'salo')
-        qs = parse_qs(parsed.query)
-        provided_key = qs.get('key', [''])[0]
-        
-        # Sjekk autentisering
-        if provided_key != expected_key:
-            self._send_html_response(generate_stats_login_page())
+    def _handle_admin_side(self, parsed):
+        """
+        Ruter for admin-sidene bak den hemmelige stien.
+
+        `/s/<hemmelighet>` → statistikk
+        `/s/<hemmelighet>/tilbakemeldinger` → tilbakemeldinger
+
+        Feil hemmelighet gir 404, ikke en innloggingsside: en 403 ville bekreftet
+        at det finnes noe der, og det er hele poenget med en hemmelig adresse.
+        """
+        biter = [b for b in parsed.path.split('/') if b]   # ['s', '<hemmelighet>', ...]
+        if len(biter) < 2 or not adminsti.sti_stemmer(biter[1]):
+            self._send_error_response('Siden finnes ikke', status=404)
             return
-        
+
+        underside = biter[2] if len(biter) > 2 else ''
+        if underside == 'tilbakemeldinger':
+            self._handle_feedback_page(parsed, biter[1])
+        elif underside:
+            self._send_error_response('Siden finnes ikke', status=404)
+        else:
+            self._handle_stats_page(parsed)
+
+    def _handle_stats_page(self, parsed):
+        """Statistikk-siden. Tilgang er alt avgjort i _handle_admin_side."""
         # Hent data via fasaden (SQLite primær, Supabase fallback)
         stats, source = stats_store.get_stats()
         if stats:
@@ -1185,19 +1198,13 @@ class Handler(SimpleHTTPRequestHandler):
             )
         self._send_html_response(html)
 
-    def _handle_feedback_page(self, parsed):
-        """Key-beskyttet admin-visning av innmeldte tilbakemeldinger."""
-        expected_key = os.environ.get('STATS_KEY', 'salo')
+    def _handle_feedback_page(self, parsed, hemmelighet):
+        """Admin-visning av innmeldte tilbakemeldinger. Tilgang alt avgjort."""
         qs = parse_qs(parsed.query)
-        provided_key = qs.get('key', [''])[0]
-        if provided_key != expected_key:
-            self._send_html_response(generate_stats_login_page())
-            return
-
         status_filter = qs.get('status', [''])[0]
         items = feedback_store.list_feedback(status=status_filter)
         counts = feedback_store.count_by_status()
-        html = generate_feedback_admin_page(items, counts, provided_key, status_filter)
+        html = generate_feedback_admin_page(items, counts, hemmelighet, status_filter)
         self._send_html_response(html)
 
     def _read_ao_auth_headers(self):

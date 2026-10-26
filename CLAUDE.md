@@ -172,7 +172,7 @@ The `Handler` class routes requests:
   - Spam-vern: honeypot-felt (`website`), per-IP throttling (5/10 min), lengdegrenser
   - Sender eier-varsel via `src/email_notify.py` i bakgrunnstråd (best effort, `Reply-To` = melder)
 - `/api/feedback-status` (POST, key-protected) → oppdaterer status på en sak (ny/under_arbeid/løst/avvist)
-- `/feedback?key=X` → key-beskyttet admin-visning av tilbakemeldinger (statusfilter + statusendring)
+- `/s/<hemmelighet>/tilbakemeldinger` → admin-visning av tilbakemeldinger (statusfilter + statusendring)
 - `/api/share` (POST) → lager delbar lenke av valgte observasjoner, returnerer `{slug, url, deleteKey, expiresTs}`
   - Lagres i `src/share_store.py` (SQLite, samme `stats.db`). Slug: 12 tegn fra entydig alfabet
   - **Personvern:** hvitelisting av felt — koordinater lagres aldri, `hideUntil`-obser slippes ikke gjennom
@@ -202,7 +202,15 @@ The `Handler` class routes requests:
 - `/api/fellestur-peer/<kode>/events` (POST) → **kryss-app-føderasjon**: mottar en batch events fra
   en peer-server (f.eks. Feltlogg) som følger samme delte kode. Se `src/fellestur_peer.py` og
   `docs/ANALYSIS_FELLESTUR_FODERASJON.md` for full kontrakt og designvalg
-- `/stats?key=X` → displays analytics (key-protected)
+- `/s/<hemmelighet>` → statistikk. Hemmeligheten genereres automatisk første gang og
+  lagres i docker-volumet (`src/adminsti.py`), så den overlever rebuild. Den skal aldri
+  skrives inn for hånd — driftssiden på Pi-en (`pi-dashboard`, kun Tailscale) leser fila
+  og bygger ferdige lenker
+  - Feil hemmelighet gir **404**, ikke en innloggingsside: en 403 ville bekreftet at det
+    finnes noe der, og det er hele poenget med en hemmelig adresse
+  - Dette er ikke autentisering, og er ikke ment å være det. Den som har lenka, er inne.
+    En hemmelig sti er heller ikke sterkere enn en hemmelig nøkkel i en query-streng —
+    begge havner i logger. Gevinsten er at det ikke finnes noen standardverdi å gjette
 - `/health` → health check endpoint
 
 ### Backend Modules (src/)
@@ -508,7 +516,10 @@ except Exception as e:
   - Aktiverer lokalt navnesøk og avstandssortering i autocomplete uten innlogging
   - Fylles med `tools/import_ao_locations.py` (~487k norske lokasjoner, 78 MB)
 - `SUPABASE_URL`, `SUPABASE_KEY` (optional logging)
-- `STATS_KEY` (stats- og feedback-admin auth, default: 'salo')
+- `ADMIN_STI` (valgfri) — fast hemmelig sti til admin-sidene. Utelatt genereres den og
+  lagres i `ADMIN_STI_FIL` (default `/data/admin_sti.txt`, docker-volum)
+  - Erstatter `STATS_KEY`, som hadde standardverdien `'salo'` i klartekst i et offentlig
+    repo — altså ingen beskyttelse for den som leste koden
 - **Tilbakemelding-epostvarsel** (alle valgfrie — uten dem er varsling en no-op, skjema virker uansett):
   - `FEEDBACK_NOTIFY_TO` — mottaker (eier). Uten denne sendes ingenting
   - `FEEDBACK_NOTIFY_FROM` — avsender (må være verifisert hos provideren)

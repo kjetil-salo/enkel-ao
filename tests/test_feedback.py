@@ -180,16 +180,27 @@ def test_email_notify_failure_is_swallowed(monkeypatch):
     assert email_notify.send_feedback_notification('AO-XYZ99', 'annet', 'test') is False
 
 
-def test_admin_page_requires_key(monkeypatch):
-    monkeypatch.setenv('STATS_KEY', 'hemmelig')
+def test_admin_side_ligger_bak_hemmelig_sti(monkeypatch):
+    monkeypatch.setenv('ADMIN_STI', 'hemmelig')
     port = 38072
     srv = start_server(port)
     time.sleep(0.05)
     try:
-        r = requests.get(f'http://127.0.0.1:{port}/feedback')
-        assert 'Logg inn' in r.text  # login-side uten nøkkel
+        # Den gamle nøkkel-adressen er fjernet. Ukjente stier faller gjennom til
+        # appen, så det som betyr noe er at ingen admin-data serveres.
+        assert 'Tilbakemeldinger' not in requests.get(
+            f'http://127.0.0.1:{port}/feedback').text
+        assert 'Tilbakemeldinger' not in requests.get(
+            f'http://127.0.0.1:{port}/feedback?key=hemmelig').text
 
-        r2 = requests.get(f'http://127.0.0.1:{port}/feedback?key=hemmelig')
+        # Feil hemmelighet skal ikke røpe at det finnes noe der
+        r = requests.get(f'http://127.0.0.1:{port}/s/feil/tilbakemeldinger')
+        assert r.status_code == 404
+        assert 'Tilbakemeldinger' not in r.text
+
+        r2 = requests.get(f'http://127.0.0.1:{port}/s/hemmelig/tilbakemeldinger')
         assert 'Tilbakemeldinger' in r2.text
+        # Hemmeligheten må følge med i lenkene, ellers faller man ut ved første klikk
+        assert '?s=hemmelig' in r2.text
     finally:
         srv.shutdown()
