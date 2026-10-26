@@ -1382,6 +1382,69 @@ body.theme-light #search:disabled::placeholder {
       /* Valgfritt bilde i et nyhetspunkt. Full bredde i kortet, med egen
          bakgrunn slik at et strekbilde med gjennomsiktighet ikke blir
          usynlig i lyst tema. */
+      /* Rullehint i bunnen av en lang nyhet. `sticky` inne i rulleboksen, så det
+         blir liggende mens man blar. Negativ margin trekker det ut i panelets
+         padding, slik at uttoningen dekker hele bredden. */
+      .news-splash-scroll-hint {
+        position: sticky;
+        bottom: -18px;
+        z-index: 3;
+        display: block;
+        width: calc(100% + 36px);
+        margin: 0 -18px -18px;
+        padding: 34px 0 12px;
+        border: none;
+        cursor: pointer;
+        line-height: 1;
+        color: var(--accent, #3b82f6);
+        /* Uttoningen er det som faktisk sier «det fortsetter» i et øyekrok-blikk.
+           Pilen alene er lett å overse. */
+        background: linear-gradient(to bottom,
+                    rgba(17, 24, 39, 0) 0%,
+                    rgba(17, 24, 39, 0.88) 55%,
+                    rgba(17, 24, 39, 0.98) 100%);
+        transition: opacity 0.18s ease;
+      }
+
+      /* Pilen ligger i en fylt sirkel. En tynn strek mot en uttoning er lett å
+         overse, og poenget her er nettopp at ingen skal gå glipp av at
+         «Skjønner»-knappen ligger lenger nede. */
+      .news-splash-scroll-knapp {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        background: var(--accent, #3b82f6);
+        color: #fff;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+      }
+
+      .news-splash-scroll-tekst {
+        display: block;
+        margin-top: 5px;
+        font-size: 0.78rem;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        color: var(--accent, #3b82f6);
+      }
+
+      .news-splash-scroll-hint.skjult {
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      @media (prefers-reduced-motion: no-preference) {
+        .news-splash-scroll-knapp {
+          animation: news-hint-dupp 1.6s ease-in-out infinite;
+        }
+        @keyframes news-hint-dupp {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(4px); }
+        }
+      }
+
       .news-splash-item-image {
         display: block;
         width: 100%;
@@ -2067,6 +2130,13 @@ body.theme-light .obs-table td {
 
 body.theme-light .news-splash {
   background: rgba(15, 23, 42, 0.32) !important;
+}
+
+body.theme-light .news-splash-scroll-hint {
+  background: linear-gradient(to bottom,
+              rgba(255, 255, 255, 0) 0%,
+              rgba(255, 255, 255, 0.9) 55%,
+              rgba(255, 255, 255, 0.99) 100%) !important;
 }
 
 body.theme-light .news-splash-panel {

@@ -197,6 +197,48 @@ function createNewsSplash(items) {
   panel.appendChild(list);
   panel.appendChild(button);
   panel.appendChild(changelog);
+
+  // Rullehint. En lang nyhet skjuler både «Skjønner» og de nederste punktene,
+  // og panelet gir ingen antydning om at det finnes mer. Hintet er `sticky` i
+  // bunnen av selve rulleboksen, så det blir liggende mens man blar — og
+  // forsvinner i det bunnen er nådd.
+  //
+  // Uttoningen gjør mesteparten av jobben: den sier «dette fortsetter» i et
+  // øyekrok-blikk. Pilen gir i tillegg et trykkbart mål for den som vil videre
+  // uten å dra.
+  const hint = document.createElement('button');
+  hint.type = 'button';
+  hint.className = 'news-splash-scroll-hint';
+  hint.setAttribute('aria-label', 'Bla ned for mer');
+  // Tegnet chevron, ikke et Unicode-tegn: «⌄» rendrer spinkelt og ulikt på tvers
+  // av plattformer, og ble nesten usynlig mot uttoningen.
+  hint.innerHTML = '<span class="news-splash-scroll-knapp" aria-hidden="true">'
+    + '<svg width="22" height="14" viewBox="0 0 22 14" fill="none">'
+    + '<path d="M3 3 L11 11 L19 3" stroke="currentColor" stroke-width="3" '
+    + 'stroke-linecap="round" stroke-linejoin="round"/></svg></span>'
+    + '<span class="news-splash-scroll-tekst">Mer under</span>';
+  hint.addEventListener('click', () => {
+    panel.scrollBy({ top: panel.clientHeight * 0.8, behavior: 'smooth' });
+  });
+  panel.appendChild(hint);
+
+  function oppdaterHint() {
+    const igjen = panel.scrollHeight - panel.scrollTop - panel.clientHeight;
+    // 8 px slingringsmonn: subpiksel-avrunding gjør at man sjelden lander på
+    // nøyaktig null, og uten monnet blir hintet stående etter siste piksel.
+    hint.classList.toggle('skjult', igjen <= 8);
+  }
+
+  panel.addEventListener('scroll', oppdaterHint, { passive: true });
+  // Bildet endrer panelets høyde når det lastes — da må hintet vurderes på nytt.
+  panel.querySelectorAll('img').forEach((img) => {
+    img.addEventListener('load', oppdaterHint);
+  });
+  if (typeof ResizeObserver === 'function') {
+    new ResizeObserver(oppdaterHint).observe(panel);
+  }
+  requestAnimationFrame(oppdaterHint);
+
   overlay.appendChild(panel);
 
   return { overlay, button };
