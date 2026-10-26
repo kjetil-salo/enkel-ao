@@ -1585,6 +1585,10 @@ def run(port=3000):
     os.chdir(BASE_DIR)
     server_address = ('', port)
     httpd = ThreadingHTTPServer(server_address, Handler)
+    # Generer admin-stien allerede nå, ikke første gang noen treffer den.
+    # Driftssiden leser fila for å bygge lenker, og den skal ikke måtte vente
+    # på at noen tilfeldigvis poker en URL etter en deploy.
+    adminsti.hent_admin_sti()
     logger.info(f'Server kjører på port {port} (log_level={LOG_LEVEL})')
     httpd.serve_forever()
 
