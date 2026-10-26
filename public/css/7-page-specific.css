@@ -1344,7 +1344,9 @@ body.theme-light #search:disabled::placeholder {
       }
 
       .news-splash-panel {
-        width: min(420px, 100%);
+        /* 420px var satt for en ren tekstliste. Med bilde i nyheten har et bredere
+           panel mye mer å gi på PC, og min() gjør at mobilen er uberørt. */
+        width: min(560px, 100%);
         /* 620px var det bindende taket på en vanlig mobilskjerm (88vh ≈ 714px
            der), og klippet «Se endringslogg» bort selv når innholdet hadde
            fått plass. 700px lar 88vh-regelen styre på høye skjermer og

@@ -140,6 +140,14 @@ function createNewsSplash(items) {
     if (item.image && item.image.src) {
       const img = document.createElement('img');
       img.className = 'news-splash-item-image';
+      // Størrelsen settes OGSÅ inline, ikke bare i CSS. Stilarkene har ingen
+      // `?v=`, så Cloudflare kan servere en gammel kopi i opptil fire timer etter
+      // deploy (se «Versjonering» i CLAUDE.md). Uten regelen rendrer bildet i sin
+      // naturlige bredde — 1440 px — og sprenger hele panelet. Det traff prod
+      // 26.10.2026: feilfritt på mobil, ubrukelig på Mac.
+      img.style.width = '100%';
+      img.style.height = 'auto';
+      img.style.display = 'block';
       img.src = item.image.src;
       img.alt = item.image.alt || '';
       // Ikke la et manglende bilde etterlate et tomt hull i panelet.
