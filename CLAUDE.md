@@ -441,6 +441,20 @@ Pure ES6 modules with no framework:
     Brukerens EGNE nyopprettede lokasjoner er upåvirket av denne cachen uansett (se `createAoSite()`
     i `api.js`, som skriver rett inn i den separate 24t-cachen `ao_private_sites`)
 
+### Nyhetssplash med bilde (v1.55.1)
+`news-splash.js`: et punkt i `CURRENT_NEWS_SPLASH.items` kan ha `image: {src, alt}`
+i tillegg til `link: {href, text}`. Begge valgfrie.
+- Bildefilen ligger i `public/img/` og **må legges i `STATIC_ASSETS` i `sw.js`** —
+  ellers er nyheten uten bilde for den som åpner appen uten nett
+- Velg format etter motiv: SVG for strektegninger og flater, JPEG for fotografiske
+  motiv og illustrasjoner med toning. Bildet precaches og lastes ned av ALLE brukere,
+  også de på mobildata i felt — hold det under ~250 KB. Nyhetsbildet i v1.55.1 var
+  1132 KB som PNG og 214 KB som JPEG q82, uten synlig forskjell i 360 px visning
+- Bildet får egen bakgrunn i CSS (`.news-splash-item-image`), slik at et strekbilde
+  med gjennomsiktighet ikke blir usynlig i lyst tema
+- En `error`-lytter fjerner `<img>` hvis fila mangler, så nyheten ikke får et tomt hull
+- Panelet er 420 px bredt med 18+12 px padding — tegn for ~360 px effektiv bredde
+
 ### Konfigurerbare Aktivitetspills (v1.18.0+)
 Brukere kan velge 0-6 aktiviteter som vises som hurtigknapper:
 - **localStorage-nøkkel:** `activityPills_v1`

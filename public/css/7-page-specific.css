@@ -1377,6 +1377,18 @@ body.theme-light #search:disabled::placeholder {
         background: rgba(15, 23, 42, 0.34);
       }
 
+      /* Valgfritt bilde i et nyhetspunkt. Full bredde i kortet, med egen
+         bakgrunn slik at et strekbilde med gjennomsiktighet ikke blir
+         usynlig i lyst tema. */
+      .news-splash-item-image {
+        display: block;
+        width: 100%;
+        height: auto;
+        margin: 0 0 10px;
+        border-radius: 8px;
+        background: rgba(2, 6, 23, 0.35);
+      }
+
       .news-splash-item strong {
         display: block;
         margin-bottom: 4px;

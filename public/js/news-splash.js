@@ -6,6 +6,9 @@
  * 2. Sett en ny, unik id.
  * 3. Skriv punktene i items.
  *
+ * Et punkt kan ha `image: { src, alt }` og `link: { href, text }`. Begge er
+ * valgfrie. Bildefilen må også inn i STATIC_ASSETS i sw.js.
+ *
  * Versjonsbump og changelog gir aldri splash alene. Den vises bare når denne
  * konfigen bevisst endres.
  */
@@ -18,19 +21,38 @@ const MAX_VISIBLE = 4;
 
 export const CURRENT_NEWS_SPLASH = {
   enabled: true,
-  id: 'oktober-2026-fellestur-og-brukeropplevelse-v1',
+  id: 'oktober-2026-bilder-nar-du-kommer-hjem-v1',
   items: [
     {
-      title: '👥 Prøv Fellestur!',
-      body: 'Slipp at én må være sekretær mens de andre ser på fugl. Den som starter turen deler en kode med de andre, og alle fører inn i den samme lista – til slutt sender én person alt til AO. Nå testet ut i praksis. Du finner den øverst til høyre; start den før dere registrerer.',
+      title: '📷 Legg på bildene når du kommer hjem',
+      body: 'Du har alltid kunnet ta med bilde når du registrerer i felt. Men ofte er det '
+        + 'først hjemme de gode bildene finnes — på kameraet, ikke på mobilen. Nå kan du '
+        + 'legge dem på i etterkant, på funn som for lengst er sendt til Artsobservasjoner. '
+        + 'Du finner dem under «Tidligere sendt».',
+      image: {
+        src: '/img/nyhet-bilder-hjemme.jpg',
+        alt: 'En fuglekikker registrerer på mobilen ute i kystlandskap, og sitter senere '
+          + 'hjemme og overfører bilder fra kameraet til en laptop.',
+      },
     },
     {
-      title: '✨ Ryddigere og tydeligere skjermbilde',
-      body: 'Appen har fått en grundig gjennomgang, slik at symboler og tekst skal være mest mulig selvforklarende.',
+      title: '🔭 Lista er den samme på alle enhetene dine',
+      body: 'Funnene hentes fra Artsobservasjoner, ikke fra telefonen. Det du registrerte ute, '
+        + 'finner du igjen på PC-en hjemme — og det overlever at du bytter telefon. '
+        + 'Fellesturer er med også: du kan legge bilder på alt du er med på, ikke bare '
+        + 'det du selv har rapportert.',
     },
     {
-      title: '📣 Jeg setter stor pris på tilbakemeldinger',
-      body: 'Dette er en app jeg lager på fritida, og tilbakemeldingene fra dere styrer hva som blir bedre. Stort og smått, ros og ris – bruk «Gi tilbakemelding» nederst i appen, eller send en e-post:',
+      title: '✂️ Beskjær og lysne før du sender',
+      body: 'Dra i hjørnene for å kutte vekk alt som ikke er fuglen, og dra i skalaen hvis '
+        + 'bildet ble for mørkt. Du kan velge fil, lime inn, eller dra bildet rett inn fra '
+        + 'Finder. Inntil 10 bilder per funn.',
+    },
+    {
+      title: '📣 Si gjerne fra hva du synes',
+      body: 'Dette er en app jeg lager på fritida, og tilbakemeldingene fra dere styrer hva '
+        + 'som blir bedre. Stort og smått — bruk «Gi tilbakemelding» nederst i appen, eller '
+        + 'send en e-post:',
       link: { href: 'mailto:k@vikebo.com', text: 'k@vikebo.com' },
     },
   ],
@@ -107,6 +129,23 @@ function createNewsSplash(items) {
   items.forEach((item) => {
     const row = document.createElement('div');
     row.className = 'news-splash-item';
+
+    // Valgfritt bilde, øverst i punktet. Ligger i `public/` og refereres med en
+    // rot-relativ sti. Husk å legge filen i STATIC_ASSETS i sw.js — ellers er
+    // nyheten uten bilde for den som åpner appen uten nett.
+    //
+    // Bruk SVG der det går: et strekbilde blir skarpt på alle skjermer og veier
+    // en brøkdel av en PNG. PNG fungerer like fint her om motivet krever det
+    // (skjermbilde, foto) — <img> bryr seg ikke om formatet.
+    if (item.image && item.image.src) {
+      const img = document.createElement('img');
+      img.className = 'news-splash-item-image';
+      img.src = item.image.src;
+      img.alt = item.image.alt || '';
+      // Ikke la et manglende bilde etterlate et tomt hull i panelet.
+      img.addEventListener('error', () => img.remove());
+      row.appendChild(img);
+    }
 
     const itemTitle = document.createElement('strong');
     itemTitle.textContent = item.title;
