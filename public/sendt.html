@@ -88,6 +88,29 @@
                  background: rgba(255,255,255,0.04); border: 1px solid rgba(148,163,184,0.15); }
       .beskjed a { color: var(--accent, #3b82f6); }
 
+      /* ---- Gruppering av en lang liste ---- */
+      /* En aktiv observatør får fort hundre rader. Uten inndeling er det en vegg
+         av tekst, og det er umulig å se hvor en dag slutter og neste begynner. */
+      .sammendrag { color: var(--muted, #9ca3af); font-size: 0.85rem; margin: 0 0 12px; }
+      .filter-pille { display: inline-flex; align-items: center; gap: 7px;
+                      padding: 0 12px; min-height: 44px; border-radius: 999px;
+                      border: 1px solid rgba(148,163,184,0.25); font-size: 0.85rem;
+                      cursor: pointer; user-select: none; }
+      .filter-pille input { width: 16px; height: 16px; accent-color: var(--accent, #3b82f6); }
+      .filter-pille:has(input:checked) { border-color: var(--accent, #3b82f6);
+                                         background: rgba(59,130,246,0.1); }
+
+      .dato-gruppe { margin-bottom: 18px; }
+      /* Klebrig datooverskrift: når man scroller gjennom en lang liste er det
+         lett å miste hvilken dag man ser på. */
+      .dato-overskrift { position: sticky; top: 0; z-index: 2;
+                         display: flex; justify-content: space-between; align-items: baseline;
+                         gap: 10px; margin: 0 0 8px; padding: 8px 0;
+                         background: var(--bg, #0f172a); font-size: 0.95rem; }
+      .dato-antall { color: var(--muted, #9ca3af); font-size: 0.8rem; font-weight: 400; }
+      .sted-gruppe { margin-bottom: 10px; }
+      .sted-overskrift { color: #93c5fd; font-size: 0.88rem; margin: 0 0 5px 2px; }
+
       /* ---- Bildemodal ---- */
       .modal-bakgrunn { position: fixed; inset: 0; background: rgba(0,0,0,0.6);
                         display: flex; align-items: center; justify-content: center;
@@ -136,7 +159,9 @@
       body.theme-light .batch,
       body.theme-light .funn,
       body.theme-light .beskjed { background: #f8fafc !important; border-color: #e2e8f0 !important; }
-      body.theme-light .sted { color: #1d4ed8 !important; }
+      body.theme-light .sted,
+      body.theme-light .sted-overskrift { color: #1d4ed8 !important; }
+      body.theme-light .dato-overskrift { background: #ffffff !important; }
       body.theme-light .antall { color: #16a34a !important; }
       body.theme-light .har-bilde,
       body.theme-light .rad-status.ok { color: #16a34a !important; }
@@ -159,24 +184,22 @@
 
       <h2>🔭 Mine funn på Artsobservasjoner</h2>
       <p class="seksjon-info">
-        Alt du er med på hos Artsobservasjoner — både det du har rapportert selv og
-        det andre har rapportert med deg som observatør. Lista er lik på alle enhetene
-        dine, og her kan du legge til bilder i etterkant.
-      </p>
-      <p class="seksjon-info">
-        <strong>✏️ Endre</strong> vises bare på funn du selv har rapportert — Artsobservasjoner
-        tillater ikke at andre endrer et funn. Bilder kan du derimot legge til på alt du er med
-        på. Merk at AO gjør funnet <em>upublisert</em> i det du åpner redigeringen — du må trykke
-        «Publiser» hos AO etterpå, også om du ikke endret noe.
+        Alt du er med på hos Artsobservasjoner, hentet derfra — så lista er lik på alle
+        enhetene dine. <a href="/help.html#tidligere-sendt">Slik virker den</a>.
       </p>
       <div class="ao-topp">
         <select id="ao-dager" class="ao-dager" aria-label="Hvor langt tilbake">
+          <option value="2" selected>Siste 2 dager</option>
           <option value="7">Siste 7 dager</option>
-          <option value="14" selected>Siste 14 dager</option>
+          <option value="14">Siste 14 dager</option>
           <option value="30">Siste 30 dager</option>
           <option value="60">Siste 60 dager</option>
         </select>
         <button id="ao-oppdater" class="btn-liten">↻ Oppdater</button>
+        <label class="filter-pille">
+          <input type="checkbox" id="ao-bare-uten-bilde" />
+          <span>Bare uten bilde</span>
+        </label>
       </div>
       <div id="ao-liste"></div>
 
@@ -348,9 +371,9 @@
             <div class="funn-hode">
               <span class="funn-art"><span class="antall">${tekst(funn.quantity)}</span>
                 ${tekst(funn.taxonName)}</span>
-              <span class="funn-meta">${tekst(formatDato(funn.date))}${detaljer ? ' · ' + tekst(detaljer) : ''}</span>
+              <span class="funn-meta">${tekst(detaljer)}</span>
             </div>
-            <div class="funn-meta">${tekst(funn.siteName)}${rapportor ? ' · ' + rapportor : ''}</div>
+            ${rapportor ? `<div class="funn-meta">${rapportor}</div>` : ''}
             ${advarsel}
             <div class="funn-handling">
               ${harMerke}
@@ -441,11 +464,93 @@
           return;
         }
 
-        const avkortet = data.truncated
+        avkortetMelding = data.truncated
           ? `<p class="seksjon-info">Viser ${funnCache.length} av ${tekst(data.total)} funn.
              Velg et kortere tidsrom for å se alle.</p>`
           : '';
-        aoListeEl.innerHTML = avkortet + funnCache.map(renderFunn).join('');
+        tegnListe();
+      }
+
+      let avkortetMelding = '';
+
+      function datoOverskrift(iso) {
+        const idag = new Date();
+        const igar = new Date(Date.now() - 86400000);
+        const somIso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        if (iso === somIso(idag)) return `I dag · ${formatDato(iso)}`;
+        if (iso === somIso(igar)) return `I går · ${formatDato(iso)}`;
+        return formatDato(iso);
+      }
+
+      /**
+       * Grupper på dato, og innenfor hver dato på lokalitet.
+       *
+       * AO sorterer nyeste først, og vi beholder den rekkefølgen — `Map` husker
+       * innsettingsrekkefølgen, så vi slipper å sortere på nytt og risikere å
+       * gjøre det annerledes enn AO.
+       */
+      function grupper(funn) {
+        const datoer = new Map();
+        for (const f of funn) {
+          if (!datoer.has(f.date)) datoer.set(f.date, new Map());
+          const steder = datoer.get(f.date);
+          const sted = f.siteName || '';
+          if (!steder.has(sted)) steder.set(sted, []);
+          steder.get(sted).push(f);
+        }
+        return datoer;
+      }
+
+      function tegnListe() {
+        const bareUtenBilde = document.getElementById('ao-bare-uten-bilde').checked;
+        const utenBilde = funnCache.filter((f) => !f.hasImage).length;
+        const synlige = bareUtenBilde ? funnCache.filter((f) => !f.hasImage) : funnCache;
+
+        const sammendrag = `<p class="sammendrag">${funnCache.length} funn
+          ${utenBilde ? `· <strong>${utenBilde}</strong> uten bilde` : '· alle har bilde'}</p>`;
+
+        if (!synlige.length) {
+          aoListeEl.innerHTML = sammendrag + `<div class="tom">
+            Alle funnene i dette tidsrommet har bilde.
+          </div>`;
+          return;
+        }
+
+        const grupper_ = grupper(synlige);
+        const deler = [];
+        for (const [dato, steder] of grupper_) {
+          const antall = [...steder.values()].reduce((n, liste) => n + liste.length, 0);
+          const seksjoner = [...steder].map(([sted, liste]) => `
+            <div class="sted-gruppe">
+              ${sted ? `<div class="sted-overskrift">${tekst(sted)}</div>` : ''}
+              ${liste.map(renderFunn).join('')}
+            </div>`).join('');
+          deler.push(`
+            <div class="dato-gruppe">
+              <h3 class="dato-overskrift">
+                <span>${tekst(datoOverskrift(dato))}</span>
+                <span class="dato-antall">${antall} funn</span>
+              </h3>
+              ${seksjoner}
+            </div>`);
+        }
+
+        aoListeEl.innerHTML = sammendrag + avkortetMelding + deler.join('');
+      }
+
+      /**
+       * Oppdater bare tellelinja etter en opplasting.
+       *
+       * Raden blir bevisst stående, også når «bare uten bilde» er på: at en rad
+       * forsvinner under hendene på deg i det du er ferdig med den, er mer
+       * forvirrende enn nyttig. Men tallet skal stemme.
+       */
+      function oppdaterSammendrag() {
+        const el = aoListeEl.querySelector('.sammendrag');
+        if (!el) return;
+        const utenBilde = funnCache.filter((f) => !f.hasImage).length;
+        el.innerHTML = `${funnCache.length} funn ${utenBilde
+          ? `· <strong>${utenBilde}</strong> uten bilde` : '· alle har bilde'}`;
       }
 
       function settStatus(sightingId, melding, type) {
@@ -630,6 +735,7 @@
           const funn = funnCache.find((f) => String(f.sightingId) === String(sightingId));
           if (funn) funn.hasImage = true;
           oppdaterRad(sightingId);
+          oppdaterSammendrag();
 
           // Serveren skiller mellom «bekreftet hos AO» og «sendt, men vi fikk ikke
           // talt bildene før og etter». Det siste skal ikke presenteres som en
@@ -653,6 +759,9 @@
         }
       });
 
+      // Filteret tegner på nytt fra det vi alt har hentet — et nytt AO-kall tar
+      // 5-12 sekunder, og det er helt unødvendig for å skjule noen rader.
+      document.getElementById('ao-bare-uten-bilde').addEventListener('change', tegnListe);
       dagerEl.addEventListener('change', lastAoFunn);
       oppdaterEl.addEventListener('click', lastAoFunn);
       lastAoFunn();

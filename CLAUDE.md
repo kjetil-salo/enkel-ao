@@ -381,6 +381,14 @@ Pure ES6 modules with no framework:
     ⚠️ når AO har en innvending, og 📷 «Legg til bilde» når `hasImage` er falsk
   - **«Sendt fra denne enheten»** = den lokale `sent_observations_v1` som før, uendret.
     Beholdt bevisst: den virker offline og uten innlogging, og eier «Del disse»/«Kopier til lista»
+  - Lista grupperes på dato → lokalitet, med klebrig datooverskrift. Standard tidsrom
+    er 2 dager: en aktiv observatør har fort hundre funn i uka, og hele poenget med
+    siden er å finne de få som mangler bilde
+  - «Bare uten bilde» filtrerer `funnCache` og tegner på nytt UTEN nytt AO-kall —
+    en henting tar 5-12 sekunder, og er helt unødvendig for å skjule rader
+  - Etter en opplasting blir raden stående selv med filteret på (at en rad forsvinner
+    under hendene på deg i det du er ferdig med den, er mer forvirrende enn nyttig),
+    men tellelinja oppdateres
   - «Legg til bilde» åpner en modal som gjenbruker `initPhotoPicker` (fil, utklippstavle,
     dra-og-slipp) og sender bildet videre inn i `bilde-editor.js`. Hvilket funn modalen
     gjelder står i `data-funn` på selve modalen

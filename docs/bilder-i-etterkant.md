@@ -86,6 +86,22 @@ Det er de to grepene som trengs mellom kamera og AO. Tre valg verdt å kjenne:
   forhåndsvisningen kunne lyve om resultatet.
 - **Eksporten regnes alltid fra originalen**, aldri fra visningslerretet.
 
+### Struktur i en lang liste (v1.55.0)
+
+En aktiv observatør har fort hundre funn på to uker, og hele poenget med siden er å
+finne de få som mangler bilde. Fire grep:
+
+- **Standard tidsrom er 2 dager**, ikke 14. De øvrige valgene er beholdt.
+- **Gruppering på dato → lokalitet**, med «I dag»/«I går» og klebrig datooverskrift,
+  så man ikke mister hvilken dag man blar i.
+- **«Bare uten bilde»** filtrerer det som alt er hentet og tegner på nytt uten nytt
+  AO-kall. En henting tar 5–12 sekunder; å bruke den for å skjule rader ville vært sløsing.
+- **Tellelinje** med antall funn og antall uten bilde.
+
+Raden blir stående etter en opplasting selv med filteret på — at en rad forsvinner
+under hendene på deg i det du er ferdig med den, er mer forvirrende enn nyttig. Men
+tellelinja oppdateres.
+
 ## 5. Hvem kan gjøre hva
 
 Verifisert mot et funn rapportert av en annen bruker, med vår bruker som
