@@ -59,7 +59,6 @@ Nye reklamepoenger som bør vurderes først:
 Ferdig godkjent arbeidsfil fra denne runden:
 - `docs/facebook-reklame-assets/enkel-ao-plansje-deling-bilder-2026.svg`
 - `docs/facebook-reklame-assets/enkel-ao-plansje-deling-bilder-2026.png`
-- hjemkopi: `/Users/kjetil/enkel-ao-reklame-deling-bilder-2026.png`
 
 Bruk denne som nærmeste mal for neste Enkel-AO-reklame.
 
