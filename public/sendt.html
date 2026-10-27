@@ -39,6 +39,10 @@
       /* Hentingen fra AO tar typisk 5–12 sekunder (tre kall i kjede mot et tregt
          ASP.NET-grid). Uten en bevegelig indikator ser siden ut som om den har
          hengt seg — teksten alene er ikke nok når ventetiden er så lang. */
+      /* `display: flex` slår ut `hidden`, som bare setter `display: none` på
+         nettleserens standardnivå. Uten denne blir «Åpner funnet …» stående
+         under skjemaet i endringsmodalen. */
+      .laster[hidden] { display: none; }
       .laster { display: flex; flex-direction: column; align-items: center; gap: 14px;
                 padding: 40px 16px; color: var(--muted, #9ca3af); text-align: center;
                 line-height: 1.5; }
@@ -154,6 +158,89 @@
       .modal-bunn { display: flex; gap: 8px; justify-content: flex-end; margin-top: 14px; flex-wrap: wrap; }
 
       body.theme-light { background: #ffffff !important; color: #1a1a1a !important; }
+      /* ---- Endringsmodal ---- */
+      /* Den røde advarselen er vedvarende, ikke en toast: tilstanden den beskriver
+         varer helt til brukeren lagrer eller avbryter. */
+      .fare { border: 1px solid #b91c1c; background: rgba(185, 28, 28, 0.12);
+              border-radius: 8px; padding: 10px 12px; margin: 0 0 14px;
+              font-size: 0.85rem; line-height: 1.45; }
+      .fare strong { display: block; color: #fca5a5; margin-bottom: 4px;
+                     font-size: 0.9rem; }
+      .fare .fare-nb { color: #fca5a5; font-weight: 600; }
+      body.theme-light .fare { background: #fef2f2 !important; border-color: #dc2626 !important; }
+      body.theme-light .fare strong,
+      body.theme-light .fare .fare-nb { color: #b91c1c !important; }
+
+      .em-rad { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
+      .em-rad label { font-size: 0.8rem; color: var(--muted, #9ca3af); }
+      .em-rad input, .em-rad select {
+        font-size: 16px; padding: 8px 10px; border-radius: 8px;
+        border: 1px solid var(--border, #334155);
+        background: var(--bg, #0f172a); color: var(--text, #e5e7eb); width: 100%; }
+      body.theme-light .em-rad input, body.theme-light .em-rad select {
+        background: #ffffff !important; color: #0f172a !important; border-color: #cbd5e1 !important; }
+      .em-fast { font-size: 0.8rem; color: var(--muted, #9ca3af); margin: 0 0 14px;
+                 padding-top: 10px; border-top: 1px solid var(--border, #334155); }
+
+      /* Artssøk: inputfelt med trefliste under. */
+      .em-art-boks { position: relative; }
+      .em-treff { position: absolute; left: 0; right: 0; top: 100%; z-index: 5;
+                  background: var(--bg, #0f172a); border: 1px solid var(--border, #334155);
+                  border-radius: 8px; margin-top: 2px; max-height: 210px; overflow-y: auto;
+                  box-shadow: 0 8px 20px rgba(0,0,0,0.35); }
+      .em-treff[hidden] { display: none; }
+      body.theme-light .em-treff { background: #ffffff !important; border-color: #cbd5e1 !important; }
+      .em-treff button { display: block; width: 100%; text-align: left; border: 0;
+                         background: none; color: inherit; padding: 9px 11px;
+                         font-size: 0.9rem; cursor: pointer; }
+      .em-treff button:hover, .em-treff button:focus { background: rgba(59,130,246,0.18); outline: none; }
+      .em-treff .vit { color: var(--muted, #9ca3af); font-size: 0.8rem; font-style: italic; }
+      .em-treff .tom { padding: 9px 11px; color: var(--muted, #9ca3af); font-size: 0.85rem; }
+
+      /* Valgt art vises som en «brikke» med mulighet for å angre. */
+      .em-art-valgt { display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+                      font-size: 0.9rem; }
+      .em-art-ny { color: #fbbf24; font-weight: 600; }
+      body.theme-light .em-art-ny { color: #b45309 !important; }
+
+      /* Sjeldenhetsvarsel på den NYE arten. */
+      .em-sjelden { border: 1px solid #a16207; background: rgba(161, 98, 7, 0.14);
+                    border-radius: 8px; padding: 10px 12px; margin: 0 0 12px;
+                    font-size: 0.85rem; line-height: 1.45; }
+      .em-sjelden[hidden] { display: none; }
+      .em-sjelden strong { display: block; margin-bottom: 3px; }
+      body.theme-light .em-sjelden { background: #fffbeb !important; border-color: #ca8a04 !important; }
+      .em-bekreftet { border: 1px solid #15803d; background: rgba(21, 128, 61, 0.12);
+                      border-radius: 8px; padding: 10px 12px; font-size: 0.85rem; }
+      body.theme-light .em-bekreftet { background: #f0fdf4 !important; border-color: #16a34a !important; }
+      /* «Vi vet ikke» og «avvik» er IKKE suksess, og skal ikke se grønne ut.
+         Rapportert fra felt 27.10.2026: en advarsel sto i grønn ramme. */
+      .em-bekreftet.uvisst { border-color: #a16207; background: rgba(161, 98, 7, 0.12); }
+      body.theme-light .em-bekreftet.uvisst { background: #fffbeb !important; border-color: #ca8a04 !important; }
+      .em-bekreftet.avvik { border-color: #b91c1c; background: rgba(185, 28, 28, 0.12); }
+      body.theme-light .em-bekreftet.avvik { background: #fef2f2 !important; border-color: #dc2626 !important; }
+
+      /* Spinner i statuslinja mens vi lagrer — lagringen tar flere sekunder,
+         og en stillestående tekst ser ut som at ingenting skjer. */
+      .modal-status.jobber { display: flex; align-items: center; gap: 8px; }
+      .modal-status.jobber::before {
+        content: ''; width: 14px; height: 14px; border-radius: 50%; flex: none;
+        border: 2px solid var(--border, #334155); border-top-color: var(--accent, #3b82f6);
+        animation: spinn 0.9s linear infinite; }
+      @media (prefers-reduced-motion: reduce) {
+        .modal-status.jobber::before { animation: pulser 1.6s ease-in-out infinite; }
+      }
+
+      /* Kø-varsel øverst på siden: funn som ligger usynlige hos AO. */
+      .ko-varsel { border: 1px solid #b91c1c; background: rgba(185, 28, 28, 0.12);
+                   border-radius: 8px; padding: 12px 14px; margin: 0 0 16px;
+                   font-size: 0.9rem; display: flex; gap: 10px; align-items: center;
+                   flex-wrap: wrap; }
+      /* Som .laster: `display: flex` ville ellers vist varselet permanent. */
+      .ko-varsel[hidden] { display: none; }
+      .ko-varsel .ko-tekst { flex: 1; min-width: 200px; }
+      body.theme-light .ko-varsel { background: #fef2f2 !important; border-color: #dc2626 !important; }
+
       body.theme-light .modal { background: #ffffff !important; border-color: #e2e8f0 !important; }
       body.theme-light .modal-status.feil { color: #b91c1c !important; }
       body.theme-light .batch,
@@ -201,7 +288,8 @@
           <span>Bare uten bilde</span>
         </label>
       </div>
-      <div id="ao-liste"></div>
+      <div id="ko-varsel" class="ko-varsel" hidden></div>
+    <div id="ao-liste"></div>
 
       <h2>📱 Sendt fra denne enheten</h2>
       <p class="seksjon-info">
@@ -214,6 +302,72 @@
         Skal du rette et funn, gjør du det på
         <a href="https://www.artsobservasjoner.no/User/MyPages" target="_blank" rel="noopener">Mine sider hos Artsobservasjoner</a>.
       </footer>
+    </div>
+
+    <!-- Endringsmodal. Samme mønster som bildemodalen: hvilket funn den gjelder
+         står i `data-funn`. Den røde advarselen er ikke pynt — å åpne skjemaet
+         gjør funnet usynlig for andre hos AO, og det varer til vi lagrer eller
+         avbryter. Se docs/endringsside-v1-plan.md. -->
+    <div id="endre-modal" class="modal-bakgrunn" hidden>
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="em-tittel">
+        <div class="modal-topp">
+          <h2 id="em-tittel">Endre funn</h2>
+          <button type="button" class="lukk" id="em-lukk" aria-label="Lukk">✕</button>
+        </div>
+        <p class="modal-funn" id="em-funn"></p>
+
+        <div id="em-laster" class="laster">
+          <div class="spinner" role="status" aria-label="Åpner"></div>
+          <div id="em-laster-tekst">Åpner funnet hos Artsobservasjoner …</div>
+          <div class="laster-hint">Vi henter hele skjemaet derfra — det tar noen sekunder.</div>
+        </div>
+
+        <div id="em-skjema" hidden>
+          <div class="fare" role="alert">
+            <strong>🔴 Funnet er nå usynlig for andre</strong>
+            Artsobservasjoner tar funnet ut av visning mens du endrer det. Det blir
+            synlig igjen når du lagrer.
+            <span class="fare-nb">Lukker du siden nå, blir funnet liggende skjult.</span>
+            Bruk «Avbryt» hvis du ombestemmer deg — da publiseres det tilbake med én gang.
+          </div>
+
+          <div class="em-rad em-art-boks">
+            <label for="em-art">Art</label>
+            <div class="em-art-valgt" id="em-art-valgt">
+              <span id="em-art-navn"></span>
+              <button type="button" class="btn-liten" id="em-art-bytt">Bytt art</button>
+            </div>
+            <input type="text" id="em-art" placeholder="Søk etter art …"
+                   autocomplete="off" hidden />
+            <div class="em-treff" id="em-art-treff" hidden></div>
+          </div>
+
+          <div class="em-sjelden" id="em-sjelden" hidden role="alert"></div>
+
+          <div class="em-rad">
+            <label for="em-antall">Antall</label>
+            <input type="number" id="em-antall" min="1" step="1" inputmode="numeric" />
+          </div>
+
+          <div class="em-rad">
+            <label for="em-aktivitet">Aktivitet</label>
+            <select id="em-aktivitet"></select>
+          </div>
+
+          <p class="em-fast" id="em-fast"></p>
+        </div>
+
+        <div id="em-kvittering" hidden>
+          <div class="em-bekreftet" id="em-bekreftet-tekst"></div>
+        </div>
+
+        <p class="modal-status" id="em-status"></p>
+
+        <div class="modal-bunn">
+          <button type="button" class="btn-liten" id="em-avbryt">Avbryt</button>
+          <button type="button" class="btn-liten primar" id="em-lagre" disabled>Lagre og publiser</button>
+        </div>
+      </div>
     </div>
 
     <!-- Bildemodal. Én modal for hele lista; hvilket funn den gjelder står i
@@ -359,9 +513,8 @@
         // funnet. AO skjuler selv «Endre» for andre, så vi speiler den regelen i
         // stedet for å tilby noe som ville blitt avvist.
         const endre = funn.isReporter
-          ? `<a class="funn-lenke endre" href="https://www.artsobservasjoner.no/Edit/${attr(funn.sightingId)}"
-               target="_blank" rel="noopener"
-               title="Åpner funnet i redigering hos Artsobservasjoner. Husk å publisere det på nytt etterpå.">✏️ Endre</a>`
+          ? `<button class="btn-liten" data-endre="${attr(funn.sightingId)}"
+               title="Endre antall eller aktivitet. Funnet blir kort usynlig for andre mens du endrer.">✏️ Endre</button>`
           : '';
         const rapportor = funn.isReporter || !funn.reporter ? ''
           : `<span class="rapportert-av">Rapportert av ${tekst(funn.reporter)}</span>`;
@@ -669,7 +822,498 @@
         settModalStatus('');
       }
 
+      // ===================================================================
+      // Kø-varsel: funn som ligger usynlige hos AO
+      // ===================================================================
+      // Advarselen i endringsmodalen hjelper ikke om strømmen går eller telefonen
+      // dør. Dette er veien tilbake — og den fanger også funn brukeren har
+      // etterlatt ved å redigere på AOs egne sider.
+
+      const koVarselEl = document.getElementById('ko-varsel');
+
+      function visKoVarsel(antall) {
+        if (!antall) { koVarselEl.hidden = true; return; }
+        koVarselEl.innerHTML = `
+          <span class="ko-tekst">🔴 <strong>Du har ${tekst(antall)} funn som ikke er
+          publisert hos Artsobservasjoner.</strong> De er usynlige for andre inntil
+          de publiseres.</span>
+          <a class="btn-liten primar" href="https://www.artsobservasjoner.no/ReviewSighting"
+             target="_blank" rel="noopener">Publiser hos AO</a>`;
+        koVarselEl.hidden = false;
+      }
+
+      async function sjekkKo() {
+        const t = hentTokens();
+        if (!t.loginToken || !t.authCookie) return;
+        try {
+          const r = await fetch('/api/ao-queue-count', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ loginToken: t.loginToken, authCookie: t.authCookie }),
+          }).then((x) => x.json());
+          // `null` betyr «vet ikke», ikke «tom» — da viser vi ingenting heller enn
+          // å påstå at alt er i orden. Samme regel som oppdaterAoKoHint().
+          if (typeof r.count === 'number' && r.count > 0) visKoVarsel(r.count);
+          else koVarselEl.hidden = true;
+        } catch (e) { /* rent opplysende — en feil her skal ikke forstyrre lista */ }
+      }
+
+      // ===================================================================
+      // Endringsmodal: åpne → endre → lagre og publiser
+      // ===================================================================
+      // Å ÅPNE skjemaet hos AO gjør funnet upublisert med én gang. Derfor eier
+      // denne modalen en tilstand som MÅ ryddes opp: enten ved å lagre, eller ved
+      // å publisere funnet tilbake. Alle veier ut kaller én av delene.
+
+      const emModal = document.getElementById('endre-modal');
+      const emFunn = document.getElementById('em-funn');
+      const emLaster = document.getElementById('em-laster');
+      const emSkjema = document.getElementById('em-skjema');
+      const emKvittering = document.getElementById('em-kvittering');
+      const emBekreftet = document.getElementById('em-bekreftet-tekst');
+      const emAntall = document.getElementById('em-antall');
+      const emAktivitet = document.getElementById('em-aktivitet');
+      const emFast = document.getElementById('em-fast');
+      const emStatus = document.getElementById('em-status');
+      const emLagre = document.getElementById('em-lagre');
+      const emAvbryt = document.getElementById('em-avbryt');
+
+      // Alt som trengs for å lagre, OG for å rydde opp hvis noe går galt.
+      let emOkt = null;
+
+      // --- Artssøk -------------------------------------------------------
+      const emArt = document.getElementById('em-art');
+      const emArtTreff = document.getElementById('em-art-treff');
+      const emArtValgt = document.getElementById('em-art-valgt');
+      const emArtNavn = document.getElementById('em-art-navn');
+      const emSjelden = document.getElementById('em-sjelden');
+
+      let artSok = null;        // debounce-timer
+      let artSeq = 0;           // race-vakt: bare siste søk får tegne
+      let sjeldenSeq = 0;       // samme for sjeldenhetssjekken
+
+      function visValgtArt() {
+        const ny = emOkt && emOkt.nyArt;
+        emArtNavn.innerHTML = ny
+          ? `<span class="em-art-ny">${tekst(ny.navn)}</span>
+             <span class="vit">(var ${tekst(emOkt.opprinneligArtNavn)})</span>`
+          : tekst(emOkt ? emOkt.opprinneligArtNavn : '');
+        emArtValgt.hidden = false;
+        emArt.hidden = true;
+        emArtTreff.hidden = true;
+      }
+
+      function startArtsbytte() {
+        emArtValgt.hidden = true;
+        emArt.hidden = false;
+        emArt.value = '';
+        emArt.focus();
+        emArtTreff.hidden = true;
+      }
+
+      /**
+       * Sjeldenhetssjekk på den NYE arten.
+       *
+       * Bytter man til noe sjeldent, bør AOs egen vurdering komme FØR man
+       * bekrefter — ikke som en overraskelse etterpå. Samme endepunkt som
+       * registreringsskjemaet bruker (`rarity.js`).
+       */
+      async function sjekkSjeldenhet(taxonId) {
+        const minSeq = ++sjeldenSeq;
+        emSjelden.hidden = true;
+        if (!taxonId || !emOkt) return;
+        const f = emOkt.funn || {};
+        if (!f.site_id || !f.dato) return;
+
+        // AO vil ha ISO-dato; `funn.dato` er DD.MM.YYYY.
+        const d = String(f.dato).split('.');
+        if (d.length !== 3) return;
+        const iso = `${d[2]}-${d[1]}-${d[0]}`;
+
+        const t = hentTokens();
+        if (!t.loginToken) return;   // uinnlogget = stille no-op, som i rarity.js
+        try {
+          const url = `/api/ao-rarity?taxonId=${encodeURIComponent(taxonId)}`
+            + `&siteId=${encodeURIComponent(f.site_id)}&date=${encodeURIComponent(iso)}`;
+          const r = await fetch(url, {
+            headers: {
+              'X-AO-Login-Token': t.loginToken,
+              'X-AO-Auth-Cookie': t.authCookie,
+            },
+          });
+          if (minSeq !== sjeldenSeq) return;   // brukeren byttet art igjen
+          if (!r.ok) return;
+          const data = await r.json();
+          if (minSeq !== sjeldenSeq || !data.warning) return;
+          const w = data.warning;
+          emSjelden.innerHTML = `<strong>⚠️ ${tekst(w.header || 'Sjeldent funn')}</strong>`
+            + tekst(w.body || '');
+          emSjelden.hidden = false;
+        } catch (e) {
+          // Stille no-op, jf. konvensjonen for eksterne API-feil.
+        }
+      }
+
+      function velgArt(treff) {
+        emOkt.nyArt = { id: treff.taxonId, navn: treff.taxonName };
+        visValgtArt();
+        sjekkSjeldenhet(treff.taxonId);
+      }
+
+      // Appen rapporterer fugler, og `bygg_save_body()` setter artsgruppe 8 fast.
+      // Et treff fra en annen gruppe ville blitt sendt med feil gruppe-ID, så de
+      // filtreres bort her framfor å feile hos AO.
+      const FUGLER_GRUPPE = '8';
+
+      function tegnArtstreff(raaListe) {
+        const liste = raaListe.filter((a) => String(a.speciesGroupId) === FUGLER_GRUPPE);
+        const filtrertBort = raaListe.length - liste.length;
+        if (!liste.length) {
+          emArtTreff.innerHTML = filtrertBort
+            ? '<div class="tom">Bare fuglearter kan velges her.</div>'
+            : '<div class="tom">Ingen treff</div>';
+          emArtTreff.hidden = false;
+          return;
+        }
+        emArtTreff.innerHTML = liste.slice(0, 12).map((a, i) =>
+          `<button type="button" data-i="${i}">${tekst(a.taxonName)}
+             <span class="vit">${a.scientificNameHtml || ''}</span></button>`).join('');
+        emArtTreff.hidden = false;
+        emArtTreff._liste = liste;
+      }
+
+      emArt.addEventListener('input', () => {
+        const q = emArt.value.trim();
+        clearTimeout(artSok);
+        if (q.length < 2) { emArtTreff.hidden = true; return; }
+        const minSeq = ++artSeq;
+        artSok = setTimeout(async () => {
+          try {
+            const r = await fetch(`/api/species?search=${encodeURIComponent(q)}`
+              + `&dontIncludeSubSpecies=true`).then((x) => x.json());
+            if (minSeq !== artSeq) return;   // et nyere søk har gått ut
+            tegnArtstreff(Array.isArray(r) ? r : []);
+          } catch (e) {
+            if (minSeq === artSeq) emArtTreff.hidden = true;
+          }
+        }, 250);
+      });
+
+      emArtTreff.addEventListener('click', (e) => {
+        const b = e.target.closest('button[data-i]');
+        if (!b || !emArtTreff._liste) return;
+        velgArt(emArtTreff._liste[Number(b.dataset.i)]);
+      });
+
+      emArt.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') { emArtTreff.hidden = true; visValgtArt(); }
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          const forste = emArtTreff.querySelector('button[data-i]');
+          if (forste) forste.click();
+        }
+      });
+
+      document.getElementById('em-art-bytt').addEventListener('click', startArtsbytte);
+
+      function emSettStatus(melding, type) {
+        emStatus.className = `modal-status${type ? ' ' + type : ''}`;
+        emStatus.textContent = melding || '';
+      }
+
+      /** Status med spinner — for de stegene som tar flere sekunder. */
+      function emJobber(melding) {
+        emSettStatus(melding, 'jobber');
+      }
+
+      function emLukkUi() {
+        emModal.hidden = true;
+        document.body.style.overflow = '';
+        emOkt = null;
+        emSettStatus('');
+      }
+
+      /**
+       * Publiser funnet tilbake uendret.
+       *
+       * `stille` brukes fra beforeunload, der vi ikke kan vente på svar og ikke
+       * har noe sted å vise en feil.
+       */
+      async function emPubliserTilbake(stille) {
+        if (!emOkt || emOkt.ryddet) return true;
+        const okt = emOkt;
+        okt.ryddet = true;   // hindrer at avbryt + beforeunload begge kjører
+        const t = hentTokens();
+        const kropp = JSON.stringify({
+          loginToken: t.loginToken, authCookie: t.authCookie, sightingId: okt.id,
+        });
+        if (stille) {
+          // sendBeacon overlever at siden lukkes; fetch gjør det ikke.
+          try {
+            navigator.sendBeacon('/api/ao-sighting-abort',
+              new Blob([kropp], { type: 'application/json' }));
+          } catch (e) { /* siden er på vei ut — ingenting mer å gjøre */ }
+          return true;
+        }
+        try {
+          const r = await fetch('/api/ao-sighting-abort', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: kropp,
+          }).then((x) => x.json());
+          if (!r.ok) {
+            okt.ryddet = false;   // ikke ryddet likevel — la brukeren prøve igjen
+            emSettStatus(r.advarsel || r.error || 'Klarte ikke publisere funnet tilbake.', 'feil');
+            return false;
+          }
+          return true;
+        } catch (e) {
+          okt.ryddet = false;
+          emSettStatus('Mistet kontakten. Funnet kan være usynlig for andre — '
+            + 'sjekk «Kontrollér funn» hos Artsobservasjoner.', 'feil');
+          return false;
+        }
+      }
+
+      async function emApne(funn) {
+        emModal.dataset.funn = funn.sightingId;
+        emFunn.textContent = `${funn.quantity} ${funn.taxonName} · ${funn.siteName} · ${formatDato(funn.date)}`;
+        emLaster.hidden = false;
+        emSkjema.hidden = true;
+        emKvittering.hidden = true;
+        emSjelden.hidden = true;
+        emArtTreff.hidden = true;
+        emLagre.hidden = false;
+        emLagre.disabled = true;
+        emAvbryt.textContent = 'Avbryt';
+        emSettStatus('');
+        emModal.hidden = false;
+        document.body.style.overflow = 'hidden';
+
+        const t = hentTokens();
+        let res;
+        try {
+          res = await fetch('/api/ao-sighting-form', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              loginToken: t.loginToken, authCookie: t.authCookie,
+              sightingId: funn.sightingId,
+            }),
+          }).then((x) => x.json());
+        } catch (e) {
+          emLaster.hidden = true;
+          emSettStatus('Fikk ikke kontakt med Artsobservasjoner.', 'feil');
+          emLagre.hidden = true;
+          return;
+        }
+
+        emLaster.hidden = true;
+
+        if (!res.ok) {
+          emLagre.hidden = true;
+          emAvbryt.textContent = 'Lukk';
+          if (res.needsLogin) {
+            emSettStatus('Sesjonen mot Artsobservasjoner er utløpt. '
+              + 'Logg inn på nytt i innstillinger.', 'feil');
+          } else {
+            emSettStatus(res.error || 'Kunne ikke åpne funnet for endring.', 'feil');
+          }
+          // Køen var ikke tom: vis det samme varselet som ved sidelast, slik at
+          // brukeren har en vei videre i stedet for bare en feilmelding.
+          if (res.queueNotEmpty) visKoVarsel(res.queueCount);
+          return;
+        }
+
+        // FRA HER er funnet upublisert hos AO.
+        emOkt = {
+          id: funn.sightingId, formHtml: res.formHtml, funn: res.funn,
+          csrfCookie: res.csrfCookie, ryddet: false,
+          opprinneligAntall: res.quantity, opprinneligAktivitet: res.activityId,
+          opprinneligArt: res.taxonId, opprinneligArtNavn: funn.taxonName,
+          nyArt: null,
+        };
+        visValgtArt();
+
+        emAntall.value = res.quantity || '';
+        emAktivitet.innerHTML = (res.activityOptions || [])
+          .map((o) => `<option value="${attr(o.id)}">${tekst(o.navn)}</option>`).join('');
+        if (res.activityId) emAktivitet.value = res.activityId;
+
+        // Det vi IKKE endrer her skal stå synlig, så ingen tror det er glemt.
+        const f = res.funn || {};
+        emFast.textContent = `Dato, tid og lokalitet endres ikke her: `
+          + `${f.dato || ''} · ${funn.time || ''} · ${funn.siteName}. `
+          + `Bruk Artsobservasjoner for de feltene.`;
+
+        emSkjema.hidden = false;
+        emLagre.disabled = false;
+        emAntall.focus();
+        emAntall.select();
+      }
+
+      async function emLagreEndring() {
+        if (!emOkt) return;
+        const antall = String(emAntall.value || '').trim();
+        if (!antall || Number(antall) < 1) {
+          emSettStatus('Antall må være minst 1.', 'feil');
+          emAntall.focus();
+          return;
+        }
+
+        const endringer = {};
+        if (emOkt.nyArt && String(emOkt.nyArt.id) !== String(emOkt.opprinneligArt)) {
+          endringer.taxon_id = String(emOkt.nyArt.id);
+        }
+        if (antall !== String(emOkt.opprinneligAntall)) endringer.quantity = antall;
+        if (emAktivitet.value && emAktivitet.value !== String(emOkt.opprinneligAktivitet)) {
+          endringer.activity_id = emAktivitet.value;
+          // Navnet sendes med så serveren kan BEKREFTE endringen mot AO etterpå.
+          endringer.activity_navn =
+            emAktivitet.options[emAktivitet.selectedIndex].textContent.trim();
+        }
+
+        emLagre.disabled = true;
+        emAvbryt.disabled = true;
+        emJobber(Object.keys(endringer).length
+          ? 'Lagrer og publiserer hos Artsobservasjoner …'
+          : 'Publiserer funnet tilbake …');
+
+        const t = hentTokens();
+        let res;
+        try {
+          res = await fetch('/api/ao-sighting-save', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              loginToken: t.loginToken, authCookie: t.authCookie,
+              sightingId: emOkt.id, formHtml: emOkt.formHtml, funn: emOkt.funn,
+              csrfCookie: emOkt.csrfCookie, endringer,
+            }),
+          }).then((x) => x.json());
+        } catch (e) {
+          emLagre.disabled = false;
+          emAvbryt.disabled = false;
+          emSettStatus('Mistet kontakten under lagring. Funnet kan være usynlig for '
+            + 'andre — sjekk «Kontrollér funn» hos Artsobservasjoner.', 'feil');
+          return;
+        }
+
+        emAvbryt.disabled = false;
+
+        if (!res.ok) {
+          // Serveren har alt publisert funnet tilbake på feilstien.
+          if (emOkt) emOkt.ryddet = true;
+          emLagre.disabled = false;
+          emSettStatus(res.error || 'Lagringen ble avvist.', 'feil');
+          return;
+        }
+
+        // Lagret og publisert — det er ingenting igjen å rydde.
+        emOkt.ryddet = true;
+        oppdaterFunnEtterEndring(emOkt.id, res.ao, endringer);
+        sjekkKo();   // scoped publisering kan ha latt andre funn ligge igjen
+
+        // Undertittelen i modalen viste verdiene fra før endringen — forvirrende
+        // å lese «3 gråspurv» rett over «bekrefter: 5 individer».
+        const oppdatert = funnCache.find((f) => String(f.sightingId) === String(emOkt.id));
+        if (oppdatert) {
+          emFunn.textContent = `${oppdatert.quantity} ${oppdatert.taxonName} · `
+            + `${oppdatert.siteName} · ${formatDato(oppdatert.date)}`;
+        }
+
+        emSkjema.hidden = true;
+        emLagre.hidden = true;
+        emAvbryt.textContent = 'Ferdig';
+        emKvittering.hidden = false;
+        emSettStatus('');
+
+        const ao = res.ao || {};
+        const lenke = `<a href="https://www.artsobservasjoner.no/Sighting/${attr(emOkt.id)}" `
+          + `target="_blank" rel="noopener">Se funnet hos Artsobservasjoner</a>`;
+
+        if (res.bekreftet === true) {
+          const deler = [];
+          if (endringer.taxon_id && emOkt.nyArt) deler.push(emOkt.nyArt.navn);
+          if (ao.Quantity) deler.push(`${ao.Quantity} individer`);
+          if (ao.ActivityName) deler.push(String(ao.ActivityName).toLowerCase());
+          emBekreftet.className = 'em-bekreftet';
+          emBekreftet.textContent = `✅ Artsobservasjoner bekrefter: ${deler.join(', ')}.`;
+        } else if (res.bekreftet === false) {
+          // Et ekte avvik: AO svarte, og svaret er noe annet enn vi ba om.
+          emBekreftet.className = 'em-bekreftet avvik';
+          emBekreftet.innerHTML = `⚠️ Lagringen gikk gjennom, men Artsobservasjoner `
+            + `viser noe annet enn du ba om:<br>${tekst((res.avvik || []).join('; '))}`
+            + `<br>${lenke}`;
+        } else {
+          // «Vet ikke» — typisk at AOs liste ikke er oppdatert ennå. Endringen er
+          // som regel lagret; vi fikk bare ikke lest den tilbake. Teksten må ikke
+          // få det til å høres ut som at noe gikk galt.
+          emBekreftet.className = 'em-bekreftet uvisst';
+          emBekreftet.innerHTML = `✔️ Endringen er lagret og publisert.<br>`
+            + `Vi rakk ikke lese den tilbake fra Artsobservasjoner for å dobbeltsjekke `
+            + `— lista deres er ikke alltid oppdatert med én gang.<br>${lenke}`;
+        }
+      }
+
+      /** Oppdater lista uten å hente alt på nytt — en henting tar 5-12 sekunder. */
+      function oppdaterFunnEtterEndring(sightingId, ao, endringer) {
+        const funn = funnCache.find((f) => String(f.sightingId) === String(sightingId));
+        if (!funn) return;
+        if (ao && ao.Quantity) funn.quantity = ao.Quantity;
+        else if (endringer.quantity) funn.quantity = endringer.quantity;
+        if (ao && ao.ActivityName) funn.activity = ao.ActivityName;
+        else if (endringer.activity_navn) funn.activity = endringer.activity_navn;
+        if (endringer.taxon_id && emOkt && emOkt.nyArt) {
+          funn.taxonName = emOkt.nyArt.navn;
+          funn.taxonId = emOkt.nyArt.id;
+        }
+
+        const rad = document.getElementById(`funn-${sightingId}`);
+        if (!rad) return;
+        const antallEl = rad.querySelector('.antall');
+        if (antallEl) antallEl.textContent = funn.quantity;
+        const artEl = rad.querySelector('.funn-art');
+        if (artEl) {
+          artEl.innerHTML = `<span class="antall">${tekst(funn.quantity)}</span> `
+            + tekst(funn.taxonName);
+        }
+        const metaEl = rad.querySelector('.funn-meta');
+        if (metaEl) metaEl.textContent = [funn.time, funn.activity].filter(Boolean).join(' · ');
+      }
+
+      emAvbryt.addEventListener('click', async () => {
+        // «Avbryt» er en handling, ikke en lukkeknapp: funnet må publiseres tilbake.
+        if (!emOkt || emOkt.ryddet) { emLukkUi(); return; }
+        emAvbryt.disabled = true;
+        emJobber('Publiserer funnet tilbake …');
+        const ok = await emPubliserTilbake(false);
+        emAvbryt.disabled = false;
+        if (ok) emLukkUi();
+      });
+
+      // «✕» må gjøre nøyaktig det samme som «Avbryt» — ellers er den en snarvei
+      // til å etterlate funnet usynlig.
+      document.getElementById('em-lukk').addEventListener('click', () => emAvbryt.click());
+
+      emModal.addEventListener('click', (e) => {
+        if (e.target === emModal) emAvbryt.click();
+      });
+
+      emLagre.addEventListener('click', emLagreEndring);
+
+      // Sikkerhetsnett. Teksten styrer vi ikke, og den vises ikke alltid — men
+      // sendBeacon rekker som regel fram selv om siden lukkes.
+      window.addEventListener('beforeunload', (e) => {
+        if (!emOkt || emOkt.ryddet) return;
+        emPubliserTilbake(true);
+        e.preventDefault();
+        e.returnValue = '';
+        return '';
+      });
+
       aoListeEl.addEventListener('click', (e) => {
+        const endreKnapp = e.target.closest('[data-endre]');
+        if (endreKnapp) {
+          const f = funnCache.find((x) => String(x.sightingId) === endreKnapp.dataset.endre);
+          if (f) emApne(f);
+          return;
+        }
         const knapp = e.target.closest('[data-bilde]');
         if (!knapp) return;
         const funn = funnCache.find((f) => String(f.sightingId) === knapp.dataset.bilde);
@@ -765,6 +1409,9 @@
       dagerEl.addEventListener('change', lastAoFunn);
       oppdaterEl.addEventListener('click', lastAoFunn);
       lastAoFunn();
+      // Kjører parallelt med funn-lista: et etterlatt upublisert funn er noe
+      // brukeren bør se med én gang, ikke etter 5-12 sekunders henting.
+      sjekkKo();
 
       // ===================================================================
       // Lokal sendt-logg (uendret oppførsel)

@@ -65,7 +65,8 @@ from src import email_notify
 from src.utils import parse_user_agent
 from src.ao_import_httpx import (post_with_curl, number_of_sightings_submitted,
                                  upload_photo_to_published_sighting)
-from src.ao_sightings import fetch_my_sightings
+from src.ao_sightings import fetch_my_sightings, fetch_raw_row
+from src import ao_edit
 
 # Lokal lokasjons-database (feature toggle via LOCATION_DB_PATH)
 _location_db = None
@@ -219,6 +220,18 @@ class Handler(SimpleHTTPRequestHandler):
 
         if parsed.path == '/api/ao-upload-image':
             self._handle_ao_upload_image_post()
+            return
+
+        if parsed.path == '/api/ao-sighting-form':
+            self._handle_ao_sighting_form_post()
+            return
+
+        if parsed.path == '/api/ao-sighting-save':
+            self._handle_ao_sighting_save_post()
+            return
+
+        if parsed.path == '/api/ao-sighting-abort':
+            self._handle_ao_sighting_abort_post()
             return
 
         if parsed.path == '/api/ao-login':
@@ -779,6 +792,211 @@ class Handler(SimpleHTTPRequestHandler):
         except Exception as e:
             logger.error(f'[AO-FUNN] Kunne ikke hente egne funn: {e}')
             self._send_json({'sightings': [], 'total': 0, 'truncated': False}, status=200)
+
+    # ---------------------------------------------------------------
+    # Endring av et publisert funn hos AO
+    # ---------------------------------------------------------------
+    # ⚠️ Å ÅPNE redigeringsskjemaet gjør funnet UPUBLISERT med én gang — det er
+    # usynlig for alle andre inntil det publiseres igjen. Derfor er flyten delt i
+    # tre kall: `form` åpner, `save` lagrer og publiserer, `abort` angrer. Klienten
+    # MÅ kalle ett av de to siste, også når brukeren lukker siden.
+    #
+    # Full bakgrunn: docs/ao-rediger-maling-2026-10-26.md
+
+    def _ao_edit_legitimasjon(self, data):
+        """Hent tokens fra bodyen, eller svar needsLogin. Returnerer None hvis ikke OK."""
+        login_token = data.get('loginToken')
+        auth_cookie = data.get('authCookie')
+        if not login_token or not auth_cookie:
+            self._send_json({'ok': False, 'needsLogin': True}, status=200)
+            return None
+        return login_token, auth_cookie
+
+    def _handle_ao_sighting_form_post(self):
+        """
+        Åpne redigeringsskjemaet for ett publisert funn.
+
+        ⚠️ Funnet er UPUBLISERT når dette svarer. Svaret inneholder derfor
+        `unpublished: True`, som klienten må vise tydelig.
+
+        Krever at gjennomgangskøen er tom. Ligger funnet allerede der, svarer AO
+        med et kort 34 KB-skjema uten `#report`, og vi ville bygget en body som
+        tømte funnet.
+        """
+        try:
+            data = self._read_json_body()
+            cred = self._ao_edit_legitimasjon(data)
+            if not cred:
+                return
+            login_token, auth_cookie = cred
+
+            sighting_id = data.get('sightingId')
+            if not sighting_id:
+                self._send_json({'ok': False, 'error': 'sightingId mangler'}, status=200)
+                return
+
+            # Funnets egne data hentes FØR skjemaet åpnes. Et kall som feiler etter
+            # åpningen ville etterlatt funnet usynlig for andre.
+            rad = fetch_raw_row(login_token, auth_cookie, sighting_id)
+            if not rad:
+                self._send_json({'ok': False,
+                                 'error': 'Fant ikke funnet blant dine egne funn hos AO.'},
+                                status=200)
+                return
+
+            funn = ao_edit.funn_fra_rad(rad)
+
+            with ao_edit.ny_klient(login_token, auth_cookie) as client:
+                kø = ao_edit.ko_rader(client)
+                if kø:
+                    self._send_json({
+                        'ok': False, 'queueNotEmpty': True, 'queueCount': len(kø),
+                        'error': (f'Du har {len(kø)} funn som venter på publisering hos '
+                                  'Artsobservasjoner. Publiser dem først — ellers kan '
+                                  'redigering her påvirke dem.')}, status=200)
+                    return
+
+                åpnet = ao_edit.aapne_for_redigering(client, sighting_id, funn)
+
+            logger.info(f'[AO-EDIT] Åpnet funn {sighting_id} for redigering '
+                        f'(funnet er nå upublisert)')
+            self._send_json({
+                'ok': True,
+                'unpublished': True,
+                'sightingId': int(sighting_id),
+                'quantity': åpnet['quantity'],
+                'taxonId': åpnet['taxonId'],
+                'activityId': åpnet['activityId'],
+                'activityOptions': åpnet['activityOptions'],
+                'funn': funn,
+                # Antiforgery-cookien hører sammen med form-tokenet i formHtml.
+                # Begge må tilbake ved lagring, ellers svarer AO 500.
+                'csrfCookie': åpnet['csrfCookie'],
+                # Skjemaet lagres IKKE i en serverside-sesjon: det er 312 KB per
+                # bruker, og en server som starter på nytt ville mistet det med
+                # funnet upublisert. Klienten sender det tilbake ved lagring.
+                'formHtml': åpnet['html'],
+            }, status=200)
+        except ao_edit.AoSessionExpired:
+            self._send_json({'ok': False, 'needsLogin': True,
+                             'error': 'Sesjonen mot Artsobservasjoner er utløpt.'},
+                            status=200)
+        except Exception as e:
+            logger.error(f'[AO-EDIT] Kunne ikke åpne redigering: {e}')
+            self._send_json({'ok': False, 'error': str(e)}, status=200)
+
+    def _handle_ao_sighting_save_post(self):
+        """
+        Lagre endringen, publiser funnet scoped, og les resultatet tilbake fra AO.
+
+        `bekreftet` er AOs eget svar på om endringen tok — ikke vår antakelse.
+        Den har tre tilstander: `True`, `False`, og `None` for «vet ikke».
+        """
+        try:
+            data = self._read_json_body()
+            cred = self._ao_edit_legitimasjon(data)
+            if not cred:
+                return
+            login_token, auth_cookie = cred
+
+            sighting_id = data.get('sightingId')
+            form_html = data.get('formHtml')
+            if not sighting_id or not form_html:
+                self._send_json({'ok': False,
+                                 'error': 'sightingId eller formHtml mangler'}, status=200)
+                return
+
+            funn = data.get('funn') or {}
+            endringer = {k: v for k, v in (data.get('endringer') or {}).items()
+                         if v is not None}
+
+            # Bygg bodyen og rapporter den uten å poste. For feilsøking av
+            # rekonstruksjonen mot ekte AO-HTML, der et avvik ellers bare viser
+            # seg som en HTTP 500 fra Save uten noen forklaring.
+            if data.get('dryRun'):
+                body = ao_edit.bygg_save_body(form_html, funn, endringer)
+                self._send_json({
+                    'ok': True, 'dryRun': True,
+                    'entries': len(body),
+                    'unike': len({n for n, _ in body}),
+                    'navn': [n for n, _ in body],
+                    'dubletter': sorted(
+                        n for n in {k for k, _ in body}
+                        if sum(1 for k, _ in body if k == n) > 1),
+                    'noekkelverdier': {
+                        kort: [v for n, v in body if n == fullt]
+                        for kort, fullt in [
+                            ('Quantity', ao_edit._S + 'Quantity'),
+                            ('Activity', ao_edit._S + 'Activity'),
+                            ('Taxon', ao_edit._S + 'Taxon'),
+                            ('StartDate', ao_edit._S + 'StartDate'),
+                            ('SiteId', ao_edit._V + 'SelectedSite.Id'),
+                            ('TempSightings', ao_edit._V + 'SelectedTempSightings'),
+                            ('siteName', 'selectedSiteName'),
+                        ]},
+                }, status=200)
+                return
+
+            with ao_edit.ny_klient(login_token, auth_cookie,
+                                   data.get('csrfCookie')) as client:
+                res = ao_edit.lagre_og_publiser(
+                    client, sighting_id, form_html, funn, endringer,
+                    hent_rad=lambda sid: fetch_raw_row(login_token, auth_cookie, sid))
+
+            logger.info(f'[AO-EDIT] Lagret funn {sighting_id}, '
+                        f'bekreftet={res.get("bekreftet")}')
+            self._send_json(res, status=200)
+        except ao_edit.AoSessionExpired:
+            self._send_json({'ok': False, 'needsLogin': True,
+                             'error': 'Sesjonen mot Artsobservasjoner er utløpt.'},
+                            status=200)
+        except Exception as e:
+            logger.error(f'[AO-EDIT] Lagring feilet: {e}')
+            self._send_json({'ok': False, 'error': str(e)}, status=200)
+
+    def _handle_ao_sighting_abort_post(self):
+        """
+        Angre en åpnet redigering: publiser funnet tilbake uendret.
+
+        Kalles fra «Avbryt» og fra `beforeunload`. Må tåle å bli kalt flere ganger
+        og når funnet ikke ligger i køen — da er det allerede publisert, og svaret
+        er `ok: True` med `publisert: False`.
+        """
+        try:
+            data = self._read_json_body()
+            cred = self._ao_edit_legitimasjon(data)
+            if not cred:
+                return
+            login_token, auth_cookie = cred
+
+            sighting_id = data.get('sightingId')
+            if not sighting_id:
+                self._send_json({'ok': False, 'error': 'sightingId mangler'}, status=200)
+                return
+
+            with ao_edit.ny_klient(login_token, auth_cookie) as client:
+                publisert = ao_edit.avbryt(client, sighting_id)
+
+            logger.info(f'[AO-EDIT] Avbrøt redigering av {sighting_id}, '
+                        f'publisert tilbake={publisert}')
+            self._send_json({'ok': True, 'publisert': bool(publisert)}, status=200)
+        except ao_edit.AoSessionExpired:
+            # Vi vet ikke om funnet ligger upublisert, for vi kom aldri så langt
+            # som å spørre. Si det, framfor å antyde at alt er i orden.
+            self._send_json({
+                'ok': False, 'needsLogin': True,
+                'error': 'Sesjonen mot Artsobservasjoner er utløpt.',
+                'advarsel': ('Vi fikk ikke sjekket om funnet ble publisert tilbake. '
+                             'Logg inn og se «Kontrollér funn» hos '
+                             'Artsobservasjoner.')}, status=200)
+        except Exception as e:
+            # En feil her betyr at funnet KAN ligge upublisert. Si det tydelig.
+            logger.error(f'[AO-EDIT] Avbryt feilet: {e}')
+            self._send_json({
+                'ok': False, 'error': str(e),
+                'advarsel': ('Klarte ikke publisere funnet tilbake. Det kan være '
+                             'usynlig for andre. Sjekk «Kontrollér funn» hos '
+                             'Artsobservasjoner.')}, status=200)
 
     def _handle_ao_upload_image_post(self):
         """
