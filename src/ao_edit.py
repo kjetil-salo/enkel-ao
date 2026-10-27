@@ -35,6 +35,7 @@ nye per økt). Sammenligningen ble gjort uten å sende noe til AO.
 
 import logging
 import re
+from html import unescape
 from html.parser import HTMLParser
 
 logger = logging.getLogger('fugleobs')
@@ -161,8 +162,28 @@ class _EditFormParser(HTMLParser):
         # navn -> [(verdi, tekst)]
         self.options = {}
 
+    @staticmethod
+    def _attrs(attrs):
+        """
+        Som nettleserens DOM: FØRSTE forekomst av et attributt vinner.
+
+        AO rendrer hvert felt med to navn — `Name="SightingViewModel.X"` og
+        `name="X"` — og Python lowercaser attributtnavn, så `dict(attrs)` lar den
+        SISTE vinne. Da får man det korte navnet uten `SightingViewModel`-prefikset,
+        og hele skjemaet blir postet under navn ASP.NET ikke binder.
+
+        Nettleseren tar den første, og det er dens oppførsel vi må matche.
+        Oppdaget 27.10.2026 mot ekte AO: `quantity`, `activityId` og
+        `activityOptions` kom alle tomme tilbake fra `/api/ao-sighting-form`.
+        """
+        ut = {}
+        for navn, verdi in attrs:
+            if navn not in ut:
+                ut[navn] = verdi
+        return ut
+
     def handle_starttag(self, tag, attrs):
-        a = dict(attrs)
+        a = self._attrs(attrs)
 
         if tag == 'form':
             self._in_form = a.get('id') == self._form_id
@@ -319,7 +340,13 @@ def bygg_save_body(html, funn, endringer=None):
     # Felt der rå HTML har en ubrukelig verdi. Verdien er en LISTE fordi `Taxon`
     # sendes to ganger. Rekkefølgen bevares fra skjemaet.
     overstyr = {
-        _S + 'Taxon': [taxon_id, taxon_id],
+        # ÉN verdi, ikke to. AO rendrer to elementer med navnet `Taxon` —
+        # artsvelgerens synlige felt (`class="ap2picker_value required"`, som i rå
+        # HTML inneholder en .NET-typestreng) og serverens skjulte verdi. Sender vi
+        # begge, binder ASP.NET «4397,4397» til én int, og svarer med
+        # «Feltet er obligatorisk [Taxon]» og HTTP 200 uten å lagre noe.
+        # Verifisert mot ekte AO 27.10.2026: én verdi gir 302 og lagring.
+        _S + 'Taxon': [taxon_id],
         _S + 'StartDate': [dato],
         _S + 'EndDate': [dato],
         _V + 'SelectedSite.Id': [site_id],
@@ -389,15 +416,23 @@ _HEADERS = {
 from src.ao_sightings import AoSessionExpired  # noqa: F401,E402
 
 
-def _cookies(login_token, auth_cookie):
-    return {
+def _cookies(login_token, auth_cookie, csrf_cookie=None):
+    ut = {
         'AcceptCookies': '1',
         'logintoken': login_token,
         '.ASPXAUTHNO': auth_cookie,
     }
+    if csrf_cookie:
+        # ASP.NETs antiforgery krever at form-token og COOKIE-token er et matchende
+        # par fra samme request. Skjemaet hentes i ett HTTP-kall og postes i et
+        # annet, med hver sin klient — uten at cookien bæres over, svarer
+        # `/ReviewSighting/Save` HTTP 500 uten nærmere forklaring.
+        # Samme mekanisme som `ao_import_httpx` håndterer eksplisitt.
+        ut['__RequestVerificationToken'] = csrf_cookie
+    return ut
 
 
-def ny_klient(login_token, auth_cookie):
+def ny_klient(login_token, auth_cookie, csrf_cookie=None):
     """
     Lag en httpx-klient med cookies på KLIENTEN, ikke per request.
 
@@ -406,7 +441,8 @@ def ny_klient(login_token, auth_cookie):
     fra klientens jar ved redirect. Cookies satt per request forsvinner da, og vi
     får en uinnlogget side uten feilmelding.
     """
-    return httpx.Client(cookies=_cookies(login_token, auth_cookie), timeout=30)
+    return httpx.Client(cookies=_cookies(login_token, auth_cookie, csrf_cookie),
+                        timeout=30)
 
 
 def aapne_skjema(client, sighting_id):
@@ -428,7 +464,11 @@ def aapne_skjema(client, sighting_id):
         raise AoEditError(f'/Edit/{sighting_id} svarte HTTP {resp.status_code}')
     if 'LogOff' not in resp.text:
         raise AoSessionExpired()
-    return resp.text
+    # Cookie-tokenet hører sammen med form-tokenet i HTML-en. Begge må følge med
+    # til Save, ellers avviser ASP.NET posten med 500. Leses fra klientens jar,
+    # som httpx har fylt fra Set-Cookie underveis i redirect-kjeden.
+    csrf = client.cookies.get('__RequestVerificationToken')
+    return resp.text, csrf
 
 
 def lagre(client, body):
@@ -445,9 +485,69 @@ def lagre(client, body):
                  'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'},
         follow_redirects=False,
     )
-    if resp.status_code not in (200, 302):
-        raise AoEditError(f'/ReviewSighting/Save svarte HTTP {resp.status_code}')
-    return resp
+
+    # 302 til /ReviewSighting er den ENESTE suksessen. ASP.NET MVC svarer 200 når
+    # modellbindingen eller valideringen feilet — da re-rendres skjemaet med
+    # feilmeldinger, og ingenting er lagret. Å godta 200 som suksess skjuler en
+    # avvist endring fullstendig: Save «går bra», men funnet er uendret.
+    # Oppdaget 27.10.2026, da et antall-bytte stille uteble.
+    if resp.status_code in (301, 302, 303):
+        return resp
+
+    if resp.status_code == 200:
+        feil = _valideringsfeil(resp.text)
+        raise AoEditError(
+            'Artsobservasjoner avviste endringen: ' + (feil or
+            'skjemaet kom tilbake uten at noe ble lagret, og uten en lesbar '
+            'feilmelding.'))
+
+    raise AoEditError(f'/ReviewSighting/Save svarte HTTP {resp.status_code}')
+
+
+# Hele span-taggen fanges, og `data-valmsg-for` plukkes ut av den etterpå. Å ha
+# attributtet som en valgfri gruppe i samme regex gjorde at den alltid matchet
+# tomt, uansett rekkefølge på attributtene.
+# Feltnavnet er det som gjør meldingen brukbar — «Feltet er obligatorisk» finnes
+# det 149 mulige kandidater til.
+_FEIL_RE = re.compile(
+    r'<span([^>]*class="[^"]*field-validation-error[^"]*"[^>]*)>(.*?)</span>',
+    re.DOTALL | re.IGNORECASE)
+_VALMSG_FOR_RE = re.compile(r'data-valmsg-for="([^"]*)"', re.IGNORECASE)
+_SAMMENDRAG_RE = re.compile(
+    r'<div[^>]*class="[^"]*validation-summary-errors[^"]*"[^>]*>(.*?)</div>',
+    re.DOTALL | re.IGNORECASE)
+
+
+def _valideringsfeil(html):
+    """
+    Plukk ut AOs egne feilmeldinger fra et re-rendret skjema.
+
+    Uten dette ville brukeren fått «noe gikk galt» på en avvisning AO faktisk har
+    forklart — typisk en regel om antall, dato eller aktivitet mot lokalitet.
+    """
+    def rens(rå):
+        return unescape(re.sub(r'\s+', ' ', re.sub(r'<[^>]*>', ' ', rå))).strip()
+
+    meldinger = []
+    for treff in _SAMMENDRAG_RE.findall(html):
+        tekst = rens(treff)
+        if tekst and tekst not in meldinger:
+            meldinger.append(tekst)
+
+    for attributter, treff in _FEIL_RE.findall(html):
+        tekst = rens(treff)
+        if not tekst:
+            continue
+        felt_treff = _VALMSG_FOR_RE.search(attributter)
+        felt = felt_treff.group(1) if felt_treff else ''
+        # Kort ned AOs lange prefiks, ellers drukner meldingen i boilerplate.
+        kort = felt.replace('SightingViewModel.TemporarySighting.Sighting.', '')
+        kort = kort.replace('SightingViewModel.', '')
+        full = f'{tekst} [{kort}]' if kort else tekst
+        if full not in meldinger:
+            meldinger.append(full)
+
+    return '; '.join(meldinger[:6])
 
 
 def ko_rader(client):
@@ -568,8 +668,18 @@ def aapne_for_redigering(client, sighting_id, funn):
 
     `funn` er funnets egne data fra `BindSightingsGrid` — hentet FØR dette kallet.
     """
-    html = aapne_skjema(client, sighting_id)
+    html, csrf_cookie = aapne_skjema(client, sighting_id)
     felt, options = parse_edit_form(html)
+
+    # Samme fail-closed-sjekk som `bygg_save_body()`, men HER — ved åpning.
+    # Uten den ville en parser-feil vist et tomt skjema i stedet for en feilmelding,
+    # og brukeren sittet med et upublisert funn og ingen forklaring. Det skjedde
+    # 27.10.2026 (dupliserte name-attributter, se `_EditFormParser._attrs`).
+    finnes = {n for n, _, _ in felt}
+    mangler = [n for n in PAAKREVDE_FELT if n not in finnes]
+    if mangler:
+        raise AoEditError(
+            'Redigeringsskjemaet fra AO mangler felt: ' + ', '.join(sorted(mangler)))
 
     verdier = {}
     for navn, verdi, slag in felt:
@@ -581,6 +691,7 @@ def aapne_for_redigering(client, sighting_id, funn):
 
     return {
         'html': html,
+        'csrfCookie': csrf_cookie,
         'quantity': verdier.get(_S + 'Quantity'),
         'taxonId': str(funn['taxon_id']),
         'activityId': aktivitet_id,

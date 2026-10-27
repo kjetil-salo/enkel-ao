@@ -81,12 +81,17 @@ def test_oppslag_er_ufolsomt_for_store_bokstaver():
 # Rå HTML lyver — verdiene som må overstyres
 # ---------------------------------------------------------------------------
 
-def test_taxon_sendes_to_ganger_med_samme_id():
+def test_taxon_sendes_bare_EN_gang():
     """
-    AO rendrer `Taxon` to ganger, der ANDRE forekomst er en rå .NET-typestreng.
-    Nettleseren sender ID-en begge gangene.
+    AO rendrer to elementer med navnet `Taxon`: artsvelgerens synlige felt og
+    serverens skjulte verdi. Sender vi begge, binder ASP.NET «4397,4397» til én
+    int og svarer «Feltet er obligatorisk [Taxon]» — HTTP 200, ingenting lagret.
+
+    Nettleserens FormData inneholder riktignok to, men AOs eget JS gjør noe mer
+    ved submit. Én verdi er det som faktisk gir 302 og lagring hos AO
+    (verifisert 27.10.2026).
     """
-    assert _verdier(_body(), S + 'Taxon') == ['4397', '4397']
+    assert _verdier(_body(), S + 'Taxon') == ['4397']
 
 
 def test_dotnet_typestreng_lekker_aldri_ut():
@@ -218,9 +223,9 @@ def test_antall_uendret_naar_ikke_oppgitt():
 
 
 def test_art_overstyres():
-    """Etterbestemmelse: gransanger → løvsanger. Begge forekomster må endres."""
+    """Etterbestemmelse: gransanger → løvsanger."""
     body = _body(endringer={'taxon_id': '4330'})
-    assert _verdier(body, S + 'Taxon') == ['4330', '4330']
+    assert _verdier(body, S + 'Taxon') == ['4330']
 
 
 def test_antall_null_respekteres_ikke_som_fravaerende():
@@ -241,18 +246,26 @@ def test_kort_skjema_gir_tydelig_feil():
         _body(html=ao_edit_form.KORT_SKJEMA)
 
 
+def _uten_felt(navn):
+    """Fjern ethvert element som bærer `navn`, uavhengig av attributt-rekkefølge."""
+    import re as _re
+    html = ao_edit_form.lag_skjema()
+    mønster = _re.compile(
+        r'<(input|select|textarea)\b[^>]*["\s]' + _re.escape(navn) + r'"[^>]*'
+        r'(/>|>.*?</\1>)', _re.DOTALL | _re.IGNORECASE)
+    ut = mønster.sub('', html)
+    assert ut != html, f'fikk ikke fjernet {navn} fra fixturen'
+    return ut
+
+
 def test_manglende_paakrevd_felt_kaster():
-    html = ao_edit_form.lag_skjema().replace(
-        f'<input name="{S}Quantity" type="text" value="3"/>', '')
     with pytest.raises(AoEditError, match='mangler felt'):
-        _body(html=html)
+        _body(html=_uten_felt(S + 'Quantity'))
 
 
 def test_feilmelding_navngir_hvilket_felt_som_mangler():
-    html = ao_edit_form.lag_skjema().replace(
-        f'<input name="{V}Observers[0].User" type="hidden" value="15969"/>', '')
     with pytest.raises(AoEditError, match='Observers'):
-        _body(html=html)
+        _body(html=_uten_felt(V + 'Observers[0].User'))
 
 
 # ---------------------------------------------------------------------------
@@ -273,7 +286,7 @@ def test_no_op_endrer_ingen_funndata():
     body = _body()
     assert _en(body, S + 'Quantity') == '3'
     assert _en(body, S + 'Activity') == '23'
-    assert _verdier(body, S + 'Taxon') == ['4397', '4397']
+    assert _verdier(body, S + 'Taxon') == ['4397']
     assert _en(body, S + 'StartDate') == '25.10.2026'
     assert _en(body, S + 'StartTime') == '15:52'
     assert _en(body, V + 'SelectedSite.Id') == '362858'
@@ -487,3 +500,140 @@ def test_ao_edit_og_ao_sightings_deler_sesjonsunntak():
 def test_sesjonsunntak_har_lesbar_tekst():
     """`str(exc)` havner i API-svaret. Tom streng er ubrukelig for brukeren."""
     assert 'utløpt' in str(ao_edit.AoSessionExpired()).lower()
+
+
+# ---------------------------------------------------------------------------
+# Dupliserte name-attributter (AOs faktiske HTML)
+# ---------------------------------------------------------------------------
+
+DOBBEL_HTML = """<html><body><form id="report">
+<input Name="SightingViewModel.TemporarySighting.Sighting.Quantity"
+       name="TemporarySighting.Sighting.Quantity" type="text" value="3"/>
+<select Name="SightingViewModel.TemporarySighting.Sighting.Activity"
+        name="TemporarySighting.Sighting.Activity">
+<option value="0"></option><option value="23">Stasjonær</option></select>
+</form></body></html>"""
+
+
+def test_forste_name_attributt_vinner():
+    """
+    AO rendrer hvert felt med BÅDE `Name="SightingViewModel.X"` og `name="X"`.
+    Python lowercaser attributtnavn, så `dict(attrs)` lar den siste vinne og
+    mister prefikset — og hele skjemaet postes under navn ASP.NET ikke binder.
+    Nettleseren tar den første. Traff i praksis 27.10.2026.
+    """
+    felt, options = ao_edit.parse_edit_form(DOBBEL_HTML)
+    navn = [n for n, _, _ in felt]
+    assert S + 'Quantity' in navn
+    assert 'TemporarySighting.Sighting.Quantity' not in navn
+    assert S + 'Activity' in options
+
+
+def test_options_leses_ut_tross_dobbelt_navn():
+    _, options = ao_edit.parse_edit_form(DOBBEL_HTML)
+    assert ('23', 'Stasjonær') in options[S + 'Activity']
+
+
+def test_csrf_cookie_settes_naar_den_er_oppgitt():
+    """
+    Antiforgery krever at form-token og cookie-token er et par fra samme request.
+    Skjemaet hentes i ett HTTP-kall og postes i et annet; uten at cookien bæres
+    over svarer AO HTTP 500 uten forklaring. Traff i praksis 27.10.2026.
+    """
+    c = ao_edit._cookies('t', 'a', 'csrf-verdi')
+    assert c['__RequestVerificationToken'] == 'csrf-verdi'
+
+
+def test_csrf_cookie_utelates_naar_den_mangler():
+    """En tom cookie er verre enn ingen — den ville overstyrt en AO satte selv."""
+    assert '__RequestVerificationToken' not in ao_edit._cookies('t', 'a')
+    assert '__RequestVerificationToken' not in ao_edit._cookies('t', 'a', None)
+    assert '__RequestVerificationToken' not in ao_edit._cookies('t', 'a', '')
+
+
+# ---------------------------------------------------------------------------
+# Save-svaret: 302 er suksess, 200 er en avvisning
+# ---------------------------------------------------------------------------
+
+class _FalskRespons:
+    def __init__(self, status, text=''):
+        self.status_code = status
+        self.text = text
+
+
+class _FalskKlient:
+    def __init__(self, respons):
+        self._respons = respons
+        self.kalt = False
+
+    def post(self, *a, **kw):
+        self.kalt = True
+        return self._respons
+
+
+def test_lagre_godtar_302_som_suksess():
+    k = _FalskKlient(_FalskRespons(302))
+    assert ao_edit.lagre(k, [('a', 'b')]).status_code == 302
+
+
+def test_lagre_avviser_200_som_valideringsfeil():
+    """
+    ASP.NET MVC svarer 200 når modellbinding eller validering feilet — skjemaet
+    re-rendres og INGENTING er lagret. Å godta 200 skjulte en avvist endring
+    fullstendig: Save «gikk bra», men funnet var uendret. 27.10.2026.
+    """
+    html = ('<div class="validation-summary-errors"><ul>'
+            '<li>Antall må være større enn 0</li></ul></div>')
+    k = _FalskKlient(_FalskRespons(200, html))
+    with pytest.raises(AoEditError, match='Antall må være større enn 0'):
+        ao_edit.lagre(k, [('a', 'b')])
+
+
+def test_lagre_sier_fra_selv_uten_lesbar_feilmelding():
+    k = _FalskKlient(_FalskRespons(200, '<html>ingen feilmelding her</html>'))
+    with pytest.raises(AoEditError, match='uten at noe ble lagret'):
+        ao_edit.lagre(k, [('a', 'b')])
+
+
+def test_lagre_rapporterer_andre_statuskoder():
+    k = _FalskKlient(_FalskRespons(500))
+    with pytest.raises(AoEditError, match='HTTP 500'):
+        ao_edit.lagre(k, [('a', 'b')])
+
+
+def test_valideringsfeil_plukker_feltfeil():
+    html = '<span class="field-validation-error">Oppgi et tall mellom 1 og 100.</span>'
+    assert 'tall mellom 1 og 100' in ao_edit._valideringsfeil(html)
+
+
+def test_valideringsfeil_dedupliserer():
+    html = ('<span class="field-validation-error">Samme feil</span>'
+            '<span class="field-validation-error">Samme feil</span>')
+    assert ao_edit._valideringsfeil(html) == 'Samme feil'
+
+
+def test_valideringsfeil_avkoder_entiteter():
+    html = '<span class="field-validation-error">Antall m&#229; v&aelig;re satt</span>'
+    assert 'må være satt' in ao_edit._valideringsfeil(html)
+
+
+def test_valideringsfeil_paa_ren_html_er_tom():
+    assert ao_edit._valideringsfeil('<html><body>ok</body></html>') == ''
+
+
+def test_valideringsfeil_navngir_feltet():
+    """
+    «Feltet er obligatorisk» uten feltnavn er ubrukelig — bodyen har 149 felt.
+    `data-valmsg-for` sier hvilket, og prefikset kortes ned så meldingen er lesbar.
+    """
+    html = ('<span class="field-validation-error" '
+            'data-valmsg-for="SightingViewModel.TemporarySighting.Sighting.Unit">'
+            'Feltet er obligatorisk</span>')
+    assert ao_edit._valideringsfeil(html) == 'Feltet er obligatorisk [Unit]'
+
+
+def test_valideringsfeil_finner_feltet_uansett_attributtrekkefolge():
+    """En valgfri gruppe i samme regex matchet alltid tomt. Derfor to steg."""
+    html = ('<span data-valmsg-for="SightingViewModel.SelectedSite.Id" '
+            'class="field-validation-error">Feltet er obligatorisk</span>')
+    assert '[SelectedSite.Id]' in ao_edit._valideringsfeil(html)

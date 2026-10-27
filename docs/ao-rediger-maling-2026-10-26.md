@@ -221,9 +221,22 @@ hvis en aktivitets-ID ikke kan slås opp.
 
 ---
 
-## ✅ No-op round-trip kjørt mot ekte AO (27.10.2026)
+## ⚠️ Rettelse 27.10.2026: den første «grønne» porten var falsk
 
-Porten er **grønn**. Testfunn 42030658, fra verifisert ren tilstand (kø = 0).
+Kjøringen under rapporterte `Save: HTTP 200` og tolket det som suksess. **Det var
+feil.** ASP.NET MVC svarer 200 på en POST når modellbinding eller validering
+feilet — skjemaet re-rendres med feilmeldinger og ingenting lagres. Suksess er
+**302** til `/ReviewSighting`.
+
+Funnet var derfor uendret etterpå fordi *ingenting skjedde*, ikke fordi
+round-trippet bevarte det. Sammenligningen av 13 felt kunne ikke skille de to.
+
+Den ekte årsaken til avvisningen var `Taxon` — se under. Logg og tall i avsnittet
+under er likevel korrekte som måling av bodyens innhold.
+
+## No-op round-trip kjørt mot ekte AO (27.10.2026)
+
+Første kjøring, med feiltolket statuskode. Testfunn 42030658, fra verifisert ren tilstand (kø = 0).
 
 ```
 FØR: art=4397 antall=3 akt=Stasjonær sted=Hylkje
@@ -261,3 +274,90 @@ postet til `Save`. Men lærdommen står: **alt funnet trenger skal være hentet 
 `aapne_skjema()` kalles.** `bygg_save_body()` i `ao_edit.py` tar derfor `funn` som
 parameter og gjør ingen nettverkskall selv — den egenskapen er ikke tilfeldig og
 må bevares.
+
+
+---
+
+## Tre feil funnet ved å kjøre endepunktene mot ekte AO (27.10.2026)
+
+Alle tre var stille: ingen av dem ville vist seg i enhetstestene, og to av dem
+så ut som suksess.
+
+### 1. Dupliserte `name`-attributter — parseren mistet prefikset
+
+AO rendrer hvert felt med **to** navn:
+
+```html
+<input Id="…" Name="SightingViewModel.TemporarySighting.Sighting.Quantity"
+       id="…"  name="TemporarySighting.Sighting.Quantity" value="3" />
+```
+
+Python lowercaser attributtnavn, så `dict(attrs)` lar den **siste** vinne — det
+korte navnet uten `SightingViewModel`-prefikset. Nettleserens DOM tar den
+**første**. Derfor stemte alt i Chrome og ingenting i Python.
+
+Utslaget: `/api/ao-sighting-form` svarte `ok: true` med `quantity: null`,
+`activityId: null` og en tom aktivitetsliste. `_EditFormParser._attrs()` tar nå
+første forekomst, som nettleseren.
+
+**Lærdom:** fail-closed-sjekken lå bare i `bygg_save_body()`, ikke i åpningen.
+Den er nå i begge — en parser-feil skal gi en feilmelding, ikke et tomt skjema.
+
+### 2. Antiforgery-cookien fulgte ikke med
+
+Skjemaet hentes i ett HTTP-kall og postes i et annet, med hver sin httpx-klient.
+ASP.NET krever at form-tokenet og **cookie-tokenet** er et par fra samme request.
+Uten cookien svarer `/ReviewSighting/Save` **HTTP 500** uten forklaring.
+
+`aapne_skjema()` returnerer nå cookie-tokenet, og det bæres via klienten
+(`csrfCookie`) tilbake til lagringen. Samme mekanisme `ao_import_httpx` har
+håndtert eksplisitt hele tiden.
+
+### 3. `Taxon` må sendes ÉN gang, ikke to ⭐
+
+Dette er den viktigste, og den som skjulte seg bak feiltolkningen av 200.
+
+AO rendrer **to** elementer med navnet `Taxon`:
+
+| | `class` | `type` | verdi i rå HTML |
+|---|---|---|---|
+| artsvelgerens felt | `ap2picker_value required` | text | `Artportalen.ObjectModel…Taxon` |
+| serverens verdi | — | hidden | `4397` |
+
+Nettleserens `FormData` inneholder begge (`4397, 4397` etter at JS har fylt det
+første). Men sender vi begge, binder ASP.NET `«4397,4397»` til én `int`, feiler,
+og svarer:
+
+```
+HTTP 200 — Feltet er obligatorisk [Taxon]
+```
+
+**Verifisert mot ekte AO:** to verdier → 200 og ingenting lagret. Én verdi → 302
+og funnet lagret. AOs eget JS gjør altså noe mer ved submit enn det `FormData`
+viser; vi matcher resultatet, ikke mellomregningen.
+
+### Konsekvens for feilhåndteringen
+
+`lagre()` godtar nå **bare 3xx** som suksess, og plukker AOs egne feilmeldinger
+ut av et 200-svar — inkludert `data-valmsg-for`, så meldingen sier *hvilket* felt
+som er problemet. «Feltet er obligatorisk» uten feltnavn er ubrukelig når bodyen
+har 149 felt.
+
+---
+
+## ✅ Ekte verifisering (27.10.2026)
+
+Etter alle tre fiksene, mot ekte AO gjennom appens egne endepunkter:
+
+| Test | Resultat |
+|---|---|
+| No-op (ingen endringer) | Save 302, funnet lagret og publisert, `gråspurv / 3 Individer / Stasjonær` uendret |
+| Ekte endring 3 → 4 | `bekreftet: true`, AO svarer `Quantity: "4"` |
+| Tilbakestilling 4 → 3 | `bekreftet: true`, AO svarer `Quantity: "3"` |
+
+I begge endringene var art, aktivitet, tid, lokalitet og dato uendret. Køen var
+tom etterpå hver gang.
+
+**Bekreftelsessteget beviste seg underveis:** da `Taxon`-feilen fortsatt var der,
+svarte `save` med `bekreftet: false` og «Antall: ba om 4, AO har 3». Uten det
+hadde vi meldt suksess på en endring som aldri skjedde.

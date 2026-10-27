@@ -30,8 +30,20 @@ AKTIVITETER = [
 ]
 
 
+def _dobbelt(name):
+    """
+    AO rendrer hvert felt med TO navn: `Name="SightingViewModel.X"` og `name="X"`.
+
+    Python lowercaser attributtnavn, så en naiv `dict(attrs)` lar den siste vinne
+    og mister `SightingViewModel`-prefikset. Fixturen må ha dette, ellers tester
+    den noe AO ikke sender. Lagt inn 27.10.2026 etter at feilen traff i praksis.
+    """
+    kort = name.replace('SightingViewModel.', '')
+    return f'Name="{name}" name="{kort}"'
+
+
 def _select(name, options, selected=None):
-    ut = [f'<select name="{name}">']
+    ut = [f'<select {_dobbelt(name)}>']
     for verdi, tekst in options:
         mark = ' selected' if selected is not None and verdi == selected else ''
         ut.append(f'<option value="{verdi}"{mark}>{tekst}</option>')
@@ -62,12 +74,12 @@ def lag_skjema(taxon_id='4397', quantity='3', dato='25.10.2026 00:00:00',
     a(f'<input name="{S}Taxon_Name" type="hidden" value=""/>')
 
     # Datoer med 00:00:00 — nettleseren normaliserer dem
-    a(f'<input name="{S}StartDate" type="text" value="{dato}"/>')
+    a(f'<input {_dobbelt(S + "StartDate")} type="text" value="{dato}"/>')
     a(f'<input name="{S}StartTime" type="text" value="{start_tid}"/>')
     a(f'<input name="{S}EndDate" type="text" value="{dato}"/>')
     a(f'<input name="{S}EndTime" type="text" value="{start_tid}"/>')
 
-    a(f'<input name="{S}Quantity" type="text" value="{quantity}"/>')
+    a(f'<input {_dobbelt(S + "Quantity")} type="text" value="{quantity}"/>')
     a(f'<input name="{V}EditableProperties.Quantity.IsEditable" type="hidden" value="True"/>')
 
     # Nedtrekkslister UTEN selected — kjernen i problemet

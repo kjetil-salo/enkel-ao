@@ -869,6 +869,9 @@ class Handler(SimpleHTTPRequestHandler):
                 'activityId': åpnet['activityId'],
                 'activityOptions': åpnet['activityOptions'],
                 'funn': funn,
+                # Antiforgery-cookien hører sammen med form-tokenet i formHtml.
+                # Begge må tilbake ved lagring, ellers svarer AO 500.
+                'csrfCookie': åpnet['csrfCookie'],
                 # Skjemaet lagres IKKE i en serverside-sesjon: det er 312 KB per
                 # bruker, og en server som starter på nytt ville mistet det med
                 # funnet upublisert. Klienten sender det tilbake ved lagring.
@@ -907,7 +910,35 @@ class Handler(SimpleHTTPRequestHandler):
             endringer = {k: v for k, v in (data.get('endringer') or {}).items()
                          if v is not None}
 
-            with ao_edit.ny_klient(login_token, auth_cookie) as client:
+            # Bygg bodyen og rapporter den uten å poste. For feilsøking av
+            # rekonstruksjonen mot ekte AO-HTML, der et avvik ellers bare viser
+            # seg som en HTTP 500 fra Save uten noen forklaring.
+            if data.get('dryRun'):
+                body = ao_edit.bygg_save_body(form_html, funn, endringer)
+                self._send_json({
+                    'ok': True, 'dryRun': True,
+                    'entries': len(body),
+                    'unike': len({n for n, _ in body}),
+                    'navn': [n for n, _ in body],
+                    'dubletter': sorted(
+                        n for n in {k for k, _ in body}
+                        if sum(1 for k, _ in body if k == n) > 1),
+                    'noekkelverdier': {
+                        kort: [v for n, v in body if n == fullt]
+                        for kort, fullt in [
+                            ('Quantity', ao_edit._S + 'Quantity'),
+                            ('Activity', ao_edit._S + 'Activity'),
+                            ('Taxon', ao_edit._S + 'Taxon'),
+                            ('StartDate', ao_edit._S + 'StartDate'),
+                            ('SiteId', ao_edit._V + 'SelectedSite.Id'),
+                            ('TempSightings', ao_edit._V + 'SelectedTempSightings'),
+                            ('siteName', 'selectedSiteName'),
+                        ]},
+                }, status=200)
+                return
+
+            with ao_edit.ny_klient(login_token, auth_cookie,
+                                   data.get('csrfCookie')) as client:
                 res = ao_edit.lagre_og_publiser(
                     client, sighting_id, form_html, funn, endringer,
                     hent_rad=lambda sid: fetch_raw_row(login_token, auth_cookie, sid))

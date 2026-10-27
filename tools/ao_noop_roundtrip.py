@@ -183,7 +183,7 @@ def main():
         print('Kø er tom. Åpner skjemaet (funnet blir midlertidig upublisert)…')
 
         try:
-            html = ao_edit.aapne_skjema(client, sid)
+            html, _csrf = ao_edit.aapne_skjema(client, sid)
             print(f'  skjema: {len(html) // 1024} KB')
 
             funn = {
