@@ -253,8 +253,17 @@
       body.theme-light .har-bilde,
       body.theme-light .rad-status.ok { color: #16a34a !important; }
       body.theme-light .rad-status.feil { color: #b91c1c !important; }
+      /* `:not(.primar)` er nødvendig: «clean» setter BÅDE .theme-light og
+         .theme-clean, og .theme-clean gjør aksenten monokrom (--accent: #111111).
+         Uten unntaket traff mørk tekst en nesten-svart knapp, og «Legg til bilde»,
+         «Del disse» og «Lagre og publiser» ble uleselige. Meldt fra felt 27.10.2026. */
       body.theme-light .ao-dager,
-      body.theme-light .btn-liten { color: #1a1a1a !important; }
+      body.theme-light .btn-liten:not(.primar) { color: #1a1a1a !important; }
+
+      /* Primærknappen skal alltid ha lesbar tekst mot sin egen aksentfarge,
+         uansett hvor mørk temaet gjør den. */
+      body.theme-light .btn-liten.primar,
+      body.theme-clean .btn-liten.primar { color: #fff !important; }
     </style>
   </head>
   <body>
