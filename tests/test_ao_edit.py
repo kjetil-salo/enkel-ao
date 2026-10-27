@@ -684,3 +684,49 @@ def test_bekreft_treffer_paa_forste_forsok_uten_aa_vente(monkeypatch):
     res = ao_edit.bekreft(None, 1, FUNN, {}, hent_rad=straks)
     assert forsok['n'] == 1
     assert res['bekreftet'] is True
+
+
+# ---------------------------------------------------------------------------
+# Artsendring (etterbestemmelse)
+# ---------------------------------------------------------------------------
+
+def test_artsendring_settes_i_bodyen():
+    """Gransanger → løvsanger. `Taxon` sendes én gang, med den nye ID-en."""
+    body = _body(endringer={'taxon_id': '4472'})
+    assert _verdier(body, S + 'Taxon') == ['4472']
+
+
+def test_artsendring_rorer_ikke_antall_og_aktivitet():
+    """En etterbestemmelse skal ikke dra med seg andre felt."""
+    body = _body(endringer={'taxon_id': '4472'})
+    assert _en(body, S + 'Quantity') == '3'
+    assert _en(body, S + 'Activity') == '23'
+
+
+def test_artsgruppe_folger_ikke_med_artsendringen():
+    """
+    `Taxon_speciesgroupid` står fast på 8 (fugler). Frontend filtrerer søket til
+    samme gruppe, så en artsendring innenfor fugler er trygg — men det er verdt
+    en vakt her, siden et bytte til en annen gruppe ville blitt sendt med feil ID.
+    """
+    body = _body(endringer={'taxon_id': '4472'})
+    assert _en(body, 'selectedSiteSpeciesGroupId') == '8'
+
+
+def test_bekreft_godtar_endret_art():
+    res = ao_edit.bekreft(None, 1, FUNN, {'taxon_id': '4472'},
+                          hent_rad=lambda _: _rad(TaxonId=4472))
+    assert res['bekreftet'] is True
+
+
+def test_bekreft_fanger_at_arten_IKKE_ble_endret():
+    res = ao_edit.bekreft(None, 1, FUNN, {'taxon_id': '4472'},
+                          hent_rad=lambda _: _rad(TaxonId=4397))
+    assert res['bekreftet'] is False
+    assert 'Art' in res['avvik'][0]
+
+
+def test_art_og_antall_kan_endres_samtidig():
+    body = _body(endringer={'taxon_id': '4472', 'quantity': '9'})
+    assert _verdier(body, S + 'Taxon') == ['4472']
+    assert _en(body, S + 'Quantity') == '9'

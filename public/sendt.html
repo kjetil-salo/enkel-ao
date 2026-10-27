@@ -181,6 +181,35 @@
         background: #ffffff !important; color: #0f172a !important; border-color: #cbd5e1 !important; }
       .em-fast { font-size: 0.8rem; color: var(--muted, #9ca3af); margin: 0 0 14px;
                  padding-top: 10px; border-top: 1px solid var(--border, #334155); }
+
+      /* Artssøk: inputfelt med trefliste under. */
+      .em-art-boks { position: relative; }
+      .em-treff { position: absolute; left: 0; right: 0; top: 100%; z-index: 5;
+                  background: var(--bg, #0f172a); border: 1px solid var(--border, #334155);
+                  border-radius: 8px; margin-top: 2px; max-height: 210px; overflow-y: auto;
+                  box-shadow: 0 8px 20px rgba(0,0,0,0.35); }
+      .em-treff[hidden] { display: none; }
+      body.theme-light .em-treff { background: #ffffff !important; border-color: #cbd5e1 !important; }
+      .em-treff button { display: block; width: 100%; text-align: left; border: 0;
+                         background: none; color: inherit; padding: 9px 11px;
+                         font-size: 0.9rem; cursor: pointer; }
+      .em-treff button:hover, .em-treff button:focus { background: rgba(59,130,246,0.18); outline: none; }
+      .em-treff .vit { color: var(--muted, #9ca3af); font-size: 0.8rem; font-style: italic; }
+      .em-treff .tom { padding: 9px 11px; color: var(--muted, #9ca3af); font-size: 0.85rem; }
+
+      /* Valgt art vises som en «brikke» med mulighet for å angre. */
+      .em-art-valgt { display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+                      font-size: 0.9rem; }
+      .em-art-ny { color: #fbbf24; font-weight: 600; }
+      body.theme-light .em-art-ny { color: #b45309 !important; }
+
+      /* Sjeldenhetsvarsel på den NYE arten. */
+      .em-sjelden { border: 1px solid #a16207; background: rgba(161, 98, 7, 0.14);
+                    border-radius: 8px; padding: 10px 12px; margin: 0 0 12px;
+                    font-size: 0.85rem; line-height: 1.45; }
+      .em-sjelden[hidden] { display: none; }
+      .em-sjelden strong { display: block; margin-bottom: 3px; }
+      body.theme-light .em-sjelden { background: #fffbeb !important; border-color: #ca8a04 !important; }
       .em-bekreftet { border: 1px solid #15803d; background: rgba(21, 128, 61, 0.12);
                       border-radius: 8px; padding: 10px 12px; font-size: 0.85rem; }
       body.theme-light .em-bekreftet { background: #f0fdf4 !important; border-color: #16a34a !important; }
@@ -301,6 +330,19 @@
             <span class="fare-nb">Lukker du siden nå, blir funnet liggende skjult.</span>
             Bruk «Avbryt» hvis du ombestemmer deg — da publiseres det tilbake med én gang.
           </div>
+
+          <div class="em-rad em-art-boks">
+            <label for="em-art">Art</label>
+            <div class="em-art-valgt" id="em-art-valgt">
+              <span id="em-art-navn"></span>
+              <button type="button" class="btn-liten" id="em-art-bytt">Bytt art</button>
+            </div>
+            <input type="text" id="em-art" placeholder="Søk etter art …"
+                   autocomplete="off" hidden />
+            <div class="em-treff" id="em-art-treff" hidden></div>
+          </div>
+
+          <div class="em-sjelden" id="em-sjelden" hidden role="alert"></div>
 
           <div class="em-rad">
             <label for="em-antall">Antall</label>
@@ -838,6 +880,141 @@
       // Alt som trengs for å lagre, OG for å rydde opp hvis noe går galt.
       let emOkt = null;
 
+      // --- Artssøk -------------------------------------------------------
+      const emArt = document.getElementById('em-art');
+      const emArtTreff = document.getElementById('em-art-treff');
+      const emArtValgt = document.getElementById('em-art-valgt');
+      const emArtNavn = document.getElementById('em-art-navn');
+      const emSjelden = document.getElementById('em-sjelden');
+
+      let artSok = null;        // debounce-timer
+      let artSeq = 0;           // race-vakt: bare siste søk får tegne
+      let sjeldenSeq = 0;       // samme for sjeldenhetssjekken
+
+      function visValgtArt() {
+        const ny = emOkt && emOkt.nyArt;
+        emArtNavn.innerHTML = ny
+          ? `<span class="em-art-ny">${tekst(ny.navn)}</span>
+             <span class="vit">(var ${tekst(emOkt.opprinneligArtNavn)})</span>`
+          : tekst(emOkt ? emOkt.opprinneligArtNavn : '');
+        emArtValgt.hidden = false;
+        emArt.hidden = true;
+        emArtTreff.hidden = true;
+      }
+
+      function startArtsbytte() {
+        emArtValgt.hidden = true;
+        emArt.hidden = false;
+        emArt.value = '';
+        emArt.focus();
+        emArtTreff.hidden = true;
+      }
+
+      /**
+       * Sjeldenhetssjekk på den NYE arten.
+       *
+       * Bytter man til noe sjeldent, bør AOs egen vurdering komme FØR man
+       * bekrefter — ikke som en overraskelse etterpå. Samme endepunkt som
+       * registreringsskjemaet bruker (`rarity.js`).
+       */
+      async function sjekkSjeldenhet(taxonId) {
+        const minSeq = ++sjeldenSeq;
+        emSjelden.hidden = true;
+        if (!taxonId || !emOkt) return;
+        const f = emOkt.funn || {};
+        if (!f.site_id || !f.dato) return;
+
+        // AO vil ha ISO-dato; `funn.dato` er DD.MM.YYYY.
+        const d = String(f.dato).split('.');
+        if (d.length !== 3) return;
+        const iso = `${d[2]}-${d[1]}-${d[0]}`;
+
+        const t = hentTokens();
+        if (!t.loginToken) return;   // uinnlogget = stille no-op, som i rarity.js
+        try {
+          const url = `/api/ao-rarity?taxonId=${encodeURIComponent(taxonId)}`
+            + `&siteId=${encodeURIComponent(f.site_id)}&date=${encodeURIComponent(iso)}`;
+          const r = await fetch(url, {
+            headers: {
+              'X-AO-Login-Token': t.loginToken,
+              'X-AO-Auth-Cookie': t.authCookie,
+            },
+          });
+          if (minSeq !== sjeldenSeq) return;   // brukeren byttet art igjen
+          if (!r.ok) return;
+          const data = await r.json();
+          if (minSeq !== sjeldenSeq || !data.warning) return;
+          const w = data.warning;
+          emSjelden.innerHTML = `<strong>⚠️ ${tekst(w.header || 'Sjeldent funn')}</strong>`
+            + tekst(w.body || '');
+          emSjelden.hidden = false;
+        } catch (e) {
+          // Stille no-op, jf. konvensjonen for eksterne API-feil.
+        }
+      }
+
+      function velgArt(treff) {
+        emOkt.nyArt = { id: treff.taxonId, navn: treff.taxonName };
+        visValgtArt();
+        sjekkSjeldenhet(treff.taxonId);
+      }
+
+      // Appen rapporterer fugler, og `bygg_save_body()` setter artsgruppe 8 fast.
+      // Et treff fra en annen gruppe ville blitt sendt med feil gruppe-ID, så de
+      // filtreres bort her framfor å feile hos AO.
+      const FUGLER_GRUPPE = '8';
+
+      function tegnArtstreff(raaListe) {
+        const liste = raaListe.filter((a) => String(a.speciesGroupId) === FUGLER_GRUPPE);
+        const filtrertBort = raaListe.length - liste.length;
+        if (!liste.length) {
+          emArtTreff.innerHTML = filtrertBort
+            ? '<div class="tom">Bare fuglearter kan velges her.</div>'
+            : '<div class="tom">Ingen treff</div>';
+          emArtTreff.hidden = false;
+          return;
+        }
+        emArtTreff.innerHTML = liste.slice(0, 12).map((a, i) =>
+          `<button type="button" data-i="${i}">${tekst(a.taxonName)}
+             <span class="vit">${a.scientificNameHtml || ''}</span></button>`).join('');
+        emArtTreff.hidden = false;
+        emArtTreff._liste = liste;
+      }
+
+      emArt.addEventListener('input', () => {
+        const q = emArt.value.trim();
+        clearTimeout(artSok);
+        if (q.length < 2) { emArtTreff.hidden = true; return; }
+        const minSeq = ++artSeq;
+        artSok = setTimeout(async () => {
+          try {
+            const r = await fetch(`/api/species?search=${encodeURIComponent(q)}`
+              + `&dontIncludeSubSpecies=true`).then((x) => x.json());
+            if (minSeq !== artSeq) return;   // et nyere søk har gått ut
+            tegnArtstreff(Array.isArray(r) ? r : []);
+          } catch (e) {
+            if (minSeq === artSeq) emArtTreff.hidden = true;
+          }
+        }, 250);
+      });
+
+      emArtTreff.addEventListener('click', (e) => {
+        const b = e.target.closest('button[data-i]');
+        if (!b || !emArtTreff._liste) return;
+        velgArt(emArtTreff._liste[Number(b.dataset.i)]);
+      });
+
+      emArt.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') { emArtTreff.hidden = true; visValgtArt(); }
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          const forste = emArtTreff.querySelector('button[data-i]');
+          if (forste) forste.click();
+        }
+      });
+
+      document.getElementById('em-art-bytt').addEventListener('click', startArtsbytte);
+
       function emSettStatus(melding, type) {
         emStatus.className = `modal-status${type ? ' ' + type : ''}`;
         emStatus.textContent = melding || '';
@@ -901,6 +1078,8 @@
         emLaster.hidden = false;
         emSkjema.hidden = true;
         emKvittering.hidden = true;
+        emSjelden.hidden = true;
+        emArtTreff.hidden = true;
         emLagre.hidden = false;
         emLagre.disabled = true;
         emAvbryt.textContent = 'Avbryt';
@@ -947,7 +1126,10 @@
           id: funn.sightingId, formHtml: res.formHtml, funn: res.funn,
           csrfCookie: res.csrfCookie, ryddet: false,
           opprinneligAntall: res.quantity, opprinneligAktivitet: res.activityId,
+          opprinneligArt: res.taxonId, opprinneligArtNavn: funn.taxonName,
+          nyArt: null,
         };
+        visValgtArt();
 
         emAntall.value = res.quantity || '';
         emAktivitet.innerHTML = (res.activityOptions || [])
@@ -956,8 +1138,8 @@
 
         // Det vi IKKE endrer her skal stå synlig, så ingen tror det er glemt.
         const f = res.funn || {};
-        emFast.textContent = `Art, dato, tid og lokalitet endres ikke her: `
-          + `${funn.taxonName} · ${f.dato || ''} · ${funn.siteName}. `
+        emFast.textContent = `Dato, tid og lokalitet endres ikke her: `
+          + `${f.dato || ''} · ${funn.time || ''} · ${funn.siteName}. `
           + `Bruk Artsobservasjoner for de feltene.`;
 
         emSkjema.hidden = false;
@@ -976,6 +1158,9 @@
         }
 
         const endringer = {};
+        if (emOkt.nyArt && String(emOkt.nyArt.id) !== String(emOkt.opprinneligArt)) {
+          endringer.taxon_id = String(emOkt.nyArt.id);
+        }
         if (antall !== String(emOkt.opprinneligAntall)) endringer.quantity = antall;
         if (emAktivitet.value && emAktivitet.value !== String(emOkt.opprinneligAktivitet)) {
           endringer.activity_id = emAktivitet.value;
@@ -1044,6 +1229,7 @@
 
         if (res.bekreftet === true) {
           const deler = [];
+          if (endringer.taxon_id && emOkt.nyArt) deler.push(emOkt.nyArt.navn);
           if (ao.Quantity) deler.push(`${ao.Quantity} individer`);
           if (ao.ActivityName) deler.push(String(ao.ActivityName).toLowerCase());
           emBekreftet.className = 'em-bekreftet';
@@ -1073,11 +1259,20 @@
         else if (endringer.quantity) funn.quantity = endringer.quantity;
         if (ao && ao.ActivityName) funn.activity = ao.ActivityName;
         else if (endringer.activity_navn) funn.activity = endringer.activity_navn;
+        if (endringer.taxon_id && emOkt && emOkt.nyArt) {
+          funn.taxonName = emOkt.nyArt.navn;
+          funn.taxonId = emOkt.nyArt.id;
+        }
 
         const rad = document.getElementById(`funn-${sightingId}`);
         if (!rad) return;
         const antallEl = rad.querySelector('.antall');
         if (antallEl) antallEl.textContent = funn.quantity;
+        const artEl = rad.querySelector('.funn-art');
+        if (artEl) {
+          artEl.innerHTML = `<span class="antall">${tekst(funn.quantity)}</span> `
+            + tekst(funn.taxonName);
+        }
         const metaEl = rad.querySelector('.funn-meta');
         if (metaEl) metaEl.textContent = [funn.time, funn.activity].filter(Boolean).join(' · ');
       }

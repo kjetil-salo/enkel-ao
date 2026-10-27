@@ -195,3 +195,49 @@ Tiltak, i prioritert rekkefølge:
 
 Punkt 1 og 2 er ikke valgfrie og ikke «kan gjøres etterpå». De er det som skiller
 dette fra å skrive søppel inn i en database andre forsker på.
+
+
+---
+
+## Status 27.10.2026: v1 er komplett
+
+Alle tre feltene er bygget, deployet til Pi-staging og verifisert mot ekte AO.
+
+| Felt | Status |
+|---|---|
+| Antall | ✅ 3→5→3, bekreftet begge veier |
+| Aktivitet | ✅ Stasjonær→Næringssøkende→Stasjonær, bekreftet |
+| Art | ✅ gråspurv→skjære→gråspurv, bekreftet |
+
+### Artsendring, som bygget
+
+- **Artssøk** gjenbruker `/api/species` (samme endepunkt som registreringsskjemaet),
+  med 250 ms debounce og en sekvensvakt så bare siste søk får tegne.
+- **Søket filtreres til artsgruppe 8 (fugler).** `bygg_save_body()` setter
+  `Taxon_speciesgroupid` fast til 8, så et treff fra en annen gruppe ville blitt
+  sendt med feil gruppe-ID. Treff utenfor gruppa vises som «Bare fuglearter kan
+  velges her» framfor å feile hos AO.
+- **Sjeldenhetsvarsel på den NYE arten** via `/api/ao-rarity`, med samme
+  race-vakt. Vises før brukeren bekrefter, ikke etterpå.
+- **Den gamle arten står i parentes** («skjære (var gråspurv)»), så det er synlig
+  hva man endrer fra.
+
+### Lærdom fra felt
+
+Første utrulling meldte «viser noe annet enn du ba om» på en endring som gikk
+gjennom. AOs publiserte liste er ikke alltid oppdatert i samme øyeblikk som
+publiseringen svarer, og «fant ikke funnet» ble feilaktig klassifisert som et
+avvik. Planen sa det selv:
+
+> `bekreftet: false` er ikke det samme som at noe gikk galt.
+
+Regelen sto her og ble brutt i implementasjonen. Rettet i v1.57.1 med tre forsøk
+og `bekreftet: null` som utfall. **Verdt å merke seg for neste felt som legges
+til:** en bekreftelse som sår tvil om noe riktig er verre enn ingen bekreftelse.
+
+### Ikke bygget
+
+Dato, tid og lokalitet. De står synlig i dialogen som «endres ikke her», med
+henvisning til Artsobservasjoner. Lokalitet er den dyreste av dem — den drar inn
+kart- og koordinatfeltene som AOs JS deaktiverer, og som derfor må kartlegges på
+nytt.

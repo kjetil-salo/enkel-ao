@@ -48,7 +48,7 @@ import { handleExport, handleCopy, handleCopyAndOpen, handleClear, handleDirectS
   from './export-operations.js?v=v1.53.33';
 import { openShareDialog } from './share.js';
 import { initAutocomplete } from './autocomplete.js';
-import { initNewsSplash } from './news-splash.js?v=v1.57.1';
+import { initNewsSplash } from './news-splash.js?v=v1.58.0';
 import { initFirstRunHint, shouldShowHint } from './first-run-hint.js';
 import { hentAktivFellestur, forlatFellestur } from './fellestur-client.js';
 import { oppdaterSpeilFraServer, hentSpeilVersjon } from './fellestur-sync.js';
