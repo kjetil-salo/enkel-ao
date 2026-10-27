@@ -313,3 +313,119 @@ def test_bygg_save_body_gjoer_ingen_nettverkskall(monkeypatch):
 
     body = _body()
     assert len(body) > 0
+
+
+# ---------------------------------------------------------------------------
+# Bekreftelse: AOs eget svar på om endringen tok
+# ---------------------------------------------------------------------------
+
+def _rad(**over):
+    rad = {
+        'TaxonId': 4397, 'Quantity': '3', 'ActivityName': 'Stasjonær',
+        'UniversalDate': '2026-10-25', 'FormattedTime': 'kl. 15:52',
+        'SiteId': 362858, 'StageName': '', 'GenderName': '', 'UnitName': '',
+        'DiscoveryMethodName': '', 'PublicComment': None, 'PrivateComment': None,
+    }
+    rad.update(over)
+    return rad
+
+
+def test_bekreft_godtar_uendret_funn_ved_no_op():
+    res = ao_edit.bekreft(None, 42030658, FUNN, {}, hent_rad=lambda _: _rad())
+    assert res['bekreftet'] is True
+    assert res['avvik'] == []
+
+
+def test_bekreft_ser_at_antall_faktisk_ble_endret():
+    res = ao_edit.bekreft(None, 1, FUNN, {'quantity': '7'},
+                          hent_rad=lambda _: _rad(Quantity='7'))
+    assert res['bekreftet'] is True
+
+
+def test_bekreft_fanger_at_antall_IKKE_ble_endret():
+    """Uten dette ville brukeren fått «endringen er sendt» på en endring AO forkastet."""
+    res = ao_edit.bekreft(None, 1, FUNN, {'quantity': '7'},
+                          hent_rad=lambda _: _rad(Quantity='3'))
+    assert res['bekreftet'] is False
+    assert 'Antall' in res['avvik'][0]
+
+
+def test_bekreft_sammenligner_antall_som_tall_ikke_streng():
+    """AO svarer '7' og klienten kan sende 7 — ulik type, samme verdi."""
+    res = ao_edit.bekreft(None, 1, FUNN, {'quantity': 7},
+                          hent_rad=lambda _: _rad(Quantity='7'))
+    assert res['bekreftet'] is True
+
+
+def test_bekreft_fanger_feil_art():
+    res = ao_edit.bekreft(None, 1, FUNN, {'taxon_id': '4330'},
+                          hent_rad=lambda _: _rad(TaxonId=4397))
+    assert res['bekreftet'] is False
+    assert 'Art' in res['avvik'][0]
+
+
+def test_bekreft_fanger_feil_aktivitet():
+    res = ao_edit.bekreft(None, 1, FUNN, {'activity_navn': 'Næringssøkende'},
+                          hent_rad=lambda _: _rad(ActivityName='Stasjonær'))
+    assert res['bekreftet'] is False
+    assert 'Aktivitet' in res['avvik'][0]
+
+
+def test_bekreft_aktivitet_er_ufolsom_for_store_bokstaver():
+    res = ao_edit.bekreft(None, 1, FUNN, {'activity_navn': 'stasjonær'},
+                          hent_rad=lambda _: _rad(ActivityName='Stasjonær'))
+    assert res['bekreftet'] is True
+
+
+def test_bekreft_uten_hent_rad_gir_vet_ikke_ikke_feil():
+    """`None` betyr «vet ikke». Å returnere False ville meldt feil på noe som gikk bra."""
+    res = ao_edit.bekreft(None, 1, FUNN, {'quantity': '7'})
+    assert res['bekreftet'] is None
+    assert res['avvik'] == []
+
+
+def test_bekreft_nettverksfeil_gir_vet_ikke():
+    def feiler(_):
+        raise RuntimeError('AO svarte ikke')
+    res = ao_edit.bekreft(None, 1, FUNN, {'quantity': '7'}, hent_rad=feiler)
+    assert res['bekreftet'] is None
+
+
+def test_bekreft_funn_borte_er_et_ekte_avvik():
+    res = ao_edit.bekreft(None, 1, FUNN, {'quantity': '7'}, hent_rad=lambda _: None)
+    assert res['bekreftet'] is False
+    assert res['avvik']
+
+
+def test_bekreft_rapporterer_feltene_vi_utelater():
+    """
+    `StageName`/`GenderName`/`UnitName`/`DiscoveryMethodName` er nettopp dem vi
+    utelater fra bodyen. Blir de tømt av en AO-endring, må det kunne ses.
+    """
+    res = ao_edit.bekreft(None, 1, FUNN, {}, hent_rad=lambda _: _rad(UnitName='Individer'))
+    assert res['ao']['UnitName'] == 'Individer'
+    assert 'DiscoveryMethodName' in res['ao']
+
+
+def test_bekreft_flere_avvik_samtidig():
+    res = ao_edit.bekreft(None, 1, FUNN,
+                          {'quantity': '7', 'taxon_id': '4330'},
+                          hent_rad=lambda _: _rad())
+    assert res['bekreftet'] is False
+    assert len(res['avvik']) == 2
+
+
+# ---------------------------------------------------------------------------
+# Aktivitetslista til klienten
+# ---------------------------------------------------------------------------
+
+def test_aktivitetsliste_dropper_ikke_angitt():
+    """
+    `value="0"` med tom tekst er AOs «ikke angitt». Den må ikke bli et valgbart
+    alternativ i appen — å velge den ville slettet aktiviteten.
+    """
+    _, options = ao_edit.parse_edit_form(ao_edit_form.lag_skjema())
+    liste = [{'id': v, 'navn': t}
+             for v, t in options[S + 'Activity'] if v and v != '0' and t]
+    assert all(x['id'] != '0' for x in liste)
+    assert {'id': '23', 'navn': 'Stasjonær'} in liste

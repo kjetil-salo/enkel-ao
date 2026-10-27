@@ -527,3 +527,146 @@ def publiser_tilbake(client, sighting_id):
         return False
     publiser(client, [temp_id])
     return True
+
+
+# ---------------------------------------------------------------------------
+# Orkestrering: de tre operasjonene endringssiden trenger
+# ---------------------------------------------------------------------------
+
+# Feltene vi leser tilbake fra AO for å bekrefte at en endring faktisk tok.
+# Flere enn brukeren kan endre, med vilje: `StageName`/`GenderName`/`UnitName`/
+# `DiscoveryMethodName` er nettopp de feltene vi UTELATER fra bodyen, og hvis en
+# AO-endring en dag gjør at de likevel tømmes, er det her det vises.
+BEKREFT_FELT = (
+    'TaxonId', 'Quantity', 'ActivityName', 'UniversalDate', 'FormattedTime',
+    'SiteId', 'StageName', 'GenderName', 'UnitName',
+    'DiscoveryMethodName', 'PublicComment', 'PrivateComment',
+)
+
+
+def _tall(verdi):
+    try:
+        return int(str(verdi).strip())
+    except (TypeError, ValueError):
+        return None
+
+
+def aapne_for_redigering(client, sighting_id, funn):
+    """
+    Åpne skjemaet og returner det brukeren skal få se, pluss AOs aktivitetsliste.
+
+    ⚠️ Funnet er UPUBLISERT når denne returnerer. Kalleren MÅ enten lagre eller
+    kalle `avbryt()`. Se `aapne_skjema()`.
+
+    `funn` er funnets egne data fra `BindSightingsGrid` — hentet FØR dette kallet.
+    """
+    html = aapne_skjema(client, sighting_id)
+    felt, options = parse_edit_form(html)
+
+    verdier = {}
+    for navn, verdi, slag in felt:
+        if slag != 'select-uvalgt' and navn not in verdier:
+            verdier[navn] = verdi
+
+    aktivitet_id = funn.get('activity_id') or finn_option_id(
+        options, _S + 'Activity', funn.get('activity_navn'))
+
+    return {
+        'html': html,
+        'quantity': verdier.get(_S + 'Quantity'),
+        'taxonId': str(funn['taxon_id']),
+        'activityId': aktivitet_id,
+        'activityOptions': [
+            {'id': v, 'navn': t}
+            for v, t in options.get(_S + 'Activity', ())
+            # value="0" er AOs «ikke angitt» og har tom tekst — ikke et reelt valg
+            if v and v != '0' and t
+        ],
+    }
+
+
+def avbryt(client, sighting_id):
+    """
+    Angre en åpnet redigering: publiser funnet tilbake uendret.
+
+    Dette er IKKE `/ReviewSighting/CancelEdit`. AOs egen «Avbryt» publiserer ikke
+    funnet tilbake (observert 25.10.2026), så den ville etterlatt funnet usynlig.
+    """
+    return publiser_tilbake(client, sighting_id)
+
+
+def lagre_og_publiser(client, sighting_id, html, funn, endringer):
+    """
+    Skriv endringen, publiser scoped, og les resultatet tilbake fra AO.
+
+    Returnerer `{'ok', 'bekreftet', 'ao', 'avvik'}`. `bekreftet` er AOs eget svar
+    på om endringen tok — ikke vår antakelse om at den gjorde det.
+
+    Ved enhver feil publiseres funnet tilbake før unntaket slipper videre, slik at
+    det aldri blir liggende usynlig for andre.
+    """
+    try:
+        body = bygg_save_body(html, funn, endringer)
+        lagre(client, body)
+
+        temp_id = temp_id_for(client, sighting_id)
+        if temp_id is None:
+            raise AoEditError(
+                'Funnet ligger ikke i gjennomgangskøen etter lagring. '
+                'Endringen kan ha blitt avvist av AO.')
+        publiser(client, [temp_id])
+    except Exception:
+        try:
+            publiser_tilbake(client, sighting_id)
+        except Exception as exc:
+            logger.error(
+                f'[AO-EDIT] KRITISK: klarte ikke publisere funn {sighting_id} '
+                f'tilbake etter feil: {exc}')
+        raise
+
+    return {'ok': True, **bekreft(client, sighting_id, funn, endringer)}
+
+
+def bekreft(client, sighting_id, funn, endringer, hent_rad=None):
+    """
+    Les funnet tilbake fra AO og sjekk at endringen faktisk tok.
+
+    `hent_rad(sighting_id)` injiseres av kalleren (server.py bruker
+    `ao_sightings`-flyten). Uten den hoppes bekreftelsen over, og `bekreftet`
+    blir `None` — «vet ikke», som er noe annet enn `False`.
+    """
+    if hent_rad is None:
+        return {'bekreftet': None, 'ao': None, 'avvik': []}
+
+    try:
+        rad = hent_rad(sighting_id)
+    except Exception as exc:
+        logger.warning(f'[AO-EDIT] Kunne ikke lese tilbake funn {sighting_id}: {exc}')
+        return {'bekreftet': None, 'ao': None, 'avvik': []}
+
+    if not rad:
+        return {'bekreftet': False, 'ao': None,
+                'avvik': ['Fant ikke funnet hos AO etter lagring']}
+
+    ao = {f: rad.get(f) for f in BEKREFT_FELT}
+    avvik = []
+
+    if 'quantity' in endringer:
+        ventet, fikk = _tall(endringer['quantity']), _tall(rad.get('Quantity'))
+        if ventet != fikk:
+            avvik.append(f'Antall: ba om {ventet}, AO har {fikk}')
+
+    if 'taxon_id' in endringer:
+        ventet, fikk = _tall(endringer['taxon_id']), _tall(rad.get('TaxonId'))
+        if ventet != fikk:
+            avvik.append(f'Art: ba om taxonId {ventet}, AO har {fikk}')
+
+    if 'activity_navn' in endringer:
+        ventet = str(endringer['activity_navn']).strip().casefold()
+        fikk = str(rad.get('ActivityName') or '').strip().casefold()
+        if ventet != fikk:
+            avvik.append(
+                f'Aktivitet: ba om {endringer["activity_navn"]!r}, '
+                f'AO har {rad.get("ActivityName")!r}')
+
+    return {'bekreftet': not avvik, 'ao': ao, 'avvik': avvik}
