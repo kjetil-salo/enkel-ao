@@ -35,6 +35,7 @@ nye per økt). Sammenligningen ble gjort uten å sende noe til AO.
 
 import logging
 import re
+import time
 from html import unescape
 from html.parser import HTMLParser
 
@@ -645,6 +646,11 @@ def publiser_tilbake(client, sighting_id):
 # Flere enn brukeren kan endre, med vilje: `StageName`/`GenderName`/`UnitName`/
 # `DiscoveryMethodName` er nettopp de feltene vi UTELATER fra bodyen, og hvis en
 # AO-endring en dag gjør at de likevel tømmes, er det her det vises.
+# Hvor mange ganger vi prøver å lese funnet tilbake, og pausen mellom.
+# Holdes lavt: brukeren venter på dialogen, og «vet ikke» er et ærlig svar.
+BEKREFT_FORSOK = 3
+BEKREFT_PAUSE_S = 1.5
+
 BEKREFT_FELT = (
     'TaxonId', 'Quantity', 'ActivityName', 'UniversalDate', 'FormattedTime',
     'SiteId', 'StageName', 'GenderName', 'UnitName',
@@ -758,15 +764,33 @@ def bekreft(client, sighting_id, funn, endringer, hent_rad=None):
     if hent_rad is None:
         return {'bekreftet': None, 'ao': None, 'avvik': []}
 
-    try:
-        rad = hent_rad(sighting_id)
-    except Exception as exc:
-        logger.warning(f'[AO-EDIT] Kunne ikke lese tilbake funn {sighting_id}: {exc}')
-        return {'bekreftet': None, 'ao': None, 'avvik': []}
+    # AOs publiserte liste er ikke alltid oppdatert i samme øyeblikk som
+    # publiseringen svarer. Et par korte forsøk fjerner de fleste falske
+    # «fant ikke funnet». Vi venter bevisst ikke lenge: brukeren står og ser på
+    # en dialog, og «vet ikke» er et ærlig svar.
+    rad = None
+    for forsok in range(BEKREFT_FORSOK):
+        if forsok:
+            time.sleep(BEKREFT_PAUSE_S)
+        try:
+            rad = hent_rad(sighting_id)
+        except Exception as exc:
+            logger.warning(
+                f'[AO-EDIT] Kunne ikke lese tilbake funn {sighting_id}: {exc}')
+            return {'bekreftet': None, 'ao': None, 'avvik': []}
+        if rad:
+            break
 
     if not rad:
-        return {'bekreftet': False, 'ao': None,
-                'avvik': ['Fant ikke funnet hos AO etter lagring']}
+        # «Fant ikke funnet» er IKKE bevis på at endringen feilet — det er «vet
+        # ikke». AOs søkeindeks henger av og til etter en publisering, og da er
+        # funnet kortvarig borte fra den publiserte lista selv om endringen er
+        # lagret. Å melde `False` her sa «Artsobservasjoner viser noe annet enn
+        # du ba om» på en endring som faktisk gikk gjennom (meldt fra felt
+        # 27.10.2026, musvåk → stasjonær).
+        logger.info(f'[AO-EDIT] Fant ikke funn {sighting_id} i lista rett etter '
+                    'lagring — rapporterer «vet ikke», ikke avvik')
+        return {'bekreftet': None, 'ao': None, 'avvik': []}
 
     ao = {f: rad.get(f) for f in BEKREFT_FELT}
     avvik = []

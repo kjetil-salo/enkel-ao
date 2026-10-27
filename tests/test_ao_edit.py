@@ -404,12 +404,6 @@ def test_bekreft_nettverksfeil_gir_vet_ikke():
     assert res['bekreftet'] is None
 
 
-def test_bekreft_funn_borte_er_et_ekte_avvik():
-    res = ao_edit.bekreft(None, 1, FUNN, {'quantity': '7'}, hent_rad=lambda _: None)
-    assert res['bekreftet'] is False
-    assert res['avvik']
-
-
 def test_bekreft_rapporterer_feltene_vi_utelater():
     """
     `StageName`/`GenderName`/`UnitName`/`DiscoveryMethodName` er nettopp dem vi
@@ -637,3 +631,56 @@ def test_valideringsfeil_finner_feltet_uansett_attributtrekkefolge():
     html = ('<span data-valmsg-for="SightingViewModel.SelectedSite.Id" '
             'class="field-validation-error">Feltet er obligatorisk</span>')
     assert '[SelectedSite.Id]' in ao_edit._valideringsfeil(html)
+
+
+def test_funn_ikke_funnet_er_vet_ikke_ikke_avvik():
+    """
+    «Fant ikke funnet» er IKKE bevis på at endringen feilet. AOs publiserte liste
+    henger av og til etter en publisering. Å melde False her ga «Artsobservasjoner
+    viser noe annet enn du ba om» på en endring som faktisk gikk gjennom —
+    rapportert fra felt 27.10.2026 (musvåk → stasjonær).
+    """
+    res = ao_edit.bekreft(None, 1, FUNN, {'quantity': '7'}, hent_rad=lambda _: None)
+    assert res['bekreftet'] is None
+    assert res['avvik'] == []
+
+
+def test_bekreft_proever_flere_ganger_foer_den_gir_opp(monkeypatch):
+    """AO trenger av og til et øyeblikk — ett forsøk er for lite."""
+    monkeypatch.setattr(ao_edit, 'BEKREFT_PAUSE_S', 0)
+    forsok = {'n': 0}
+
+    def treg(_):
+        forsok['n'] += 1
+        return _rad(Quantity='7') if forsok['n'] >= 2 else None
+
+    res = ao_edit.bekreft(None, 1, FUNN, {'quantity': '7'}, hent_rad=treg)
+    assert forsok['n'] == 2
+    assert res['bekreftet'] is True
+
+
+def test_bekreft_gir_seg_etter_oppgitt_antall_forsok(monkeypatch):
+    monkeypatch.setattr(ao_edit, 'BEKREFT_PAUSE_S', 0)
+    forsok = {'n': 0}
+
+    def alltid_tom(_):
+        forsok['n'] += 1
+        return None
+
+    res = ao_edit.bekreft(None, 1, FUNN, {}, hent_rad=alltid_tom)
+    assert forsok['n'] == ao_edit.BEKREFT_FORSOK
+    assert res['bekreftet'] is None
+
+
+def test_bekreft_treffer_paa_forste_forsok_uten_aa_vente(monkeypatch):
+    """Normaltilfellet skal ikke betale for retry-logikken."""
+    monkeypatch.setattr(ao_edit, 'BEKREFT_PAUSE_S', 99)   # ville hengt om den sov
+    forsok = {'n': 0}
+
+    def straks(_):
+        forsok['n'] += 1
+        return _rad()
+
+    res = ao_edit.bekreft(None, 1, FUNN, {}, hent_rad=straks)
+    assert forsok['n'] == 1
+    assert res['bekreftet'] is True

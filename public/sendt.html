@@ -184,6 +184,23 @@
       .em-bekreftet { border: 1px solid #15803d; background: rgba(21, 128, 61, 0.12);
                       border-radius: 8px; padding: 10px 12px; font-size: 0.85rem; }
       body.theme-light .em-bekreftet { background: #f0fdf4 !important; border-color: #16a34a !important; }
+      /* «Vi vet ikke» og «avvik» er IKKE suksess, og skal ikke se grønne ut.
+         Rapportert fra felt 27.10.2026: en advarsel sto i grønn ramme. */
+      .em-bekreftet.uvisst { border-color: #a16207; background: rgba(161, 98, 7, 0.12); }
+      body.theme-light .em-bekreftet.uvisst { background: #fffbeb !important; border-color: #ca8a04 !important; }
+      .em-bekreftet.avvik { border-color: #b91c1c; background: rgba(185, 28, 28, 0.12); }
+      body.theme-light .em-bekreftet.avvik { background: #fef2f2 !important; border-color: #dc2626 !important; }
+
+      /* Spinner i statuslinja mens vi lagrer — lagringen tar flere sekunder,
+         og en stillestående tekst ser ut som at ingenting skjer. */
+      .modal-status.jobber { display: flex; align-items: center; gap: 8px; }
+      .modal-status.jobber::before {
+        content: ''; width: 14px; height: 14px; border-radius: 50%; flex: none;
+        border: 2px solid var(--border, #334155); border-top-color: var(--accent, #3b82f6);
+        animation: spinn 0.9s linear infinite; }
+      @media (prefers-reduced-motion: reduce) {
+        .modal-status.jobber::before { animation: pulser 1.6s ease-in-out infinite; }
+      }
 
       /* Kø-varsel øverst på siden: funn som ligger usynlige hos AO. */
       .ko-varsel { border: 1px solid #b91c1c; background: rgba(185, 28, 28, 0.12);
@@ -270,7 +287,11 @@
         </div>
         <p class="modal-funn" id="em-funn"></p>
 
-        <div id="em-laster" class="laster">Åpner funnet hos Artsobservasjoner …</div>
+        <div id="em-laster" class="laster">
+          <div class="spinner" role="status" aria-label="Åpner"></div>
+          <div id="em-laster-tekst">Åpner funnet hos Artsobservasjoner …</div>
+          <div class="laster-hint">Vi henter hele skjemaet derfra — det tar noen sekunder.</div>
+        </div>
 
         <div id="em-skjema" hidden>
           <div class="fare" role="alert">
@@ -822,6 +843,11 @@
         emStatus.textContent = melding || '';
       }
 
+      /** Status med spinner — for de stegene som tar flere sekunder. */
+      function emJobber(melding) {
+        emSettStatus(melding, 'jobber');
+      }
+
       function emLukkUi() {
         emModal.hidden = true;
         document.body.style.overflow = '';
@@ -960,8 +986,9 @@
 
         emLagre.disabled = true;
         emAvbryt.disabled = true;
-        emSettStatus(Object.keys(endringer).length
-          ? 'Lagrer og publiserer …' : 'Publiserer funnet tilbake …');
+        emJobber(Object.keys(endringer).length
+          ? 'Lagrer og publiserer hos Artsobservasjoner …'
+          : 'Publiserer funnet tilbake …');
 
         const t = hentTokens();
         let res;
@@ -1012,21 +1039,29 @@
         emSettStatus('');
 
         const ao = res.ao || {};
+        const lenke = `<a href="https://www.artsobservasjoner.no/Sighting/${attr(emOkt.id)}" `
+          + `target="_blank" rel="noopener">Se funnet hos Artsobservasjoner</a>`;
+
         if (res.bekreftet === true) {
           const deler = [];
           if (ao.Quantity) deler.push(`${ao.Quantity} individer`);
           if (ao.ActivityName) deler.push(String(ao.ActivityName).toLowerCase());
+          emBekreftet.className = 'em-bekreftet';
           emBekreftet.textContent = `✅ Artsobservasjoner bekrefter: ${deler.join(', ')}.`;
         } else if (res.bekreftet === false) {
-          // Ikke nødvendigvis en feil — AO kan ha en regel vi ikke kjenner.
+          // Et ekte avvik: AO svarte, og svaret er noe annet enn vi ba om.
+          emBekreftet.className = 'em-bekreftet avvik';
           emBekreftet.innerHTML = `⚠️ Lagringen gikk gjennom, men Artsobservasjoner `
             + `viser noe annet enn du ba om:<br>${tekst((res.avvik || []).join('; '))}`
-            + `<br><a href="https://www.artsobservasjoner.no/Sighting/${attr(emOkt.id)}" `
-            + `target="_blank" rel="noopener">Se funnet hos Artsobservasjoner</a>`;
+            + `<br>${lenke}`;
         } else {
-          emBekreftet.innerHTML = `Lagringen gikk gjennom, men vi fikk ikke lest funnet `
-            + `tilbake for å bekrefte det. <a href="https://www.artsobservasjoner.no/Sighting/`
-            + `${attr(emOkt.id)}" target="_blank" rel="noopener">Sjekk hos Artsobservasjoner</a>`;
+          // «Vet ikke» — typisk at AOs liste ikke er oppdatert ennå. Endringen er
+          // som regel lagret; vi fikk bare ikke lest den tilbake. Teksten må ikke
+          // få det til å høres ut som at noe gikk galt.
+          emBekreftet.className = 'em-bekreftet uvisst';
+          emBekreftet.innerHTML = `✔️ Endringen er lagret og publisert.<br>`
+            + `Vi rakk ikke lese den tilbake fra Artsobservasjoner for å dobbeltsjekke `
+            + `— lista deres er ikke alltid oppdatert med én gang.<br>${lenke}`;
         }
       }
 
@@ -1051,7 +1086,7 @@
         // «Avbryt» er en handling, ikke en lukkeknapp: funnet må publiseres tilbake.
         if (!emOkt || emOkt.ryddet) { emLukkUi(); return; }
         emAvbryt.disabled = true;
-        emSettStatus('Publiserer funnet tilbake …');
+        emJobber('Publiserer funnet tilbake …');
         const ok = await emPubliserTilbake(false);
         emAvbryt.disabled = false;
         if (ok) emLukkUi();
