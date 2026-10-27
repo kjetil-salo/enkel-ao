@@ -33,6 +33,9 @@ logger = logging.getLogger('fugleobs')
 class AoSessionExpired(Exception):
     """AO-sesjonen er utløpt — brukeren må logge inn på nytt."""
 
+    def __init__(self, melding='Sesjonen mot Artsobservasjoner er utløpt. Logg inn på nytt.'):
+        super().__init__(melding)
+
 
 AO_BASE = 'https://www.artsobservasjoner.no'
 
@@ -491,3 +494,36 @@ def fetch_my_sightings(login_token, auth_cookie, days=DEFAULT_DAYS, limit=DEFAUL
     except Exception as e:
         logger.warning(f'[AO-FUNN] Kunne ikke hente egne funn fra AO: {e}')
         return {'sightings': [], 'total': 0, 'truncated': False}
+
+
+def fetch_raw_row(login_token, auth_cookie, sighting_id, days=MAX_DAYS):
+    """
+    Hent AOs UBEARBEIDEDE grid-rad for ett bestemt funn, eller None.
+
+    Skiller seg fra `fetch_my_sightings()` ved at raden IKKE normaliseres. Det er
+    poenget: `normalize_row()` kaster bort nettopp de feltene som ville avslørt et
+    datatap ved redigering — `StageName`, `GenderName`, `UnitName`,
+    `DiscoveryMethodName`. Brukes av `ao_edit.bekreft()` til å lese en endring
+    tilbake fra AO, og av `tools/ao_noop_roundtrip.py`.
+
+    Kaster `AoSessionExpired` hvis sesjonen er utløpt — kalleren skal kunne skille
+    «fant ikke funnet» fra «du er ikke logget inn».
+    """
+    sighting_id = int(sighting_id)
+    with httpx.Client(cookies=_cookies(login_token, auth_cookie), timeout=30) as client:
+        stored, total_pages = _create_stored_search(client, days)
+        if not stored:
+            return None
+
+        page = 1
+        while page <= 20:
+            rows, _ = _fetch_grid_page(client, stored, total_pages, page, _PAGE_SIZE)
+            if not rows:
+                return None
+            for row in rows:
+                if row.get('SightingId') == sighting_id:
+                    return row
+            if len(rows) < _PAGE_SIZE:
+                return None
+            page += 1
+    return None

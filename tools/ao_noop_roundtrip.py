@@ -142,42 +142,16 @@ def _logg_inn():
     return token, auth
 
 
-def _hent_funn(login_token, auth_cookie, sighting_id):
-    """Hent funnets rad fra AOs grid, slik vi ser den både før og etter."""
-    from src import ao_sightings
-    data = ao_sightings.fetch_my_sightings(login_token, auth_cookie, days=60, limit=200)
-    for rad in data.get('sightings', []):
-        if str(rad.get('sightingId')) == str(sighting_id):
-            return rad
-    return None
-
-
 def _raa_rad(login_token, auth_cookie, sighting_id):
     """
     Hent den UBEARBEIDEDE grid-raden — ikke `normalize_row`-utgaven.
 
-    Sammenligningen må skje på AOs egne felt, ikke på vår normaliserte visning.
-    Normaliseringen kaster bort nettopp de feltene som ville avslørt et tap
+    Sammenligningen må skje på AOs egne felt, ikke på vår normaliserte visning:
+    normaliseringen kaster bort nettopp de feltene som ville avslørt et tap
     (Stage, Gender, Unit, DiscoveryMethod).
     """
-    from src import ao_sightings
-    with ao_sightings.httpx.Client(
-            cookies=ao_sightings._cookies(login_token, auth_cookie),
-            timeout=30) as client:
-        stored, total = ao_sightings._create_stored_search(client, 60)
-        if not stored:
-            sys.exit('Fant ikke funn-lista hos AO.')
-        side = 1
-        while True:
-            rader, _ = ao_sightings._fetch_grid_page(client, stored, total, side, 50)
-            if not rader:
-                return None
-            for rad in rader:
-                if rad.get('SightingId') == int(sighting_id):
-                    return rad
-            if len(rader) < 50 or side >= 20:
-                return None
-            side += 1
+    from src.ao_sightings import fetch_raw_row
+    return fetch_raw_row(login_token, auth_cookie, sighting_id, days=60)
 
 
 def main():

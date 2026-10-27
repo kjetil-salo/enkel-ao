@@ -429,3 +429,61 @@ def test_aktivitetsliste_dropper_ikke_angitt():
              for v, t in options[S + 'Activity'] if v and v != '0' and t]
     assert all(x['id'] != '0' for x in liste)
     assert {'id': '23', 'navn': 'Stasjonær'} in liste
+
+
+# ---------------------------------------------------------------------------
+# funn_fra_rad: oversettelsen fra AOs grid til skjemaets format
+# ---------------------------------------------------------------------------
+
+def test_funn_fra_rad_konverterer_dato_til_skjemaformat():
+    """AO leverer ISO i grid-et, men skjemaet vil ha DD.MM.YYYY."""
+    f = ao_edit.funn_fra_rad({'UniversalDate': '2026-10-25'})
+    assert f['dato'] == '25.10.2026'
+
+
+def test_funn_fra_rad_stripper_markup_fra_lokalitetsnavn():
+    """`SiteName` kommer pakket i grid-markup."""
+    f = ao_edit.funn_fra_rad({'SiteName': "<div class=''>Hylkje</div>"})
+    assert f['site_name'] == 'Hylkje'
+
+
+def test_funn_fra_rad_taaler_manglende_felt():
+    f = ao_edit.funn_fra_rad({})
+    assert f['dato'] == ''
+    assert f['site_name'] == ''
+
+
+def test_funn_fra_rad_taaler_rar_dato():
+    f = ao_edit.funn_fra_rad({'UniversalDate': 'ikke en dato'})
+    assert isinstance(f['dato'], str)
+
+
+def test_funn_fra_rad_kan_mates_rett_inn_i_bygg_save_body():
+    """Oversettelsen og byggingen må passe sammen — ellers er den til ingen nytte."""
+    rad = {'TaxonId': 4397, 'Quantity': '3', 'ActivityName': 'Stasjonær',
+           'UniversalDate': '2026-10-25', 'SiteId': 362858,
+           'SiteName': "<div class=''>Hylkje</div>"}
+    body = ao_edit.bygg_save_body(ao_edit_form.lag_skjema(), ao_edit.funn_fra_rad(rad))
+    assert _en(body, S + 'Activity') == '23'
+    assert _en(body, 'selectedSiteName') == 'Hylkje'
+    assert _en(body, S + 'StartDate') == '25.10.2026'
+
+
+# ---------------------------------------------------------------------------
+# Sesjonsfeil
+# ---------------------------------------------------------------------------
+
+def test_ao_edit_og_ao_sightings_deler_sesjonsunntak():
+    """
+    Regresjonsvakt. To klasser med samme navn i hver sin modul ser identiske ut i
+    koden, men `except ao_edit.AoSessionExpired` ville stille latt
+    `ao_sightings`-varianten passere — og brukeren fått en tom feilmelding i
+    stedet for «logg inn på nytt». Det skjedde 27.10.2026.
+    """
+    from src import ao_sightings
+    assert ao_edit.AoSessionExpired is ao_sightings.AoSessionExpired
+
+
+def test_sesjonsunntak_har_lesbar_tekst():
+    """`str(exc)` havner i API-svaret. Tom streng er ubrukelig for brukeren."""
+    assert 'utløpt' in str(ao_edit.AoSessionExpired()).lower()

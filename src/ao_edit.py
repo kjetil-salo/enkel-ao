@@ -382,8 +382,11 @@ _HEADERS = {
 }
 
 
-class AoSessionExpired(Exception):
-    """AO-sesjonen er utløpt — brukeren må logge inn på nytt."""
+# Samme klasse som `ao_sightings` bruker, ikke en ny med samme navn. To separate
+# klasser ville sett identiske ut i koden, men `except ao_edit.AoSessionExpired`
+# ville stille latt `ao_sightings`-varianten passere — og brukeren fått en tom
+# feilmelding i stedet for «logg inn på nytt». Oppdaget nettopp slik, 27.10.2026.
+from src.ao_sightings import AoSessionExpired  # noqa: F401,E402
 
 
 def _cookies(login_token, auth_cookie):
@@ -456,6 +459,11 @@ def ko_rader(client):
                  'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
                  'X-Requested-With': 'XMLHttpRequest'},
     )
+    # 302 her er AOs måte å si «ikke innlogget» på — den sender oss til /LogOn.
+    # Uten dette skillet ville brukeren fått «Kø-grid svarte HTTP 302» i stedet for
+    # «logg inn på nytt», og ingen mulighet til å forstå hva som var galt.
+    if resp.status_code in (301, 302, 401, 403):
+        raise AoSessionExpired()
     if resp.status_code != 200:
         raise AoEditError(f'Kø-grid svarte HTTP {resp.status_code}')
     data = resp.json().get('data')
@@ -595,7 +603,7 @@ def avbryt(client, sighting_id):
     return publiser_tilbake(client, sighting_id)
 
 
-def lagre_og_publiser(client, sighting_id, html, funn, endringer):
+def lagre_og_publiser(client, sighting_id, html, funn, endringer, hent_rad=None):
     """
     Skriv endringen, publiser scoped, og les resultatet tilbake fra AO.
 
@@ -624,7 +632,8 @@ def lagre_og_publiser(client, sighting_id, html, funn, endringer):
                 f'tilbake etter feil: {exc}')
         raise
 
-    return {'ok': True, **bekreft(client, sighting_id, funn, endringer)}
+    return {'ok': True,
+            **bekreft(client, sighting_id, funn, endringer, hent_rad=hent_rad)}
 
 
 def bekreft(client, sighting_id, funn, endringer, hent_rad=None):
@@ -670,3 +679,29 @@ def bekreft(client, sighting_id, funn, endringer, hent_rad=None):
                 f'AO har {rad.get("ActivityName")!r}')
 
     return {'bekreftet': not avvik, 'ao': ao, 'avvik': avvik}
+
+
+def funn_fra_rad(rad):
+    """
+    Oversett en rå grid-rad fra AO til `funn`-dicten `bygg_save_body()` vil ha.
+
+    Én kilde til denne oversettelsen, slik at server.py og verktøyet ikke driver
+    fra hverandre. Dato konverteres fra AOs ISO-felt til skjemaets DD.MM.YYYY.
+    """
+    iso = str(rad.get('UniversalDate') or '')[:10]
+    if len(iso) == 10 and iso.count('-') == 2:
+        år, md, dg = iso.split('-')
+        dato = f'{dg}.{md}.{år}'
+    else:
+        dato = iso
+
+    navn = str(rad.get('SiteName') or '')
+    navn = re.sub(r'<[^>]*>', '', navn).strip()
+
+    return {
+        'taxon_id': str(rad.get('TaxonId') or ''),
+        'dato': dato,
+        'site_id': str(rad.get('SiteId') or ''),
+        'site_name': navn,
+        'activity_navn': rad.get('ActivityName'),
+    }
