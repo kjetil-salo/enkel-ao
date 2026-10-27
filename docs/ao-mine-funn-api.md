@@ -148,6 +148,21 @@ To konsekvenser:
 
 ### Antall-redigering: status og hva som gjenstår
 
+> ## ⛔ MÅLINGEN UNDER ER MOTBEVIST (26.10.2026)
+>
+> Konklusjonen «det er nøyaktig de redigerbare verdiene som bygges av JavaScript»
+> er **feil**. `Quantity`, `StartDate`, `StartTime`, `EndDate`, `EndTime` og `Taxon`
+> ligger alle i rå HTML med korrekt `value`. Tallene under (113 felt, gap på 36)
+> stammer fra et degradert skjema.
+>
+> Det reelle gapet er **6 nedtrekkslister** uten `selected`-option, hvorav bare
+> `Activity`, `Stage`, `Gender` og `DeterminationMethod` sendes av nettleseren i det
+> hele tatt — og `Activity` kan slås opp eksakt i options-lista i samme HTML.
+> Round-trip er dermed forsvarlig.
+>
+> **Se `docs/ao-rediger-maling-2026-10-26.md`.** Avsnittet under beholdes bare for
+> å vise hvordan feilmålingen oppsto — ikke bygg på tallene i det.
+
 **Målt 25.10.2026, fra verifisert ren tilstand (funnet publisert, kø = 0).**
 
 > ⚠️ En tidligere versjon av dette avsnittet oppga «6 felt i rå HTML». Den målingen var

@@ -106,6 +106,13 @@ hvis avhuket er av). Det må reproduseres nøyaktig — ikke dedupliseres.
 skjema-HTML-en og poster dem tilbake uendret bortsett fra det brukeren rørte. Å bygge
 bodyen fra bunnen av er ikke forsvarlig.
 
+> **Presisert 26.10.2026:** round-trippet er målt og er gjennomførbart. 134 av 203 felt
+> har lesbar verdi i rå HTML; av de 69 øvrige er 53 genuint tomme. Det som faktisk må
+> settes eksplisitt er 4 nedtrekkslister (`Activity`, `Stage`, `Gender`,
+> `DeterminationMethod`) og lokaliteten — og `selectedSiteName` har en *misvisende*
+> verdi (`"false"`) som må overstyres, ikke stoles på.
+> Se `docs/ao-rediger-maling-2026-10-26.md`.
+
 ## 4. AOs egne valideringsendepunkter ⭐
 
 AOs UI validerer live mens du skriver. Alle er form-encoded POST som svarer `true`:
