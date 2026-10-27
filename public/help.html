@@ -161,6 +161,22 @@
         font-size: 0.88rem;
       }
 
+      /* Som .tip, men rød — for det som kan gå galt hvis man ikke leser det. */
+      .warning {
+        background: rgba(185, 28, 28, 0.10);
+        border-left: 3px solid rgba(185, 28, 28, 0.6);
+        padding: 12px;
+        margin: 12px 0;
+        border-radius: 6px;
+        font-size: 0.88rem;
+      }
+
+      /* Underoverskrift inne i en h3-seksjon. */
+      h4 {
+        font-size: 0.97rem;
+        margin: 18px 0 6px;
+      }
+
       /* Hopp-til-navigasjon */
       .toc {
         display: flex;
@@ -420,6 +436,7 @@
           <a href="#kart">🗺️ Kart &amp; lokasjoner</a>
           <a href="#registrere">✓ Registrere</a>
           <a href="#sende">📤 Sende til AO</a>
+          <a href="#tidligere-sendt">✏️ Tidligere sendt</a>
           <a href="#dele">🔗 Del med venner</a>
           <a href="#fellestur">👥 Fellestur</a>
           <a href="#innstillinger">⚙️ Innstillinger</a>
@@ -601,10 +618,14 @@
           <strong>Tips:</strong> Marker dine vanlige lokaliteter som <strong>favoritter</strong> i AO. Da foreslår AO oftere «din» variant automatisk.
         </div>
 
-        <h2 id="tidligere-sendt">📤 Tidligere sendt – og bilder i etterkant</h2>
+        <h2 id="tidligere-sendt">✏️ Tidligere sendt – rette funn og legge til bilder</h2>
         <p><strong>«Tidligere sendt»</strong> har to deler. Øverst ligger <strong>«Mine funn på Artsobservasjoner»</strong>, som hentes rett fra AO. Den er derfor lik på alle enhetene dine: registrerer du med mobilen i felt, finner du de samme funnene igjen på PC-en hjemme. Den tar også med funn du har registrert utenom appen, og overlever at du bytter telefon.</p>
         <p>Lista viser <strong>alt du er med på</strong> – både det du har rapportert selv, og det andre har rapportert med deg som observatør, for eksempel fra en fellestur. Under lokaliteten står det hvem som rapporterte, når det ikke var deg.</p>
         <p>Nederst ligger <strong>«Sendt fra denne enheten»</strong> – den lokale kvitteringen for det du har publisert de siste 7 dagene. Den virker uten nett og uten innlogging, og det er herfra du deler funn eller kopierer dem tilbake til arbeidslista.</p>
+        <p>Fra lista kan du <strong>legge til bilder</strong> på funn som mangler det, og <strong>rette antall, aktivitet eller art</strong> på funn du selv har rapportert.</p>
+        <div class="tip">
+          <strong>Finner du ikke funnet?</strong> Standard tidsrom er to dager. En aktiv uke gir fort over hundre funn, og poenget med lista er som regel å finne de få som trenger noe. Velg et lengre tidsrom øverst hvis funnet er eldre.
+        </div>
 
         <h3>📷 Legge til bilder etterpå</h3>
         <p>Funn som mangler bilde får knappen <strong>«Legg til bilde»</strong>. Det er dette som gjør at du kan registrere raskt i felt med mobilen, og så legge på de gode bildene fra kameraet når du kommer hjem.</p>
@@ -619,13 +640,38 @@
         <p>Artsobservasjoner tillater inntil 10 bilder per funn, og du kan legge til bilder på <strong>alt du er med på</strong> – også funn andre har rapportert. Etter en opplasting står vinduet åpent med «Legg til ett til», så du slipper å begynne på nytt for bilde nummer to. Appen sier fra hvis noe ikke gikk gjennom, i stedet for å påstå at bildet er lagt til.</p>
 
         <h3>✏️ Rette et funn</h3>
-        <p>Knappen <strong>«Endre»</strong> vises bare på funn du selv har rapportert – Artsobservasjoner tillater ikke at andre endrer et funn. Den åpner funnet i Artsobservasjoners eget skjema, der du kan rette antall, art, tidspunkt og lokalitet. Vi gjør bevisst ikke dette inne i appen: skjemaet har nærmere 150 felt, og et felt appen ikke klarer å gjengi riktig ville blitt stående tomt på funnet ditt i den nasjonale artsdatabasen.</p>
+        <p>Knappen <strong>«Endre»</strong> vises på funn du selv har rapportert – Artsobservasjoner tillater ikke at andre endrer et funn, så på funn andre har rapportert kan du bare legge til bilder.</p>
+        <p>Du kan rette tre ting direkte i appen:</p>
+        <ul>
+          <li><strong>Antall</strong> – det vanligste. Du talte 12, men det var 15.</li>
+          <li><strong>Aktivitet</strong> – for eksempel fra «stasjonær» til «næringssøkende». Lista hentes fra Artsobservasjoner, så den er alltid den samme som der.</li>
+          <li><strong>Art</strong> – kom noen i etterkant og sa at det var en løvsanger og ikke en gransanger? Trykk «Bytt art» og søk opp den riktige. Den nye arten vises med den gamle i parentes, så du ser hva du endrer fra.</li>
+        </ul>
+        <p><strong>Dato, tid og lokalitet</strong> endres ikke herfra. De står synlig i vinduet så du ser hva de er, og skal de rettes gjør du det på Artsobservasjoner.</p>
+
+        <h4>Du får bekreftelse på at endringen tok</h4>
+        <p>Etter lagring henter appen funnet tilbake fra Artsobservasjoner og viser hva <em>de</em> har registrert – ikke bare at noe ble sendt. Da står det for eksempel «✅ Artsobservasjoner bekrefter: 5 individer, stasjonær».</p>
+        <p>Noen ganger rekker ikke Artsobservasjoners liste å bli oppdatert med én gang. Da sier appen at endringen er lagret, men at den ikke fikk dobbeltsjekket – med lenke til funnet. <strong>Det betyr nesten alltid at alt gikk bra</strong>, bare at svaret kom for tregt.</p>
+
+        <h4>Byttet du til en sjelden art?</h4>
+        <p>Da kjører appen den samme sjeldenhetssjekken som ved registrering, på den <strong>nye</strong> arten – før du bekrefter. Er funnet uvanlig for stedet og årstiden, får du vite det med én gang i stedet for å bli overrasket av Artsobservasjoner etterpå.</p>
+        <p>Søket viser bare fuglearter, så et funn ikke kan havne i feil artsgruppe.</p>
+
+        <div class="warning">
+          <strong>🔴 Funnet er usynlig for andre mens du endrer.</strong> Artsobservasjoner tar funnet ut av visning i samme øyeblikk det åpnes for endring – også om du ikke endrer noe. Det blir synlig igjen når du lagrer.
+          <br><br>
+          Derfor er <strong>«Avbryt» en ekte handling</strong>, ikke bare en lukkeknapp: den publiserer funnet tilbake med én gang. Det samme gjør ✕ og det å trykke utenfor vinduet. Lukker du hele siden midt i, prøver appen å publisere funnet tilbake likevel, og nettleseren spør om du er sikker.
+        </div>
+
+        <h4>«Du har funn som ikke er publisert»</h4>
+        <p>Skulle noe likevel bli liggende – strømmen gikk, telefonen døde – får du et rødt varsel øverst på «Tidligere sendt» neste gang du åpner siden, med lenke til å publisere hos Artsobservasjoner.</p>
+        <p>Varselet fanger også funn du har etterlatt ved å redigere på Artsobservasjoners egne sider, så det kan dukke opp selv om du aldri har brukt «Endre» i appen.</p>
         <div class="tip">
-          <strong>Viktig:</strong> Artsobservasjoner gjør funnet <strong>upublisert</strong> i samme øyeblikk du åpner redigeringen – også om du ikke endrer noe. Husk derfor å trykke «Publiser» hos AO før du forlater siden, ellers blir funnet usynlig for andre.
+          <strong>Hvorfor tar det noen sekunder?</strong> Appen henter hele redigeringsskjemaet fra Artsobservasjoner – det er stort – og sender det tilbake med endringen din. Det er den eneste måten å være sikker på at ingen av de andre feltene på funnet ditt blir rørt.
         </div>
 
         <h3>⚠️ Merknader fra Artsobservasjoner</h3>
-        <p>Har AO en innvending mot et funn – for eksempel et urimelig antall eller et tidspunkt som ikke stemmer – vises den på funnet, med lenke rett til det hos AO. Selve rettingen gjør du på Artsobservasjoner.</p>
+        <p>Har AO en innvending mot et funn – for eksempel et urimelig antall eller et tidspunkt som ikke stemmer – vises den på funnet, med lenke rett til det hos AO. Gjelder det antall, aktivitet eller art, kan du rette det med «Endre». Gjelder det tid eller lokalitet, gjør du det på Artsobservasjoner.</p>
 
         <h2 id="dele">🔗 Del med venner</h2>
         <p>Trykk <strong>«🔗 Del funnene»</strong> under Send inn for å lage en pen, delbar lenke over hva du har sett – uten å sende folk til Artsobservasjoner. Du velger selv hvilke observasjoner som skal med i forhåndsvisningen, og lenken er hemmelig (gjettbar for ingen), men ikke privat – alle som har den kan åpne den. Den slutter å virke etter 14 dager.</p>
