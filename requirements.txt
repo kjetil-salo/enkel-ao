@@ -1,5 +1,5 @@
 # Supabase for logging
-supabase==2.32.0
+supabase==2.33.0
 
 # For .env-støtte
 python-dotenv==1.2.4
