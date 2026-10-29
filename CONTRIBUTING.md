@@ -57,6 +57,35 @@ Men jeg setter pris på all tilbakemelding! Selv om jeg ikke alltid rekker å sv
 Denne delen er for deg som er invitert inn, eller som vil jobbe mer enn en
 enkelt liten PR.
 
+## Bruker du Claude Code? Start her
+
+Dette er den raskeste veien inn, og du trenger ikke kjenne kodebasen fra før.
+
+Repoet er satt opp for det: `CLAUDE.md` i rota beskriver hele arkitekturen,
+og tre skills i `.claude/` dekker konvensjoner, arkitekturvurderinger og
+teststrategi. Alt dette leses automatisk når du starter Claude Code i
+prosjektmappa — du trenger ikke gjøre noe for å aktivere det.
+
+```bash
+npm install -g @anthropic-ai/claude-code   # eller se claude.com/claude-code
+cd enkel-ao
+claude
+```
+
+Et fornuftig første oppdrag er bokstavelig talt å be om hjelp til å få appen
+til å kjøre: *«Få denne appen til å kjøre lokalt og si fra når den svarer.»*
+Den kan også ta git-biten for deg — branch, commit og pull request — hvis det
+er den delen som er fremmed.
+
+To ting er verdt å si eksplisitt til den:
+
+- **Den skal ikke deploye.** Skillsene sier det, men si det gjerne selv også
+- **Be om små, avgrensede endringer.** Store omskrivinger i `observations.js`,
+  `server.py` eller AO-importen er risikable selv for den som kjenner koden
+
+Du er fortsatt ansvarlig for det du sender inn: les gjennom endringen, og kjør
+testene før du åpner PR. Begge ting står beskrevet under.
+
 ## Oppsett
 
 ```bash
@@ -145,12 +174,6 @@ jakter du på feil du ikke har innført.
 - **AO-direkteimporten er skjør** — den snakker med et skjema vi ikke eier.
   Endringer der er høy risiko; spør før du går inn i den
 
-## Bruker du Claude Code?
-
-Tre skills i `.claude/` beskriver kodebasens konvensjoner, arkitektur-
-vurderinger og teststrategi. De lastes automatisk når du jobber i repoet.
-`CLAUDE.md` i repo-roten er den lange versjonen — den er detaljert og
-oppdatert, og verdt å lese uansett om du bruker AI-verktøy.
 
 ## Spørsmål?
 
