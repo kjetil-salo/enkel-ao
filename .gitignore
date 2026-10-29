@@ -15,7 +15,23 @@ fellestur_peer_providers.json
 __pycache__/
 .coverage
 .DS_Store
-.claude/
+# .claude/ er lokal som hovedregel (sesjoner, settings.local.json,
+# prod-/deploy-skills). Unntaket er de tre som beskriver selve APPEN og
+# som bidragsytere trenger — de deles i repoet.
+# NB: unntakene må gjøres nivå for nivå; git traverserer ikke inn i en
+# katalog som er ignorert i sin helhet, så `.claude/` kan ikke stå alene.
+# NB2: har du `.claude/` i din egen globale gitignore, overstyrer den disse
+# unntakene for NYE filer — de tre ble derfor lagt til med `git add -f` én
+# gang. Sporede filer påvirkes ikke av gitignore, så de oppdateres normalt.
+.claude/*
+!.claude/agents/
+!.claude/skills/
+.claude/agents/*
+!.claude/agents/test.md
+.claude/skills/*
+!.claude/skills/agent-software-developer/
+!.claude/skills/agent-solution-architect/
+
 .codex/
 .codex-tmp/
 
