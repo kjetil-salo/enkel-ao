@@ -9,6 +9,13 @@
 fellestur_peer_secret.txt
 fellestur_peer_providers.json
 
+# Lokale SQLite-databaser (DB_PATH / LOCATION_DB_PATH ved lokal utvikling).
+# I drift ligger disse på docker-volumet /data, aldri i repo-mappen.
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
 # IDE / venv / caches
 .venv
 *.pyc
