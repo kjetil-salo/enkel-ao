@@ -83,6 +83,12 @@
       .nye-badge { background: rgba(34,197,94,0.15); color: #4ade80; border-radius: 999px;
                    padding: 2px 10px; font-size: 0.8rem; cursor: pointer; border: none; }
       .feilmelding { color: #f87171; font-size: 0.9rem; margin-top: 8px; }
+      .tur-advarsel { background: var(--color-warning-soft); border: 1px solid var(--color-warning);
+                       border-radius: var(--radius-md); padding: var(--space-md); line-height: 1.5; }
+      .tur-advarsel strong { color: var(--color-warning); }
+      .tur-advarsel p:last-child { margin-bottom: 0; }
+      .tur-kilde { color: var(--muted); font-size: 0.9rem; line-height: 1.5; }
+      #btn-bli-med-send, #btn-bli-med-likevel, #btn-tilbake, #btn-prov-igjen { min-height: 44px; }
 
       body.theme-light { background: #ffffff !important; color: #1a1a1a !important; }
       body.theme-light .kort { background: #f8fafc !important; border-color: #e2e8f0 !important; }
@@ -114,6 +120,6 @@
          egen HTTP-cache holde fast på en utdatert fellestur.js i opptil 4 timer etter
          deploy, selv om siden lastes på nytt. Samme mønster som main.js i index.html
          og map.js i map.html (se v1.53.7). -->
-    <script type="module" src="/js/fellestur.js?v=v1.53.39"></script>
+    <script type="module" src="/js/fellestur.js?v=v1.58.3"></script>
   </body>
 </html>

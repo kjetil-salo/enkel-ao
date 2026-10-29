@@ -8,6 +8,7 @@ kontrakten dette skal etterleve (Appendix A i det opprinnelige
 Feltlogg-dokumentet).
 """
 import json
+import logging
 import time
 from unittest.mock import patch, MagicMock
 
@@ -15,6 +16,76 @@ import pytest
 
 from src import fellestur_store
 from src import fellestur_peer
+
+
+@pytest.mark.parametrize('tilfelle,status,loggtekst', [
+    ('token', 401, 'Ugyldig eller manglende token'),
+    ('kvote', 429, 'For mange forespørsler'),
+    ('json', 400, 'Ugyldig JSON'),
+    ('validering', 400, 'mangler sighting.location'),
+    ('ukjent', 200, 'hendelser=1 godtatt=1 seq=1'),
+    ('ok', 200, 'hendelser=1 godtatt=1 seq=1'),
+    ('duplikat', 200, 'hendelser=1 godtatt=0 seq=1'),
+])
+def test_http_logging_uten_token_eller_observasjoner(tilfelle, status, loggtekst, monkeypatch, caplog):
+    from server import Handler
+
+    tur = fellestur_store.create_fellestur()
+    kode = 'xxxxx' if tilfelle == 'token' else tur['kode']
+    if tilfelle == 'ukjent':
+        kode = next(f'{n:05d}' for n in range(100000) if f'{n:05d}' != tur['kode'])
+    event = _event(kode=kode, sighting=_sighting(comments='Privat testkommentar'))
+    if tilfelle == 'validering':
+        event['sighting']['location'] = ''
+    if tilfelle == 'duplikat':
+        fellestur_peer.apply_peer_batch(kode, [event])
+
+    handler = Handler.__new__(Handler)
+    handler.headers = {'Authorization': 'Bearer hemmelig-testtoken'}
+    handler.client_address = ('127.0.0.1', 12345)
+    handler._read_json_body = MagicMock(return_value={'events': [event]})
+    handler._send_json = MagicMock()
+    if tilfelle == 'json':
+        handler._read_json_body.side_effect = json.JSONDecodeError('Feil', '', 0)
+    monkeypatch.setattr('server._rate_ok', lambda *args: tilfelle != 'kvote')
+    monkeypatch.setattr(fellestur_peer, 'verify_inbound_token', lambda token: tilfelle != 'token')
+
+    with caplog.at_level(logging.INFO, logger='fugleobs'):
+        handler._handle_fellestur_peer_events_post(kode)
+
+    assert handler._send_json.call_args.kwargs['status'] == status
+    assert 'Innkommende kall' in caplog.text
+    assert f'status={status}' in caplog.text
+    assert loggtekst in caplog.text
+    assert 'hemmelig-testtoken' not in caplog.text
+    assert 'Privat testkommentar' not in caplog.text
+    assert 'Tundrasnipe' not in caplog.text
+
+
+def test_http_logging_av_feil_sti_uten_query(caplog):
+    from server import Handler
+
+    handler = Handler.__new__(Handler)
+    handler.path = '/api/fellestur-peer/12345/feil?token=hemmelig'
+    handler.command = 'POST'
+    handler.headers = {}
+    handler.client_address = ('127.0.0.1', 12345)
+    with caplog.at_level(logging.INFO, logger='fugleobs'):
+        handler.log_message('"%s" %s %s', f'POST {handler.path} HTTP/1.1', '404', '-')
+    assert 'FELLESTUR-HTTP' in caplog.text
+    assert '/api/fellestur-peer/12345/feil' in caplog.text
+    assert 'status=404' in caplog.text
+    assert 'hemmelig' not in caplog.text
+
+
+def test_http_logging_for_ugyldig_requestlinje_uten_sti(caplog):
+    from server import Handler
+
+    handler = Handler.__new__(Handler)
+    handler.client_address = ('127.0.0.1', 12345)
+    with caplog.at_level(logging.DEBUG, logger='fugleobs'):
+        handler.log_message('code %d, message %s', 400, 'Bad request syntax')
+    assert 'code 400, message Bad request syntax' in caplog.text
 
 
 @pytest.fixture(autouse=True)
@@ -180,9 +251,60 @@ def test_for_mange_events_gir_413():
     assert status == 413
 
 
-def test_ukjent_kode_gir_404():
+def test_ukjent_kode_oppretter_bekreftet_ekstern_tur_med_observasjon():
     body, status = fellestur_peer.apply_peer_batch('99999', [_event(kode='99999')])
-    assert status == 404
+    assert status == 200
+    assert body['accepted'] == ['e_abcdefgh']
+    tur = fellestur_store.get_fellestur('99999')
+    assert tur['opprinnelse'] == 'ekstern'
+    assert tur['eksternBekreftet'] is True
+    assert tur['observasjoner'][0]['species']['taxonName'] == 'Tundrasnipe'
+
+
+def test_ugyldig_batch_oppretter_ikke_ekstern_tur():
+    events = [_event(kode='99999'), _event(event_id='e_ugyldig', kode='99999', sighting=_sighting(count=0))]
+    _, status = fellestur_peer.apply_peer_batch('99999', events)
+    assert status == 400
+    assert fellestur_store.get_fellestur('99999') is None
+
+
+def test_peer_bekrefter_ubekreftet_tur_uten_a_miste_lokale_funn():
+    tur = fellestur_store.ensure_external_fellestur('99999')
+    fellestur_store.apply_sync('99999', upserts=[{'id': 'lokalt-funn', 'obs': {
+        'species': {'taxonName': 'Tjeld'}, 'count': 1,
+    }}])
+    _, status = fellestur_peer.apply_peer_batch('99999', [_event(kode='99999')])
+    hentet = fellestur_store.get_fellestur('99999')
+    assert status == 200
+    assert hentet['eksternBekreftet'] is True
+    assert hentet['expiresTs'] == tur['expiresTs']
+    assert {o['id'] for o in hentet['observasjoner']} == {'lokalt-funn', 'peer-sighting-1'}
+
+
+def test_gammelt_duplikat_gjenoppliver_ikke_utlopt_tur(monkeypatch):
+    ev = _event(kode='99999')
+    fellestur_peer.apply_peer_batch('99999', [ev])
+    tur = fellestur_store.get_fellestur('99999')
+    monkeypatch.setattr(time, 'time', lambda: tur['expiresTs'] + 1)
+    body, status = fellestur_peer.apply_peer_batch('99999', [ev])
+    assert status == 200
+    assert body['accepted'] == []
+    assert fellestur_store.get_fellestur('99999') is None
+
+
+def test_uautentisert_peer_oppretter_ikke_ekstern_tur(monkeypatch):
+    from server import Handler
+
+    handler = Handler.__new__(Handler)
+    handler.headers = {'Authorization': 'Bearer feil-token'}
+    handler.client_address = ('127.0.0.1', 12345)
+    handler._read_json_body = MagicMock(return_value={'events': [_event(kode='99999')]})
+    handler._send_json = MagicMock()
+    monkeypatch.setattr('server._rate_ok', lambda *args: True)
+    handler._handle_fellestur_peer_events_post('99999')
+    assert handler._send_json.call_args.kwargs['status'] == 401
+    handler._read_json_body.assert_not_called()
+    assert fellestur_store.get_fellestur('99999') is None
 
 
 def test_manglende_artsnavn_gir_400_og_lagrer_ingenting():

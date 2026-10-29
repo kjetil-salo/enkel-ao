@@ -20,7 +20,7 @@ oppsummert:
 - Svar: `200 {accepted: [id...], seq}` — duplikate id-er (allerede sett)
   telles ikke med i `accepted`, men er ikke en feil.
 - `400` ved ugyldig batch (hele batchen forkastes), `401` ved feil/manglende
-  token, `404` når koden er ukjent/utløpt her, `413` ved >50 events.
+  token, `413` ved >50 events. Nye koder speiles fra autentiserte hendelser.
 
 **Design-valg fra analysen, verdt å huske ved videre endringer:**
 
@@ -71,7 +71,6 @@ RETRY_BACKOFFS = (2, 10, 60)  # sekunder mellom forsøk 1→2, 2→3, 3→4
 
 _PEER_REGISTRERT_AV = 'Ekstern app'
 
-_KODE_RE = re.compile(r'^\d{5}$')
 _EVENT_ID_RE = re.compile(r'^[A-Za-z0-9_-]{8,64}$')
 _SIGHTING_ID_RE = re.compile(r'^[A-Za-z0-9_-]{1,64}$')
 _DATE_RE = re.compile(r'^\d{4}-\d{2}-\d{2}$')
@@ -445,8 +444,8 @@ def apply_peer_batch(kode: str, events) -> tuple[dict, int]:
     """
     Anvend en innkommende batch fra en peer. Returnerer `(json_body, status)`.
 
-    Følger Appendix A.3 presist: hele batchen forkastes (400) ved
-    valideringsfeil FØR noe som helst lagres; en ukjent/utløpt kode gir 404;
+    Validering følger Appendix A.3: hele batchen forkastes (400) ved
+    valideringsfeil FØR noe som helst lagres; en ukjent kode speiles lokalt;
     duplikate event-id-er (allerede sett) hoppes stille over og telles ikke
     med i `accepted`, men er ikke en feil.
 
@@ -455,7 +454,7 @@ def apply_peer_batch(kode: str, events) -> tuple[dict, int]:
     sin egen tilkobling til samme database internt, og en omsluttende, ennå
     uncommitet transaksjon her ville låst den ute («database is locked»).
     """
-    if not isinstance(kode, str) or not _KODE_RE.match(kode):
+    if not fellestur_store._gyldig_kode_format(kode):
         return {'error': 'Ugyldig kode — skal være 5 siffer'}, 400
     if not isinstance(events, list) or not events:
         return {'error': 'events må være en liste med 1-50 elementer'}, 400
@@ -467,13 +466,16 @@ def apply_peer_batch(kode: str, events) -> tuple[dict, int]:
         if feil:
             return {'error': feil}, 400
 
-    tur = fellestur_store.get_fellestur(kode)
-    if tur is None:
-        return {'error': 'Ukjent eller utløpt kode'}, 404
-
     _purge_old_seen()
+    # Duplikater innen idempotensvinduet (sju døgn) skal ikke gjenopprette
+    # eller bekrefte en ny tur med gjenbrukt kode.
+    nye_events = [ev for ev in events if not _is_seen(ev['id'])]
+    if nye_events:
+        tur = fellestur_store.ensure_external_fellestur(kode, confirmed=True)
+        if tur is None:
+            return {'error': 'Kunne ikke lagre ekstern tur'}, 500
     accepted = []
-    for ev in events:
+    for ev in nye_events:
         eid = ev['id']
         if _is_seen(eid):
             continue

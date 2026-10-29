@@ -1,5 +1,12 @@
 # Analyse: Kryss-app Fellestur mellom Enkel AO og Feltlogg
 
+> Historisk analyse. Fra v1.58.3 (2026-10-28) speiler Enkel-AO også ukjente
+> turkoder fra autentiserte, validerte peer-hendelser i stedet for å svare 404.
+> Brukere kan dessuten bli med på ubekreftede koder etter et gult varsel.
+> Ingen oversikt over aktive turer tilbys. Se
+> [gjeldende dokumentasjon](fellestur-federasjon.md) for oppdatert atferd,
+> driftsstatus og verifisering; kravene under beskriver det opprinnelige designet.
+
 **Opprettet:** 2026-09-11
 
 ## Bakgrunn

@@ -9,6 +9,7 @@ Datamodellen for en oppføring er fortsatt den samme som den lokale
 arbeidslista bruker (species/count/activity/placeName/...) — se
 sanitize_observasjon().
 """
+import sqlite3
 import time
 
 import pytest
@@ -59,6 +60,110 @@ def test_hent_ukjent_kode_gir_none():
     assert fellestur_store.get_fellestur('ABCDEF') is None
     assert fellestur_store.get_fellestur('') is None
     assert fellestur_store.get_fellestur('kort') is None
+
+
+@pytest.mark.parametrize('kode', ['', '1234', '123456', '１２３４５', '12345\n', None, 12345])
+def test_ekstern_tur_krever_fem_ascii_siffer(kode):
+    assert fellestur_store.ensure_external_fellestur(kode) is None
+
+
+def test_ekstern_pamelding_er_ubekreftet_inntil_peer_hendelse():
+    tur = fellestur_store.ensure_external_fellestur('00123')
+    assert tur['kode'] == '00123'
+    assert tur['opprinnelse'] == 'ekstern'
+    assert tur['eksternBekreftet'] is False
+    assert tur['observasjoner'] == []
+    bekreftet = fellestur_store.ensure_external_fellestur('00123', confirmed=True)
+    assert bekreftet['eksternBekreftet'] is True
+    assert bekreftet['expiresTs'] == tur['expiresTs']
+    assert fellestur_store.ensure_external_fellestur('00123')['eksternBekreftet'] is True
+
+
+def test_peer_bevarer_opprinnelig_lokal_tur_og_medobservatorer():
+    tur = fellestur_store.create_fellestur(navn='Herdla', medobservatorer=['Kari'])
+    hentet = fellestur_store.ensure_external_fellestur(tur['kode'], confirmed=True)
+    assert hentet['opprinnelse'] == 'enkel-ao'
+    assert hentet['eksternBekreftet'] is True
+    assert hentet['navn'] == 'Herdla'
+    assert hentet['medobservatorer'] == ['Kari']
+    assert hentet['expiresTs'] == tur['expiresTs']
+
+
+@pytest.mark.parametrize('gammel_hendelse', [False, True])
+def test_migrering_bevarer_tur_og_tidligere_peer_bekreftelse(tmp_path, monkeypatch, gammel_hendelse):
+    db = tmp_path / 'gammel.db'
+    now = time.time()
+    with sqlite3.connect(db) as conn:
+        conn.execute('CREATE TABLE fellesturer (kode TEXT PRIMARY KEY, navn TEXT, '
+                     'medobservatorer TEXT, created_ts REAL, expires_ts REAL)')
+        conn.execute("INSERT INTO fellesturer VALUES ('00123', 'Herdla', '[\"Kari\"]', ?, ?)",
+                     (now, now + 3600))
+        conn.execute('CREATE TABLE fellestur_peer_seen (event_id TEXT PRIMARY KEY, kode TEXT, received_ts REAL)')
+        conn.execute("INSERT INTO fellestur_peer_seen VALUES ('e_tidligere', '00123', ?)",
+                     (now - 3600 if gammel_hendelse else now + 1,))
+    monkeypatch.setattr(fellestur_store, 'DB_PATH', str(db))
+    fellestur_store.init_db()
+    fellestur_store.init_db()
+    tur = fellestur_store.get_fellestur('00123')
+    assert tur['navn'] == 'Herdla'
+    assert tur['medobservatorer'] == ['Kari']
+    assert tur['opprinnelse'] == 'enkel-ao'
+    assert tur['eksternBekreftet'] is not gammel_hendelse
+
+
+@pytest.mark.parametrize('godta', [None, False, 'true', 1])
+def test_ukjent_kode_krever_uttrykkelig_bekreftelse(godta, monkeypatch):
+    handler = _bli_med_handler({'kode': '00123', 'godtaUbekreftet': godta}, monkeypatch)
+    handler._handle_fellestur_bli_med_post()
+    assert handler._send_json.call_args.kwargs['status'] == 409
+    assert fellestur_store.get_fellestur('00123') is None
+
+
+def _bli_med_handler(data, monkeypatch):
+    from server import Handler
+    from unittest.mock import MagicMock
+
+    handler = Handler.__new__(Handler)
+    handler.headers = {}
+    handler.client_address = ('127.0.0.1', 12345)
+    handler._read_json_body = MagicMock(return_value=data)
+    handler._send_json = MagicMock()
+    monkeypatch.setattr('server._rate_ok', lambda *args: True)
+    return handler
+
+
+def test_bli_med_ukjent_kode_etter_bekreftelse(monkeypatch):
+    handler = _bli_med_handler({'kode': '00123', 'godtaUbekreftet': True}, monkeypatch)
+    handler._handle_fellestur_bli_med_post()
+    assert handler._send_json.call_args.args[0]['kode'] == '00123'
+    assert handler._send_json.call_args.args[0]['eksternBekreftet'] is False
+    assert handler._send_json.call_count == 1
+
+
+@pytest.mark.parametrize('bekreftet', [False, True])
+def test_neste_deltaker_ma_ogsa_bekrefte_ukjent_ekstern_tur(bekreftet, monkeypatch):
+    fellestur_store.ensure_external_fellestur('00123', confirmed=bekreftet)
+    handler = _bli_med_handler({'kode': '00123'}, monkeypatch)
+    handler._handle_fellestur_bli_med_post()
+    if bekreftet:
+        assert handler._send_json.call_args.args[0]['ok'] is True
+    else:
+        assert handler._send_json.call_args.kwargs['status'] == 409
+
+
+@pytest.mark.parametrize('data', [{'kode': '1234a', 'godtaUbekreftet': True}, [], None])
+def test_bli_med_validerer_inndata(data, monkeypatch):
+    handler = _bli_med_handler(data, monkeypatch)
+    handler._handle_fellestur_bli_med_post()
+    assert handler._send_json.call_args.kwargs['status'] == 400
+
+
+def test_bli_med_rate_limit_lagrer_ikke_tur(monkeypatch):
+    handler = _bli_med_handler({'kode': '00123', 'godtaUbekreftet': True}, monkeypatch)
+    monkeypatch.setattr('server._rate_ok', lambda *args: False)
+    handler._handle_fellestur_bli_med_post()
+    assert handler._send_json.call_args.kwargs['status'] == 429
+    assert fellestur_store.get_fellestur('00123') is None
 
 
 def test_opprettet_tur_kan_hentes_med_medobservatorer():

@@ -30,6 +30,7 @@ const state = {
   pollHandle: null,
   kjenteIder: new Set(),
   nyeSidenSist: 0,
+  oppslag: 0,
 };
 
 function hentKodeFraUrl() {
@@ -79,9 +80,11 @@ async function apiPost(path, body) {
 
 async function hentTur(kode) {
   const r = await fetch(`/api/fellestur?kode=${encodeURIComponent(kode)}`);
-  if (!r.ok) return null;
+  if (r.status === 404) return null;
+  if (!r.ok) throw new Error('Kunne ikke sjekke turkoden');
   const data = await r.json();
-  return data.ok ? data : null;
+  if (!data.ok) throw new Error('Uventet svar ved sjekk av turkode');
+  return data;
 }
 
 // ---------- Oppstartsvalg (start ny / bli med) ----------
@@ -135,7 +138,7 @@ function renderBliMedSkjema() {
     <input type="text" id="tur-kode" placeholder="F.EKS. 48213" maxlength="5" inputmode="numeric"
            style="letter-spacing:0.1em;">
     <div class="rad-btn">
-      <button class="btn primar" id="btn-bli-med-send">Bli med</button>
+      <button class="btn primar" id="btn-bli-med-send">Sjekk kode og bli med</button>
     </div>
     <div class="feilmelding" id="feil" style="display:none;"></div>`;
 
@@ -147,14 +150,16 @@ function renderBliMedSkjema() {
 
   document.getElementById('btn-bli-med-send').addEventListener('click', async () => {
     const kode = kodeInput.value.trim().toUpperCase();
-    if (kode.length !== 5) {
+    if (!/^[0-9]{5}$/.test(kode)) {
       const feil = document.getElementById('feil');
-      feil.textContent = 'Koden skal være 5 tegn.';
+      feil.textContent = 'Koden skal være 5 siffer.';
       feil.style.display = 'block';
       return;
     }
     settKodeIUrl(kode);
     state.kode = kode;
+    document.getElementById('btn-bli-med-send').disabled = true;
+    document.getElementById('btn-bli-med-send').textContent = 'Sjekker kode…';
     await lastOgVisAktivTur();
   });
 }
@@ -162,11 +167,34 @@ function renderBliMedSkjema() {
 // ---------- Aktiv tur ----------
 
 async function lastOgVisAktivTur() {
-  const tur = await hentTur(state.kode);
+  const kode = state.kode;
+  const oppslag = ++state.oppslag;
+  if (!/^[0-9]{5}$/.test(kode || '')) {
+    visOppstartsfeil('Koden skal være 5 siffer.');
+    return;
+  }
+  let tur;
+  try {
+    tur = await hentTur(kode);
+  } catch (_) {
+    if (oppslag !== state.oppslag || kode !== state.kode) return;
+    visOppstartsfeil('Kunne ikke sjekke turkoden. Kontroller nettforbindelsen og prøv igjen.', true);
+    return;
+  }
+  if (oppslag !== state.oppslag || kode !== state.kode) return;
   if (!tur) {
     renderIkkeFunnet();
     return;
   }
+  if (erUbekreftet(tur) && hentAktivFellestur()?.kode !== state.kode) {
+    renderIkkeFunnet();
+    return;
+  }
+  visAktivTur(tur);
+}
+
+function visAktivTur(tur) {
+  state.kode = tur.kode;
   state.tur = tur;
   state.kjenteIder = new Set(tur.observasjoner.map((o) => o.id));
   // Å åpne/opprette en fellestur gjør den aktiv for registrering på
@@ -176,20 +204,84 @@ async function lastOgVisAktivTur() {
   startPolling();
 }
 
+function erUbekreftet(tur) {
+  return tur.opprinnelse === 'ekstern' && !tur.eksternBekreftet;
+}
+
+function tilbakeTilKodevalg() {
+  stopPolling();
+  state.kode = null;
+  state.oppslag += 1;
+  const url = new URL(location.href);
+  url.searchParams.delete('kode');
+  history.replaceState(null, '', url);
+  renderValg();
+  renderBliMedSkjema();
+}
+
+function visOppstartsfeil(melding, kanProveIgjen = false) {
+  app.innerHTML = `<div class="kort">
+    <p class="feilmelding" role="alert">${tekst(melding)}</p>
+    <div class="rad-btn">
+      ${kanProveIgjen ? '<button class="btn primar" id="btn-prov-igjen">Prøv igjen</button>' : ''}
+      <button class="btn" id="btn-tilbake">Endre kode</button>
+    </div></div>`;
+  document.getElementById('btn-tilbake').addEventListener('click', tilbakeTilKodevalg);
+  document.getElementById('btn-prov-igjen')?.addEventListener('click', lastOgVisAktivTur);
+}
+
+function turStatusHtml(tur) {
+  if (erUbekreftet(tur)) {
+    return `<div class="tur-advarsel" role="status"><strong>⚠️ Ekstern tur er ikke bekreftet</strong>
+      <p>Vi har ikke mottatt hendelser fra Feltlogg på kode ${tekst(tur.kode)}.
+      Turen kan finnes der uten funn, eller koden kan være feil eller ikke i bruk.
+      Kontroller koden med den som startet turen.</p></div>`;
+  }
+  if (tur.opprinnelse === 'ekstern') {
+    return '<p class="tur-kilde">Fant en ekstern tur – vi har mottatt hendelser fra Feltlogg eller en annen tilkoblet app.</p>';
+  }
+  return `<p class="tur-kilde">Fant turen i Enkel-AO.${tur.eksternBekreftet
+    ? ' Vi har også mottatt hendelser fra Feltlogg eller en annen tilkoblet app.' : ''}</p>`;
+}
+
 function renderIkkeFunnet() {
   app.innerHTML = `
     <div class="kort">
-      <p>Fant ingen aktiv fellestur med koden <strong>${tekst(state.kode)}</strong> —
-      den kan være feilstavet, eller ha utløpt (fellesturer varer i 48 timer).</p>
-      <div class="rad-btn">
-        <button class="btn primar" id="btn-tilbake">Start på nytt</button>
+      <div class="tur-advarsel" role="alert">
+        <strong>⚠️ Vi kan ikke bekrefte turkode ${tekst(state.kode)}</strong>
+        <p>Vi fant ingen bekreftet tur i Enkel-AO eller i hendelsene vi har mottatt fra Feltlogg.</p>
+        <p>Turen kan være opprettet i Feltlogg uten at noen funn er sendt hit ennå.
+        Koden kan også være feil, utløpt eller ikke i bruk noe sted.</p>
+        <p>Du kan bli med likevel. Kontroller selv koden med den som startet turen –
+        en tom logg bekrefter ikke at turen finnes i Feltlogg.</p>
       </div>
+      <div class="rad-btn">
+        <button class="btn primar" id="btn-bli-med-likevel">Bli med likevel</button>
+        <button class="btn" id="btn-tilbake">Endre kode</button>
+      </div>
+      <p class="feilmelding" id="feil" role="alert" hidden></p>
     </div>`;
-  document.getElementById('btn-tilbake').addEventListener('click', () => {
-    const url = new URL(location.href);
-    url.searchParams.delete('kode');
-    history.replaceState(null, '', url);
-    renderValg();
+  document.getElementById('btn-tilbake').addEventListener('click', tilbakeTilKodevalg);
+  document.getElementById('btn-bli-med-likevel').addEventListener('click', async (e) => {
+    const btn = e.currentTarget;
+    const tilbake = document.getElementById('btn-tilbake');
+    btn.disabled = true;
+    tilbake.disabled = true;
+    btn.textContent = 'Kobler til…';
+    try {
+      const { ok, data } = await apiPost('/api/fellestur-bli-med', {
+        kode: state.kode, godtaUbekreftet: true,
+      });
+      if (!ok || !data.ok) throw new Error(data.error || 'Kunne ikke koble til turen. Prøv igjen.');
+      visAktivTur(data);
+    } catch (err) {
+      const feil = document.getElementById('feil');
+      feil.textContent = err.message || 'Kunne ikke koble til turen. Prøv igjen.';
+      feil.hidden = false;
+      btn.disabled = false;
+      tilbake.disabled = false;
+      btn.textContent = 'Bli med likevel';
+    }
   });
 }
 
@@ -213,6 +305,7 @@ function renderAktivTur() {
   app.innerHTML = `
     <div class="kort">
       <div class="kode-visning">${tekst(state.kode)}</div>
+      <div id="tur-kilde-status" aria-live="polite">${turStatusHtml(tur)}</div>
       <div id="avsluttet-varsel"></div>
       <div class="rad-btn">
         <button class="btn liten" id="btn-kopier">🔗 Kopier delbar lenke</button>
@@ -473,12 +566,21 @@ function stopPolling() {
 
 async function oppdaterFraServer(manuell) {
   const statusEl = document.getElementById('poll-status');
-  const tur = await hentTur(state.kode);
+  const kode = state.kode;
+  let tur;
+  try {
+    tur = await hentTur(kode);
+  } catch (_) {
+    if (statusEl) statusEl.textContent = 'Kunne ikke oppdatere loggen – prøver igjen.';
+    return;
+  }
+  if (state.kode !== kode || document.getElementById('poll-status') !== statusEl) return;
   if (!tur) return; // utløpt midt i økta — ikke forstyrr brukeren, prøv igjen neste runde
 
   const nyeIder = tur.observasjoner.map((o) => o.id).filter((id) => !state.kjenteIder.has(id));
 
   state.tur = tur;
+  document.getElementById('tur-kilde-status').innerHTML = turStatusHtml(tur);
   state.kjenteIder = new Set(tur.observasjoner.map((o) => o.id));
   // Varselet om noen har avsluttet er viktig sikkerhetsinformasjon — vis det
   // med en gang, uavhengig av om resten av lista oppdateres stille i bakgrunnen.

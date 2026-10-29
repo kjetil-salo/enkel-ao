@@ -95,6 +95,15 @@ def init_db():
         if tur_kolonner and 'avsluttet_av' not in tur_kolonner:
             conn.execute("ALTER TABLE fellesturer ADD COLUMN avsluttet_av TEXT")
             conn.execute("ALTER TABLE fellesturer ADD COLUMN avsluttet_ts REAL")
+        if 'opprinnelse' not in tur_kolonner:
+            conn.execute("ALTER TABLE fellesturer ADD COLUMN opprinnelse TEXT NOT NULL DEFAULT 'enkel-ao'")
+        if 'ekstern_bekreftet' not in tur_kolonner:
+            conn.execute("ALTER TABLE fellesturer ADD COLUMN ekstern_bekreftet INTEGER NOT NULL DEFAULT 0")
+            # Behold kunnskapen fra peer-hendelser mottatt før denne migreringen.
+            if conn.execute("SELECT 1 FROM sqlite_master WHERE name = 'fellestur_peer_seen'").fetchone():
+                conn.execute("UPDATE fellesturer SET ekstern_bekreftet = 1 WHERE EXISTS "
+                             "(SELECT 1 FROM fellestur_peer_seen WHERE kode = fellesturer.kode "
+                             "AND received_ts >= fellesturer.created_ts)")
 
         # fellestur_obs byttet radidentitet fra AUTOINCREMENT-int til
         # klientens obs_id (uuid) — nødvendig for at apply_sync() skal
@@ -254,6 +263,34 @@ def _rad_til_observasjon(rad) -> dict:
     }
 
 
+def ensure_external_fellestur(kode: str, confirmed: bool = False) -> dict | None:
+    """Speil en ekstern kode uten å endre en eksisterende tur eller forlenge levetiden.
+
+    `confirmed` settes kun ved validerte hendelser fra en autentisert peer.
+    Påmelding med en kode alene bekrefter aldri at turen finnes eksternt.
+    """
+    if not _gyldig_kode_format(kode):
+        return None
+    now = time.time()
+    try:
+        with _lock:
+            with _connect() as conn:
+                _purge_expired(conn)
+                conn.execute(
+                    "INSERT INTO fellesturer "
+                    "(kode, navn, medobservatorer, created_ts, expires_ts, opprinnelse, ekstern_bekreftet) "
+                    "VALUES (?, '', '[]', ?, ?, 'ekstern', ?) "
+                    "ON CONFLICT(kode) DO UPDATE SET "
+                    "ekstern_bekreftet = MAX(fellesturer.ekstern_bekreftet, excluded.ekstern_bekreftet)",
+                    (kode, now, now + FELLESTUR_TTL_HOURS * 3600, int(confirmed)),
+                )
+                conn.commit()
+    except Exception as e:
+        logger.warning(f'[fellestur] Kunne ikke lagre ekstern turkode: {e}')
+        return None
+    return get_fellestur(kode)
+
+
 def get_fellestur(kode: str) -> dict | None:
     """Hent turnavn, medobservatører og alle oppføringer. None hvis ukjent/utløpt."""
     if not _gyldig_kode_format(kode):
@@ -273,6 +310,8 @@ def get_fellestur(kode: str) -> dict | None:
                 'navn': tur['navn'],
                 'medobservatorer': json.loads(tur['medobservatorer'] or '[]'),
                 'expiresTs': tur['expires_ts'],
+                'opprinnelse': tur['opprinnelse'],
+                'eksternBekreftet': bool(tur['ekstern_bekreftet']),
                 'avsluttetAv': tur['avsluttet_av'] if 'avsluttet_av' in tur.keys() else None,
                 'avsluttetTs': tur['avsluttet_ts'] if 'avsluttet_ts' in tur.keys() else None,
                 'observasjoner': [_rad_til_observasjon(r) for r in rader],

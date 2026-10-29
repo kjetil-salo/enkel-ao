@@ -278,6 +278,10 @@ class Handler(SimpleHTTPRequestHandler):
             self._handle_fellestur_post()
             return
 
+        if parsed.path == '/api/fellestur-bli-med':
+            self._handle_fellestur_bli_med_post()
+            return
+
         if parsed.path == '/api/fellestur-oppdater':
             self._handle_fellestur_oppdater_post()
             return
@@ -540,6 +544,37 @@ class Handler(SimpleHTTPRequestHandler):
             logger.error(f'[FELLESTUR] Feil ved oppretting: {e}')
             self._send_json({'error': 'Kunne ikke opprette fellestur'}, status=500)
 
+    def _handle_fellestur_bli_med_post(self):
+        """Bli med via kode; ukjent ekstern tur krever uttrykkelig bekreftelse."""
+        try:
+            data = self._read_json_body()
+            if not isinstance(data, dict):
+                self._send_json({'error': 'Ugyldig forespørsel'}, status=400)
+                return
+            if not _rate_ok(_fellestur_hits, self._client_ip(), FELLESTUR_MAX_PER_WINDOW, FELLESTUR_WINDOW_SEC):
+                self._send_json({'error': 'For mange forespørsler — prøv igjen om litt.'}, status=429)
+                return
+            kode = data.get('kode')
+            if not fellestur_store._gyldig_kode_format(kode):
+                self._send_json({'error': 'Koden skal være 5 siffer.'}, status=400)
+                return
+            tur = fellestur_store.get_fellestur(kode)
+            ubekreftet = not tur or (tur['opprinnelse'] == 'ekstern' and not tur['eksternBekreftet'])
+            if ubekreftet and data.get('godtaUbekreftet') is not True:
+                self._send_json({'error': 'Turen er ikke bekreftet. Kontroller koden med turfølget.'}, status=409)
+                return
+            if not tur:
+                tur = fellestur_store.ensure_external_fellestur(kode)
+            if not tur:
+                self._send_json({'error': 'Kunne ikke koble til turen — prøv igjen.'}, status=500)
+                return
+            self._send_json({'ok': True, **tur})
+        except json.JSONDecodeError:
+            self._send_json({'error': 'Ugyldig forespørsel'}, status=400)
+        except Exception as e:
+            logger.error(f'[FELLESTUR] Feil ved påmelding med kode: {e}')
+            self._send_json({'error': 'Kunne ikke koble til turen — prøv igjen.'}, status=500)
+
     def _handle_fellestur_oppdater_post(self):
         """Oppdater turnavn, medobservatører og/eller avsluttet-varsel — alle med koden kan gjøre dette."""
         try:
@@ -611,22 +646,32 @@ class Handler(SimpleHTTPRequestHandler):
         Motta en batch federasjons-events fra en peer-server (f.eks.
         Feltlogg). Se src/fellestur_peer.py for kontraktsdetaljer.
         """
+        logger.info('[FELLESTUR-PEER] Innkommende kall kode=%r ip=%r', kode[:64], self._client_ip()[:64])
         try:
             if not _rate_ok(_fellestur_peer_hits, self._client_ip(), FELLESTUR_PEER_MAX_PER_WINDOW, FELLESTUR_PEER_WINDOW_SEC):
+                logger.warning('[FELLESTUR-PEER] Avvist kode=%r status=429: For mange forespørsler', kode[:64])
                 self._send_json({'error': 'For mange forespørsler'}, status=429)
                 return
 
             if not fellestur_peer.verify_inbound_token(self.headers.get('Authorization', '')):
+                logger.warning('[FELLESTUR-PEER] Avvist kode=%r status=401: Ugyldig eller manglende token', kode[:64])
                 self._send_json({'error': 'Ugyldig eller manglende token'}, status=401)
                 return
 
             data = self._read_json_body()
             body, status = fellestur_peer.apply_peer_batch(kode, data.get('events'))
+            events = data.get('events')
+            logger.info(
+                '[FELLESTUR-PEER] Resultat kode=%r status=%s hendelser=%s godtatt=%s seq=%s feil=%r',
+                kode[:64], status, len(events) if isinstance(events, list) else '-',
+                len(body.get('accepted', [])), body.get('seq', '-'), body.get('error', ''),
+            )
             self._send_json(body, status=status)
         except json.JSONDecodeError:
+            logger.warning('[FELLESTUR-PEER] Avvist kode=%r status=400: Ugyldig JSON', kode[:64])
             self._send_json({'error': 'Ugyldig JSON'}, status=400)
         except Exception as e:
-            logger.error(f'[FELLESTUR-PEER] Feil ved mottak: {e}')
+            logger.error('[FELLESTUR-PEER] Feil ved mottak kode=%r status=500: %s', kode[:64], e)
             self._send_json({'error': 'Intern feil'}, status=500)
 
     def _handle_fellestur_get(self, parsed):
@@ -1305,6 +1350,11 @@ class Handler(SimpleHTTPRequestHandler):
 
     def log_message(self, format, *args):
         """Overstyr BaseHTTPRequestHandler sin innebygde request-logging."""
+        path = getattr(self, 'path', '').split('?', 1)[0].split('#', 1)[0]
+        if path.startswith('/api/fellestur') and format == '"%s" %s %s':
+            logger.info('[FELLESTUR-HTTP] metode=%s sti=%r status=%s ip=%r',
+                        self.command, path[:160], args[1], self._client_ip()[:64])
+            return
         logger.debug(f"{self.client_address[0]} - {format % args}")
 
     def do_GET(self):
