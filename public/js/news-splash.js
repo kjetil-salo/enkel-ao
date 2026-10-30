@@ -24,14 +24,11 @@ export const CURRENT_NEWS_SPLASH = {
   id: 'oktober-2026-raskere-artssok-v1',
   items: [
     {
-      // Denne ene saken står på nynorsk med vilje - den handler om nynorsk.
-      // Resten av appen, og resten av disse punktene, er bokmål som før.
-      title: '🪶 Underartar på nynorsk',
-      body: 'Har du nynorske artsnamn påslått, viser appen no òg underartane på nynorsk — '
-        + 'ikkje berre hovudarten. Manglar underarten eit eige nynorsknamn, set vi det '
-        + 'saman sjølve: raudvengtrast, underarten iliacus. Og søkjer du på raudvengtrast, '
-        + 'får du endeleg underartane med på kjøpet. Det som blir sendt til '
-        + 'Artsobservasjoner er framleis bokmål, som før.',
+      title: '🔝 De vanligste artene øverst',
+      body: 'Før lå treffene alfabetisk. Søkte du på «grå», fikk du gråflankefluesnapper og '
+        + 'gråhodealbatross — to arter med tre norske funn til sammen — over gråmåke og '
+        + 'gråtrost. Nå kommer de vanligste artene først, og de aller sjeldneste havner '
+        + 'nederst, der de er vanskeligere å treffe ved et uhell.',
     },
     {
       title: '⚡ Artssøket svarer med en gang',
@@ -41,11 +38,14 @@ export const CURRENT_NEWS_SPLASH = {
         + 'arten lokalt, spør vi Artsobservasjoner som før.',
     },
     {
-      title: '🔝 De vanligste artene øverst',
-      body: 'Før lå treffene alfabetisk. Søkte du på «grå», fikk du gråflankefluesnapper og '
-        + 'gråhodealbatross — to arter med tre norske funn til sammen — over gråmåke og '
-        + 'gråtrost. Nå kommer de vanligste artene først, og de aller sjeldneste havner '
-        + 'nederst, der de er vanskeligere å treffe ved et uhell.',
+      // Denne ene saken står på nynorsk med vilje - den handler om nynorsk.
+      // Resten av appen, og resten av disse punktene, er bokmål som før.
+      title: '🪶 Underartar på nynorsk',
+      body: 'Har du nynorske artsnamn påslått, viser appen no òg underartane på nynorsk — '
+        + 'ikkje berre hovudarten. Manglar underarten eit eige nynorsknamn, set vi det '
+        + 'saman sjølve: raudvengtrast, underarten iliacus. Og søkjer du på raudvengtrast, '
+        + 'får du endeleg underartane med på kjøpet. Det som blir sendt til '
+        + 'Artsobservasjoner er framleis bokmål, som før.',
     },
     {
       title: '📣 Si gjerne fra hva du synes',
