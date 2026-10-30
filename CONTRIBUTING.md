@@ -86,6 +86,14 @@ To ting er verdt å si eksplisitt til den:
 Du er fortsatt ansvarlig for det du sender inn: les gjennom endringen, og kjør
 testene før du åpner PR. Begge ting står beskrevet under.
 
+## Bruker du et annet AI-verktøy?
+
+Codex, Cursor, Gemini, Copilot og de fleste andre leser `AGENTS.md` i rota.
+Den peker videre hit og til `CLAUDE.md`, og samler i tillegg de tingene som
+erfaringsmessig går galt når en agent jobber i repoet — særlig
+verktøyartefakter som sniker seg inn i commits, og kall mot eksterne API-er
+som skalerer med antall brukere. Les den før du setter verktøyet i gang.
+
 ## Oppsett
 
 ```bash

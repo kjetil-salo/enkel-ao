@@ -1,173 +1,112 @@
-# AGENTS.md
+# Instruksjoner for AI-agenter
 
-This file provides guidance to Codex (Codex.ai/code) when working with code in this repository.
+Denne fila er inngangen for AI-kodeverktøy som leser `AGENTS.md` fra rota —
+Codex, Cursor, Gemini CLI, Jules, Copilot-agenter, Aider og andre.
+Claude Code leser `CLAUDE.md` direkte.
 
-## Project Overview
+## Les disse to først
 
-A Norwegian bird observation web app with species autocomplete and location services. Lightweight Python HTTP server serving static frontend + API proxies to external services (Artsobservasjoner.no, OpenStreetMap Nominatim).
+1. **`CLAUDE.md`** — autoritativ beskrivelse av arkitekturen: ruting i
+   `server.py`, hver backend-modul i `src/`, hver frontend-modul i
+   `public/js/`, miljøvariabler og versjoneringsrutinen. Den er detaljert med
+   vilje, og mye av den er kjøpt dyrt gjennom feil i produksjon. Les den før
+   du endrer kode, uansett hvor liten endringen ser ut.
+2. **`CONTRIBUTING.md`** — lokalt oppsett, de tre testsuitene, konvensjoner og
+   arbeidsflyt for pull requests.
 
-**Core Tech:** Python 3.12 + `http.server.ThreadingHTTPServer`, vanilla HTML/CSS/JS frontend (ES6 modules), Docker, optional Supabase logging.
+Det som står der, gjelder også for deg. Denne fila gjentar bare det som
+erfaringsmessig går galt når en agent jobber i repoet.
 
-## Commands
+I tillegg ligger det ferdige arbeidsbeskrivelser i `.agents/skills/` —
+produkteiervurdering, arkitektur, utvikling, teststrategi og
+feature-livssyklus. Leser verktøyet ditt skills derfra, bruker det dem
+automatisk. Gjør det ikke det, er de verdt å lese som ren dokumentasjon av
+hvordan arbeidet er ment å gå.
 
-### Local Development
+**Denne fila skal ikke bli nok en kopi av `CLAUDE.md`.** Både `AGENTS.md` og
+`.github/copilot-instructions.md` var tidligere fulle duplikater av den, og
+begge rakk å bli år utdaterte — de beskrev endepunkter og en frontend som
+ikke lenger fantes. Skal noe arkitekturstoff endres, endres det i `CLAUDE.md`,
+og her står bare en peker.
+
+## Harde regler
+
+- **Norsk bokmål** i kode-kommentarer, commit-meldinger, dokumentasjon og all
+  UI-tekst. Aldri nynorsk i koden — appen *viser* nynorske artsnavn som en
+  funksjon, men er selv skrevet på bokmål.
+- **Ingen `Co-Authored-By`** i commit-meldinger.
+- **Hold diffen så liten som oppgaven tillater.** Én PR løser én ting. Rør
+  ikke filer oppgaven ikke handler om.
+- **Ikke kjør deploy-skriptene** (`update-ao-pi.sh`, `deploy-staging-pi.sh`,
+  `update-app.sh`). Utrulling gjøres av eieren.
+- **Ikke bump versjonsnummer i en PR.** Versjonen ligger på fire steder og
+  kolliderer i parallelle PR-er. Eieren bumper ved release — nevn bare i
+  PR-beskrivelsen at du har endret frontend.
+
+## Dette skal aldri følge med i en commit
+
+Verktøyet ditt lager arbeidsfiler. De hører hjemme hos deg, ikke i appen:
+
+- `.pytest_cache/`, `__pycache__/`, `.coverage`, `node_modules/`
+- `.aistudio/`, `.cursor/`, `.gemini/`, `.codex/` — planer, mellomnotater og
+  «brain»-artefakter fra et AI-verktøy
+- `tests/e2e_playwright/test-results/`, `playwright-report/`
+
+Alt dette står i `.gitignore`. Bruker du `git add -A`, får du likevel med deg
+ting som allerede er sporet, eller som en global gitignore skjuler for deg —
+**se gjennom `git status` og `git diff --cached` før du commiter.**
+
+## Ikke rør disse
+
+- **`.claude/`** — de tre sporede filene (`agents/test.md`,
+  `skills/agent-software-developer/`, `skills/agent-solution-architect/`)
+  er en delt del av repoet og beskriver appens egne konvensjoner. Resten av
+  `.claude/` er lokal og ignorert. Har ditt verktøy ryddet bort de sporede
+  filene lokalt, skal den slettingen **ikke** commites. Fikk du dem likevel
+  med:
+
+  ```bash
+  git checkout main -- .claude/          # hent dem tilbake i en PR
+  git update-index --skip-worktree .claude/agents/test.md \
+      .claude/skills/agent-software-developer/SKILL.md \
+      .claude/skills/agent-solution-architect/SKILL.md
+  ```
+
+  Den siste kommandoen gjør at git slutter å se lokale endringer i filene, så
+  de ikke sniker seg inn i en senere commit. (`.gitignore` hjelper ikke her —
+  den gjelder bare filer som ikke allerede er sporet.)
+
+- **Filrettigheter på skript.** `*.sh` i rota skal være kjørbare (`100755`).
+  Noen verktøy og filoverføringer nullstiller dette til `100644`, og da feiler
+  `./update-ao-pi.sh` med «permission denied» hos eieren. Sjekk med
+  `git diff --summary` at det ikke står `mode change` i diffen din.
+
+## Eksterne API-er — vær forsiktig
+
+Appen snakker med Artsobservasjoner.no, Artsdatabanken og OpenStreetMap
+Nominatim. Dette er gratis tjenester vi er gjester hos.
+
+- **Aldri lastetesting** mot de ekte tjenestene. Bruk `docker-compose`-mocken.
+- **Ikke legg inn kall som skalerer med antall brukere.** Et kall per
+  brukerøkt mot et eksternt API er ikke en liten detalj — det er trafikken
+  vår ganget med brukermassen. Data som er like for alle brukere skal hentes
+  én gang av en cron-jobb eller et verktøy i `tools/`, ikke av hver klient.
+  `tools/import_ao_locations.py` er mønsteret.
+- **Eksterne feil skal gi degradert svar** — status 200 med tom liste, aldri
+  en 500. AO og Nominatim feiler jevnlig, og appen skal overleve det.
+- **Ikke skriv til filer i `public/data/` under kjøring.** De er en del av
+  docker-imaget og forsvinner ved neste rebuild.
+
+## Før du åpner PR
+
 ```bash
-python3 server.py          # Start server on port 3000
-# or: npm run dev
+python3 -m pytest --maxfail=3   # backend
+npm test                        # vitest — MÅ kjøres fra repo-roten
 ```
 
-### Running Tests
-```bash
-# Python unit tests
-python3 -m pytest --maxfail=3
+`npm test` betyr vitest fra rota og Playwright inne i
+`tests/e2e_playwright/`. Playwright-suiten har kjente, pre-eksisterende feil
+og ingen «alt grønt»-tilstand — kjør den før endringen din også, og
+sammenlign, ellers jakter du på feil du ikke har innført.
 
-# E2E tests (Playwright)
-cd tests/e2e_playwright
-npm test                   # Against live server at localhost:3000
-npm run test:mock          # With mock server
-npm run test:with-mock     # Start mock + run tests
-```
-
-### Docker & Deploy
-```bash
-make build                 # Build Docker image
-make run                   # Run container on port 3000
-docker-compose up --build  # Run with mock Nominatim (safe for load testing)
-
-# Deploy to Fly.io
-./update-app.sh staging    # Deploy to staging
-./update-app.sh production # Deploy to production — tester kjøres automatisk!
-
-# Deploy to Raspberry Pi (primær produksjon)
-./update-ao-pi.sh          # Rsync + docker-compose up --build på Pi
-```
-
-### Lokasjons-DB import (kjøres ved behov, ~40 min)
-```bash
-# Fyll LocationDB med alle offentlige norske AO-lokasjoner
-LOCATION_DB_PATH=/sti/til/locations.db python3 tools/import_ao_locations.py
-
-# Berik med kommune/fylke-data etterpå (~60 min, Nominatim 1 req/sek)
-LOCATION_DB_PATH=/sti/til/locations.db python3 /tmp/enrich2.py
-```
-
-### Load Testing
-```bash
-python3 tools/load_test.py --mode gentle --requests 100 --concurrency 10
-# Modes: static, mixed, gentle, ramp, soak, spike, smoke
-```
-
-## Architecture
-
-### Request Routing (server.py)
-The `Handler` class routes requests:
-- `/` → `public/index.html`
-- `/api/species?search=X` → proxies to artsobservasjoner.no (HTML scraping + JSON extraction)
-- `/api/reverse?lat=X&lon=Y` → proxies to Nominatim for reverse geocoding
-- `/api/ao-sites?lat=X&lon=Y&size=M` → fetches nearby observation locations from Artsobservasjoner
-  - **Backend returnerer både private og offentlige** (maxSites=1000)
-  - **Frontend (map.js)**: Kun offentlige vises på kart (sparer CPU/minne, brukeren vet hvor egne er)
-  - **Frontend (location.js)**: Både offentlige og private i dropdown, maks 20. Sortering: 🏷️ superlokasjoner → offentlige → 👤 egne private (isMine) → andres private
-- `/api/ao-autocomplete?term=X[&lat=Y&lon=Z]` → tekstsøk på lokaliteter
-  - Søker lokal DB først (ingen innlogging nødvendig), deretter AO hvis innlogget
-  - Med lat/lon: sorterer etter avstand, returnerer `_distance` i meters
-  - Returnerer `isSuper`, `isPrivate`, `subvalue` (kommune, fylke) per resultat
-- `/api/logview` (POST) → logs page views to Supabase
-- `/stats?key=X` → displays analytics (key-protected)
-- `/health` → health check endpoint
-
-### Backend Modules (src/)
-- `api_handlers.py` — External API calls (species search, geocoding, AO sites, autocomplete)
-- `html_templates.py` — HTML generation for stats pages
-- `supabase_log.py` — Optional Supabase analytics logging
-- `location_db.py` — SQLite-cache for AO-lokasjoner (delt mellom containere via Docker-volum)
-  - Aktiveres med `LOCATION_DB_PATH` env-var
-  - Schema: `ao_id, name, lat, lon, is_private, is_super, parent_id, municipality, county, source`
-  - `search_by_name(query, limit, lat, lon)` — tekstsøk, sorterer etter avstand hvis lat/lon gitt
-  - `search_nearby(lat, lon, radius_m)` — geo-søk (haversine, radius i meter)
-  - `upsert_locations(sites, source)` — idempotent insert/update
-  - **Super-deteksjon**: AO ByBoundingBox returnerer `parentSiteId=null` i sanntid. Super-status utledes i merge-steget fra lokal DB sin `parent_id` — hvis en lokal site peker på en foreldreside som finnes i AO-resultatet, markeres forelderen `isSuper=True`.
-  - **Viktig**: `is_private` i lokal DB kan være utdatert (site endret til privat etter import). Bbox-størrelse (`_compute_bbox`) dekker nå full `size_m`-radius slik at AO-APIet returnerer korrekt `isPrivate` for sites i ytterkanten.
-
-### Frontend Modules (public/js/)
-Pure ES6 modules with no framework:
-- `api.js` — API communication with 1-hour species cache
-- `location.js` — Geolocation and AO sites integration
-- `observations.js` — Main observation form logic
-- `observation-commit.js` — Observation validation and activity pills rendering
-- `storage.js` — Browser localStorage management (includes activity pills config)
-- `ui.js` — UI state and rendering
-- `autocomplete.js` — Lokalitet-autocomplete med avstand og ikoner (🏷️ super, 👤 privat, ⭐ mine)
-  - Aktivt i **begge** modi (Felt og Etterregistrering)
-  - `initAutocomplete(placeInput, onSelect, getPosition)` — getPosition gir GPS-posisjon for sortering
-
-### Konfigurerbare Aktivitetspills (v1.18.0+)
-Brukere kan velge 0-6 aktiviteter som vises som hurtigknapper:
-- **localStorage-nøkkel:** `activityPills_v1`
-- **Format:** `{version: 1, pills: [{label: "Stasjonær", value: "23"}, ...]}`
-- **Funksjoner:** `saveActivityPills()`, `loadActivityPills()` i `storage.js`
-- **UI:** Settings-side med dynamisk liste og +/- knapper
-- **Migrering:** Automatisk fra gammelt `activityPillCount` format
-- **Default:** 4 pills (Stasjonær, Rastende, Overflygende, Næringssøkende)
-- **Dokumentasjon:** Se `docs/aktivitetspills-konfigurasjon.md`
-
-### Test Structure
-- `tests/test_*.py` — Python unit tests (pytest)
-- `tests/e2e_playwright/` — Playwright E2E tests with mock server support
-
-## Key Conventions
-
-### Language
-All code comments, docs, and UI text in **Norwegian** (`nb`). Maintain this consistency.
-
-### External API Error Handling
-External API failures return graceful degraded responses (empty arrays, status 200) rather than 500 errors:
-```python
-except Exception as e:
-    print('Feil ved henting fra Artsobservasjoner:', e)
-    self._send_json({'sites': []}, status=200)  # NOT 500
-```
-
-### External API Ethics
-- Never run aggressive load tests against public APIs (Nominatim, Artsobservasjoner)
-- Use `docker-compose` mock or `--mode gentle` with low request counts
-- External API calls require explicit `User-Agent` headers (already configured)
-
-### Environment Variables
-- `PORT` (default: 3000)
-- `AO_URL` (default: `https://www.artsobservasjoner.no`) — base-URL for artssøk
-- `AO_MOBILE_URL` (default: `https://mobil.artsobservasjoner.no`) — base-URL for AO-lokaliteter
-- `NOMINATIM_URL` (default: `https://nominatim.openstreetmap.org/reverse`) — reverse geokoding
-- `LOCATION_DB_PATH` (optional) — sti til SQLite-DB med AO-lokasjoner
-  - På Pi: `/mnt/ssd/docker/volumes/shared-locations/_data/locations.db`
-  - Aktiverer lokalt navnesøk og avstandssortering i autocomplete uten innlogging
-  - Fylles med `tools/import_ao_locations.py` (~487k norske lokasjoner, 78 MB)
-- `SUPABASE_URL`, `SUPABASE_KEY` (optional logging)
-- `STATS_KEY` (stats page auth, default: 'salo')
-
-For å teste med mock (simulere AO-timeout):
-```bash
-python3 mock/nominatim_app_timeout.py &                # Start mock på port 8080
-AO_URL=http://localhost:8080 AO_MOBILE_URL=http://localhost:8080 python3 server.py
-```
-
-### Mobile Considerations
-- Input `font-size: 16px` minimum to prevent iOS zoom
-- App is fully functional without Supabase (optional dependency)
-
-### Geolocation Limitations
-- **Mobil (anbefalt):** GPS gir nøyaktig posisjon (5-50 meter)
-- **PC/Mac:** Kun IP-basert lokalisering, kan gi feil posisjon (flere km avvik)
-- Appen er primært designet for bruk på mobil i felt
-
-### Git Commits
-- **Aldri bruk Co-Authored-By** - commit uten co-author linje
-
-### Deploy
-- **Production deploy**: `update-app.sh production` kjører automatisk `python3 -m pytest --maxfail=3` først. Deploy avbrytes hvis tester feiler.
-
-### Versjonering
-Ved ny versjon (git tag), gjør alltid følgende:
-1. Oppdater `VERSION` i `public/js/version.js` (brukes av index.html og help.html footers)
-2. Oppdater `public/changelog.html` bare med brukerrettede nyheter: nye muligheter, tydelige endringer i arbeidsflyt eller feilrettinger brukeren faktisk merker. Tekniske vedlikeholdsendringer som cache/SW-bump, intern refaktor, testoppsett og deploy-teknikk skal som hovedregel ikke inn i synlig endringslogg.
-3. Oppdater relevant dokumentasjon i `docs/` hvis funksjonalitet er endret
+Beskriv i PR-en: **hva** er endret, **hvorfor**, og **hvordan er det testet.**

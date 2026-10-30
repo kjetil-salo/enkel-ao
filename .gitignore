@@ -21,6 +21,7 @@ fellestur_peer_providers.json
 *.pyc
 __pycache__/
 .coverage
+.pytest_cache/
 .DS_Store
 # .claude/ er lokal som hovedregel (sesjoner, settings.local.json,
 # prod-/deploy-skills). Unntaket er de tre som beskriver selve APPEN og
@@ -41,6 +42,13 @@ __pycache__/
 
 .codex/
 .codex-tmp/
+
+# Arbeidsmapper fra andre AI-verktoy (Google AI Studio, Cursor, Copilot-agenter).
+# Planer og mellomnotater fra et verktoy er ikke en del av appen og skal ikke
+# folge med i en PR - se AGENTS.md.
+.aistudio/
+.cursor/
+.gemini/
 
 # Node.js
 node_modules/
