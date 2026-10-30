@@ -32,8 +32,22 @@
   pointer-events: none;
 }
 
+/* «Tøm liste» er bevisst nedtonet - den skal ikke konkurrere med
+   Publiser/Del om oppmerksomheten. Men dempingen må ligge HER og ikke som
+   inline `opacity` på elementet: en inline-verdi slår .btn:disabled, og da
+   ble av- og på-tilstanden identiske. Resultatet var en knapp som så helt
+   vanlig ut, men ikke reagerte på trykk - meldt som «Tøm liste virker ikke».
+   Den er deaktivert både når lista er tom og under en aktiv fellestur
+   (se oppdaterInnsendingssperreForFellestur i main.js), så tilstanden er
+   ikke en sjeldenhet. Forskjellen må være synlig på en telefon i sollys,
+   derfor et tydelig sprang og ikke 0,6 mot 0,5. */
 #clear-btn {
   margin-right: 0 !important;
+  opacity: 0.75;
+}
+
+#clear-btn:disabled {
+  opacity: 0.25;
 }
 
 /* Icon buttons */
