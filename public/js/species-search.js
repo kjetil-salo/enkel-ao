@@ -9,8 +9,8 @@ import {
   getSpeciesMeta,
   findBokmalByNynorskTerm,
   searchSpecies,
-} from './species_offline.js?v=v1.59.0';
-import { speciesDisplayName, loadNynorskArtsnavn } from './storage.js?v=v1.59.0';
+} from './species_offline.js?v=v1.59.1';
+import { speciesDisplayName, loadNynorskArtsnavn } from './storage.js?v=v1.59.1';
 
 export { searchSpecies };
 
@@ -288,6 +288,12 @@ export async function fetchResults(term, state, dom, callbacks) {
 
   // Ingen treff lokalt: da er det enten en helt ny art, en underart lista ikke
   // har, eller en skrivemåte AO kjenner og vi ikke. Først da spør vi AO.
+  //
+  // NB ved endringer her: denne fila importeres med ?v= fra main.js, og
+  // Cloudflare holder på en gitt URL i fire timer. Deployer du to ganger med
+  // SAMME versjon, serveres den første varianten videre - verifisert i
+  // staging 30.10.2026, der lokalsøket så ut til å ikke virke fordi edge
+  // fortsatt leverte forrige bygg av akkurat denne fila. Bump versjonen.
   if (forceOffline) {
     visOfflineTreff([], 'Ingen treff i offline-listen.');
     return;
