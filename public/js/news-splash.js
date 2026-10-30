@@ -49,7 +49,7 @@ export const CURRENT_NEWS_SPLASH = {
     },
     {
       title: '🤝 Flere på laget',
-      body: 'Denne versjonen ble til sammen med Espen Hollung, som sendte inn både '
+      body: 'Denne versjonen ble til sammen med Espen Bore Hollund, som sendte inn både '
         + 'nynorsk-arbeidet og ideen om at de vanligste artene skal ligge øverst i søket. '
         + 'Han oppdaget også at «Tøm liste» ikke så ut til å virke. Takk! Appen blir bedre '
         + 'av at andre enn meg ser på den — så si gjerne fra hva du synes, stort og smått. '
