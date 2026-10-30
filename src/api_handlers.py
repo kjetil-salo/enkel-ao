@@ -344,29 +344,44 @@ def login_to_ao(username: str, password: str) -> dict:
             follow_redirects=False  # Ikke følg redirect automatisk, vi må sjekke det
         )
 
-        # Sjekk for redirect til MyPages (vellykket login)
-        if auth_response.status_code not in (302, 303):
-            # Ingen redirect - sjekk om det er feilmelding
-            if 'Feil brukernavn' in auth_response.text or 'Feil passord' in auth_response.text:
-                raise ValueError('Feil brukernavn eller passord')
-            raise ValueError('Innlogging feilet - ingen redirect mottatt')
-
-        # Parse cookies fra response
-        auth_cookie = None
-        login_token = None
+        # Parse cookies fra response (sjekk både auth_response og client jar)
+        auth_cookie = auth_response.cookies.get('.ASPXAUTHNO') or client.cookies.get('.ASPXAUTHNO')
+        login_token = auth_response.cookies.get('logintoken') or client.cookies.get('logintoken')
         user_id = None
+        if login_token and ':' in login_token:
+            user_id = login_token.split(':')[0]
 
-        if '.ASPXAUTHNO' in auth_response.cookies:
-            auth_cookie = auth_response.cookies['.ASPXAUTHNO']
+        # Sjekk om innloggingen lyktes (auth-cookie mottatt og gyldig redirect)
+        location = auth_response.headers.get('location', '')
+        is_redirect_to_logon = bool(location and '/logon' in location.lower())
 
-        if 'logintoken' in auth_response.cookies:
-            login_token = auth_response.cookies['logintoken']
-            # Ekstraher userId fra logintoken (før kolon)
-            if ':' in login_token:
-                user_id = login_token.split(':')[0]
+        if not auth_cookie or is_redirect_to_logon or auth_response.status_code not in (302, 303):
+            # Innlogging feilet - forsøk å hente presis feilmelding fra valideringsoppsummeringen i HTML
+            val_match = re.search(
+                r'class="validation-summary-errors"[^>]*>.*?<ul>(.*?)</ul>',
+                auth_response.text,
+                re.DOTALL
+            )
+            feil_tekst = None
+            if val_match:
+                li_matches = re.findall(r'<li>(.*?)</li>', val_match.group(1), re.DOTALL)
+                if li_matches:
+                    feil_tekst = re.sub(r'<[^>]+>', '', li_matches[0]).strip()
 
-        if not auth_cookie:
-            raise ValueError('Innlogging feilet - ingen auth cookie mottatt')
+            if feil_tekst:
+                raise ValueError(feil_tekst)
+
+            lower_text = auth_response.text.lower()
+            if any(term in lower_text for term in [
+                'feil epost', 'feil brukernavn', 'feil passord',
+                'innlogging mislyktes', 'ugyldig brukernavn', 'ugyldig passord'
+            ]):
+                raise ValueError('Feil epost, brukernavn eller passord')
+
+            if is_redirect_to_logon:
+                raise ValueError('Feil epost, brukernavn eller passord')
+
+            raise ValueError('Innlogging feilet - kontroller brukernavn og passord')
 
         if not login_token:
             raise ValueError('Innlogging feilet - ingen logintoken mottatt (husk å krysse av "Husk meg")')

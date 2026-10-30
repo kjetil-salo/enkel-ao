@@ -1,6 +1,9 @@
 """Fellesfunksjoner brukt på tvers av backend-moduler."""
 
-from user_agents import parse as parse_ua_string
+try:
+    from user_agents import parse as parse_ua_string
+except ImportError:
+    parse_ua_string = None
 
 
 def mask_token(token, visible=6):
@@ -12,7 +15,7 @@ def mask_token(token, visible=6):
 
 def parse_user_agent(user_agent: str) -> dict:
     """Parser user agent og returnerer strukturert info."""
-    if not user_agent:
+    if not user_agent or parse_ua_string is None:
         return {"device_type": "unknown", "os": "unknown", "browser": "unknown"}
 
     try:

@@ -1,5 +1,5 @@
 // Service Worker for offline-støtte
-const CACHE_NAME = 'fugleobs-v179';
+const CACHE_NAME = 'fugleobs-v182';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -39,6 +39,8 @@ const STATIC_ASSETS = [
   '/img/nyhet-bilder-hjemme.jpg',
   '/js/first-run-hint.js',
   '/js/species_offline.js',
+  '/js/species-matcher.js',
+  '/js/species-sync.js',
   '/js/version.js',
   '/js/photo-picker.js',
   '/js/bilde-editor.js',

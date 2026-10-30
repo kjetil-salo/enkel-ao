@@ -335,3 +335,92 @@ def test_private_sites_without_user_id_skips_ensure_auth(monkeypatch):
 
     assert sites == []
     assert refreshed is None
+
+
+def test_login_to_ao_invalid_credentials_returns_clear_error(monkeypatch):
+    """Test at login_to_ao gir tydelig feilmelding når AO svarer med valideringsfeil."""
+    from src.api_handlers import login_to_ao
+
+    class FakeGetResp:
+        status_code = 200
+        text = '<input name="__RequestVerificationToken" type="hidden" value="csrf123" />'
+        cookies = {'__RequestVerificationToken': 'cookie123'}
+
+        def raise_for_status(self):
+            pass
+
+    class FakePostResp:
+        status_code = 200
+        text = '<div class="validation-summary-errors"><ul><li>Feil epost, brukernavn eller passord.</li></ul></div>'
+        cookies = {}
+        headers = {}
+
+    class FakeClient:
+        def __init__(self, **kwargs):
+            self.cookies = {}
+
+        def get(self, url, **kwargs):
+            return FakeGetResp()
+
+        def post(self, url, **kwargs):
+            return FakePostResp()
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            pass
+
+    monkeypatch.setattr('httpx.Client', FakeClient)
+
+    with pytest.raises(ValueError) as excinfo:
+        login_to_ao('feil_bruker', 'feil_passord')
+
+    assert 'Feil epost, brukernavn eller passord' in str(excinfo.value)
+
+
+def test_login_to_ao_success(monkeypatch):
+    """Test at login_to_ao returnerer tokens ved vellykket innlogging."""
+    from src.api_handlers import login_to_ao
+
+    class FakeGetResp:
+        status_code = 200
+        text = '<input name="__RequestVerificationToken" type="hidden" value="csrf123" />'
+        cookies = {'__RequestVerificationToken': 'cookie123'}
+
+        def raise_for_status(self):
+            pass
+
+    class FakePostResp:
+        status_code = 302
+        text = ''
+        cookies = {
+            '.ASPXAUTHNO': 'valid-auth-cookie',
+            'logintoken': '45678:abcde',
+        }
+        headers = {'location': '/User/MyPages'}
+
+    class FakeClient:
+        def __init__(self, **kwargs):
+            self.cookies = {}
+
+        def get(self, url, **kwargs):
+            return FakeGetResp()
+
+        def post(self, url, **kwargs):
+            return FakePostResp()
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            pass
+
+    monkeypatch.setattr('httpx.Client', FakeClient)
+    monkeypatch.setattr('src.api_handlers._save_credentials', lambda u, p: None)
+
+    res = login_to_ao('gyldig_bruker', 'riktig_passord')
+    assert res['authCookie'] == 'valid-auth-cookie'
+    assert res['loginToken'] == '45678:abcde'
+    assert res['userId'] == '45678'
+

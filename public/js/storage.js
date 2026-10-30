@@ -3,6 +3,7 @@
  */
 import { hentAktivFellestur } from './fellestur-client.js';
 import { lastSpeil, lagreSpeilOgSynk, hentTurMedobservatorer } from './fellestur-sync.js';
+import { translateDedicatedSubspeciesToNynorsk } from './species-matcher.js?v=v1.58.5';
 
 const STORAGE_KEY = 'fugleobservasjoner_v1';
 const MEDOBS_KEY = 'medobs_list_v1';
@@ -368,10 +369,32 @@ export function loadNynorskArtsnavn() {
  * @param {{taxonName?: string, nynorsk?: string}} species
  * @returns {string}
  */
-export function speciesDisplayName(species) {
+export function speciesDisplayName(species, userLanguage = undefined) {
   if (!species) return '';
-  if (loadNynorskArtsnavn() && species.nynorsk) return species.nynorsk;
-  return species.taxonName || '';
+  let useNynorsk;
+  if (userLanguage !== undefined && userLanguage !== null && userLanguage !== '') {
+    if (typeof userLanguage === 'boolean') {
+      useNynorsk = userLanguage;
+    } else {
+      const norm = String(userLanguage).trim().toLowerCase();
+      useNynorsk = norm === 'nn' || norm === 'nno' || norm === 'nynorsk';
+    }
+  } else {
+    useNynorsk = loadNynorskArtsnavn();
+  }
+
+  if (useNynorsk) {
+    const nno = species.nameNno || species.nynorsk;
+    if (nno) return nno;
+    const nob = species.taxonName || species.nameNob || species.norwegian || '';
+    if (nob) {
+      const trans = translateDedicatedSubspeciesToNynorsk(nob);
+      if (trans && trans.toLowerCase() !== nob.toLowerCase()) {
+        return trans;
+      }
+    }
+  }
+  return species.taxonName || species.nameNob || species.norwegian || '';
 }
 
 /**

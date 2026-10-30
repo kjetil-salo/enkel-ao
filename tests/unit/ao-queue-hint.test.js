@@ -134,3 +134,5 @@ describe('oppdaterAoKoHint', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 });
+
+

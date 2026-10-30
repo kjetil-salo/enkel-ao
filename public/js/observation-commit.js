@@ -2,7 +2,7 @@
  * Observasjons-modul for validering, lagring og aktivitets-pills
  */
 
-import { defaultCoObservers, loadActivityPills, speciesDisplayName } from './storage.js?v=v1.53.24';
+import { defaultCoObservers, loadActivityPills, speciesDisplayName } from './storage.js?v=v1.58.5';
 import { showToast } from './ui.js';
 import { toLocalISOString } from './utils.js';
 import { resolveVisitIdForNewObservation, getVisitTimeSpan, isVisitLocked, visitExists } from './visits.js';

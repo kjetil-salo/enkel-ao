@@ -2,23 +2,26 @@
  * Artssøk-modul for søk, resultatvisning og artsvalg
  */
 
-import { searchSpecies } from './api.js';
-import { searchOfflineSpecies, getNynorskByLatin, findBokmalByNynorskTerm } from './species_offline.js?v=v1.53.26';
-import { speciesDisplayName } from './storage.js?v=v1.53.24';
+import { searchSpecies as fetchAoSpecies } from './api.js';
+import {
+  searchOfflineSpecies,
+  getNynorskByLatin,
+  getSpeciesMeta,
+  findBokmalByNynorskTerm,
+  searchSpecies,
+} from './species_offline.js?v=v1.58.5';
+import { speciesDisplayName, loadNynorskArtsnavn } from './storage.js?v=v1.58.5';
+
+export { searchSpecies };
 
 export function updateSubtaxaCheckboxState() {
-  const forceOffline = localStorage.getItem('forceOfflineSpecies') === '1';
   const subtaxaCheckbox = document.getElementById('include-subtaxa');
   const subtaxaWarning = document.getElementById('subtaxa-offline-warning');
-  if (subtaxaCheckbox && subtaxaWarning) {
-    if (forceOffline) {
-      subtaxaCheckbox.checked = false;
-      subtaxaCheckbox.disabled = true;
-      subtaxaWarning.style.display = 'inline';
-    } else {
-      subtaxaCheckbox.disabled = false;
-      subtaxaWarning.style.display = 'none';
-    }
+  if (subtaxaCheckbox) {
+    subtaxaCheckbox.disabled = false;
+  }
+  if (subtaxaWarning) {
+    subtaxaWarning.style.display = 'none';
   }
 }
 
@@ -140,6 +143,97 @@ export function chooseItem(index, state, dom, callbacks) {
   callbacks.updateSectionStates();
 }
 
+/**
+ * Berik rå søkeresultat frå Artsobservasjonar med nynorsknamn, antallFunn og
+ * relasjonskobling (parentId / isSub) for underartar.
+ *
+ * @param {Array<object>} data
+ * @returns {Promise<Array<object>>}
+ */
+export async function enrichAoSpeciesResults(data) {
+  if (!Array.isArray(data) || data.length === 0) return [];
+
+  // Indekser hovudartar i AO-svaret på vitskapleg binom (t.d. "turdus iliacus" -> "4547")
+  const aoParentIdByBinomial = new Map();
+  for (const item of data) {
+    const rawText = item.scientificNameHtml || item.scientificName || item.latin || '';
+    const isHybrid = /\s+x\s+/i.test(rawText) || /\s+x\s+/i.test(item.taxonName || '');
+    if (isHybrid) continue;
+
+    const cleanLat = rawText
+      .replace(/<[^>]+>/g, '')
+      .replace(/\b(?:subsp|ssp)\.?\b/gi, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .toLowerCase();
+    const words = cleanLat.split(/\s+/).filter(Boolean);
+    const isSubInAo =
+      /\b(?:subsp|ssp)\b/i.test(rawText) ||
+      /,\s*underarten\s+/i.test(item.taxonName || '') ||
+      words.length >= 3;
+    if (!isSubInAo && words.length === 2 && (item.taxonId ?? item.id) !== undefined) {
+      aoParentIdByBinomial.set(`${words[0]} ${words[1]}`, item.taxonId ?? item.id);
+    }
+  }
+
+  return Promise.all(
+    data.map(async (item) => {
+      const rawSci = item.scientificNameHtml || item.scientificName || item.latin || '';
+      const latin = rawSci
+        .replace(/<[^>]+>/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+      const isHybrid = /\s+x\s+/i.test(latin) || /\s+x\s+/i.test(item.taxonName || '');
+      const cleanLatinWords = latin
+        .replace(/\b(?:subsp|ssp)\.?\b/gi, ' ')
+        .trim()
+        .toLowerCase()
+        .split(/\s+/)
+        .filter(Boolean);
+
+      const meta = await getSpeciesMeta(latin, item.taxonName);
+      const isSub =
+        !isHybrid &&
+        Boolean(
+          item.isSub ||
+            meta.isSub ||
+            /\b(?:subsp|ssp)\b/i.test(rawSci) ||
+            /,\s*underarten\s+/i.test(item.taxonName || '') ||
+            cleanLatinWords.length >= 3
+        );
+
+      const nynorsk = meta.nameNno || meta.nynorsk || (latin ? await getNynorskByLatin(latin) : null);
+      const enrichedItem = {
+        ...item,
+        id: item.id ?? item.taxonId ?? meta.id,
+        taxonId: item.taxonId ?? item.id ?? meta.taxonId,
+        isSub,
+        nynorsk,
+        nameNno: nynorsk,
+        nameNob: item.nameNob || item.taxonName || meta.nameNob,
+      };
+
+      if (isSub) {
+        const binomialKey =
+          cleanLatinWords.length >= 2 ? `${cleanLatinWords[0]} ${cleanLatinWords[1]}` : '';
+        const parentId =
+          item.parentId ??
+          meta.parentId ??
+          (binomialKey ? aoParentIdByBinomial.get(binomialKey) : undefined);
+        if (parentId !== undefined && parentId !== null) {
+          enrichedItem.parentId = parentId;
+        }
+      }
+
+      if (typeof meta.antallFunn === 'number') {
+        enrichedItem.antallFunn = meta.antallFunn;
+      }
+
+      return enrichedItem;
+    })
+  );
+}
+
 export async function fetchResults(term, state, dom, callbacks) {
   updateSubtaxaCheckboxState();
   const q = term.trim();
@@ -158,32 +252,20 @@ export async function fetchResults(term, state, dom, callbacks) {
   dom.emptyMsgEl.style.display = 'none';
 
   const forceOffline = localStorage.getItem('forceOfflineSpecies') === '1';
-  const subtaxaCheckbox = document.getElementById('include-subtaxa');
-  const subtaxaWarning = document.getElementById('subtaxa-offline-warning');
+  const includeSubtaxa = Boolean(document.getElementById('include-subtaxa')?.checked);
+  const userLanguage = loadNynorskArtsnavn() ? 'nn' : 'nb';
+
   if (forceOffline) {
-    if (subtaxaCheckbox) {
-      subtaxaCheckbox.checked = false;
-      subtaxaCheckbox.disabled = true;
-    }
-    if (subtaxaWarning) {
-      subtaxaWarning.style.display = 'inline';
-    }
-  } else {
-    if (subtaxaCheckbox) {
-      subtaxaCheckbox.disabled = false;
-    }
-    if (subtaxaWarning) {
-      subtaxaWarning.style.display = 'none';
-    }
-  }
-  if (forceOffline) {
-    const includeSubtaxa = document.getElementById('include-subtaxa')?.checked;
-    const offline = await searchOfflineSpecies(q, includeSubtaxa);
-    state.currentResults = offline.map(s => ({
+    const offline = await searchOfflineSpecies(q, includeSubtaxa, userLanguage);
+    state.currentResults = offline.map((s) => ({
+      ...s,
       taxonName: s.taxonName,
       nynorsk: s.nynorsk,
+      nameNno: s.nameNno ?? s.nynorsk,
+      nameNob: s.nameNob ?? s.taxonName,
       scientificName: s.scientificName,
-      source: 'offline'
+      antallFunn: s.antallFunn,
+      source: 'offline',
     }));
     state.activeIndex = state.currentResults.length ? 0 : -1;
     renderResults(state, dom);
@@ -198,36 +280,36 @@ export async function fetchResults(term, state, dom, callbacks) {
   function withTimeout(promise, ms) {
     return Promise.race([
       promise,
-      new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), ms))
+      new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), ms)),
     ]);
   }
 
-  let aoTimedOut = false;
   try {
-    let includeSubtaxa = false;
-    const cb = document.getElementById('include-subtaxa');
-    if (cb && cb.checked) includeSubtaxa = true;
-    let data = await withTimeout(searchSpecies(q, includeSubtaxa), 10000);
+    let data = await withTimeout(fetchAoSpecies(q, includeSubtaxa), 10000);
 
-    // AO sitt eget søk forstår ikke nynorsk-TERMER i det hele tatt - søker du
-    // "raudstrupe" gir AO null treff, selv om "rødstrupe" finnes (Kjetil
-    // testet dette på staging). Sjekk derfor om søketermen matcher et
-    // nynorsk navn lokalt, og søk AO på nytt med bokmålsnavnet også hvis så -
-    // slik finner man arten uansett målform man skriver i. Skippes stille
-    // hvis oppslaget feiler (aldri la et lokalt problem her stoppe søket).
+    // AO sitt eget søk har ikke nynorsk-synonymer på underarter (f.eks. gir søk på
+    // "raudveng" bare hovedarten rødvingetrost fra AO, uten underartene coburni og
+    // iliacus). Vi oversetter derfor nynorske søketermer til bokmål og henter også
+    // når includeSubtaxa er aktivert og søketermen ikke er del av bokmålsnavnet.
     try {
       const nynorskMatches = await findBokmalByNynorskTerm(q);
-      const existingNames = new Set(data.map(d => (d.taxonName || '').toLowerCase()));
-      const extraTerms = nynorskMatches.filter(name => !existingNames.has(name.toLowerCase()));
+      const existingNames = new Set(data.map((d) => (d.taxonName || '').toLowerCase()));
+      const qLower = q.toLowerCase();
+      const extraTerms = nynorskMatches.filter((name) => {
+        const nameLower = name.toLowerCase();
+        if (!existingNames.has(nameLower)) return true;
+        return includeSubtaxa && !nameLower.includes(qLower);
+      });
       if (extraTerms.length) {
         const extraResultsArrays = await Promise.all(
-          extraTerms.map(name => searchSpecies(name, includeSubtaxa).catch(() => []))
+          extraTerms.map((name) => fetchAoSpecies(name, includeSubtaxa).catch(() => []))
         );
-        const seenIds = new Set(data.map(d => d.taxonId));
+        const seenIds = new Set(data.map((d) => String(d.taxonId ?? d.id)));
         for (const extra of extraResultsArrays.flat()) {
-          if (!seenIds.has(extra.taxonId)) {
+          const extraKey = String(extra.taxonId ?? extra.id);
+          if (!seenIds.has(extraKey)) {
             data.push(extra);
-            seenIds.add(extra.taxonId);
+            seenIds.add(extraKey);
           }
         }
       }
@@ -235,20 +317,9 @@ export async function fetchResults(term, state, dom, callbacks) {
       console.warn('Nynorsk-oversettelse av søketerm feilet, fortsetter uten:', e);
     }
 
-    // AO sitt eget søk har aldri nynorsk-data (verifisert: kun language=4
-    // gir treff mot Taxon/PickerSearch). Beriker derfor hvert treff med
-    // nynorsk-navn fra den lokale offline-lista, slik at nynorsk-innstillingen
-    // faktisk virker i vanlig søk - ikke bare når "Tving offline arts-søk"
-    // er tvunget på. norske_arter.json er allerede lastet inn i nettleseren
-    // (statisk fil, PWA-cachet), så dette er et lokalt oppslag - ingen ekstra
-    // nettverkskall eller merkbar forsinkelse.
-    state.currentResults = await Promise.all(data.map(async (item) => {
-      const latin = (item.scientificNameHtml || item.scientificName || item.latin || '')
-        .replace(/<[^>]+>/g, '')
-        .trim();
-      const nynorsk = latin ? await getNynorskByLatin(latin) : null;
-      return { ...item, nynorsk };
-    }));
+    const enriched = await enrichAoSpeciesResults(data);
+
+    state.currentResults = searchSpecies(q, enriched, userLanguage);
     state.activeIndex = state.currentResults.length ? 0 : -1;
     renderResults(state, dom);
 
@@ -259,26 +330,28 @@ export async function fetchResults(term, state, dom, callbacks) {
 
     callbacks.updateStatus('idle', 'Klar for søk');
   } catch (err) {
-    aoTimedOut = err && err.message === 'timeout';
-    // TypeError = nettverksfeil (vår server er nede), Error('HTTP ...') = server svarte men AO feilet
     const serverNede = err instanceof TypeError;
-    console.warn(serverNede ? 'Server utilgjengelig, bruker offline fallback:' : 'AO-søk feilet, prøver offline fallback:', err);
-    const offline = await searchOfflineSpecies(q);
-    state.currentResults = offline.map(s => ({
+    console.warn(
+      serverNede
+        ? 'Server utilgjengelig, bruker offline fallback:'
+        : 'AO-søk feilet, prøver offline fallback:',
+      err
+    );
+    const offline = await searchOfflineSpecies(q, includeSubtaxa, userLanguage);
+    state.currentResults = offline.map((s) => ({
+      ...s,
       taxonName: s.taxonName,
       nynorsk: s.nynorsk,
+      nameNno: s.nameNno ?? s.nynorsk,
+      nameNob: s.nameNob ?? s.taxonName,
       scientificName: s.scientificName,
-      source: 'offline'
+      source: 'offline',
     }));
     state.activeIndex = state.currentResults.length ? 0 : -1;
     renderResults(state, dom);
-    // Deaktiver underarter (lokal liste støtter det ikke pålitelig)
-    const subtaxaCheckbox = document.getElementById('include-subtaxa');
-    const subtaxaWarning = document.getElementById('subtaxa-offline-warning');
-    if (subtaxaCheckbox) { subtaxaCheckbox.checked = false; subtaxaCheckbox.disabled = true; }
-    if (subtaxaWarning) { subtaxaWarning.style.display = 'inline'; }
 
-    const settingsLenke = '<a href="/settings.html" style="color:#3b82f6;text-decoration:underline;">⚙️ Innstillinger</a>';
+    const settingsLenke =
+      '<a href="/settings.html" style="color:#3b82f6;text-decoration:underline;">⚙️ Innstillinger</a>';
     let årsak;
     if (serverNede) {
       årsak = 'Ingen kontakt med server';
@@ -295,3 +368,4 @@ export async function fetchResults(term, state, dom, callbacks) {
     }
   }
 }
+

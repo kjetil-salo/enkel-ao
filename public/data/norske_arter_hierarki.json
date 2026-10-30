@@ -5500,9 +5500,11 @@
     "subspecies": [
       {
         "norwegian": "nan",
-        "latin": "M. t. plexa/tschutschensis"
+        "latin": "M. t. plexa/tschutschensis",
+        "nynorsk": "austgulerle, underarten plexa/tschutschensis"
       }
-    ]
+    ],
+    "nynorsk": "austgulerle"
   },
   {
     "norwegian": "linerle",

@@ -49,6 +49,8 @@ logging.basicConfig(
     datefmt='%Y-%m-%d %H:%M:%S',
     handlers=_log_handlers,
 )
+logging.getLogger('httpx').setLevel(logging.WARNING)
+logging.getLogger('httpcore').setLevel(logging.WARNING)
 logger = logging.getLogger('fugleobs')
 
 from src.api_handlers import handle_species_search, handle_reverse_geocoding, handle_ao_sites_search, login_to_ao, mask_token
@@ -244,6 +246,10 @@ class Handler(SimpleHTTPRequestHandler):
 
         if parsed.path == '/api/ao-create-site':
             self._handle_ao_create_site_post()
+            return
+
+        if parsed.path == '/api/species-sync':
+            self._handle_species_sync_api(is_post=True)
             return
 
         if parsed.path == '/api/log-export':
@@ -1382,6 +1388,8 @@ class Handler(SimpleHTTPRequestHandler):
                 return
             elif parsed.path == '/api/species':
                 self._handle_species_api(parsed)
+            elif parsed.path == '/api/species-sync':
+                self._handle_species_sync_api(is_post=False, parsed=parsed)
             elif parsed.path == '/api/reverse':
                 self._handle_reverse_api(parsed)
             elif parsed.path == '/api/ao-sites':
@@ -1509,6 +1517,42 @@ class Handler(SimpleHTTPRequestHandler):
             self._send_json(results)
         except Exception as e:
             self._send_json({'error': 'Feil ved henting fra Artsobservasjoner.'}, status=500)
+
+    def _handle_species_sync_api(self, is_post=False, parsed=None):
+        """Synkroniser artsnamn (Artsdatabanken) og antallFunn (Artsobservasjoner)."""
+        from src.species_sync import sync_species_data
+
+        stored_search_url = None
+        enrich_missing = False
+        save_to_disk = True
+
+        if is_post:
+            try:
+                content_length = int(self.headers.get('Content-Length', 0))
+                if content_length > 0:
+                    body = self.rfile.read(content_length).decode('utf-8')
+                    data = json.loads(body)
+                    stored_search_url = data.get('storedSearchUrl')
+                    enrich_missing = bool(data.get('enrichMissingNynorsk', False))
+                    if 'saveToDisk' in data:
+                        save_to_disk = bool(data.get('saveToDisk'))
+            except Exception as e:
+                logger.warning(f'[SPECIES-SYNC] Kunne ikkje parse POST-body: {e}')
+        elif parsed is not None:
+            params = parse_qs(parsed.query)
+            stored_search_url = params.get('storedSearchUrl', [None])[0]
+            enrich_missing = params.get('enrichMissingNynorsk', ['false'])[0].lower() == 'true'
+
+        try:
+            result = sync_species_data(
+                stored_search_url=stored_search_url,
+                enrich_missing_nynorsk=enrich_missing,
+                save_to_disk=save_to_disk,
+            )
+            self._send_json(result)
+        except Exception as e:
+            logger.error(f'[SPECIES-SYNC] Feil ved synkronisering: {e}')
+            self._send_json({'ok': False, 'error': str(e)}, status=200)
     
     def _handle_reverse_api(self, parsed):
         """Håndter reverse geokoding API."""
