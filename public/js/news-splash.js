@@ -48,10 +48,12 @@ export const CURRENT_NEWS_SPLASH = {
         + 'Artsobservasjoner er framleis bokmål, som før.',
     },
     {
-      title: '📣 Si gjerne fra hva du synes',
-      body: 'Dette er en app jeg lager på fritida, og tilbakemeldingene fra dere styrer hva '
-        + 'som blir bedre. Stort og smått — bruk «Gi tilbakemelding» nederst i appen, eller '
-        + 'send en e-post:',
+      title: '🤝 Flere på laget',
+      body: 'Denne versjonen ble til sammen med Espen Hollung, som sendte inn både '
+        + 'nynorsk-arbeidet og ideen om at de vanligste artene skal ligge øverst i søket. '
+        + 'Takk! Appen blir bedre av at andre enn meg ser på den — så si gjerne fra hva du '
+        + 'synes, stort og smått. Bruk «Gi tilbakemelding» nederst i appen, eller send en '
+        + 'e-post:',
       link: { href: 'mailto:k@vikebo.com', text: 'k@vikebo.com' },
     },
   ],
