@@ -514,6 +514,62 @@ export function isHybridItem(species) {
   return /\s+x\s+/i.test(nob) || /\s+x\s+/i.test(latin);
 }
 
+/**
+ * Terskler for sjeldenhetsgruppene under. Tallene er antall rapporterte funn
+ * i hele Norge, gjennom hele Artsobservasjoners levetid.
+ */
+export const VANLIG_GRENSE = 1000;
+export const UVANLIG_GRENSE = 100;
+
+/**
+ * Plasser en art i en grov sjeldenhetsgruppe: 0 = vanlig, 1 = uvanlig, 2 = sjelden.
+ *
+ * Hvorfor grupper og ikke sortering på antallFunn direkte:
+ *
+ * 1. Problemet som skal løses er IKKE å rangere etter sjeldenhet - det er å
+ *    hindre at en art med ett eneste norsk funn ligger øverst der man lett
+ *    bommer. Søk på «grå» ga gråflankefluesnapper (2 funn) og gråhodealbatross
+ *    (1 funn) over gråmåke (595 150) og gråtrost (417 766), fordi siste
+ *    sorteringstrinn var alfabetisk. Innenfor en gruppe spiller rekkefølgen
+ *    liten rolle - gråmåke eller gråtrost først er like plausibelt.
+ *
+ * 2. Gruppa er en grovsortering, ikke hele rangeringen: innenfor samme gruppe
+ *    sorteres det videre på antallFunn, slik at den mest sannsynlige arten
+ *    ligger øverst. Gruppa sikrer bare at en streiffugl aldri kan klatre dit,
+ *    uansett hvor få funn de andre treffene har.
+ *
+ * 3. Grupper gjør at nasjonale tall holder regionalt. En art som er
+ *    hverdagsfugl et sted i Norge har alltid et høyt nasjonalt tall - lappmeis
+ *    (2 836), polarsvømmesnipe (3 939) og stellerand (4 085) ligger alle trygt
+ *    i «vanlig». Artene under terskelen er sjeldne overalt (snøugle 180,
+ *    kornspurv 170, dvergterne 184), ikke bare utenfor sin egen landsdel.
+ *    Hadde vi sortert på tallet direkte, ville en finnmarking fått lappspurv
+ *    langt nede bak sørlige hagefugler.
+ *
+ * Tersklene følger et reelt skille i dataene: 292 arter har under 100 funn,
+ * 208 har over 10 000, og dalen mellom er tynn.
+ *
+ * Art uten antallFunn (f.eks. et AO-treff som ikke finnes i offline-lista)
+ * regnes som vanlig. Å gjette «sjelden» ville skjult en art vi bare mangler
+ * tall for.
+ *
+ * @param {Species} species
+ * @returns {0|1|2}
+ */
+export function funntall(species) {
+  return species && typeof species.antallFunn === 'number' && !Number.isNaN(species.antallFunn)
+    ? species.antallFunn
+    : null;
+}
+
+export function sjeldenhetsgruppe(species) {
+  const funn = funntall(species);
+  if (funn === null) return 0;
+  if (funn >= VANLIG_GRENSE) return 0;
+  if (funn >= UVANLIG_GRENSE) return 1;
+  return 2;
+}
+
 function compareScoredEntries(a, b, useNynorsk) {
   // 1. Høgste Match Score vinn
   if (b.score !== a.score) {
@@ -527,15 +583,20 @@ function compareScoredEntries(a, b, useNynorsk) {
     return aHybrid ? 1 : -1;
   }
 
-  // 3. Tie-breaker: antallFunn (høgste antall rapporterte funn først)
-  const aFunn =
-    typeof a.species.antallFunn === 'number' && !Number.isNaN(a.species.antallFunn)
-      ? a.species.antallFunn
-      : 0;
-  const bFunn =
-    typeof b.species.antallFunn === 'number' && !Number.isNaN(b.species.antallFunn)
-      ? b.species.antallFunn
-      : 0;
+  // 3a. Sjeldenhetsgruppe: supersjeldne arter skal aldri ligge øverst, uansett
+  //     hvor mange funn de nest sjeldneste har. Se sjeldenhetsgruppe().
+  const aGruppe = sjeldenhetsgruppe(a.species);
+  const bGruppe = sjeldenhetsgruppe(b.species);
+  if (aGruppe !== bGruppe) {
+    return aGruppe - bGruppe;
+  }
+
+  // 3b. Innenfor samme gruppe: flest funn først, altså den arten brukeren
+  //     mest sannsynlig mener. Trygt her, fordi gruppa over allerede har
+  //     skilt ut streiffuglene - dette sammenligner bare arter som er
+  //     omtrent like plausible å få øye på.
+  const aFunn = funntall(a.species) ?? 0;
+  const bFunn = funntall(b.species) ?? 0;
   if (bFunn !== aFunn) {
     return bFunn - aFunn;
   }

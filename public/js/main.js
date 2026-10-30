@@ -19,7 +19,7 @@ import { logPageView, loadActivities, fetchAoSites, fetchAndCachePrivateSites, h
 // altså hele appen, se samme fallgruve for map.js/location.js (v1.53.15) og
 // sjekklisten i CLAUDE.md. Bump SAMTIDIG som index.html sin egen ?v=-tag for
 // main.js, hver gang storage.js får en ny eksport main.js begynner å bruke.
-import { loadObservations, saveObservations, loadAoSearchRadius, saveAoSearchRadius, loadLocationSortMode, saveLocationSortMode, loadAoDirectAutoClear, saveAoDirectAutoClear } from './storage.js?v=v1.58.5';
+import { loadObservations, saveObservations, loadAoSearchRadius, saveAoSearchRadius, loadLocationSortMode, saveLocationSortMode, loadAoDirectAutoClear, saveAoDirectAutoClear } from './storage.js?v=v1.59.0';
 import { setStatus, setLocationStatus, showToast, haversine } from './ui.js';
 import { setAoSiteSuggestions, initLocation, openMap, openMapPage, updateCreateSiteBtnVisibility, initCreateSite } from './location.js';
 // Versjonert import: observations.js sitt eget innhold (ikke bare hvilke
@@ -31,7 +31,7 @@ import { setAoSiteSuggestions, initLocation, openMap, openMapPage, updateCreateS
 // timer, uten noen SyntaxError som varsler om det (funksjonene fantes jo
 // allerede - bare med gammel logikk). Se species-search.js/
 // observation-commit.js under for samme fiks, og docs/CLAUDE.md.
-import { renderObservations } from './observations.js?v=v1.58.5';
+import { renderObservations } from './observations.js?v=v1.59.0';
 import { getVisitTimeSpan, isVisitLocked, visitExists } from './visits.js';
 
 // Nye moduler
@@ -42,17 +42,16 @@ import { updateSectionStates, pulseSearchFieldAndFocus } from './form-state.js';
 // gang har vært versjonert. Dette var den faktiske årsaken til at Kjetil
 // testet v1.53.25 og fortsatt bare så gammel oppførsel i vanlig søk -
 // nettleseren hans hadde en cachet species-search.js fra v1.53.24.
-import { fetchResults, renderResults, chooseItem, updateSubtaxaCheckboxState } from './species-search.js?v=v1.58.5';
-import { commitObservation, renderActivityPills } from './observation-commit.js?v=v1.58.5';
+import { fetchResults, renderResults, chooseItem, updateSubtaxaCheckboxState } from './species-search.js?v=v1.59.0';
+import { commitObservation, renderActivityPills } from './observation-commit.js?v=v1.59.0';
 import { handleExport, handleCopy, handleCopyAndOpen, handleClear, handleDirectSend, oppdaterAoKoHint }
-  from './export-operations.js?v=v1.58.5';
+  from './export-operations.js?v=v1.59.0';
 import { openShareDialog } from './share.js';
 import { initAutocomplete } from './autocomplete.js';
-import { initNewsSplash } from './news-splash.js?v=v1.58.3';
+import { initNewsSplash } from './news-splash.js?v=v1.59.0';
 import { initFirstRunHint, shouldShowHint } from './first-run-hint.js';
 import { hentAktivFellestur, forlatFellestur } from './fellestur-client.js';
 import { oppdaterSpeilFraServer, hentSpeilVersjon } from './fellestur-sync.js';
-import { autoSyncSpeciesIfEligible } from './species-sync.js';
 
 // ============================================================
 // Applikasjonstilstand
@@ -1377,10 +1376,4 @@ window.addEventListener('DOMContentLoaded', () => {
       fetchAndCachePrivateSites();
     }
   }
-
-  // Bakgrunnssynkronisering av artsdata (antallFunn og artsnamn) når eininga er på WiFi
-  // og data ikkje nylig er synkroniserte.
-  setTimeout(() => {
-    autoSyncSpeciesIfEligible().catch(() => {});
-  }, 3000);
 });

@@ -5,6 +5,9 @@ import {
   deriveSubspeciesNynorskName,
   translateDedicatedSubspeciesToNynorsk,
   MATCH_SCORES,
+  sjeldenhetsgruppe,
+  VANLIG_GRENSE,
+  UVANLIG_GRENSE,
 } from '../../public/js/species-matcher.js';
 import { speciesDisplayName } from '../../public/js/storage.js';
 
@@ -467,3 +470,54 @@ describe('Underartar med nynorsk og relasjonskobling via parentId', () => {
 
 
 
+
+describe('sjeldenhetsgruppe – supersjeldne arter skal ikke ligge øverst', () => {
+  const art = (nameNob, antallFunn) => ({ nameNob, taxonName: nameNob, latinName: `L ${nameNob}`, antallFunn });
+
+  it('plasserer i riktig gruppe rundt tersklene', () => {
+    expect(sjeldenhetsgruppe(art('gråmåke', 595150))).toBe(0);
+    expect(sjeldenhetsgruppe(art('på grensen', VANLIG_GRENSE))).toBe(0);
+    expect(sjeldenhetsgruppe(art('like under', VANLIG_GRENSE - 1))).toBe(1);
+    expect(sjeldenhetsgruppe(art('snøugle', 180))).toBe(1);
+    expect(sjeldenhetsgruppe(art('på grensen', UVANLIG_GRENSE))).toBe(1);
+    expect(sjeldenhetsgruppe(art('like under', UVANLIG_GRENSE - 1))).toBe(2);
+    expect(sjeldenhetsgruppe(art('gråhodealbatross', 1))).toBe(2);
+    expect(sjeldenhetsgruppe(art('aldri sett', 0))).toBe(2);
+  });
+
+  it('regner art uten antallFunn som vanlig, ikke som sjelden', () => {
+    // Et AO-treff som ikke finnes i offline-lista mangler tallet. Å gjette
+    // «sjelden» ville skjult en art vi bare ikke har data for.
+    expect(sjeldenhetsgruppe({ nameNob: 'ukjent', taxonName: 'ukjent' })).toBe(0);
+    expect(sjeldenhetsgruppe({ nameNob: 'rar', taxonName: 'rar', antallFunn: NaN })).toBe(0);
+    expect(sjeldenhetsgruppe(null)).toBe(0);
+  });
+
+  it('holder nordlige hverdagsfugler i «vanlig» – gruppene er ikke regionalt skjeve', () => {
+    // Disse er lave nasjonalt, men hverdagsfugl i sin egen landsdel. De skal
+    // aldri havne i samme gruppe som streiffuglene.
+    for (const [navn, funn] of [['lappmeis', 2836], ['polarsvømmesnipe', 3939], ['stellerand', 4085], ['lappspurv', 19716]]) {
+      expect(sjeldenhetsgruppe(art(navn, funn)), navn).toBe(0);
+    }
+  });
+
+  it('senker en supersjelden art under vanlige arter med samme søketreff', () => {
+    const kandidater = [
+      art('gråflankefluesnapper', 2),
+      art('gråhodealbatross', 1),
+      art('gråmåke', 595150),
+      art('gråtrost', 417766),
+      art('grålire', 2440),
+    ];
+    const navn = searchSpecies('grå', kandidater, 'nb').map((r) => r.nameNob);
+    expect(navn.slice(0, 3)).toEqual(['gråmåke', 'gråtrost', 'grålire']);
+    expect(navn.slice(-2)).toEqual(['gråflankefluesnapper', 'gråhodealbatross']);
+  });
+
+  it('lar et eksakt navnetreff vinne selv om arten er supersjelden', () => {
+    // Skriver du hele navnet, mener du den arten - uansett hvor sjelden den er.
+    const kandidater = [art('rødstrupe', 428362), art('rødstrupetrost', 0), art('rødstrupesnipe', 6)];
+    const navn = searchSpecies('rødstrupetrost', kandidater, 'nb').map((r) => r.nameNob);
+    expect(navn[0]).toBe('rødstrupetrost');
+  });
+});

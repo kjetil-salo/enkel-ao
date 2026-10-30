@@ -172,15 +172,22 @@
 
         <div class="version">
           <div class="version-header">
-            <span class="version-number">v1.58.5</span>
+            <span class="version-number">v1.59.0</span>
             <span class="version-date">30. oktober 2026</span>
           </div>
+          <div class="section-title">Nytt</div>
+          <ul class="changes">
+            <li><strong>Underarter på nynorsk.</strong> Har du slått på nynorske artsnavn, vises nå også underartene på nynorsk — ikke bare hovedarten. Mangler underarten et eget nynorsknavn, settes det sammen av artsnavnet og underartsnavnet: <em>raudvengtrast, underarten iliacus</em>. Det som sendes til Artsobservasjoner er fortsatt bokmål, som før.</li>
+            <li><strong>Søk på nynorsk finner underartene.</strong> Søkte du på <em>raudvengtrast</em> med «Vis underarter» på, fikk du bare hovedarten — underartene manglet nynorsknavn og falt ut av søket. Nå henger underartene sammen med hovedarten uansett hvilket språk du søker på, og vises gruppert rett under den.</li>
+          </ul>
           <div class="section-title">Fikset</div>
           <ul class="changes">
-            <li><strong>Nynorske spesialtilfelle i arts- og taksonsøk.</strong> Lagt inn eksplisitte omsetjingar for taksa der standard omsetjingsalgoritme feila: <em>østgulerle</em> vert <em>austgulerle</em>, <em>østempid</em> vert <em>austempid</em>, og <em>ub- gul-/østgulerle</em> vert <em>ub- gul-/austgulerle</em>.</li>
+            <li><strong>Nynorske artsnavn som ble feil oversatt.</strong> Noen navn ble ikke riktige med den vanlige omskrivingsregelen og er lagt inn manuelt: <em>østgulerle</em> → <em>austgulerle</em>, <em>østempid</em> → <em>austempid</em>, og <em>ub- gul-/østgulerle</em> → <em>ub- gul-/austgulerle</em>.</li>
+            <li><strong>Oppdaterte funntall i artssøket.</strong> Artslista er synkronisert mot Artsobservasjoner, så vanlige arter havner riktigere øverst i søkeresultatet.</li>
+            <li><strong>«Tøm liste» så klikkbar ut selv når den var avslått.</strong> Knappen er slått av når lista er tom og under en aktiv fellestur, men så nøyaktig like ut i begge tilstander — den ga ingen respons på trykk, uten at noe forklarte hvorfor. Den er nå tydelig nedtonet når den ikke kan brukes.</li>
+            <li><strong>Uklar feilmelding ved innlogging mot AO.</strong> Feil brukernavn eller passord ga «Innlogging feilet» uten å si hva som var galt. Nå vises Artsobservasjoner sin egen beskjed.</li>
           </ul>
         </div>
-
         <div class="version">
           <div class="version-header">
             <span class="version-number">v1.58.3</span>
