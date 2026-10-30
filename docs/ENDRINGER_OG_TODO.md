@@ -147,11 +147,26 @@ Se **[sending-deling-2026-07.md](sending-deling-2026-07.md)** for full oversikt.
   er mer generelt — f.eks. gradert merking (vanlig / uvanlig / sjelden) eller sortering/fremheving
   av de sjeldne funnene, slik at det mest interessante i en lang liste er lett å se før sending.
   - **Åpne spørsmål:** Hvor kommer sjeldenhetsgraden fra? AOs `ValidateTaxonAndArea` gir kun en
-    vurdering per art×område×dato, krever innlogging, og virker ikke med offline-artslista (mangler
-    `taxonId`). Et generelt «sjeldenhetstall» per art finnes ikke lokalt i dag. Alternativ: utlede
-    noe grovt fra Norgeslisten / egen bruksstatistikk, men da er det ikke AOs vurdering.
+    vurdering per art×område×dato og krever innlogging. **Oppdatert v1.59.0:** offline-artslista
+    har nå `taxonId` på 597 av 604 hovedarter (men bare 19 av 388 underarter), og et grovt
+    sjeldenhetstall finnes lokalt: `antallFunn` per art, vedlikeholdt av `tools/sync_species.py`
+    og allerede brukt til å gruppere søketreff (`sjeldenhetsgruppe()` i `species-matcher.js`,
+    terskler 1 000 / 100 nasjonale funn). Det er nasjonale tall, ikke AOs regionale vurdering —
+    men det er godt nok til en gradert merking, og koster ingen kall.
   - **Avgrensning:** må ikke gjøre lista tregere eller trigge ekstra AO-kall per rad — sjeldenhet
     bør i så fall fanges ved registrering (som i dag), ikke beregnes ved rendering.
+
+- **Kortere debounce på artssøket (ikke besluttet, v1.59.3)**: Søkefeltet venter 300 ms
+  før det søker (`appState.debounceTimer` i `main.js`). Forsinkelsen lå der for å skåne
+  Artsobservasjoner mot ett kall per tastetrykk. Fra v1.59.1 søker frontend i den lokale
+  artslista først, og AO spørres bare når lokallista ikke finner noe — så for de aller
+  fleste søk er det ikke lenger noe eksternt kall å skåne, og 300 ms er blitt den
+  dominerende forsinkelsen i et søk som ellers tar under ett millisekund.
+  - **Mulige løsninger:** senke til ~80–120 ms, eller droppe debouncen helt for det lokale
+    oppslaget og beholde den kun for AO-fallbacken (teknisk penest, men to kodeveier).
+  - **Hvorfor ikke bare gjort:** endrer hvordan søket kjennes ute i felt, og bør prøves på
+    staging før det avgjøres. Ikke tatt stilling til 30.10.2026.
+  - **Berører:** `main.js` (input-lytteren på `dom.input`), eventuelt `species-search.js`.
 
 - **Dropdown uten layout-forskyvning**: Vurder å vise søkeresultater med `position: absolute` så de ligger over innholdet under i stedet for å forskyve det ned. Gir mer stabil layout under søk.
 - **Performance optimaliseringer**: Raskere artsøk og lokalitetshenting
