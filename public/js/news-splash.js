@@ -51,9 +51,9 @@ export const CURRENT_NEWS_SPLASH = {
       title: '🤝 Flere på laget',
       body: 'Denne versjonen ble til sammen med Espen Hollung, som sendte inn både '
         + 'nynorsk-arbeidet og ideen om at de vanligste artene skal ligge øverst i søket. '
-        + 'Takk! Appen blir bedre av at andre enn meg ser på den — så si gjerne fra hva du '
-        + 'synes, stort og smått. Bruk «Gi tilbakemelding» nederst i appen, eller send en '
-        + 'e-post:',
+        + 'Han oppdaget også at «Tøm liste» ikke så ut til å virke. Takk! Appen blir bedre '
+        + 'av at andre enn meg ser på den — så si gjerne fra hva du synes, stort og smått. '
+        + 'Bruk «Gi tilbakemelding» nederst i appen, eller send en e-post:',
       link: { href: 'mailto:k@vikebo.com', text: 'k@vikebo.com' },
     },
   ],

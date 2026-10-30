@@ -2,4 +2,4 @@
  * Versjonsnummer for appen
  * Oppdateres ved hver ny git tag
  */
-export const VERSION = 'v1.59.2';
+export const VERSION = 'v1.59.3';
