@@ -21,32 +21,31 @@ const MAX_VISIBLE = 4;
 
 export const CURRENT_NEWS_SPLASH = {
   enabled: true,
-  id: 'oktober-2026-bilder-nar-du-kommer-hjem-v1',
+  id: 'oktober-2026-raskere-artssok-v1',
   items: [
     {
-      title: '📷 Legg på bildene når du kommer hjem',
-      body: 'Du har alltid kunnet ta med bilde når du registrerer i felt. Men ofte er det '
-        + 'først hjemme de gode bildene finnes — på kameraet, ikke på mobilen. Nå kan du '
-        + 'legge dem på i etterkant, på funn som for lengst er sendt til Artsobservasjoner. '
-        + 'Du finner dem under «Tidligere sendt».',
-      image: {
-        src: '/img/nyhet-bilder-hjemme.jpg',
-        alt: 'En fuglekikker registrerer på mobilen ute i kystlandskap, og sitter senere '
-          + 'hjemme og overfører bilder fra kameraet til en laptop.',
-      },
+      // Denne ene saken står på nynorsk med vilje - den handler om nynorsk.
+      // Resten av appen, og resten av disse punktene, er bokmål som før.
+      title: '🪶 Underartar på nynorsk',
+      body: 'Har du nynorske artsnamn påslått, viser appen no òg underartane på nynorsk — '
+        + 'ikkje berre hovudarten. Manglar underarten eit eige nynorsknamn, set vi det '
+        + 'saman sjølve: raudvengtrast, underarten iliacus. Og søkjer du på raudvengtrast, '
+        + 'får du endeleg underartane med på kjøpet. Det som blir sendt til '
+        + 'Artsobservasjoner er framleis bokmål, som før.',
     },
     {
-      title: '🔭 Lista er den samme på alle enhetene dine',
-      body: 'Funnene hentes fra Artsobservasjoner, ikke fra telefonen. Det du registrerte ute, '
-        + 'finner du igjen på PC-en hjemme — og det overlever at du bytter telefon. '
-        + 'Fellesturer er med også: du kan legge bilder på alt du er med på, ikke bare '
-        + 'det du selv har rapportert.',
+      title: '⚡ Artssøket svarer med en gang',
+      body: 'Søket går nå i artslista som allerede ligger på telefonen din, i stedet for å '
+        + 'spørre Artsobservasjoner for hvert tastetrykk. Det svarer momentant — og det '
+        + 'virker i tunnelen, på fjellet og andre steder uten dekning. Finner vi ikke '
+        + 'arten lokalt, spør vi Artsobservasjoner som før.',
     },
     {
-      title: '✂️ Beskjær og lysne før du sender',
-      body: 'Dra i hjørnene for å kutte vekk alt som ikke er fuglen, og dra i skalaen hvis '
-        + 'bildet ble for mørkt. Du kan velge fil, lime inn, eller dra bildet rett inn fra '
-        + 'Finder. Inntil 10 bilder per funn.',
+      title: '🔝 De vanligste artene øverst',
+      body: 'Før lå treffene alfabetisk. Søkte du på «grå», fikk du gråflankefluesnapper og '
+        + 'gråhodealbatross — to arter med tre norske funn til sammen — over gråmåke og '
+        + 'gråtrost. Nå kommer de vanligste artene først, og de aller sjeldneste havner '
+        + 'nederst, der de er vanskeligere å treffe ved et uhell.',
     },
     {
       title: '📣 Si gjerne fra hva du synes',

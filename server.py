@@ -1503,6 +1503,16 @@ class Handler(SimpleHTTPRequestHandler):
         params = parse_qs(parsed.query)
         search = params.get('search', [''])[0].strip()
         dont_include_sub = params.get('dontIncludeSubSpecies', ['true'])[0]
+        # Fra v1.59.0 søker frontend i den lokale artslista først, og kaller
+        # hit bare når den ikke fant noe. SPECIES_SOURCE=local slår av også det
+        # siste AO-kallet, uten at frontend må bygges på nytt - en bryter å vri
+        # på om AO ligger nede eller vi må kutte trafikken dit raskt.
+        # Tom liste og status 200, ikke 500: samme degraderte svar som resten
+        # av de eksterne API-ene gir (se ekstern-API-konvensjonen i CLAUDE.md).
+        if os.environ.get('SPECIES_SOURCE', 'auto').strip().lower() == 'local':
+            self._send_json([])
+            return
+
         ao_base = os.environ.get(
             'AO_URL', 'https://www.artsobservasjoner.no'
         )

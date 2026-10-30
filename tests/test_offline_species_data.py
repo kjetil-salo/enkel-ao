@@ -114,3 +114,27 @@ def test_extended_data_model_fields_and_antall_funn():
 
 
 
+
+
+def test_species_source_local_slar_av_ao_kallet(monkeypatch):
+    """SPECIES_SOURCE=local skal gi tom liste og 200, ikke et kall til AO."""
+    import os
+    import server
+
+    kalt = []
+    monkeypatch.setattr(server, 'handle_species_search',
+                        lambda *a, **kw: kalt.append(a) or [{'taxonName': 'skal ikke skje'}])
+    monkeypatch.setenv('SPECIES_SOURCE', 'local')
+
+    sendt = {}
+
+    class FalskHandler:
+        _send_json = lambda self, data, status=200: sendt.update(data=data, status=status)
+        _handle_species_api = server.Handler._handle_species_api
+
+    from urllib.parse import urlparse
+    FalskHandler()._handle_species_api(urlparse('/api/species?search=gr%C3%A5'))
+
+    assert sendt['data'] == []
+    assert sendt['status'] == 200
+    assert kalt == [], 'AO skal ikke kalles når SPECIES_SOURCE=local'

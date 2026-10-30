@@ -248,15 +248,13 @@ export async function fetchResults(term, state, dom, callbacks) {
     return;
   }
 
-  callbacks.updateStatus('loading', 'Søker i Artsobservasjoner …');
   dom.emptyMsgEl.style.display = 'none';
 
   const forceOffline = localStorage.getItem('forceOfflineSpecies') === '1';
   const includeSubtaxa = Boolean(document.getElementById('include-subtaxa')?.checked);
   const userLanguage = loadNynorskArtsnavn() ? 'nn' : 'nb';
 
-  if (forceOffline) {
-    const offline = await searchOfflineSpecies(q, includeSubtaxa, userLanguage);
+  function visOfflineTreff(offline, tomMelding) {
     state.currentResults = offline.map((s) => ({
       ...s,
       taxonName: s.taxonName,
@@ -270,12 +268,32 @@ export async function fetchResults(term, state, dom, callbacks) {
     state.activeIndex = state.currentResults.length ? 0 : -1;
     renderResults(state, dom);
     dom.emptyMsgEl.style.display = state.currentResults.length ? 'none' : 'block';
-    dom.emptyMsgEl.textContent = state.currentResults.length
-      ? 'Viser offline artsliste (innstilling: kun offline)'
-      : 'Ingen treff i offline-listen.';
-    callbacks.updateStatus('idle', 'Klar for søk (offline)');
+    if (!state.currentResults.length) dom.emptyMsgEl.textContent = tomMelding;
+    callbacks.updateStatus('idle', 'Klar for søk');
+  }
+
+  // Den lokale artslista er primærkilden. Den ligger allerede på enheten
+  // (precachet av service workeren, ~16 KB over nett), dekker alle norske
+  // fuglearter med funntall og taxonId, og svarer på under ett millisekund.
+  // Et kall til AO for hvert tastetrykk ga nettverkslatens for å søke i data
+  // brukeren alt hadde - og det skalerte med antall brukere, mot et API vi er
+  // gjest hos. Tallene oppdateres av tools/sync_species.py og følger med i
+  // imaget. Dette er motsatt av lokalitetssøket, der LocationDB er 78 MB og
+  // må ligge serverside.
+  const lokale = await searchOfflineSpecies(q, includeSubtaxa, userLanguage);
+  if (lokale.length) {
+    visOfflineTreff(lokale, '');
     return;
   }
+
+  // Ingen treff lokalt: da er det enten en helt ny art, en underart lista ikke
+  // har, eller en skrivemåte AO kjenner og vi ikke. Først da spør vi AO.
+  if (forceOffline) {
+    visOfflineTreff([], 'Ingen treff i offline-listen.');
+    return;
+  }
+
+  callbacks.updateStatus('loading', 'Søker i Artsobservasjoner …');
 
   function withTimeout(promise, ms) {
     return Promise.race([
