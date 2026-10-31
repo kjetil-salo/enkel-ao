@@ -143,8 +143,11 @@
       @media (pointer: coarse) { .bare-mus { display: none; } }
 
       .lerret-ramme { display: flex; justify-content: center; margin: 4px 0 10px; }
-      #bm-lerret { max-width: 100%; border-radius: 8px; touch-action: none;
-                   background: #000; display: block; }
+      /* `height: auto` er ikke pynt: uten den beholder lerretet høyden sin når
+         `max-width` krymper bredden på en smal telefon, og bildet blir både
+         forvrengt og umulig å treffe med fingeren. */
+      #bm-lerret { max-width: 100%; height: auto; border-radius: 8px;
+                   touch-action: none; background: #000; display: block; }
       /* Ett grid om begge sliderne, slik at navn, slider og tall står i samme tre
          kolonner på begge radene. En fast em-bredde på navnet ville sprukket så
          snart en tekst ble lengre enn gjetningen — «Mørke partier» er bredere enn
@@ -417,7 +420,7 @@
         <!-- Steg 2: beskjær og juster -->
         <div id="bm-rediger" hidden>
           <div class="lerret-ramme"><canvas id="bm-lerret"></canvas></div>
-          <p class="dropsone-hint">Dra i hjørnene for å beskjære, eller inni for å flytte utsnittet.</p>
+          <p class="dropsone-hint">Dra i hjørnene for å beskjære, eller inni for å flytte utsnittet. Visningen zoomer inn på utsnittet når du slipper.</p>
           <div class="skyv">
             <label for="bm-eksponering">Eksponering</label>
             <input type="range" id="bm-eksponering" min="-100" max="100" value="0" step="5" />
@@ -430,6 +433,8 @@
             <output id="bm-skygger-verdi" for="bm-skygger">0</output>
           </div>
           <div class="modal-verktoy">
+            <!-- Vises først når det faktisk er beskåret noe å zoome inn på. -->
+            <button type="button" class="btn-liten" id="bm-zoom" hidden>⤢ Vis hele bildet</button>
             <button type="button" class="btn-liten" id="bm-nullstill">↺ Tilbakestill</button>
             <button type="button" class="btn-liten" id="bm-bytt">🔄 Bytt bilde</button>
           </div>
@@ -456,11 +461,12 @@
       import { loadSentBatches, loadObservations, saveObservations, SENT_MAX_DAYS } from '/js/storage.js';
       import { openShareDialog } from '/js/share.js';
       // Importene er versjonert: photo-picker.js har fått ny dropZone-støtte, og
-      // bilde-editor.js har fått `settSkygger` (v1.59.6). En cachet gammel kopi
-      // ville gitt TypeError i det slideren brukes — eller SyntaxError som stopper
-      // hele denne modulen. Se «Versjonering» i CLAUDE.md (v1.53.15).
+      // bilde-editor.js har fått `settSkygger` og `settZoom`/`vedVisningsendring`
+      // (v1.59.7). En cachet gammel kopi ville gitt TypeError i det slideren eller
+      // zoomen brukes — eller SyntaxError som stopper hele denne modulen. Se
+      // «Versjonering» i CLAUDE.md (v1.53.15).
       import { initPhotoPicker } from '/js/photo-picker.js?v=v1.54.2';
-      import { lagBildeEditor } from '/js/bilde-editor.js?v=v1.59.6';
+      import { lagBildeEditor } from '/js/bilde-editor.js?v=v1.59.7';
       import { loggInnMedLagretLegitimasjon } from '/js/api.js?v=v1.54.3';
 
       const MND = ['januar', 'februar', 'mars', 'april', 'mai', 'juni',
@@ -753,8 +759,21 @@
       const bmEkspVerdi = document.getElementById('bm-eksponering-verdi');
       const bmSkygger = document.getElementById('bm-skygger');
       const bmSkyggerVerdi = document.getElementById('bm-skygger-verdi');
+      const bmZoom = document.getElementById('bm-zoom');
 
       const editor = lagBildeEditor(document.getElementById('bm-lerret'));
+
+      // Knappen speiler editorens egen tilstand i stedet for å føre en kopi av
+      // den her — da kan de to ikke komme ut av takt når editoren zoomer selv.
+      editor.vedVisningsendring(({ zoomet, kanZoome }) => {
+        bmZoom.hidden = !kanZoome;
+        bmZoom.textContent = zoomet ? '⤢ Vis hele bildet' : '🔍 Zoom til utsnitt';
+        bmZoom.dataset.zoomet = zoomet ? '1' : '';
+      });
+
+      bmZoom.addEventListener('click', () => {
+        editor.settZoom(!bmZoom.dataset.zoomet);
+      });
 
       // AOs egen grense, speilet her bare for å kunne si «3 av 10» og for å slutte
       // å tilby flere. Serveren håndhever den uansett.

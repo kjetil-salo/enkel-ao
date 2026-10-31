@@ -374,6 +374,20 @@ Pure ES6 modules with no framework:
     lyver ikke forhåndsvisningen om hva som faktisk lastes opp
   - `hentResultat()` regner ALLTID fra originalbildet, aldri fra visningslerretet, så
     oppløsningen er uavhengig av hvor stor modalen var
+  - **Zoom til utsnittet** (v1.59.7): `visOmr` er hvilken del av bildet lerretet viser.
+    `zoomOmrade()` gir utsnittet pluss 12 % luft, klemt til bildet — uten luften ville
+    rammen ligge klistret til kanten og bare kunne krympes, aldri dras ut igjen.
+    Zoomen skjer ved `pointerup`, ALDRI underveis: endret skala midt i et dra ville
+    flyttet bildet under en finger som står stille. `settZoom(false)` slår samtidig av
+    `autoZoom`, så et eksplisitt «vis hele bildet» ikke blir overstyrt av neste lille
+    justering. `vedVisningsendring({zoomet, kanZoome})` lar siden styre knappeteksten
+    uten å føre en egen kopi av tilstanden
+  - **Koordinatmappingen må kompensere for CSS-nedskalering** (`bildePerCss()`): lerretet
+    har `max-width: 100%`, så på en smal telefon vises det mindre enn `canvas.width`.
+    Uten omregningen glir beskjæringsrammen fra fingeren — målt til x = 328 der det
+    skulle vært 600. Lerretet får derfor `height: auto` i CSS og settes ALDRI med en
+    fast pikselhøyde; ellers beholder det høyden når bredden krymper, og bildet blir
+    forvrengt (målt aspekt 0,82 mot bildets 1,50)
   - **«Mørke partier»** (v1.59.6) er et skyggeløft, ikke mer eksponering: en fugl
     mot lys himmel trenger at BARE det mørke løftes, ellers brenner himmelen ut
     før fuglen er synlig. Faktoren er `1 + styrke · (1 − L)³` der L er

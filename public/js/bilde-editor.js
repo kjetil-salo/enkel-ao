@@ -22,6 +22,11 @@ const MAKS_EKSPORT = 1600;
 const HANDTAK = 11;        // treffradius for hjørnehåndtakene, i CSS-piksler
 const MIN_UTSNITT = 24;    // minste tillatte beskjæring, i bildepiksler
 
+// Luft rundt utsnittet når visningen zoomer inn på det, som andel av utsnittets
+// egen størrelse. Uten luft ville rammen ligge klistret til lerretets kant, og
+// man kunne bare krympe utsnittet videre — aldri dra det ut igjen.
+const ZOOM_MARGIN = 0.12;
+
 /**
  * Regn om et eksponeringstrinn (-100..100) til en multiplikator.
  *
@@ -60,6 +65,26 @@ export function skyggestyrke(trinn) {
 export function skyggemaske(luminans) {
   const u = 1 - Math.max(0, Math.min(1, Number(luminans) || 0));
   return u * u * u;
+}
+
+/**
+ * Hvilken del av bildet skal lerretet vise når det er zoomet inn på utsnittet?
+ *
+ * Utsnittet pluss litt luft, klemt innenfor bildet. Når utsnittet er hele bildet,
+ * blir svaret hele bildet — altså nøyaktig oversikten man startet med.
+ */
+export function zoomOmrade(utsnitt, bildeBredde, bildeHoyde, margin = ZOOM_MARGIN) {
+  const mx = utsnitt.b * margin;
+  const my = utsnitt.h * margin;
+
+  let b = Math.min(bildeBredde, utsnitt.b + 2 * mx);
+  let h = Math.min(bildeHoyde, utsnitt.h + 2 * my);
+  // Skyv inn fra kanten i stedet for å kutte luften: står utsnittet helt i
+  // bildekanten, legges all luften på den siden det er plass.
+  const x = Math.max(0, Math.min(utsnitt.x - mx, bildeBredde - b));
+  const y = Math.max(0, Math.min(utsnitt.y - my, bildeHoyde - h));
+
+  return { x, y, b, h };
 }
 
 /** Klem et utsnitt innenfor bildets kanter, og hindre at det blir for lite. */
@@ -140,7 +165,7 @@ export function visningsmaal(bildeBredde, bildeHoyde, maks = MAKS_VIS) {
  * Koble en editor til et lerret.
  *
  * @param {HTMLCanvasElement} canvas
- * @returns {{settBilde, settEksponering, settSkygger, tilbakestill, harBilde, hentResultat}}
+ * @returns {{settBilde, settEksponering, settSkygger, settZoom, tilbakestill, harBilde, hentResultat}}
  */
 export function lagBildeEditor(canvas) {
   const ctx = canvas.getContext('2d');
@@ -151,15 +176,57 @@ export function lagBildeEditor(canvas) {
   let skygger = 0;
   let vis = { bredde: 0, hoyde: 0, skala: 1 };
 
+  // Hvilken del av BILDET lerretet viser. Hele bildet i oversikt, utsnittet med
+  // litt luft når det er zoomet inn.
+  let visOmr = { x: 0, y: 0, b: 0, h: 0 };
+
+  // Zoomer visningen automatisk inn på utsnittet når et dra slippes? Slås av når
+  // brukeren selv ber om å se hele bildet — da skal ikke neste lille justering
+  // dra henne rett inn i zoom igjen.
+  let autoZoom = true;
+
   // Pågående dra-operasjon: hvilket håndtak, og hvor utsnittet sto da den startet
   let drar = null;
 
+  /**
+   * Hvor mange bildepiksler er én CSS-piksel på skjermen?
+   *
+   * To ledd: lerretets egen zoom (`vis.skala`), og at CSS kan ha krympet
+   * lerretet (`max-width: 100%` på en smal telefon). Uten det andre leddet glir
+   * fingeren og beskjæringsrammen fra hverandre nettopp der appen brukes mest.
+   */
+  function bildePerCss(rekt) {
+    const cssTilCanvas = rekt.width > 0 ? canvas.width / rekt.width : 1;
+    return cssTilCanvas / vis.skala;
+  }
+
   function tilBilde(punkt) {
     const rekt = canvas.getBoundingClientRect();
+    const f = bildePerCss(rekt);
     return {
-      x: (punkt.clientX - rekt.left) / vis.skala,
-      y: (punkt.clientY - rekt.top) / vis.skala,
+      x: visOmr.x + (punkt.clientX - rekt.left) * f,
+      y: visOmr.y + (punkt.clientY - rekt.top) * f,
     };
+  }
+
+  /**
+   * Sett hvilken del av bildet som vises, og still lerretet etter det.
+   *
+   * Lerretets form følger visningsområdet, så et stående utsnitt gir et stående
+   * lerret. Høyden settes IKKE i piksler — `height: auto` i CSS lar nettleseren
+   * holde formen også når `max-width` krymper bredden på en smal skjerm.
+   */
+  function settVisning(omr) {
+    visOmr = omr;
+    vis = visningsmaal(omr.b, omr.h);
+    canvas.width = vis.bredde;
+    canvas.height = vis.hoyde;
+    canvas.style.width = `${vis.bredde}px`;
+    canvas.style.height = 'auto';
+  }
+
+  function heleBildet() {
+    return { x: 0, y: 0, b: bilde.width, h: bilde.height };
   }
 
   function hjornene() {
@@ -172,8 +239,8 @@ export function lagBildeEditor(canvas) {
     };
   }
 
-  function finnHandtak(p) {
-    const terskel = HANDTAK / vis.skala;
+  function finnHandtak(p, rekt) {
+    const terskel = HANDTAK * bildePerCss(rekt);
     for (const [navn, hj] of Object.entries(hjornene())) {
       if (Math.abs(p.x - hj.x) <= terskel && Math.abs(p.y - hj.y) <= terskel) return navn;
     }
@@ -186,7 +253,8 @@ export function lagBildeEditor(canvas) {
     if (!bilde) return;
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.drawImage(bilde, 0, 0, vis.bredde, vis.hoyde);
+    ctx.drawImage(bilde, visOmr.x, visOmr.y, visOmr.b, visOmr.h,
+                  0, 0, vis.bredde, vis.hoyde);
 
     // Justeringene vises live, med SAMME pikselløkke som eksporten bruker.
     // Billig nok på visningsstørrelse, og da lyver ikke forhåndsvisningen om hva
@@ -199,8 +267,8 @@ export function lagBildeEditor(canvas) {
     }
 
     const s = vis.skala;
-    const x = utsnitt.x * s;
-    const y = utsnitt.y * s;
+    const x = (utsnitt.x - visOmr.x) * s;
+    const y = (utsnitt.y - visOmr.y) * s;
     const b = utsnitt.b * s;
     const h = utsnitt.h * s;
 
@@ -229,10 +297,13 @@ export function lagBildeEditor(canvas) {
       ctx.stroke();
     }
 
-    // Hjørnehåndtak
+    // Hjørnehåndtak. Tegnes i lerretspiksler, men skal være like store på
+    // skjermen uansett om CSS har krympet lerretet — derfor omregningen.
+    const rekt = canvas.getBoundingClientRect();
+    const k = rekt.width > 0 ? canvas.width / rekt.width : 1;
     ctx.fillStyle = '#fff';
     for (const hj of Object.values(hjornene())) {
-      ctx.fillRect(hj.x * s - 5, hj.y * s - 5, 10, 10);
+      ctx.fillRect((hj.x - visOmr.x) * s - 5 * k, (hj.y - visOmr.y) * s - 5 * k, 10 * k, 10 * k);
     }
     ctx.restore();
   }
@@ -240,7 +311,7 @@ export function lagBildeEditor(canvas) {
   function startDra(e) {
     if (!bilde) return;
     const p = tilBilde(e);
-    const h = finnHandtak(p);
+    const h = finnHandtak(p, canvas.getBoundingClientRect());
     if (!h) return;
     drar = { handtak: h, start: p, utsnittVedStart: { ...utsnitt } };
     // Pekerfangst er en bekvemmelighet, ikke en forutsetning: den holder draget
@@ -255,7 +326,7 @@ export function lagBildeEditor(canvas) {
 
     if (!drar) {
       // Vis hva som vil skje før man trykker
-      const h = finnHandtak(tilBilde(e));
+      const h = finnHandtak(tilBilde(e), canvas.getBoundingClientRect());
       canvas.style.cursor = h === 'flytt' ? 'move'
         : h === 'nv' || h === 'so' ? 'nwse-resize'
         : h ? 'nesw-resize' : 'default';
@@ -291,7 +362,34 @@ export function lagBildeEditor(canvas) {
     try {
       if (canvas.hasPointerCapture(e.pointerId)) canvas.releasePointerCapture(e.pointerId);
     } catch (_) { /* uviktig */ }
+
+    const dro = !!drar;
     drar = null;
+
+    // Først NÅ zoomes det inn — aldri underveis. Endret skala midt i et dra ville
+    // flyttet bildet under fingeren mens den står stille.
+    if (!dro) return;
+    if (autoZoom) {
+      settVisning(zoomOmrade(utsnitt, bilde.width, bilde.height));
+      tegn();
+    }
+    // Varsles også når autoZoom er av: utsnittet kan nettopp ha blitt mindre enn
+    // bildet, og da er det først nå det finnes noe å zoome til.
+    varsleVisning();
+  }
+
+  // Lar kalleren styre en zoom-knapp uten å spørre editoren om tilstanden sin
+  // hele tiden: `zoomet` sier hva visningen gjør nå, `kanZoome` om det i det hele
+  // tatt er beskåret noe å zoome inn på.
+  let paVisningsendring = null;
+  function varsleVisning() {
+    if (!paVisningsendring || !bilde) return;
+    try {
+      paVisningsendring({
+        zoomet: visOmr.b < bilde.width || visOmr.h < bilde.height,
+        kanZoome: utsnitt.b < bilde.width || utsnitt.h < bilde.height,
+      });
+    } catch (_) { /* en lytterfeil skal ikke velte editoren */ }
   }
 
   canvas.addEventListener('pointerdown', startDra);
@@ -307,15 +405,13 @@ export function lagBildeEditor(canvas) {
         const img = new Image();
         img.onload = () => {
           bilde = img;
-          vis = visningsmaal(img.width, img.height);
-          canvas.width = vis.bredde;
-          canvas.height = vis.hoyde;
-          canvas.style.width = `${vis.bredde}px`;
-          canvas.style.height = `${vis.hoyde}px`;
           utsnitt = { x: 0, y: 0, b: img.width, h: img.height };
           eksponering = 0;
           skygger = 0;
+          autoZoom = true;
+          settVisning(heleBildet());
           tegn();
+          varsleVisning();
           resolve({ bredde: img.width, hoyde: img.height });
         };
         img.onerror = () => reject(new Error('Kunne ikke lese bildet'));
@@ -333,12 +429,35 @@ export function lagBildeEditor(canvas) {
       tegn();
     },
 
+    /**
+     * Zoom visningen inn på utsnittet, eller ut til hele bildet.
+     *
+     * Et eksplisitt «vis hele bildet» slår også av den automatiske zoomen etter
+     * dra — ellers ville neste lille justering kastet brukeren rett inn igjen.
+     */
+    settZoom(zoomInn) {
+      if (!bilde) return;
+      autoZoom = !!zoomInn;
+      settVisning(zoomInn ? zoomOmrade(utsnitt, bilde.width, bilde.height) : heleBildet());
+      tegn();
+      varsleVisning();
+    },
+
+    /** Kalles med `{zoomet, kanZoome}` hver gang visningen eller utsnittet endres. */
+    vedVisningsendring(fn) {
+      paVisningsendring = fn;
+      if (bilde) varsleVisning();
+    },
+
     tilbakestill() {
       if (!bilde) return;
       utsnitt = { x: 0, y: 0, b: bilde.width, h: bilde.height };
       eksponering = 0;
       skygger = 0;
+      autoZoom = true;
+      settVisning(heleBildet());
       tegn();
+      varsleVisning();
     },
 
     /**
