@@ -1,11 +1,11 @@
 /**
- * Enkel bilderedigering før opplasting til Artsobservasjoner: beskjæring og
- * eksponering.
+ * Enkel bilderedigering før opplasting til Artsobservasjoner: beskjæring,
+ * eksponering og opplysning av mørke partier.
  *
- * Bevisst smalt omfang. Dette er ikke et redigeringsprogram — det er de to
- * grepene som faktisk trengs når et fuglebilde skal fra kamera til AO: kutt vekk
- * det som ikke er fuglen, og løft et bilde som ble for mørkt. Alt annet gjør man
- * i Lightroom før man kommer hit.
+ * Bevisst smalt omfang. Dette er ikke et redigeringsprogram — det er de grepene
+ * som faktisk trengs når et fuglebilde skal fra kamera til AO: kutt vekk det som
+ * ikke er fuglen, løft et bilde som ble for mørkt, og hent fram fuglen når den
+ * står mørk mot en lys himmel. Alt annet gjør man i Lightroom før man kommer hit.
  *
  * Ingen biblioteker. Alt tegnes på en `<canvas>`, og beskjæringsrammen tegnes på
  * samme lerret i stedet for som DOM-elementer — det gir samme oppførsel med mus
@@ -34,6 +34,34 @@ export function eksponeringsfaktor(trinn) {
   return Math.pow(2, t / 100);
 }
 
+// Hvor mye de mørkeste partiene kan løftes på full slider. 1,2 = inntil 2,2x,
+// altså litt over ett blenderstrinn — nok til å hente fram en fugl i motlys,
+// uten at bildet blir det grå og flate et høyere tak gir.
+const MAKS_SKYGGELOFT = 1.2;
+
+/**
+ * Regn om et skyggetrinn (0..100) til hvor kraftig løftet skal være.
+ *
+ * Bare oppover: dette er «lys opp det mørke», ikke en tonekurve i begge
+ * retninger. Skal noe gjøres mørkere, er eksponeringen det riktige grepet.
+ */
+export function skyggestyrke(trinn) {
+  const t = Math.max(0, Math.min(100, Number(trinn) || 0));
+  return (t / 100) * MAKS_SKYGGELOFT;
+}
+
+/**
+ * Hvor stor del av løftet en piksel med denne luminansen (0..1) skal få.
+ *
+ * `(1 - L)³` gir en maske som er nær 1 i de mørkeste partiene og praktisk talt
+ * 0 i høylysene: ved L = 0,8 er den 0,008. Det er hele poenget — himmelen bak
+ * fuglen skal ikke brenne ut av at fuglen lysnes.
+ */
+export function skyggemaske(luminans) {
+  const u = 1 - Math.max(0, Math.min(1, Number(luminans) || 0));
+  return u * u * u;
+}
+
 /** Klem et utsnitt innenfor bildets kanter, og hindre at det blir for lite. */
 export function klemUtsnitt(utsnitt, bildeBredde, bildeHoyde) {
   const b = Math.max(MIN_UTSNITT, Math.min(utsnitt.b, bildeBredde));
@@ -46,16 +74,53 @@ export function klemUtsnitt(utsnitt, bildeBredde, bildeHoyde) {
   };
 }
 
-/** Anvend eksponering på rå pikseldata, på stedet. */
-export function anvendEksponering(data, trinn) {
-  const faktor = eksponeringsfaktor(trinn);
-  if (faktor === 1) return data;
+/**
+ * Anvend eksponering og skyggeløft på rå pikseldata, på stedet.
+ *
+ * Begge i SAMME gjennomløp. Dels fordi det er halve kostnaden på en slider som
+ * kjører live, dels fordi rekkefølgen da er låst ett sted: eksponeringen virker
+ * globalt først, og skyggeløftet jobber på resultatet — samme rekkefølge som
+ * brukeren ser sliderne i.
+ *
+ * Løftet er multiplikativt per kanal med samme faktor, så forholdet mellom R, G
+ * og B står urørt og fargene vrir seg ikke når skyggene lysnes. Bieffekten er at
+ * en helt svart piksel forblir svart; det er med vilje, for et løftet svartpunkt
+ * er nettopp det som får et bilde til å se gråvasket ut.
+ */
+export function anvendJusteringer(data, { eksponering = 0, skygger = 0 } = {}) {
+  const faktor = eksponeringsfaktor(eksponering);
+  const styrke = skyggestyrke(skygger);
+  if (faktor === 1 && styrke === 0) return data;
+
   for (let i = 0; i < data.length; i += 4) {
-    data[i] = Math.min(255, data[i] * faktor);
-    data[i + 1] = Math.min(255, data[i + 1] * faktor);
-    data[i + 2] = Math.min(255, data[i + 2] * faktor);
+    let r = data[i] * faktor;
+    let g = data[i + 1] * faktor;
+    let b = data[i + 2] * faktor;
+
+    if (styrke > 0) {
+      // Rec. 601-luminans. Grovere enn en ekte lysmåling, men det er øyets
+      // vekting av kanalene som avgjør hva som OPPLEVES mørkt — og det er det
+      // masken skal treffe.
+      const lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+      const gain = 1 + styrke * skyggemaske(lum);
+      r *= gain;
+      g *= gain;
+      b *= gain;
+    }
+
+    data[i] = r > 255 ? 255 : r;
+    data[i + 1] = g > 255 ? 255 : g;
+    data[i + 2] = b > 255 ? 255 : b;
   }
   return data;
+}
+
+/**
+ * Bare eksponering. Beholdt som eget navn fordi det er den enkle operasjonen
+ * testene og eventuelle andre kallere kjenner.
+ */
+export function anvendEksponering(data, trinn) {
+  return anvendJusteringer(data, { eksponering: trinn });
 }
 
 /**
@@ -75,7 +140,7 @@ export function visningsmaal(bildeBredde, bildeHoyde, maks = MAKS_VIS) {
  * Koble en editor til et lerret.
  *
  * @param {HTMLCanvasElement} canvas
- * @returns {{settBilde, settEksponering, tilbakestill, harBilde, hentResultat}}
+ * @returns {{settBilde, settEksponering, settSkygger, tilbakestill, harBilde, hentResultat}}
  */
 export function lagBildeEditor(canvas) {
   const ctx = canvas.getContext('2d');
@@ -83,6 +148,7 @@ export function lagBildeEditor(canvas) {
   let bilde = null;          // HTMLImageElement
   let utsnitt = null;        // {x, y, b, h} i BILDEkoordinater
   let eksponering = 0;
+  let skygger = 0;
   let vis = { bredde: 0, hoyde: 0, skala: 1 };
 
   // Pågående dra-operasjon: hvilket håndtak, og hvor utsnittet sto da den startet
@@ -122,12 +188,13 @@ export function lagBildeEditor(canvas) {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.drawImage(bilde, 0, 0, vis.bredde, vis.hoyde);
 
-    // Eksponeringen vises live. Billig nok på visningsstørrelse, og gir et ærlig
-    // bilde av hva eksporten faktisk blir — i motsetning til et CSS-filter, som
-    // ikke nødvendigvis regner likt som pikselløkka under.
-    if (eksponering !== 0) {
+    // Justeringene vises live, med SAMME pikselløkke som eksporten bruker.
+    // Billig nok på visningsstørrelse, og da lyver ikke forhåndsvisningen om hva
+    // som faktisk lastes opp — i motsetning til et CSS-filter, som ikke
+    // nødvendigvis regner likt som løkka under.
+    if (eksponering !== 0 || skygger !== 0) {
       const d = ctx.getImageData(0, 0, vis.bredde, vis.hoyde);
-      anvendEksponering(d.data, eksponering);
+      anvendJusteringer(d.data, { eksponering, skygger });
       ctx.putImageData(d, 0, 0);
     }
 
@@ -247,6 +314,7 @@ export function lagBildeEditor(canvas) {
           canvas.style.height = `${vis.hoyde}px`;
           utsnitt = { x: 0, y: 0, b: img.width, h: img.height };
           eksponering = 0;
+          skygger = 0;
           tegn();
           resolve({ bredde: img.width, hoyde: img.height });
         };
@@ -260,15 +328,21 @@ export function lagBildeEditor(canvas) {
       tegn();
     },
 
+    settSkygger(trinn) {
+      skygger = Number(trinn) || 0;
+      tegn();
+    },
+
     tilbakestill() {
       if (!bilde) return;
       utsnitt = { x: 0, y: 0, b: bilde.width, h: bilde.height };
       eksponering = 0;
+      skygger = 0;
       tegn();
     },
 
     /**
-     * Beskjær, juster eksponering og skaler til AOs grense. Returnerer en data-URL.
+     * Beskjær, juster lys og skaler til AOs grense. Returnerer en data-URL.
      *
      * Eksporten regnes alltid fra originalen — ikke fra visningslerretet — så det
      * man laster opp er i full oppløsning, uavhengig av hvor stor modalen var.
@@ -285,9 +359,9 @@ export function lagBildeEditor(canvas) {
       uctx.drawImage(bilde, utsnitt.x, utsnitt.y, utsnitt.b, utsnitt.h,
                      0, 0, ut.width, ut.height);
 
-      if (eksponering !== 0) {
+      if (eksponering !== 0 || skygger !== 0) {
         const d = uctx.getImageData(0, 0, ut.width, ut.height);
-        anvendEksponering(d.data, eksponering);
+        anvendJusteringer(d.data, { eksponering, skygger });
         uctx.putImageData(d, 0, 0);
       }
 

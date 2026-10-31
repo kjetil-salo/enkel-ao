@@ -365,7 +365,8 @@ Pure ES6 modules with no framework:
 - `autocomplete.js` — Lokalitet-autocomplete med avstand og ikoner (🏷️ super, 👤 privat, ⭐ mine)
   - Aktivt i **begge** modi (Felt og Etterregistrering)
   - `initAutocomplete(placeInput, onSelect, getPosition)` — getPosition gir GPS-posisjon for sortering
-- `bilde-editor.js` — beskjæring og eksponering før opplasting, uten bibliotek
+- `bilde-editor.js` — beskjæring, eksponering og opplysning av mørke partier før
+  opplasting, uten bibliotek
   - Beskjæringsrammen tegnes på SAMME lerret som bildet, ikke som DOM-elementer over.
     Det gir identisk oppførsel med mus og finger uten to sett hendelser å holde i synk
   - Eksponering er fotografisk (`2^(trinn/100)`), ikke lineær: ±100 = ett blenderstrinn.
@@ -373,8 +374,19 @@ Pure ES6 modules with no framework:
     lyver ikke forhåndsvisningen om hva som faktisk lastes opp
   - `hentResultat()` regner ALLTID fra originalbildet, aldri fra visningslerretet, så
     oppløsningen er uavhengig av hvor stor modalen var
-  - Rene funksjoner (`eksponeringsfaktor`, `klemUtsnitt`, `visningsmaal`,
-    `anvendEksponering`) er eksportert og dekket av `tests/unit/bilde-editor.test.js`
+  - **«Mørke partier»** (v1.59.6) er et skyggeløft, ikke mer eksponering: en fugl
+    mot lys himmel trenger at BARE det mørke løftes, ellers brenner himmelen ut
+    før fuglen er synlig. Faktoren er `1 + styrke · (1 − L)³` der L er
+    Rec. 601-luminans — masken er ~1 i de mørkeste partiene og 0,008 ved L = 0,8.
+    Samme faktor på alle tre kanaler, så fargene vrir seg ikke. En helt svart
+    piksel forblir svart (multiplikativt); det er med vilje — et løftet svartpunkt
+    er nettopp det som gråvasker et bilde
+  - `anvendJusteringer()` gjør eksponering OG skyggeløft i ett gjennomløp, i den
+    rekkefølgen brukeren ser sliderne. Både forhåndsvisningen og eksporten kaller
+    den, så det som vises er det som lastes opp
+  - Rene funksjoner (`eksponeringsfaktor`, `skyggestyrke`, `skyggemaske`,
+    `klemUtsnitt`, `visningsmaal`, `anvendEksponering`, `anvendJusteringer`) er
+    eksportert og dekket av `tests/unit/bilde-editor.test.js`
 - `api.js` sin `loggInnMedLagretLegitimasjon()` — logger inn med lagret brukernavn/passord
   OG lagrer tokenene. Skilt ut fra `ensureAoTokens()`, som bare logger inn når tokens
   MANGLER: en utløpt sesjon har fortsatt tokens i localStorage, så den hjalp ikke der.

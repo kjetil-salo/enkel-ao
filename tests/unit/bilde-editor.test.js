@@ -10,8 +10,11 @@
 import { describe, it, expect } from 'vitest';
 import {
   anvendEksponering,
+  anvendJusteringer,
   eksponeringsfaktor,
   klemUtsnitt,
+  skyggemaske,
+  skyggestyrke,
   visningsmaal,
 } from '../../public/js/bilde-editor.js';
 
@@ -114,5 +117,127 @@ describe('anvendEksponering', () => {
     const d = Uint8ClampedArray.from([10, 10, 10, 255, 20, 20, 20, 255]);
     anvendEksponering(d, 100);
     expect([...d]).toEqual([20, 20, 20, 255, 40, 40, 40, 255]);
+  });
+});
+
+describe('skyggestyrke', () => {
+  it('gjør ingenting på null', () => {
+    expect(skyggestyrke(0)).toBe(0);
+  });
+
+  it('vokser med trinnet', () => {
+    expect(skyggestyrke(100)).toBeGreaterThan(skyggestyrke(50));
+    expect(skyggestyrke(50)).toBeGreaterThan(0);
+  });
+
+  it('kan ikke dra bildet nedover — det er eksponeringens jobb', () => {
+    expect(skyggestyrke(-50)).toBe(0);
+  });
+
+  it('klemmer og tåler søppel', () => {
+    expect(skyggestyrke(9999)).toBe(skyggestyrke(100));
+    expect(skyggestyrke('abc')).toBe(0);
+    expect(skyggestyrke(undefined)).toBe(0);
+  });
+});
+
+describe('skyggemaske', () => {
+  it('treffer de mørkeste partiene fullt ut', () => {
+    expect(skyggemaske(0)).toBe(1);
+  });
+
+  it('slipper høylysene nesten helt i fred', () => {
+    // Hele poenget: himmelen bak fuglen skal ikke brenne ut av at fuglen lysnes.
+    expect(skyggemaske(0.8)).toBeLessThan(0.01);
+    expect(skyggemaske(1)).toBe(0);
+  });
+
+  it('avtar monotont oppover tonene', () => {
+    const verdier = [0, 0.2, 0.4, 0.6, 0.8, 1].map(skyggemaske);
+    for (let i = 1; i < verdier.length; i++) {
+      expect(verdier[i]).toBeLessThan(verdier[i - 1]);
+    }
+  });
+
+  it('tåler verdier utenfor 0..1', () => {
+    expect(skyggemaske(-5)).toBe(1);
+    expect(skyggemaske(5)).toBe(0);
+    expect(skyggemaske('abc')).toBe(1);
+  });
+});
+
+describe('anvendJusteringer – skyggeløft', () => {
+  it('lar pikslene være i fred når begge sliderne står på null', () => {
+    const d = Uint8ClampedArray.from([10, 20, 30, 255]);
+    anvendJusteringer(d, { eksponering: 0, skygger: 0 });
+    expect([...d]).toEqual([10, 20, 30, 255]);
+  });
+
+  it('løfter en mørk piksel merkbart', () => {
+    const d = Uint8ClampedArray.from([30, 30, 30, 255]);
+    anvendJusteringer(d, { skygger: 100 });
+    expect(d[0]).toBeGreaterThan(50);
+  });
+
+  it('rører så godt som ikke en lys piksel', () => {
+    const d = Uint8ClampedArray.from([230, 230, 230, 255]);
+    anvendJusteringer(d, { skygger: 100 });
+    expect(d[0]).toBeLessThanOrEqual(232);
+  });
+
+  it('løfter de mørke mer enn de lyse i samme bilde', () => {
+    const d = Uint8ClampedArray.from([40, 40, 40, 255, 200, 200, 200, 255]);
+    anvendJusteringer(d, { skygger: 100 });
+    expect(d[0] / 40).toBeGreaterThan(d[4] / 200);
+  });
+
+  it('holder fargebalansen — ingen fargestikk i skyggene', () => {
+    const d = Uint8ClampedArray.from([20, 40, 60, 255]);
+    anvendJusteringer(d, { skygger: 80 });
+    // Samme faktor på alle tre kanaler betyr at forholdet står urørt.
+    expect(d[1] / d[0]).toBeCloseTo(2, 1);
+    expect(d[2] / d[0]).toBeCloseTo(3, 1);
+  });
+
+  it('beholder svartpunktet i stedet for å gråvaske bildet', () => {
+    const d = Uint8ClampedArray.from([0, 0, 0, 255]);
+    anvendJusteringer(d, { skygger: 100 });
+    expect([...d.slice(0, 3)]).toEqual([0, 0, 0]);
+  });
+
+  it('brenner ikke ut over 255, uansett kombinasjon', () => {
+    const d = Uint8ClampedArray.from([250, 250, 250, 255]);
+    anvendJusteringer(d, { eksponering: 100, skygger: 100 });
+    expect([...d.slice(0, 3)]).toEqual([255, 255, 255]);
+  });
+
+  it('rører ikke alfa', () => {
+    const d = Uint8ClampedArray.from([30, 30, 30, 128]);
+    anvendJusteringer(d, { eksponering: 50, skygger: 100 });
+    expect(d[3]).toBe(128);
+  });
+
+  it('anvender eksponering FØR skyggeløftet', () => {
+    // Rekkefølgen er synlig: etter -100 er pikselen mørkere, og masken gir den
+    // da et STØRRE løft enn den ville fått uten eksponeringen først.
+    const mork = Uint8ClampedArray.from([80, 80, 80, 255]);
+    anvendJusteringer(mork, { eksponering: -100, skygger: 100 });
+    const baresky = Uint8ClampedArray.from([40, 40, 40, 255]);
+    anvendJusteringer(baresky, { skygger: 100 });
+    expect(mork[0]).toBe(baresky[0]);
+  });
+
+  it('er bakoverkompatibel: anvendEksponering gjør bare eksponering', () => {
+    const a = Uint8ClampedArray.from([30, 30, 30, 255]);
+    const b = Uint8ClampedArray.from([30, 30, 30, 255]);
+    anvendEksponering(a, 50);
+    anvendJusteringer(b, { eksponering: 50, skygger: 0 });
+    expect([...a]).toEqual([...b]);
+  });
+
+  it('tåler et tomt opsjonsobjekt', () => {
+    const d = Uint8ClampedArray.from([10, 20, 30, 255]);
+    anvendJusteringer(d);
+    expect([...d]).toEqual([10, 20, 30, 255]);
   });
 });

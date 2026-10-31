@@ -145,10 +145,17 @@
       .lerret-ramme { display: flex; justify-content: center; margin: 4px 0 10px; }
       #bm-lerret { max-width: 100%; border-radius: 8px; touch-action: none;
                    background: #000; display: block; }
-      .skyv { display: flex; align-items: center; gap: 10px; font-size: 0.85rem;
-              color: var(--muted, #9ca3af); margin: 10px 0; }
-      .skyv input[type=range] { flex: 1; min-height: 44px; }
-      .skyv output { min-width: 3ch; text-align: right; font-variant-numeric: tabular-nums; }
+      /* Ett grid om begge sliderne, slik at navn, slider og tall står i samme tre
+         kolonner på begge radene. En fast em-bredde på navnet ville sprukket så
+         snart en tekst ble lengre enn gjetningen — «Mørke partier» er bredere enn
+         «Eksponering». `max-content` måler dem i stedet. */
+      .skyv { display: grid; grid-template-columns: max-content 1fr max-content;
+              align-items: center; column-gap: 10px; row-gap: 6px; margin: 10px 0;
+              font-size: 0.85rem; color: var(--muted, #9ca3af); }
+      .skyv label { white-space: nowrap; }
+      .skyv input[type=range] { min-height: 44px; min-width: 0; }
+      /* 4ch: eksponeringen kan vise «-100», og tallet skal ikke dytte på slideren. */
+      .skyv output { min-width: 4ch; text-align: right; font-variant-numeric: tabular-nums; }
       .modal-verktoy { display: flex; gap: 8px; flex-wrap: wrap; }
       .kvittering { text-align: center; padding: 22px 16px; }
       .kvittering-ikon { font-size: 1.8rem; margin-bottom: 8px; }
@@ -411,11 +418,17 @@
         <div id="bm-rediger" hidden>
           <div class="lerret-ramme"><canvas id="bm-lerret"></canvas></div>
           <p class="dropsone-hint">Dra i hjørnene for å beskjære, eller inni for å flytte utsnittet.</p>
-          <label class="skyv">
-            <span>Eksponering</span>
+          <div class="skyv">
+            <label for="bm-eksponering">Eksponering</label>
             <input type="range" id="bm-eksponering" min="-100" max="100" value="0" step="5" />
-            <output id="bm-eksponering-verdi">0</output>
-          </label>
+            <output id="bm-eksponering-verdi" for="bm-eksponering">0</output>
+            <!-- Egen slider, ikke en del av eksponeringen: en fugl mot lys himmel
+                 trenger at BARE det mørke løftes. Skrur man i stedet opp
+                 eksponeringen, brenner himmelen ut før fuglen er synlig. -->
+            <label for="bm-skygger">Mørke partier</label>
+            <input type="range" id="bm-skygger" min="0" max="100" value="0" step="5" />
+            <output id="bm-skygger-verdi" for="bm-skygger">0</output>
+          </div>
           <div class="modal-verktoy">
             <button type="button" class="btn-liten" id="bm-nullstill">↺ Tilbakestill</button>
             <button type="button" class="btn-liten" id="bm-bytt">🔄 Bytt bilde</button>
@@ -442,11 +455,12 @@
     <script type="module">
       import { loadSentBatches, loadObservations, saveObservations, SENT_MAX_DAYS } from '/js/storage.js';
       import { openShareDialog } from '/js/share.js';
-      // Begge importene er versjonert: photo-picker.js har fått ny dropZone-støtte,
-      // og bilde-editor.js er helt ny. En cachet gammel kopi ville gitt SyntaxError
-      // som stopper hele denne modulen. Se «Versjonering» i CLAUDE.md (v1.53.15).
+      // Importene er versjonert: photo-picker.js har fått ny dropZone-støtte, og
+      // bilde-editor.js har fått `settSkygger` (v1.59.6). En cachet gammel kopi
+      // ville gitt TypeError i det slideren brukes — eller SyntaxError som stopper
+      // hele denne modulen. Se «Versjonering» i CLAUDE.md (v1.53.15).
       import { initPhotoPicker } from '/js/photo-picker.js?v=v1.54.2';
-      import { lagBildeEditor } from '/js/bilde-editor.js?v=v1.54.2';
+      import { lagBildeEditor } from '/js/bilde-editor.js?v=v1.59.6';
       import { loggInnMedLagretLegitimasjon } from '/js/api.js?v=v1.54.3';
 
       const MND = ['januar', 'februar', 'mars', 'april', 'mai', 'juni',
@@ -737,6 +751,8 @@
       const bmKvitteringTekst = document.getElementById('bm-kvittering-tekst');
       const bmEnTil = document.getElementById('bm-en-til');
       const bmEkspVerdi = document.getElementById('bm-eksponering-verdi');
+      const bmSkygger = document.getElementById('bm-skygger');
+      const bmSkyggerVerdi = document.getElementById('bm-skygger-verdi');
 
       const editor = lagBildeEditor(document.getElementById('bm-lerret'));
 
@@ -759,8 +775,12 @@
         if (!dataUrl) { visSteg('velg'); return; }
         try {
           await editor.settBilde(dataUrl);
+          // Editoren nullstiller seg selv ved nytt bilde; sliderne må følge, ellers
+          // viser de en justering som ikke lenger er i bruk.
           bmEksp.value = 0;
           bmEkspVerdi.textContent = '0';
+          bmSkygger.value = 0;
+          bmSkyggerVerdi.textContent = '0';
           visSteg('rediger');
         } catch (e) {
           settModalStatus('Kunne ikke lese bildet — prøv et annet.', 'feil');
@@ -1348,10 +1368,17 @@
         editor.settEksponering(bmEksp.value);
       });
 
+      bmSkygger.addEventListener('input', () => {
+        bmSkyggerVerdi.textContent = bmSkygger.value;
+        editor.settSkygger(bmSkygger.value);
+      });
+
       document.getElementById('bm-nullstill').addEventListener('click', () => {
         editor.tilbakestill();
         bmEksp.value = 0;
         bmEkspVerdi.textContent = '0';
+        bmSkygger.value = 0;
+        bmSkyggerVerdi.textContent = '0';
       });
 
       bmSend.addEventListener('click', async () => {
