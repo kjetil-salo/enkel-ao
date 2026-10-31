@@ -398,20 +398,20 @@
 
     </div>
 
-    <script type="module" src="/js/main.js?v=v1.59.7"></script>
+    <script type="module" src="/js/main.js?v=v1.59.8"></script>
     <script type="module">
       // Registrer Service Worker for offline-støtte.
       // Versjonert URL: Cloudflare overstyrer origin sin max-age=300 med 4 timer, så
       // en endret /sw.js kan bli liggende i edge-cachen og aldri nå installerte apper.
       // Bruk inline versjon her: /js/version.js kan selv være cachet i gammel versjon.
-      const VERSION = 'v1.59.7';
+      const VERSION = 'v1.59.8';
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register(`/sw.js?v=${VERSION}`).catch(() => {});
       }
     </script>
     <footer class="footer-credit">Versjon <span id="version"></span>  |  <a href="/changelog.html" style="color:var(--accent);text-decoration:none;">Endringslogg</a>  |  <a href="/feedback.html" style="color:var(--accent);text-decoration:none;">Gi tilbakemelding</a>  |  © 2026 Kjetil Salomonsen</footer>
     <script type="module">
-      const VERSION = 'v1.59.7';
+      const VERSION = 'v1.59.8';
       document.getElementById('version').textContent = VERSION;
     </script>
 
@@ -737,7 +737,10 @@
             </div>
             <div id="extra-photo-preview-wrap" style="display:none;margin-top:8px;">
               <img id="extra-photo-preview" style="max-width:100%;border-radius:8px;display:block;" alt="Valgt bilde" />
-              <button type="button" id="extra-photo-remove-btn" class="btn-ghost" style="margin-top:6px;">Fjern bilde</button>
+              <div style="display:flex;gap:8px;margin-top:6px;">
+                <button type="button" id="extra-photo-edit-btn" class="btn-ghost" style="flex:1;">✂️ Beskjær og juster</button>
+                <button type="button" id="extra-photo-remove-btn" class="btn-ghost">Fjern bilde</button>
+              </div>
             </div>
           </div>
         </div>
@@ -763,7 +766,7 @@
       }
     </style>
     <script type="module">
-      import { initPhotoPicker } from './js/photo-picker.js';
+      import { initPhotoPicker } from './js/photo-picker.js?v=v1.59.8';
 
       const extraModal = document.getElementById('extra-fields-modal');
       const extraOpenBtn = document.getElementById('extra-fields-open-btn');
@@ -784,6 +787,7 @@
         fileInput: document.getElementById('extra-photo'),
         pickBtn: document.getElementById('extra-photo-pick-btn'),
         pasteBtn: document.getElementById('extra-photo-paste-btn'),
+        editBtn: document.getElementById('extra-photo-edit-btn'),
         previewWrap: document.getElementById('extra-photo-preview-wrap'),
         previewImg: document.getElementById('extra-photo-preview'),
         removeBtn: document.getElementById('extra-photo-remove-btn'),
@@ -928,7 +932,10 @@
           </div>
           <div id="em-photo-preview-wrap" style="display:none;margin-top:8px;">
             <img id="em-photo-preview" style="max-width:100%;border-radius:8px;display:block;" alt="Valgt bilde" />
-            <button type="button" id="em-photo-remove-btn" class="btn-ghost" style="margin-top:6px;">Fjern bilde</button>
+            <div style="display:flex;gap:8px;margin-top:6px;">
+              <button type="button" id="em-photo-edit-btn" class="btn-ghost" style="flex:1;">✂️ Beskjær og juster</button>
+              <button type="button" id="em-photo-remove-btn" class="btn-ghost">Fjern bilde</button>
+            </div>
           </div>
           <div style="font-size:0.8em;color:var(--muted);margin-top:4px;">
             Bildet lastes opp til Artsobservasjoner når observasjonen er sendt — ikke før.

@@ -365,6 +365,19 @@ Pure ES6 modules with no framework:
 - `autocomplete.js` — Lokalitet-autocomplete med avstand og ikoner (🏷️ super, 👤 privat, ⭐ mine)
   - Aktivt i **begge** modi (Felt og Etterregistrering)
   - `initAutocomplete(placeInput, onSelect, getPosition)` — getPosition gir GPS-posisjon for sortering
+- `bilde-rediger-modal.js` — «Beskjær og juster»-laget over en modal man allerede
+  står i. `apneBildeRedigering(dataUrl)` gir en Promise med redigert data-URL, eller
+  `null` ved avbrudd
+  - **Bygger sin egen DOM** (én gang, i `document.body`) i stedet for å kreve markup i
+    hver side. Da slipper `index.html` og en eventuell fremtidig bruker å holde to
+    HTML-blokker i synk; stilene bor likevel i `css/7-page-specific.css` der man leter
+  - Escape håndteres med `stopPropagation` i capture-fasen: uten det ville ETT
+    Escape-trykk lukket både dette laget OG registrerings-/redigeringsmodalen under,
+    og brukeren mistet skjemaet sitt
+  - Koblet på gjennom `photo-picker.js` sin valgfrie `editBtn` — da får hvert sted som
+    bruker velgeren funksjonen uten egen kode, og logikken finnes bare ett sted.
+    Redigeringen skjer på det ALLEREDE nedskalerte bildet, så en tur innom
+    redigeringen er ikke et skjult kvalitetstap
 - `bilde-editor.js` — beskjæring, eksponering og opplysning av mørke partier før
   opplasting, uten bibliotek
   - Beskjæringsrammen tegnes på SAMME lerret som bildet, ikke som DOM-elementer over.

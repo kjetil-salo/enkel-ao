@@ -2515,3 +2515,136 @@ body.theme-clean .loc-pinned {
   min-height: 38px;
   cursor: pointer;
 }
+
+/* ---------------------------------------------------------------------------
+   «Beskjær og juster»-laget (bilde-rediger-modal.js)
+
+   Modulen bygger sin egen DOM, men stilene bor her sammen med resten — ellers
+   ville de vært usynlige for den som leter etter dem i css/. Laget ligger over
+   registrerings- og redigeringsmodalen, derfor en høyere z-index enn dem.
+   --------------------------------------------------------------------------- */
+#bilde-rediger-lag {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  background: rgba(0, 0, 0, 0.72);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  overflow-y: auto;
+}
+
+#bilde-rediger-lag[hidden] {
+  display: none;
+}
+
+.brl-kort {
+  background: var(--color-card-bg, #111827);
+  color: var(--color-text, #e5e7eb);
+  border: 1px solid var(--border-color-medium, rgba(148, 163, 184, 0.18));
+  border-radius: 14px;
+  padding: 16px;
+  width: 100%;
+  max-width: 620px;
+  margin: auto;
+}
+
+.brl-topp {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.brl-lukk {
+  background: transparent;
+  border: 0;
+  color: inherit;
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 4px;
+}
+
+.brl-lerret {
+  display: flex;
+  justify-content: center;
+  margin: 4px 0 10px;
+}
+
+/* `height: auto` er ikke pynt: uten den beholder lerretet høyden sin når
+   `max-width` krymper bredden på en smal telefon, og bildet blir både forvrengt
+   og umulig å treffe med fingeren. */
+#bilde-rediger-lag canvas {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  touch-action: none;
+  background: #000;
+  display: block;
+}
+
+.brl-hint {
+  font-size: 0.85rem;
+  color: var(--color-text-muted, #9ca3af);
+  margin: 0 0 10px;
+  line-height: 1.5;
+}
+
+/* Ett grid om begge sliderne, slik at navn, slider og tall står i samme tre
+   kolonner på begge radene — «Mørke partier» er bredere enn «Eksponering», så
+   en fast em-bredde ville sprukket. */
+.brl-skyv {
+  display: grid;
+  grid-template-columns: max-content 1fr max-content;
+  align-items: center;
+  column-gap: 10px;
+  row-gap: 6px;
+  margin: 10px 0;
+  font-size: 0.85rem;
+  color: var(--color-text-muted, #9ca3af);
+}
+
+.brl-skyv label {
+  white-space: nowrap;
+  margin: 0;
+  font-weight: normal;
+}
+
+.brl-skyv input[type='range'] {
+  min-height: 44px;
+  min-width: 0;
+  width: auto;
+}
+
+/* 4ch: eksponeringen kan vise «-100», og tallet skal ikke dytte på slideren. */
+.brl-skyv output {
+  min-width: 4ch;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.brl-verktoy {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.brl-bunn {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+
+.brl-primar {
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 0;
+  cursor: pointer;
+  background: var(--color-accent, #3b82f6);
+  color: #fff;
+  font-weight: 600;
+}

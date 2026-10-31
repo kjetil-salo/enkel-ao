@@ -5,7 +5,7 @@
  * som også brukes av registrerings-modalen (✎ Flere felt i ②).
  */
 import { saveObservations, lastSaveError } from './storage.js';
-import { initPhotoPicker } from './photo-picker.js';
+import { initPhotoPicker } from './photo-picker.js?v=v1.59.8';
 import { initCoObserverPicker } from './coobserver-picker.js';
 import { isoToDate, isoToTime, updateDateTimeInIso } from './datetime-helpers.js';
 
@@ -74,6 +74,7 @@ function ensureInit() {
     fileInput: document.getElementById('em-photo'),
     pickBtn: document.getElementById('em-photo-pick-btn'),
     pasteBtn: document.getElementById('em-photo-paste-btn'),
+    editBtn: document.getElementById('em-photo-edit-btn'),
     previewWrap: document.getElementById('em-photo-preview-wrap'),
     previewImg: document.getElementById('em-photo-preview'),
     removeBtn: document.getElementById('em-photo-remove-btn'),

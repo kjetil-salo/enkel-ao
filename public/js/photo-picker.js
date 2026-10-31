@@ -4,6 +4,10 @@
  * (✎ i observasjonslisten) — begge trenger nøyaktig samme oppførsel.
  */
 
+// Versjonert: bilde-rediger-modal.js er ny, og drar i sin tur inn bilde-editor.js.
+// Se «Versjonering» i CLAUDE.md — en stale kopi her ville tatt hele velgeren.
+import { apneBildeRedigering } from './bilde-rediger-modal.js?v=v1.59.8';
+
 const MAX_SIDE = 1600;
 
 // Skalerer ned til maks 1600px langside (samme grense AO selv bruker server-side)
@@ -40,7 +44,7 @@ export function downscaleImage(file) {
 
 /**
  * @param {object} els - { fileInput, pickBtn, pasteBtn (valgfri), dropZone (valgfri),
- *   previewWrap, previewImg, removeBtn }
+ *   editBtn (valgfri), previewWrap, previewImg, removeBtn }
  * @param {() => boolean} isActive - lim inn med Ctrl/Cmd+V håndteres kun når denne returnerer true
  *   (f.eks. «modalen er åpen») — ellers ville et bilde limt inn hvor som helst på siden
  *   uventet havnet i et skjult skjema.
@@ -49,7 +53,8 @@ export function downscaleImage(file) {
  *   (f.eks. et inline-script) og trenger verdien speilet i et skjult DOM-felt.
  */
 export function initPhotoPicker(els, isActive, onChange) {
-  const { fileInput, pickBtn, pasteBtn, dropZone, previewWrap, previewImg, removeBtn } = els;
+  const { fileInput, pickBtn, pasteBtn, dropZone, editBtn,
+          previewWrap, previewImg, removeBtn } = els;
   const notify = () => { if (onChange) onChange(photoDataUrl); };
 
   // null = urørt (behold det obs allerede har, om noe). '' = eksplisitt fjernet.
@@ -95,6 +100,25 @@ export function initPhotoPicker(els, isActive, onChange) {
     handlePickedFile(fileInput.files && fileInput.files[0]);
   });
   removeBtn.addEventListener('click', clear);
+
+  // Beskjæring og lysjustering. Valgfri — en kaller uten knapp er uberørt.
+  // Redigeringen skjer på det NEDSKALERTE bildet, altså nøyaktig det som ville
+  // blitt lagret uansett; da er det ingen skjult forskjell mellom å gå innom
+  // redigeringen og å la være.
+  if (editBtn) {
+    editBtn.addEventListener('click', async () => {
+      if (!photoDataUrl) return;
+      editBtn.disabled = true;
+      try {
+        const redigert = await apneBildeRedigering(photoDataUrl);
+        if (redigert) show(redigert);
+      } catch (e) {
+        console.warn('Kunne ikke redigere bildet', e);
+      } finally {
+        editBtn.disabled = false;
+      }
+    });
+  }
 
   // Lim inn med tastatur (Ctrl/Cmd+V) — samme mønster som orakel-prosjektet.
   document.addEventListener('paste', (e) => {
