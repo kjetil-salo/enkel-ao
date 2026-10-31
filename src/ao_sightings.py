@@ -53,9 +53,13 @@ _FIELD_MY_OBSERVED = _CRIT + 'MyObservedSightings'
 # tom, og `LastNumberOfDays` er uansett kriteriet vi styrer vinduet med.
 
 MAX_DAYS = 60
-MAX_ROWS = 200
+# 300 fordi en aktiv feltdag faktisk kan gi langt over 100 funn (målt: 180 på
+# Jæren på én tur). Taket på 100 kuttet lista stille midt i en dag, og da var
+# nettopp de artene man skulle legge bilde på utilgjengelige. Hver 50-rad koster
+# ett AO-kall, så 300 = inntil 6 kall — tregere, men lista blir komplett.
+MAX_ROWS = 500
 DEFAULT_DAYS = 14
-DEFAULT_LIMIT = 100
+DEFAULT_LIMIT = 300
 
 # Rader per kall mot AOs grid. 50 er det AOs eget UI bruker.
 _PAGE_SIZE = 50
