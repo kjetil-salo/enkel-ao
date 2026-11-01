@@ -119,6 +119,12 @@ The `Handler` class routes requests:
     (verifisert — opplastingsskjemaet rendres og `EditableImagesForSightingId` svarer),
     men IKKE redigering (AO skjuler selv «Endre» for andre enn rapportøren). Skillet
     bæres av `isReporter` per rad, og frontend viser «Endre» kun der den er sann
+  - **AOs søkeskjema er brukerens SISTE søk**, ikke et blankt skjema. Søkte hun på én
+    art eller «bare funn med advarsel» på artsobservasjoner.no, arvet round-trip-posten
+    det filteret og lista viste en håndfull funn der hun hadde hundre (feltfunnet
+    01.11.2026). `_nullstill_arvede_kriterier()` setter alle snevrende kriterier til
+    AOs egne standardverdier først — kun for felt som ALLEREDE finnes i skjemaet, og
+    nøklet på siste navnesegment siden AO bruker flere prefikser for samme kriterium
   - **Cookies må settes på httpx-KLIENTEN**, ikke per request: søket svarer 302, og httpx
     bygger Cookie-headeren på nytt fra klientens jar ved redirect. Per-request-cookies gir
     en uinnlogget resultatside uten `TotalPageCount` → permanent tom liste

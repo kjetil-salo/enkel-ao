@@ -40,6 +40,34 @@ tilbake slik det kom, og kun overstyre søkekriteriene vi bryr oss om:
 | `MyObservedSightings` | `true` — alt brukeren er med på |
 | `MyReportedSightings` | `false` — ville snevret inn til kun egne rapporter |
 
+### Skjemaet er brukerens SISTE søk, ikke et blankt skjema
+
+Dette er fella som gjorde funksjonen ubrukelig 01.11.2026: AO lagrer søkekriteriene
+per bruker, og `/ViewSighting/SearchSighting` rendrer dem tilbake. Round-trip-strategien
+sendte dem lydig med. Hadde brukeren slått opp én art på artsobservasjoner.no, eller
+satt «vis bare funn med advarsel» (`RuleViolationFilter=30`), arvet «Tidligere sendt»
+det filteret — og viste en håndfull funn der brukeren hadde over hundre.
+
+`_nullstill_arvede_kriterier()` setter derfor alle snevrende kriterier til AOs egne
+standardverdier før `_override()` legger på de tre vi styrer. Verdiene er lest ut av
+det **uinnloggede** skjemaet, som er AOs rene baseline (verifisert 01.11.2026).
+
+To regler gjør den trygg:
+
+- **Bare felt som finnes røres.** Vi legger aldri til et felt AO ikke rendret selv —
+  det var nettopp det `FromDate`/`ToDate` gjorde galt, og det tømte lista for alle.
+- **Nøkkelen er siste navnesegment**, ikke hele feltnavnet. AO bruker flere prefikser
+  for samme kriterium (`SearchViewModel.StoredSearchCriterias.…` og det korte
+  `StoredSearchCriterias.…`), og vi har brent oss på prefiks før.
+
+Ett unntak fra «AOs default»: `UnsureDeterminationFilter` settes til `10` («vis alle»),
+ikke AOs `20` («vis bare sikker bestemmelse»). En usikker bestemmelse er like fullt et
+funn brukeren har sendt, og skal kunne få bilde i etterkant.
+
+Loggen skriver nå `AO-rader`, `total`, `alias`, `beholdt=n/m` og datofordelingen per
+side. Uten de tallene er «brukeren ser for få funn» umulig å feilsøke: en kort liste
+kan like godt komme av at AO ga få rader som av at vårt eget etterfilter kastet dem.
+
 Merk at `FromDate`/`ToDate` **ikke** finnes som skjemafelt i rå HTML — de lages av
 AOs datovelger-widget i nettleseren. Å overstyre dem feilet derfor fail-closed-sjekken i
 `_override` og ga tom liste for alle. De utelates nå; utelatt periode er det samme som tom.

@@ -21,6 +21,7 @@ sys.path.insert(0, REPO_ROOT)
 
 from src.ao_sightings import (
     MAX_DAYS,
+    _nullstill_arvede_kriterier,
     AoSessionExpired,
     _er_jeg_med,
     _has_image,
@@ -586,3 +587,90 @@ def test_endepunkt_degraderer_ved_ao_feil(monkeypatch):
         assert r.json()['sightings'] == []
     finally:
         server.shutdown()
+
+
+# ============================================================================
+# Arvede søkekriterier — AO gir oss brukerens SISTE søk, ikke et blankt skjema
+# ============================================================================
+
+def test_nullstiller_arvet_artsfilter():
+    """
+    Et artsfilter fra brukerens forrige AO-søk skal ikke følge med inn i
+    «Tidligere sendt». Ellers viser lista bare den ene arten hun nettopp slo opp.
+    """
+    fields = [
+        ('SearchViewModel.Taxons', '4173'),
+        ('SearchViewModel.Taxons_Name', 'dvergspett'),
+        (KRIT + 'SpeciesGroup', '1'),
+        (KRIT + 'LastNumberOfDays', '31'),
+    ]
+    ut = dict(_nullstill_arvede_kriterier(fields))
+
+    assert ut['SearchViewModel.Taxons'] == ''
+    assert ut['SearchViewModel.Taxons_Name'] == ''
+    assert ut[KRIT + 'SpeciesGroup'] == '-1'
+    # Dagvinduet er vårt eget kriterium og skal stå urørt her.
+    assert ut[KRIT + 'LastNumberOfDays'] == '31'
+
+
+def test_nullstiller_arvet_advarselsfilter():
+    """
+    `RuleViolationFilter=30` er «vis bare funn med advarsel». Arvet fra et søk på
+    en sjelden art ga brukeren én dvergspett der hun hadde hundre funn.
+    """
+    ut = dict(_nullstill_arvede_kriterier([
+        (KRIT + 'RuleViolationFilter', '30'),
+        (KRIT + 'ImageFilter', '20'),
+        (KRIT + 'Reporter', 'noenannen'),
+    ]))
+
+    assert ut[KRIT + 'RuleViolationFilter'] == '10'
+    assert ut[KRIT + 'ImageFilter'] == '10'
+    assert ut[KRIT + 'Reporter'] == ''
+
+
+def test_nullstilling_legger_ikke_til_felt_ao_ikke_sendte():
+    """
+    Vi rører bare felt som finnes. Å dikte opp et felt AO ikke rendret er nettopp
+    fella `FromDate`/`ToDate` gikk i: skjemaet ble ugyldig og lista tom for alle.
+    """
+    ut = _nullstill_arvede_kriterier([(KRIT + 'LastNumberOfDays', '14')])
+
+    assert ut == [(KRIT + 'LastNumberOfDays', '14')]
+    assert len(ut) == 1
+
+
+def test_nullstilling_kollapser_dubletter_til_en():
+    """ASP.NET rendrer checkboxer som et true/false-par — vi skal sende én verdi."""
+    ut = _nullstill_arvede_kriterier([
+        (KRIT + 'NoteOfInterest', 'true'),
+        (KRIT + 'NoteOfInterest', 'false'),
+    ])
+
+    assert ut == [(KRIT + 'NoteOfInterest', 'false')]
+
+
+def test_sokebodyen_er_nullstilt_ende_til_ende(monkeypatch):
+    """
+    Hele veien gjennom `fetch_my_sightings`: et arvet filter i skjemaet fra AO
+    skal ikke finnes igjen i det vi poster tilbake.
+    """
+    skjema = SKJEMA.replace(
+        f'<input type="text" name="{KRIT}LastNumberOfDays" value="31" />',
+        f'<input type="text" name="{KRIT}LastNumberOfDays" value="31" />'
+        f'<input type="hidden" name="{KRIT}RuleViolationFilter" value="30" />'
+        f'<input type="hidden" name="SearchViewModel.Taxons" value="4173" />')
+
+    oppsett = _oppsett_som_virker()
+    oppsett['get'] = [_resp(200, skjema)]
+    client = _mock_client(oppsett)
+    monkeypatch.setattr('httpx.Client', lambda **kw: client)
+
+    fetch_my_sightings('LOGIN', 'AUTH', days=2)
+
+    body = client.post.call_args_list[0].kwargs['content']
+    assert 'RuleViolationFilter=30' not in body
+    assert 'RuleViolationFilter=10' in body
+    assert 'Taxons=4173' not in body
+    assert 'LastNumberOfDays=2' in body
+    assert 'MyObservedSightings=true' in body

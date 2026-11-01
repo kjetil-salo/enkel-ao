@@ -52,6 +52,78 @@ _FIELD_MY_OBSERVED = _CRIT + 'MyObservedSightings'
 # kjørt. Vi sender dem ikke, og det er riktig: utelatt dato-periode er det samme som
 # tom, og `LastNumberOfDays` er uansett kriteriet vi styrer vinduet med.
 
+# Søkeskjemaet AO gir oss er IKKE et blankt skjema — det er brukerens SISTE søk,
+# lagret hos AO. Søker hun på artsobservasjoner.no etter f.eks. «bare funn med
+# advarsel» eller én bestemt art, ligger det kriteriet i HTML-en vi får, og
+# round-trip-strategien sender det lydig tilbake. Da blir «Tidligere sendt» et
+# gjenbruk av et helt annet søk, og brukeren ser en håndfull funn der hun har
+# hundre. Verdiene under er AOs EGNE standardverdier, lest ut av det uinnloggede
+# skjemaet (verifisert 01.11.2026) — altså «ingen innsnevring».
+#
+# Nøkkelen er siste navnesegment, ikke hele feltnavnet: AO bruker flere prefikser
+# for samme kriterium (`SearchViewModel.StoredSearchCriterias.…` og det korte
+# `StoredSearchCriterias.…`), og vi har brent oss på prefiks før (se `FromDate`
+# over). Bare felt som ALLEREDE finnes i skjemaet nullstilles — vi legger aldri
+# til et felt AO ikke rendret selv.
+_NEUTRALE_KRITERIER = {
+    # Art og artsgruppe
+    'Taxons': '', 'Taxons_Selector_Value': '', 'Taxons_Selector_Text': '',
+    'Taxons_Name': '', 'Taxons_speciesgroupid': '0', 'SpeciesGroup': '-1',
+    'RedLists': '', 'RedLists_Select': '-1',
+    # Sted
+    'Sites': '', 'Sites_Selector_Value': '', 'Sites_Selector_Text': '',
+    'SelectedItems': '', 'SelectedItems_Select': '-1',
+    'OtherAreas': '', 'OtherAreas_Selector_Value': '', 'OtherAreas_Selector_Text': '',
+    'BoundingGeometryByWkt': '',
+    # Tid utover `LastNumberOfDays`, som vi setter selv
+    'FromYear': '', 'ToYear': '', 'FromMonth': '-1', 'ToMonth': '-1',
+    'FromRegisterDate': '', 'ToRegisterDate': '', 'UsePeriodForAllYears': 'false',
+    # Egenskaper ved funnet. `RuleViolationFilter=30` («vis bare funn med advarsel»)
+    # er den stygge: den etterlater nettopp de sjeldne artene man nylig slo opp.
+    'ImageFilter': '10', 'RuleViolationFilter': '10', 'UnspontaneousFilter': '10',
+    'NotRecoveredFilter': '10', 'NotPresentFilter': '10',
+    'AssessmentSightingsFilter': '40',
+    # AOs egen default er 20 = «vis bare sikker bestemmelse». Her vil vi ha 10 =
+    # «vis alle»: en usikker bestemmelse er like fullt et funn brukeren har sendt,
+    # og skal kunne få bilde.
+    'UnsureDeterminationFilter': '10',
+    'ValidationStatuses': '', 'ValidationStatuses_Select': '-1',
+    'IncludeValidationRejected': 'false',
+    'RegionalSightingStates': '', 'RegionalSightingStates_Select': '-1',
+    'SightingsWithComments': 'false', 'NoteOfInterest': 'false',
+    'SecondHandInformation': 'false',
+    'Quantity': '', 'QuantityOperatorType': '10',
+    'Genders': '', 'Stages': '', 'Activities': '', 'ActivityCategories': '',
+    'DiscoveryMethods': '', 'Project': '', 'Project_Name': '',
+    'PublicCommentText': '',
+    # Andre personer. `Reporter` er viktig: står den igjen fra et søk på en annen
+    # observatør, filtrerer AO bort alt brukeren selv har rapportert.
+    'Reporter': '', 'DeterminerName': '', 'DeterminerName_Id': '',
+    'ConfirmatorName': '', 'ConfirmatorName_Id': '',
+}
+
+
+def _nullstill_arvede_kriterier(fields):
+    """
+    Sett alle snevrende kriterier tilbake til «ingen innsnevring».
+
+    Rører bare felt som finnes i skjemaet fra før, og behandler dubletter som
+    `_override`: alle forekomster av navnet erstattes av nøyaktig én verdi.
+    """
+    ut = []
+    sett = set()
+    for navn, verdi in fields:
+        siste = navn.rsplit('.', 1)[-1]
+        if siste not in _NEUTRALE_KRITERIER:
+            ut.append((navn, verdi))
+            continue
+        if navn in sett:
+            continue
+        sett.add(navn)
+        ut.append((navn, _NEUTRALE_KRITERIER[siste]))
+    return ut
+
+
 MAX_DAYS = 60
 # 300 fordi en aktiv feltdag faktisk kan gi langt over 100 funn (målt: 180 på
 # Jæren på én tur). Taket på 100 kuttet lista stille midt i en dag, og da var
@@ -361,6 +433,9 @@ def _create_stored_search(client, days):
     # den ikke tillater å endre dem. Skillet håndteres per rad med `isReporter`.
     #
     # `MyReportedSightings` slås av: den ville snevret inn til kun egne rapporter.
+    # Nullstill FØRST, overstyr etterpå: nøytraliseringen skal aldri kunne tråkke
+    # på de tre kriteriene som faktisk definerer søket vårt.
+    fields = _nullstill_arvede_kriterier(fields)
     fields = _override(fields, {
         _FIELD_DAYS: str(days),
         _FIELD_MY_OBSERVED: 'true',
@@ -478,6 +553,18 @@ def fetch_my_sightings(login_token, auth_cookie, days=DEFAULT_DAYS, limit=DEFAUL
                 gyldige = [r for r in rows if isinstance(r, dict) and r.get('SightingId')]
                 alias = _current_user_alias(gyldige)
                 egne = _only_mine(gyldige)
+                # Uten disse tallene er «brukeren ser for få funn» umulig å feilsøke:
+                # en kort liste kan like godt komme av at AO ga få rader som av at
+                # vårt eget etterfilter kastet dem. Logg begge, og aliaset vi fant.
+                if len(egne) != len(gyldige) or page == 1:
+                    datoer = {}
+                    for r in gyldige:
+                        d = _strip_html(r.get('UniversalDate')) or '?'
+                        datoer[d] = datoer.get(d, 0) + 1
+                    logger.info(
+                        f'[AO-FUNN] dager={days} side={page} AO-rader={len(rows)} '
+                        f'total={total} alias={alias!r} '
+                        f'beholdt={len(egne)}/{len(gyldige)} datoer={datoer}')
                 # En rad uten brukbar numerisk ID kan vi verken lenke til eller laste
                 # opp bilde på — da er den bare støy i lista.
                 funn.extend(n for n in (normalize_row(r, alias) for r in egne) if n['sightingId'])
