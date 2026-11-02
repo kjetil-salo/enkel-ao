@@ -1371,7 +1371,7 @@ class Handler(SimpleHTTPRequestHandler):
                 import time
                 self._send_json({'status': 'ok', 'timestamp': time.time()})
                 return
-            if parsed.path == '/manifest.json' and APP_NAME_SUFFIX:
+            if parsed.path == '/manifest.json':
                 self._handle_env_manifest()
                 return
             # Admin-sidene ligger bak en hemmelig sti, ikke en nøkkel i query.
@@ -1547,6 +1547,10 @@ class Handler(SimpleHTTPRequestHandler):
         lat_raw = params.get('lat', [''])[0].strip()
         lon_raw = params.get('lon', [''])[0].strip()
         size_raw = params.get('size', ['600'])[0].strip()
+        north_raw = (params.get('north', [''])[0] or params.get('maxLat', [''])[0]).strip()
+        south_raw = (params.get('south', [''])[0] or params.get('minLat', [''])[0]).strip()
+        east_raw = (params.get('east', [''])[0] or params.get('maxLon', [''])[0]).strip()
+        west_raw = (params.get('west', [''])[0] or params.get('minLon', [''])[0]).strip()
         
         # Hent bruker-auth fra headers (sendt fra frontend)
         login_token, auth_cookie, user_id, username = self._read_ao_auth_headers()
@@ -1556,7 +1560,18 @@ class Handler(SimpleHTTPRequestHandler):
             'AO_MOBILE_URL', 'https://mobil.artsobservasjoner.no'
         )
         try:
-            sites, refreshed_auth_cookie, auth_failed = handle_ao_sites_search(lat_raw, lon_raw, size_raw, ao_mobile_base, user_id, login_token, auth_cookie, location_db=_location_db, username=username)
+            bbox_kwargs = {}
+            if north_raw and south_raw and east_raw and west_raw:
+                bbox_kwargs = {
+                    'north': north_raw,
+                    'south': south_raw,
+                    'east': east_raw,
+                    'west': west_raw,
+                }
+            sites, refreshed_auth_cookie, auth_failed = handle_ao_sites_search(
+                lat_raw, lon_raw, size_raw, ao_mobile_base, user_id, login_token, auth_cookie,
+                location_db=_location_db, username=username, **bbox_kwargs
+            )
             response_data = {'sites': sites}
             logger.debug(f'ao-sites refresh: refreshed={refreshed_auth_cookie is not None}, auth_failed={auth_failed}')
             if refreshed_auth_cookie:
@@ -1592,7 +1607,7 @@ class Handler(SimpleHTTPRequestHandler):
             self._send_json(response_data)
         except Exception as e:
             logger.warning(f'[AO-PRIVATE-SITES] Feil: {e}')
-            self._send_json({'error': 'Kunne ikke hente private lokasjoner'}, status=500)
+            self._send_json({'sites': []})
 
     def _handle_ao_areas_api(self, parsed):
         """Proxy for AO område-søk (politiske grenser). Åpent API med access-key."""
@@ -1714,20 +1729,21 @@ class Handler(SimpleHTTPRequestHandler):
             super().do_GET()
             return
 
-        for key in ('name', 'short_name'):
-            if manifest.get(key):
-                manifest[key] = f'{manifest[key]}{APP_NAME_SUFFIX}'
-        if manifest.get('description'):
-            manifest['description'] = f"TESTMILJØ — {manifest['description']}"
-        for icon in manifest.get('icons', []):
-            icon['src'] = STAGING_ICON_MAP.get(icon.get('src'), icon.get('src'))
+        if APP_NAME_SUFFIX:
+            for key in ('name', 'short_name'):
+                if manifest.get(key):
+                    manifest[key] = f'{manifest[key]}{APP_NAME_SUFFIX}'
+            if manifest.get('description'):
+                manifest['description'] = f"TESTMILJØ — {manifest['description']}"
+            for icon in manifest.get('icons', []):
+                icon['src'] = STAGING_ICON_MAP.get(icon.get('src'), icon.get('src'))
 
         payload = json.dumps(manifest, ensure_ascii=False, indent=2).encode('utf-8')
         self.send_response(200)
         self.send_header('Content-Type', 'application/manifest+json; charset=utf-8')
         self.send_header('Content-Length', str(len(payload)))
         # Cloudflare cacher ellers manifestet i en time (max-age=3600-grenen i
-        # end_headers) — en endring i merkingen skal slå inn med én gang.
+        # end_headers) — en endring i merkingen eller PWA-oppsettet skal slå inn med én gang.
         self.send_header('Cache-Control', 'no-cache, must-revalidate')
         self._cache_header_set = True
         self.end_headers()
@@ -1814,12 +1830,14 @@ class Handler(SimpleHTTPRequestHandler):
             self._cache_header_set = False
             super().end_headers()
             return
-        # HTML-filer: Alltid revalider med server (inkluderer root path /)
-        if self.path.endswith('.html') or self.path == '/' or self.path == '/public/index.html':
+        path_no_query = self.path.split('?', 1)[0]
+        # Service Worker skal aldri mellomlagres av nettleser eller proxy
+        if path_no_query.endswith('/sw.js') or path_no_query == 'sw.js':
+            self.send_header('Cache-Control', 'no-cache, no-store, must-revalidate')
+            self.send_header('Service-Worker-Allowed', '/')
+        # HTML, JS og CSS: Alltid revalider med server slik at oppdateringer slår inn umiddelbart
+        elif path_no_query.endswith(('.html', '.js', '.css', '.json')) or path_no_query == '/' or path_no_query == '/public/index.html':
             self.send_header('Cache-Control', 'no-cache, must-revalidate')
-        # JS/CSS: Kort cache (5 minutter) for bedre ytelse
-        elif self.path.endswith(('.js', '.css')):
-            self.send_header('Cache-Control', 'max-age=300')
         # Andre filer: Standard 1-time cache
         else:
             self.send_header('Cache-Control', 'max-age=3600')

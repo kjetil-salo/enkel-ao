@@ -237,10 +237,41 @@
 
 .activity-pills {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
   gap: 10px;
   margin-bottom: 12px;
   margin-top: 6px;
+  padding-bottom: 4px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.4) transparent;
+  touch-action: pan-x pan-y;
+  cursor: grab;
+  user-select: none;
+}
+
+.activity-pills.is-dragging-scroll {
+  cursor: grabbing;
+  scroll-behavior: auto;
+}
+
+.activity-pills::-webkit-scrollbar {
+  height: 5px;
+}
+
+.activity-pills::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.activity-pills::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.4);
+  border-radius: 4px;
+}
+
+.activity-pills::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.7);
 }
 
 /* Sikre at pills alltid er klikkbare uansett hva som ligger over */
@@ -263,6 +294,7 @@
   user-select: none;
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
+  flex-shrink: 0;
 }
 
 .activity-pill:hover {
@@ -1539,12 +1571,14 @@ body.theme-light #search:disabled::placeholder {
       }
 
       /* Chromium klipper legend-toppen hvis fieldsetet selv får solid bakgrunn
-         og box-shadow. Spotlight-bakgrunn og ring ligger derfor på en ::before
-         som i tillegg strekker seg litt over legenden så den får luft. */
+         og box-shadow. Spotlight-bakgrunn og ring ligger derfor på en ::before.
+         Siden containing block i et <fieldset> starter under <legend>-høyden,
+         må topp-offsetten strekke seg opp over legenden (-22px) og flukte med
+         bunnen (0px) så rammen ikke blir forskjøvet nedover. */
       .section-lokasjon.coachmark-spot::before {
         content: '';
         position: absolute;
-        inset: -13px -5px -5px -5px;
+        inset: var(--coachmark-spot-top, -22px) -4px var(--coachmark-spot-bottom, 0px) -4px;
         z-index: -1;
         border-radius: 14px;
         /* Solid bakgrunn så den mørke dim-overlayen ikke skinner gjennom
@@ -1826,7 +1860,10 @@ body.theme-light #search:disabled::placeholder {
         .activity-pills {
           gap: 8px;
           margin-top: 4px;
-          flex-wrap: wrap;
+          flex-wrap: nowrap;
+          overflow-x: auto;
+          overflow-y: hidden;
+          -webkit-overflow-scrolling: touch;
         }
 
         .activity-pill {
@@ -1835,6 +1872,7 @@ body.theme-light #search:disabled::placeholder {
           min-height: 36px;
           min-width: unset;
           font-size: 0.8em;
+          flex-shrink: 0;
         }
 
         header {
@@ -2453,6 +2491,13 @@ body.theme-clean .obs-group-lock-btn:active {
   padding: 10px 14px;
   margin-bottom: var(--space-sm);
 }
+/* Etter valgt lokalitet slippes linja fri fra toppen etter 2 s, så den ikke ligger over
+   art-/antallfeltet. Den blir stående i flyten øverst på siden (der «Bytt plass» ligger). */
+.loc-pinned.is-released {
+  position: static;
+  box-shadow: none;
+  backdrop-filter: none;
+}
 body.theme-light .loc-pinned {
   backdrop-filter: none;
   /* Uten blur i lyst tema må bakgrunnen være ugjennomsiktig, ellers skinner
@@ -2501,6 +2546,26 @@ body.theme-clean .loc-pinned {
   border-radius: 999px;
   padding: 2px 8px;
   white-space: nowrap;
+}
+
+.loc-pinned-map-btn {
+  flex-shrink: 0;
+  background: var(--accent-soft);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-size: 1.15em;
+  padding: 6px 10px;
+  min-height: 38px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+.loc-pinned-map-btn:hover {
+  background: var(--accent);
+  color: #ffffff;
 }
 
 .loc-change-btn {

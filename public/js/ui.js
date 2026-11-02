@@ -23,6 +23,9 @@ export function flashButton(button, successLabel) {
   }, 1200);
 }
 
+export const DEFAULT_TOAST_DURATION_MS = 1500;
+export const MODE_SPLASH_DURATION_MS = DEFAULT_TOAST_DURATION_MS * 2; // 3000 ms — dobbelt så lenge ved endring av modus
+
 /**
  * Vis toast-melding
  * @param {string} msg - Meldingen som skal vises
@@ -33,7 +36,7 @@ export function flashButton(button, successLabel) {
  * @param {string} options.borderColor - Overstyr rammefargen (f.eks. advarsel)
  */
 export function showToast(msg, options = {}) {
-  const { onUndo, duration = 1500, raw = false, borderColor = null } = options;
+  const { onUndo, duration = DEFAULT_TOAST_DURATION_MS, raw = false, borderColor = null } = options;
 
   // Lyst tema snur fargene i både toast og Angre-knapp. Leses ved hvert kall,
   // siden toast-elementet gjenbrukes på tvers av temabytte.

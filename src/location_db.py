@@ -165,6 +165,34 @@ class LocationDB:
         results.sort(key=lambda s: s['_distance'])
         return results
 
+    def search_in_bbox(self, south, north, west, east):
+        """Finn lokasjoner innenfor en eksplisitt geografisk bounding box."""
+        with self._connect() as conn:
+            rows = conn.execute(
+                """SELECT ao_id, name, lat, lon, is_private, is_super, parent_id,
+                          municipality, county, source
+                   FROM locations
+                   WHERE lat BETWEEN ? AND ?
+                     AND lon BETWEEN ? AND ?""",
+                (float(south), float(north), float(west), float(east))
+            ).fetchall()
+
+        results = []
+        for row in rows:
+            results.append({
+                'id': row['ao_id'],
+                'name': row['name'],
+                'lat': row['lat'],
+                'lon': row['lon'],
+                'isPrivate': bool(row['is_private']),
+                'isSuper': bool(row['is_super']),
+                'parentId': row['parent_id'],
+                'municipality': row['municipality'],
+                'county': row['county'],
+                '_source': 'local_db',
+            })
+        return results
+
     def search_by_name(self, query, limit=50, lat=None, lon=None):
         """Søk lokasjoner på navn (case-insensitive LIKE).
 

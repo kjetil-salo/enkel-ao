@@ -5,10 +5,10 @@
  * Tokens → Base → Layout → Components → Utilities → Animations
  */
 
-@import url('css/1-tokens.css');
-@import url('css/2-base.css');
-@import url('css/3-layout.css');
-@import url('css/4-components.css');
-@import url('css/5-utilities.css');
-@import url('css/6-animations.css');
-@import url('css/7-page-specific.css');
+@import url('css/1-tokens.css?v=v1.59.4');
+@import url('css/2-base.css?v=v1.59.4');
+@import url('css/3-layout.css?v=v1.59.4');
+@import url('css/4-components.css?v=v1.59.4');
+@import url('css/5-utilities.css?v=v1.59.4');
+@import url('css/6-animations.css?v=v1.59.4');
+@import url('css/7-page-specific.css?v=v1.59.4');

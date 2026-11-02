@@ -145,6 +145,57 @@ body.theme-light .mode-pill.after-mode {
   opacity: 0.8;
 }
 
+.offline-toggle-pill {
+  margin-left: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: inherit;
+  font-size: 0.7rem;
+  font-weight: var(--font-weight-semibold);
+  line-height: 1.4;
+  cursor: pointer;
+  user-select: none;
+  appearance: none;
+  -webkit-appearance: none;
+  transition: all var(--transition-base);
+}
+
+.offline-toggle-pill.is-online {
+  background: rgba(59, 130, 246, 0.14);
+  border-color: rgba(59, 130, 246, 0.55);
+  color: #60a5fa;
+}
+
+body.theme-light .offline-toggle-pill.is-online {
+  color: #1d4ed8;
+}
+
+.offline-toggle-pill.is-hybrid {
+  background: rgba(16, 185, 129, 0.16);
+  border-color: #10b981;
+  color: #34d399;
+}
+
+body.theme-light .offline-toggle-pill.is-hybrid {
+  color: #047857;
+}
+
+.offline-toggle-pill.is-offline {
+  background: rgba(245, 158, 11, 0.2);
+  border-color: #f59e0b;
+  color: #fbbf24;
+}
+
+body.theme-light .offline-toggle-pill.is-offline {
+  color: #b45309;
+}
+
+.offline-toggle-pill:hover {
+  transform: scale(1.05);
+  opacity: 0.88;
+}
+
 /* Badge i header som viser AO-innloggingsstatus: "logg inn"-tekst når ikke
    innlogget (i stedet for en rød prikk — rødt leses som feil, men dette er
    appens normale starttilstand), grønne initialer når innlogget. */
@@ -175,10 +226,41 @@ body.theme-light .mode-pill.after-mode {
 /* Activity Pills - Klikkbare hurtigknapper */
 .activity-pills {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
   gap: 10px;
   margin-bottom: var(--space-xs);
   margin-top: var(--space-sm);
+  padding-bottom: 4px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.4) transparent;
+  touch-action: pan-x pan-y;
+  cursor: grab;
+  user-select: none;
+}
+
+.activity-pills.is-dragging-scroll {
+  cursor: grabbing;
+  scroll-behavior: auto;
+}
+
+.activity-pills::-webkit-scrollbar {
+  height: 5px;
+}
+
+.activity-pills::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.activity-pills::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.4);
+  border-radius: 4px;
+}
+
+.activity-pills::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.7);
 }
 
 .activity-pill {
@@ -197,6 +279,7 @@ body.theme-light .mode-pill.after-mode {
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
   pointer-events: auto !important;
+  flex-shrink: 0;
 }
 
 .activity-pill:hover {

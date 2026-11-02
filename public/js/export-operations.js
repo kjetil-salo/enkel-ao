@@ -5,6 +5,7 @@
 import { toCsv } from './observations.js';
 import { flashButton } from './ui.js';
 import { appendSentBatch } from './storage.js';
+import { isOfflineMode } from './offline-db.js';
 
 function _statusColor(type) {
   const light = document.body.classList.contains('theme-light');
@@ -62,6 +63,9 @@ export async function oppdaterAoKoHint(dom) {
       + '<b>De blir ikke publisert</b> når du sender herfra — kun dine egne funn fra denne listen.<br>'
       + '<a href="https://www.artsobservasjoner.no/ReviewSighting" target="_blank" rel="noopener">Se hva som ligger der</a>';
   };
+
+  // I streng Offline-modus skal det ikke gjøres bakgrunnskall mot nettverket
+  if (isOfflineMode()) return;
 
   // Fersk nok fra sist? Vis den uten å spørre AO på nytt.
   if (Date.now() - _koCache.ts < _KO_CACHE_MS) { vis(_koCache.count); return; }
@@ -217,6 +221,58 @@ function _visDublettAdvarsel(antallSendt, antallTotalt, sendtTs) {
   });
 }
 
+/**
+ * Vis bekreftelsesdialog når brukeren forsøker å sende inn observasjoner til AO
+ * mens streng Offline-modus er aktiv. Varsler om nettverksbruk og at mobildatakostnader kan påløpe.
+ * @param {number} antall
+ * @returns {Promise<boolean>} true hvis brukeren tillater nettverksbruk for innsendingen
+ */
+export function _visOfflineInnsendingBekreftelse(antall) {
+  return new Promise((resolve) => {
+    const overlay = document.createElement('div');
+    overlay.id = 'offline-send-confirm-modal';
+    Object.assign(overlay.style, {
+      position: 'fixed', inset: '0', zIndex: '1000', background: 'rgba(0,0,0,0.55)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px',
+    });
+
+    const box = document.createElement('div');
+    Object.assign(box.style, {
+      background: 'var(--card-bg, #1e293b)', borderRadius: '14px', padding: '20px',
+      maxWidth: '390px', width: '100%', boxShadow: '0 8px 32px rgba(0,0,0,0.35)',
+      border: '1px solid var(--border, rgba(148,163,184,0.25))',
+    });
+
+    const knapp = 'padding:10px 14px;border-radius:8px;font-size:0.92em;cursor:pointer;width:100%;margin-top:8px;';
+    const obsTekst = antall === 1 ? '1 observasjon' : `${antall} observasjoner`;
+    box.innerHTML = `
+      <h3 style="margin:0 0 10px 0;font-size:1.05em;">📴 Du er i Offline-modus</h3>
+      <p style="margin:0 0 16px 0;font-size:0.9em;line-height:1.45;">
+        Innsending av ${obsTekst} til Artsobservasjoner krever nettverkstilkobling.
+        Vil du tillate bruk av nettverk for denne innsendingen? Merk at mobildatakostnader kan påløpe.
+      </p>
+      <button type="button" id="offline-send-tillat" style="${knapp}border:none;background:var(--accent,#3b82f6);color:#fff;font-weight:600;">
+        Tillat nettverk og send inn
+      </button>
+      <button type="button" id="offline-send-avbryt" style="${knapp}border:1px solid var(--border,rgba(148,163,184,0.25));background:transparent;color:var(--muted);">
+        Avbryt
+      </button>`;
+
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+
+    const svar = (tillat) => {
+      overlay.remove();
+      resolve(tillat);
+    };
+    box.querySelector('#offline-send-tillat').addEventListener('click', () => svar(true));
+    box.querySelector('#offline-send-avbryt').addEventListener('click', () => svar(false));
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) svar(false);
+    });
+  });
+}
+
 export async function handleDirectSend(observations, dom, callbacks) {
   if (!observations.length) return;
 
@@ -246,6 +302,12 @@ export async function handleDirectSend(observations, dom, callbacks) {
   }
 
   const total = utvalg.length;
+
+  // I streng Offline-modus spørres brukeren alltid før nettverket tas i bruk til innsending
+  if (isOfflineMode()) {
+    const tillatNettverk = await _visOfflineInnsendingBekreftelse(total);
+    if (!tillatNettverk) return;
+  }
 
   dom.aoDirectBtn.disabled = true;
   _renderProgress(dom, 1, 3, 'Logger inn på AO…');

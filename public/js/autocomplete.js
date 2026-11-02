@@ -2,8 +2,44 @@
  * Autocomplete-modul for stedsnavn i etterregistreringsmodus
  */
 
+import { getNetworkMode, getAllOfflineLocations } from './offline-db.js';
+import { haversine } from './utils.js';
+
 function isMineResult(result) {
   return result?.isMine === true || result?.ColorString === '#ffff00';
+}
+
+/**
+ * Søk i lokalt lagrede offline-lokaliteter i IndexedDB og konverter til autocomplete-format.
+ * @param {string} term
+ * @param {{ lat?: number, lon?: number }|null} pos
+ * @returns {Promise<Array>}
+ */
+async function searchOfflineAutocomplete(term, pos = null) {
+  const q = String(term || '').trim().toLowerCase();
+  if (q.length < 2) return [];
+  const allOffline = await getAllOfflineLocations().catch(() => []);
+  const matches = allOffline
+    .filter((site) => site && typeof site.name === 'string' && site.name.toLowerCase().includes(q))
+    .map((site) => {
+      const lat = parseFloat(site.lat);
+      const lon = parseFloat(site.lon);
+      const dist =
+        pos && typeof pos.lat === 'number' && typeof pos.lon === 'number' && !isNaN(lat) && !isNaN(lon)
+          ? haversine(pos.lat, pos.lon, lat, lon)
+          : null;
+      return {
+        id: site.id ?? null,
+        value: site.name,
+        presentationvalue: site.name,
+        subvalue: site.municipality || (site.raw && site.raw.municipalityName) || '',
+        isMine: Boolean(site.isMine),
+        isPrivate: Boolean(site.isPrivate || (site.raw && site.raw.isPrivate)),
+        isSuper: Boolean(site.isSuper),
+        _distance: dist,
+      };
+    });
+  return sortLocationAutocompleteResults(matches).slice(0, 30);
 }
 
 /**
@@ -72,7 +108,7 @@ export function initAutocomplete(placeInput, onSelect, getPosition = null) {
   }
 
   /**
-   * Hent autocomplete-resultater fra backend
+   * Hent autocomplete-resultater i henhold til aktiv nettverksmodus (online / hybrid / offline)
    */
   async function fetchAutocomplete(term) {
     if (!term || term.length < 2) {
@@ -80,7 +116,28 @@ export function initAutocomplete(placeInput, onSelect, getPosition = null) {
       return;
     }
 
-    // Vis loading-indikator
+    const pos = getPosition && getPosition();
+    const mode = getNetworkMode();
+
+    // 1. Streng Offline-modus: Søk utelukkende i lokalt mellomlager (IndexedDB), ingen nettverkskall
+    if (mode === 'offline') {
+      const localResults = await searchOfflineAutocomplete(term, pos);
+      currentResults = localResults;
+      renderResults(localResults);
+      return;
+    }
+
+    // 2. Hybrid-modus (Cache-First): Sjekk lokalt mellomlager først; fall tilbake til nettverk kun hvis ingen treff
+    if (mode === 'hybrid') {
+      const localResults = await searchOfflineAutocomplete(term, pos);
+      if (localResults.length > 0) {
+        currentResults = localResults;
+        renderResults(localResults);
+        return;
+      }
+    }
+
+    // Vis loading-indikator før nettverkskall
     showLoading();
 
     try {
@@ -97,7 +154,6 @@ export function initAutocomplete(placeInput, onSelect, getPosition = null) {
       const savedUsername = localStorage.getItem('ao_username');
       if (savedUsername) headers['X-AO-Username'] = savedUsername;
 
-      const pos = getPosition && getPosition();
       let url = `/api/ao-autocomplete?term=${encodeURIComponent(term)}`;
       if (pos && typeof pos.lat === 'number' && typeof pos.lon === 'number') {
         url += `&lat=${pos.lat}&lon=${pos.lon}`;

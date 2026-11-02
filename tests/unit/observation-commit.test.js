@@ -12,7 +12,7 @@ vi.stubGlobal('localStorage', {
 
 vi.mock('../../public/js/celebrate.js', () => ({ celebrateRareFind: vi.fn() }));
 
-const { commitObservation } = await import('../../public/js/observation-commit.js');
+const { commitObservation, renderActivityPills, setupPillsDragToScroll } = await import('../../public/js/observation-commit.js');
 const { celebrateRareFind } = await import('../../public/js/celebrate.js');
 
 function lagInput(id, value = '') {
@@ -308,5 +308,91 @@ describe('commitObservation — sjeldenhetsvarsel-feiring', () => {
     const toast = document.getElementById('registered-toast');
     expect(toast).not.toBeNull();
     expect(toast.textContent).toContain('registrert');
+  });
+});
+
+describe('renderActivityPills & drag-to-scroll', () => {
+  it('setter opp drag-to-scroll og rendrer pills uten å krasje', () => {
+    const container = document.createElement('div');
+    container.id = 'activity-pills';
+    document.body.appendChild(container);
+
+    const select = document.createElement('select');
+    select.id = 'activity';
+    const opt = document.createElement('option');
+    opt.value = '23';
+    opt.text = 'Stasjonær';
+    select.appendChild(opt);
+    document.body.appendChild(select);
+
+    const commitFn = vi.fn();
+    const dom = { activityPillsEl: container, activitySelect: select };
+
+    renderActivityPills(dom, commitFn);
+
+    expect(container.dataset.dragScrollInit).toBe('true');
+    expect(container.children.length).toBeGreaterThan(0);
+  });
+
+  it('ignorerer klikk dersom brukeren nettopp dro linjen for å scrolle', () => {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+
+    const select = document.createElement('select');
+    const opt = document.createElement('option');
+    opt.value = '23';
+    opt.text = 'Stasjonær';
+    select.appendChild(opt);
+    document.body.appendChild(select);
+
+    const commitFn = vi.fn();
+    const dom = { activityPillsEl: container, activitySelect: select };
+
+    renderActivityPills(dom, commitFn);
+
+    const firstPill = container.querySelector('.activity-pill');
+    expect(firstPill).not.toBeNull();
+
+    // Simuler at linjen er i dragging-tilstand
+    container.dataset.isDragging = 'true';
+    firstPill.click();
+    expect(commitFn).not.toHaveBeenCalled();
+
+    // Nullstill dragging
+    container.dataset.isDragging = 'false';
+    firstPill.click();
+    expect(commitFn).toHaveBeenCalledTimes(1);
+  });
+
+  it('fanger ikke opp nedoverscrolling med hjul/touchpad, men lar det passere til siden', () => {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+
+    const select = document.createElement('select');
+    const opt = document.createElement('option');
+    opt.value = '23';
+    opt.text = 'Stasjonær';
+    select.appendChild(opt);
+    document.body.appendChild(select);
+
+    const commitFn = vi.fn();
+    const dom = { activityPillsEl: container, activitySelect: select };
+
+    renderActivityPills(dom, commitFn);
+
+    // Simuler at container har overflytende innhold
+    Object.defineProperty(container, 'scrollWidth', { value: 600, configurable: true });
+    Object.defineProperty(container, 'clientWidth', { value: 300, configurable: true });
+    container.scrollLeft = 0;
+
+    const wheelEvent = new Event('wheel', { bubbles: true, cancelable: true });
+    wheelEvent.deltaX = 0;
+    wheelEvent.deltaY = 80;
+
+    container.dispatchEvent(wheelEvent);
+
+    // Skal IKKE ha endret scrollLeft og skal IKKE ha forhindret default (nedoverscrolling)
+    expect(container.scrollLeft).toBe(0);
+    expect(wheelEvent.defaultPrevented).toBe(false);
   });
 });

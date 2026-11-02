@@ -9,8 +9,7 @@ const localStorageMock = {
 };
 vi.stubGlobal('localStorage', localStorageMock);
 
-// Dynamisk import etter mock er satt opp
-const { loadMedobs, saveMedobs, defaultCoObservers, saveObservations, loadObservations, saveAoDirectAutoClear, loadAoDirectAutoClear, saveNynorskArtsnavn, loadNynorskArtsnavn, speciesDisplayName } = await import('../../public/js/storage.js');
+const { loadMedobs, saveMedobs, defaultCoObservers, saveObservations, loadObservations, saveAoDirectAutoClear, loadAoDirectAutoClear, saveNynorskArtsnavn, loadNynorskArtsnavn, speciesDisplayName, saveLastKnownPosition, loadLastKnownPosition } = await import('../../public/js/storage.js');
 
 // Speiler todayStr() i storage.js — medobs lagres med dagens dato.
 function todayStr() {
@@ -286,5 +285,33 @@ describe('loadObservations', () => {
     ];
     saveObservations(obs);
     expect(loadObservations()).toEqual(obs);
+  });
+});
+
+describe('lastKnownPosition', () => {
+  it('returnerer null når ingen posisjon er lagret', () => {
+    expect(loadLastKnownPosition()).toBeNull();
+  });
+
+  it('lagrer og laster gyldig posisjon', () => {
+    const ok = saveLastKnownPosition({ lat: 60.3913, lon: 5.3221, accuracy: 8 });
+    expect(ok).toBe(true);
+    const loaded = loadLastKnownPosition();
+    expect(loaded).not.toBeNull();
+    expect(loaded.lat).toBe(60.3913);
+    expect(loaded.lon).toBe(5.3221);
+    expect(loaded.accuracy).toBe(8);
+  });
+
+  it('lagrer ikke posisjon som er merket som isFallback', () => {
+    const ok = saveLastKnownPosition({ lat: 59.7928, lon: 5.1723, isFallback: true });
+    expect(ok).toBe(false);
+    expect(loadLastKnownPosition()).toBeNull();
+  });
+
+  it('avviser ugyldige koordinater som NaN eller null', () => {
+    expect(saveLastKnownPosition(null)).toBe(false);
+    expect(saveLastKnownPosition({ lat: NaN, lon: 5.0 })).toBe(false);
+    expect(saveLastKnownPosition({ lat: 60.0, lon: 'ugyldig' })).toBe(false);
   });
 });
