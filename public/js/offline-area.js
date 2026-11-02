@@ -81,7 +81,22 @@ export function calculateTilesForBounds(
   if ([north, south, east, west].some((v) => Number.isNaN(v))) return [];
 
   const tiles = [];
-  const zoomsToFetch = Array.isArray(zoomLevels) ? zoomLevels : OFFLINE_ZOOM_LEVELS;
+  let zoomsToFetch;
+  let activeTemplate = urlTemplate;
+
+  if (Array.isArray(zoomLevels)) {
+    zoomsToFetch = zoomLevels;
+  } else if (typeof zoomLevels === 'number' && typeof urlTemplate === 'number') {
+    const minZ = Math.max(MIN_TILE_ZOOM, Math.min(zoomLevels, urlTemplate));
+    const maxZ = Math.min(MAX_TILE_ZOOM, Math.max(zoomLevels, urlTemplate));
+    zoomsToFetch = [];
+    for (let z = minZ; z <= maxZ; z += 1) {
+      zoomsToFetch.push(z);
+    }
+    activeTemplate = KARTVERKET_TOPO_URL_TEMPLATE;
+  } else {
+    zoomsToFetch = OFFLINE_ZOOM_LEVELS;
+  }
 
   for (const z of zoomsToFetch) {
     const nw = latLonToTileXY(north, west, z);
@@ -98,7 +113,7 @@ export function calculateTilesForBounds(
           x,
           y,
           z,
-          url: formatKartverketTileUrl({ x, y, z }, urlTemplate),
+          url: formatKartverketTileUrl({ x, y, z }, activeTemplate),
         });
       }
     }
@@ -384,6 +399,104 @@ export function filterSitesInBounds(sites, bounds) {
     if (isNaN(lat) || isNaN(lon)) return false;
     return lat >= bounds.south && lat <= bounds.north && lon >= bounds.west && lon <= bounds.east;
   });
+}
+
+/**
+ * Bestem navn på et offline-område basert på navnet på superlokaliteten
+ * med flest underlokaliteter innenfor området.
+ * Dersom ingen superlokalitet har underlokaliteter, velges en eventuell
+ * superlokalitet i området, eller en passende lokasjon/kommune/standardnavn.
+ *
+ * @param {Array<Object>} sitesInArea - Lokaliteter innenfor området
+ * @param {Array<Object>} [allKnownSites=[]] - Kjente lokaliteter (brukes for oppslag av parent-navn)
+ * @returns {string} Områdenavn
+ */
+export function determineAreaName(sitesInArea, allKnownSites = []) {
+  const sites = Array.isArray(sitesInArea) ? sitesInArea.filter(Boolean) : [];
+  if (sites.length === 0) {
+    return 'Nedlastet område';
+  }
+
+  const allSites = [...sites, ...(Array.isArray(allKnownSites) ? allKnownSites.filter(Boolean) : [])];
+  const sitesById = new Map();
+  allSites.forEach((s) => {
+    if (s && s.id != null) {
+      sitesById.set(String(s.id), s);
+    }
+  });
+
+  // Tell opp underlokaliteter innenfor området per superlokalitet (parentId)
+  const subCountPerSuper = new Map(); // superId -> count
+  const superNameMap = new Map(); // superId -> name
+
+  // Registrer kjente superlokaliteter
+  allSites.forEach((s) => {
+    if (s && s.id != null && (s.isSuper === true || s.is_super === 1 || s.is_super === true)) {
+      const sid = String(s.id);
+      if (s.name) superNameMap.set(sid, s.name);
+      if (!subCountPerSuper.has(sid)) subCountPerSuper.set(sid, 0);
+    }
+  });
+
+  // Gå gjennom alle lokaliteter i området og finn parentId
+  sites.forEach((site) => {
+    const raw = site.raw && typeof site.raw === 'object' ? site.raw : {};
+    const parentId =
+      site.parentId != null
+        ? String(site.parentId)
+        : raw.parentId != null
+          ? String(raw.parentId)
+          : raw.parentSiteId != null
+            ? String(raw.parentSiteId)
+            : null;
+
+    if (parentId) {
+      subCountPerSuper.set(parentId, (subCountPerSuper.get(parentId) || 0) + 1);
+
+      if (!superNameMap.has(parentId)) {
+        const parentSite = sitesById.get(parentId);
+        if (parentSite && parentSite.name) {
+          superNameMap.set(parentId, parentSite.name);
+        } else if (site.parentName || raw.parentName || raw.parentSiteName) {
+          superNameMap.set(parentId, site.parentName || raw.parentName || raw.parentSiteName);
+        }
+      }
+    }
+  });
+
+  // Finn superlokaliteten med flest underlokaliteter (> 0)
+  let bestSuperId = null;
+  let maxCount = 0;
+  for (const [superId, count] of subCountPerSuper.entries()) {
+    if (count > maxCount) {
+      maxCount = count;
+      bestSuperId = superId;
+    }
+  }
+
+  if (bestSuperId && maxCount > 0 && superNameMap.has(bestSuperId)) {
+    return superNameMap.get(bestSuperId);
+  }
+
+  // Hvis ingen superlokalitet har underlokaliteter, se etter superlokalitet som ligger i området
+  const superInArea = sites.find((s) => s.isSuper === true || s.is_super === 1 || s.is_super === true);
+  if (superInArea && superInArea.name) {
+    return superInArea.name;
+  }
+
+  // Fallback 1: Første navngitte offentlige lokalitet eller lokalitet i området
+  const namedSite = sites.find((s) => s.name && !s.isPrivate) || sites.find((s) => s.name);
+  if (namedSite && namedSite.name) {
+    return namedSite.name;
+  }
+
+  // Fallback 2: Kommune
+  const withMunicipality = sites.find((s) => s.municipality || s.raw?.municipalityName);
+  if (withMunicipality) {
+    return withMunicipality.municipality || withMunicipality.raw?.municipalityName;
+  }
+
+  return 'Nedlastet område';
 }
 
 /**

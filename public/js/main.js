@@ -513,7 +513,7 @@ function formatRadius(meters) {
 }
 
 // ============================================================
-// Kollaps/utvid ① Lokasjon (festet kompakt linje når plass er valgt)
+// Kollaps/utvid ① Lokasjon (kompakt linje når plass er valgt, ikke sticky)
 // ============================================================
 function collapseLocation() {
   const name = (dom.placeInput && dom.placeInput.value.trim()) || (appState.currentPlaceName || '').trim();
@@ -524,7 +524,8 @@ function collapseLocation() {
   if (locPinnedName) locPinnedName.textContent = name;
   if (locPinned) {
     locPinned.style.display = 'flex';
-    locPinned.classList.remove('is-released');
+    // Alltid 'is-released' slik at lokasjonslinja aldri henger sticky over toppen
+    locPinned.classList.add('is-released');
   }
   if (sectionLokasjon) sectionLokasjon.style.display = 'none';
 }
@@ -662,24 +663,12 @@ function scrollToArtAntallRow() {
   });
 }
 
-const LOKALITET_BANNER_VISNING_MS = 2000;
-let lokalitetBannerTimer = null;
-
-/** Slipp den festede lokasjonslinja fri (ikke lenger sticky) 2 sekunder etter valgt lokalitet. */
-function slippFestetLokasjonEtterDelay() {
-  const locPinned = document.getElementById('loc-pinned');
-  if (!locPinned) return;
-  locPinned.classList.remove('is-released');
-  clearTimeout(lokalitetBannerTimer);
-  lokalitetBannerTimer = setTimeout(() => {
-    locPinned.classList.add('is-released');
-    lokalitetBannerTimer = null;
-  }, LOKALITET_BANNER_VISNING_MS);
-}
-
 function varsleLokalitetValgt() {
+  const locPinned = document.getElementById('loc-pinned');
+  if (locPinned) {
+    locPinned.classList.add('is-released');
+  }
   document.dispatchEvent(new CustomEvent('lokalitet:valgt'));
-  slippFestetLokasjonEtterDelay();
 }
 
 document.addEventListener('lokalitet:valgt', scrollToArtAntallRow);

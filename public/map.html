@@ -451,6 +451,81 @@
       background: #d97706;
     }
 
+    /* Grønn hake for start av nedlasting til venstre for øvre venstre hjørne */
+    .offline-check-hit {
+      width: 48px;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    .offline-check-btn {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: #22c55e;
+      color: #ffffff;
+      border: 3px solid #ffffff;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45), 0 0 0 2px rgba(34, 197, 94, 0.6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: transform 0.15s ease, background 0.15s ease;
+      padding: 0;
+      outline: none;
+    }
+    .offline-check-btn:hover {
+      transform: scale(1.12);
+      background: #16a34a;
+    }
+    .offline-check-btn:active {
+      transform: scale(0.95);
+    }
+    .offline-check-btn.is-offline-blocked {
+      background: #9ca3af;
+      border-color: #f3f4f6;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+    }
+
+    /* Topp-framdriftsindikator under nedlasting */
+    .map-top-progress {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 2000;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      pointer-events: none;
+    }
+    .map-top-progress-bar {
+      width: 0%;
+      height: 5px;
+      background: #22c55e;
+      box-shadow: 0 0 10px rgba(34, 197, 94, 0.9);
+      transition: width 0.2s ease;
+      align-self: flex-start;
+    }
+    .map-top-progress-badge {
+      margin-top: 10px;
+      background: rgba(15, 23, 42, 0.92);
+      color: #ffffff;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 20px;
+      padding: 6px 18px;
+      font-size: 13px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
+      pointer-events: auto;
+    }
+
     .offline-area-panel {
       display: none;
       position: absolute;
@@ -703,10 +778,32 @@
     </div>
   </div>
 
+  <!-- Topp-framdriftsindikator under nedlasting -->
+  <div class="map-top-progress" id="map-top-progress" role="status" aria-live="polite" style="display:none;">
+    <div class="map-top-progress-bar" id="map-top-progress-bar"></div>
+    <div class="map-top-progress-badge">
+      <span class="tile-download-spinner" aria-hidden="true"></span>
+      <span id="map-top-progress-text">Laster ned...</span>
+    </div>
+  </div>
+
   <a href="/" class="back-btn">← Tilbake</a>
   <button type="button" class="back-btn" id="toggle-labels-btn" style="top:76px;right:10px;left:auto;" title="Vis eller skjul navn på lokaliteter">🏷️ Skjul navn</button>
-  <button type="button" class="back-btn" id="toggle-offline-area-btn" style="top:122px;right:10px;left:auto;" title="Velg område på kartet for offline-bruk">📦 Offline-område</button>
-  <button type="button" class="back-btn" id="toggle-offline-markers-btn" style="display:none;top:168px;right:10px;left:auto;" title="Skjul eller vis lokalitetsmarkører i offline-modus">📍 Skjul lokaliteter</button>
+  <div style="position:absolute;top:122px;right:10px;z-index:1000;display:flex;gap:6px;align-items:center;">
+    <!-- Listeikon for nedlastede offline-områder (kun synlig når områdevalg er åpent) -->
+    <button type="button" class="back-btn" id="offline-areas-list-btn" style="display:none;position:static;padding:8px 12px;font-size:16px;min-width:44px;min-height:44px;justify-content:center;" title="Vis nedlastede offline-områder" aria-label="Vis nedlastede offline-områder">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <line x1="8" y1="6" x2="21" y2="6"></line>
+        <line x1="8" y1="12" x2="21" y2="12"></line>
+        <line x1="8" y1="18" x2="21" y2="18"></line>
+        <line x1="3" y1="6" x2="3.01" y2="6"></line>
+        <line x1="3" y1="12" x2="3.01" y2="12"></line>
+        <line x1="3" y1="18" x2="3.01" y2="18"></line>
+      </svg>
+    </button>
+    <button type="button" class="back-btn" id="toggle-offline-area-btn" style="position:static;" title="Velg område på kartet for offline-bruk">📦 Offline-område</button>
+  </div>
+  <button type="button" class="back-btn" id="toggle-offline-markers-btn" style="display:none;top:174px;right:10px;left:auto;" title="Skjul eller vis lokalitetsmarkører i offline-modus">📍 Skjul lokaliteter</button>
 
   <div id="map"></div>
 
@@ -726,40 +823,18 @@
     <a href="https://www.kartverket.no/" target="_blank" rel="noopener">Kart: © Kartverket</a>
   </div>
 
-  <!-- Offline-områdevalg: fast kontrollpanel med størrelse til venstre og lukkekryss til høyre -->
-  <div class="offline-area-panel" id="offline-area-panel">
-    <div class="offline-area-header">
-      <div class="offline-area-title-group">
-        <strong>Valgt område:</strong>
-        <span class="offline-area-dims" id="offline-area-dims">2,5 × 2,5 km</span>
+  <!-- Modal: Nedlastede offline-områder (åpnes via listeikonet) -->
+  <div class="offline-download-modal-backdrop" id="downloaded-areas-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="downloaded-areas-title" style="display:none;">
+    <div class="offline-download-modal" style="max-width:440px;text-align:left;max-height:85vh;display:flex;flex-direction:column;padding:18px 20px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;border-bottom:1px solid #e2e8f0;padding-bottom:10px;">
+        <h3 id="downloaded-areas-title" style="margin:0;font-size:17px;font-weight:700;color:#0f172a;display:flex;align-items:center;gap:6px;">
+          📦 Nedlastede områder
+        </h3>
+        <button type="button" class="close-offline-panel-btn" id="close-downloaded-areas-btn" aria-label="Lukk" title="Lukk">✕</button>
       </div>
-      <button type="button" class="close-offline-panel-btn" id="cancel-offline-area-btn" aria-label="Lukk områdevalg" title="Lukk områdevalg">✕</button>
-    </div>
-    <div class="offline-area-limit-msg" id="offline-area-limit-msg">
-      Dra midtpunktet (✥) for å flytte, eller hjørnene for å endre størrelse (maks 10x10 km).
-    </div>
-    <div class="tile-download-progress" id="tile-download-progress" role="status" aria-live="polite">
-      <span class="tile-download-spinner" aria-hidden="true"></span>
-      <span id="tile-download-progress-text">Downloading map tiles...</span>
-    </div>
-    <div class="offline-area-actions">
-      <button type="button" class="download-offline-btn" id="download-offline-area-btn">Last ned område for offline-bruk</button>
-    </div>
-    <div style="margin-top:10px;padding-top:10px;border-top:1px solid #e2e8f0;font-size:12px;color:#334155;">
-      <div id="map-offline-storage-stats" style="margin-bottom:8px;font-weight:500;">
-        Lagret lokalt: laster oversikt …
+      <div id="downloaded-areas-list" style="overflow-y:auto;display:flex;flex-direction:column;gap:8px;max-height:60vh;padding-right:2px;">
+        <!-- Fylles dynamisk -->
       </div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;">
-        <button type="button" id="map-sync-offline-btn"
-          style="flex:1;padding:8px 10px;border-radius:7px;border:1px solid #bfdbfe;background:#eff6ff;color:#1d4ed8;font-size:13px;font-weight:600;cursor:pointer;">
-          🔄 Synkroniser områder
-        </button>
-        <button type="button" id="map-clear-offline-btn"
-          style="padding:8px 10px;border-radius:7px;border:1px solid #fecaca;background:#fef2f2;color:#dc2626;font-size:13px;font-weight:600;cursor:pointer;">
-          🗑️ Slett offline-data
-        </button>
-      </div>
-      <div id="map-offline-storage-status" style="display:none;margin-top:6px;padding:6px 8px;border-radius:6px;font-size:12px;"></div>
     </div>
   </div>
 
@@ -816,9 +891,19 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
     integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
     crossorigin=""></script>
+  <script>
+    if (typeof L === 'undefined') {
+      document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"><\/script>');
+    }
+  </script>
     
   <!-- Leaflet MarkerCluster JS (Lagt til for yting på mobil) -->
   <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+  <script>
+    if (typeof L !== 'undefined' && typeof L.markerClusterGroup !== 'function') {
+      document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.js"><\/script>');
+    }
+  </script>
 
   <!-- Versjonert URL -->
   <script type="module" src="/js/map.js?v=v1.59.4"></script>

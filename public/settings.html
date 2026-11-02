@@ -331,6 +331,23 @@
           style="padding:10px 16px;border-radius:8px;border:none;background:#3b82f6;color:white;font-size:0.95em;cursor:pointer;">
           🔄 Hent nyeste versjon
         </button>
+        <script>
+          (function() {
+            try {
+              var m = (localStorage.getItem('network_mode_v1') || '').trim().toLowerCase();
+              var o = localStorage.getItem('offline_mode_v1') === '1';
+              if (m === 'offline' || o || (typeof navigator !== 'undefined' && navigator.onLine === false)) {
+                var btn = document.getElementById('force-update-btn');
+                if (btn) {
+                  btn.setAttribute('aria-disabled', 'true');
+                  btn.style.setProperty('background', '#64748b', 'important');
+                  btn.style.setProperty('opacity', '0.5', 'important');
+                  btn.style.setProperty('cursor', 'not-allowed', 'important');
+                }
+              }
+            } catch(e) {}
+          })();
+        </script>
         <div id="update-status" style="display:none;margin-top:8px;padding:10px;border-radius:8px;font-size:0.85em;"></div>
       </div>
 
@@ -385,6 +402,26 @@
           <button type="button" id="clear-offline-confirm-btn"
             style="padding:10px 16px;border-radius:8px;border:none;background:#ef4444;color:white;font-weight:600;font-size:0.95em;cursor:pointer;">
             Ja, slett offline-data
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal ved forsøk på å hente nyeste versjon i offline-modus -->
+    <div id="offline-update-modal" role="dialog" aria-modal="true" aria-labelledby="offline-update-title"
+      style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(2,6,23,0.75);backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:16px;">
+      <div style="background:var(--card-bg,#0f172a);color:var(--text,#e5e7eb);border:1px solid rgba(239,68,68,0.45);border-radius:14px;max-width:420px;width:100%;padding:22px 20px;box-shadow:0 20px 40px rgba(0,0,0,0.45);text-align:center;">
+        <div style="font-size:2.2em;margin-bottom:10px;">⚠️</div>
+        <h3 id="offline-update-title" style="margin:0 0 10px 0;font-size:1.1em;color:#ef4444;font-weight:700;">
+          Du er offline!
+        </h3>
+        <p id="offline-update-text" style="margin:0 0 20px 0;font-size:0.95em;line-height:1.45;color:var(--text,#e5e7eb);">
+          Du er offline! Kan ikke hente nyeste versjon.
+        </p>
+        <div style="display:flex;gap:10px;justify-content:center;">
+          <button type="button" id="offline-update-close-btn"
+            style="padding:10px 24px;border-radius:8px;border:none;background:#3b82f6;color:white;font-weight:600;font-size:0.95em;cursor:pointer;">
+            OK
           </button>
         </div>
       </div>
@@ -977,9 +1014,89 @@
       // Tving fram ny versjon: fjern service worker + cache, hent siden ferskt fra nett
       const forceUpdateBtn = document.getElementById('force-update-btn');
       const updateStatus = document.getElementById('update-status');
+      const offlineUpdateModal = document.getElementById('offline-update-modal');
+      const offlineUpdateCloseBtn = document.getElementById('offline-update-close-btn');
 
-      forceUpdateBtn.addEventListener('click', async () => {
+      function isAppOffline() {
+        const netMode = (localStorage.getItem('network_mode_v1') || '').trim().toLowerCase();
+        if (netMode === 'offline') return true;
+        if (localStorage.getItem('offline_mode_v1') === '1') return true;
+        if (typeof navigator !== 'undefined' && navigator.onLine === false) return true;
+        return false;
+      }
+
+      function openOfflineUpdateModal() {
+        if (!offlineUpdateModal) return;
+        offlineUpdateModal.style.display = 'flex';
+      }
+
+      function closeOfflineUpdateModal() {
+        if (!offlineUpdateModal) return;
+        offlineUpdateModal.style.display = 'none';
+      }
+
+      if (offlineUpdateCloseBtn) {
+        offlineUpdateCloseBtn.addEventListener('click', closeOfflineUpdateModal);
+      }
+      if (offlineUpdateModal) {
+        offlineUpdateModal.addEventListener('click', (e) => {
+          if (e.target === offlineUpdateModal) closeOfflineUpdateModal();
+        });
+      }
+      window.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && offlineUpdateModal && offlineUpdateModal.style.display === 'flex') {
+          closeOfflineUpdateModal();
+        }
+      });
+
+      function updateForceUpdateBtnState() {
+        if (!forceUpdateBtn) return;
+        const offline = isAppOffline();
+        if (offline) {
+          forceUpdateBtn.setAttribute('aria-disabled', 'true');
+          forceUpdateBtn.title = 'Du er offline! Kan ikke hente nyeste versjon.';
+          forceUpdateBtn.style.opacity = '0.5';
+          forceUpdateBtn.style.cursor = 'not-allowed';
+          forceUpdateBtn.style.background = '#64748b';
+        } else {
+          forceUpdateBtn.removeAttribute('aria-disabled');
+          forceUpdateBtn.title = '';
+          forceUpdateBtn.style.opacity = '';
+          forceUpdateBtn.style.cursor = 'pointer';
+          forceUpdateBtn.style.background = '#3b82f6';
+        }
+      }
+
+      window.addEventListener('online', updateForceUpdateBtnState);
+      window.addEventListener('offline', updateForceUpdateBtnState);
+      window.addEventListener('storage', updateForceUpdateBtnState);
+      window.addEventListener('network_mode_changed', updateForceUpdateBtnState);
+      window.addEventListener('offline_mode_changed', updateForceUpdateBtnState);
+      updateForceUpdateBtnState();
+
+      forceUpdateBtn.addEventListener('click', async (e) => {
+        if (isAppOffline()) {
+          e.preventDefault();
+          openOfflineUpdateModal();
+          return;
+        }
+
+        // Før vi sletter noe som helst: sjekk at vi faktisk har kontakt med serveren!
         forceUpdateBtn.disabled = true;
+        forceUpdateBtn.textContent = '⏳ Sjekker nettverk...';
+        try {
+          const ctrl = new AbortController();
+          const tid = setTimeout(() => ctrl.abort(), 3500);
+          const ping = await fetch('/health?_t=' + Date.now(), { cache: 'no-store', signal: ctrl.signal });
+          clearTimeout(tid);
+          if (!ping || !ping.ok) throw new Error('Ingen kontakt med server');
+        } catch (err) {
+          forceUpdateBtn.disabled = false;
+          updateForceUpdateBtnState();
+          openOfflineUpdateModal();
+          return;
+        }
+
         forceUpdateBtn.textContent = '⏳ Henter ny versjon...';
         updateStatus.style.cssText = `display:block;margin-top:8px;padding:10px;border-radius:8px;font-size:0.85em;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.3);color:${_sc('info')};`;
         updateStatus.textContent = '⏳ Rydder mellomlager og henter fersk versjon...';

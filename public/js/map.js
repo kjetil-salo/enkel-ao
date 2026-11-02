@@ -33,6 +33,8 @@ import {
   getAllOfflineLocations,
   getOfflineLocationsInBounds,
   getOfflineStorageStats,
+  getOfflineAreas,
+  deleteOfflineArea,
   syncOfflineAreas,
   clearAllOfflineData,
   syncNetworkModeToServiceWorker,
@@ -94,13 +96,16 @@ if (missingLocationBanner) {
   }
 }
 
-const GEOLOCATION_ZOOM_LEVEL = 15;
-// Første ferske GPS-fiks etter at kartet åpnes sentrerer alltid kartet på brukeren (zoom 15),
+const GEOLOCATION_ZOOM_LEVEL = 18;
+// Første ferske GPS-fiks etter at kartet åpnes sentrerer alltid kartet på brukeren (zoom 18 / 30m målestokk),
 // også når kartet startet på en lagret posisjon. Utsettes hvis brukeren allerede har tatt i kartet.
 let initialGpsZoomDone = false;
 let userHasMovedMap = false;
 
 function initMap(centerPosition) {
+  if (typeof L === 'undefined') {
+    return null;
+  }
   const centerLat = (centerPosition && typeof centerPosition.lat === 'number' && !isNaN(centerPosition.lat)) ? centerPosition.lat : DEFAULT_MAP_CENTER.lat;
   const centerLon = (centerPosition && typeof centerPosition.lon === 'number' && !isNaN(centerPosition.lon)) ? centerPosition.lon : DEFAULT_MAP_CENTER.lon;
   const initialZoom = 15; // Alltid nivå 15 som standard
@@ -406,8 +411,30 @@ function createCachedTileLayer(urlTemplate, options = {}) {
   return new CachedTileLayer(urlTemplate, options);
 }
 
-const map = initMap(userPosition);
-['pointerdown', 'touchstart', 'wheel'].forEach((evt) => {
+function startMapUI() {
+  if (typeof L === 'undefined') {
+    console.warn('Leaflet er ikke tilgjengelig (L is not defined)');
+    const mapEl = document.getElementById('map');
+    if (mapEl) {
+      mapEl.innerHTML = `
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;padding:20px;text-align:center;color:var(--text, #e5e7eb);background:var(--bg, #0f172a);font-family:system-ui,-apple-system,sans-serif;">
+          <div style="font-size:2.5rem;margin-bottom:12px;">🗺️</div>
+          <h2 style="font-size:1.15rem;font-weight:600;margin-bottom:8px;">Kunne ikke laste kartet</h2>
+          <p style="color:var(--muted, #9ca3af);max-width:380px;font-size:0.9rem;line-height:1.4;margin-bottom:16px;">
+            Kartressursene (Leaflet) kunne ikke lastes inn. Sjekk internettforbindelsen og last siden på nytt for å lagre kartet til offline bruk.
+          </p>
+          <button type="button" onclick="window.location.reload()" style="padding:8px 18px;border-radius:8px;background:var(--accent, #3b82f6);color:white;border:none;cursor:pointer;font-size:0.95rem;font-weight:500;">
+            Prøv igjen
+          </button>
+        </div>
+      `;
+    }
+    return;
+  }
+
+  const map = initMap(userPosition);
+  if (!map) return;
+  ['pointerdown', 'touchstart', 'wheel'].forEach((evt) => {
   map.getContainer().addEventListener(evt, () => { userHasMovedMap = true; }, { once: true, passive: true });
 });
 
@@ -415,7 +442,7 @@ const map = initMap(userPosition);
 // zoomer ut de første sekundene — f.eks. gammel cachet kode som tilpasser kartet til alle
 // nedlastede lokaliteter — settes kartet tilbake til nivå 15 så lenge brukeren ikke har rørt det.
 const START_VIEW_GUARD_MS = 5000;
-const startViewGuardUntil = Date.now() + START_VIEW_GUARD_MS;
+let startViewGuardUntil = Date.now() + START_VIEW_GUARD_MS;
 let startViewCenter = [userPosition.lat, userPosition.lon];
 map.on('zoomend', () => {
   if (userHasMovedMap || Date.now() > startViewGuardUntil) return;
@@ -543,7 +570,10 @@ function updateUserPositionOnMap({ lat, lon, accuracy }) {
   }
   userMarker.bindPopup(popupContent);
 
-  if (missingLocationBanner) missingLocationBanner.style.display = 'none';
+  if (missingLocationBanner) {
+    missingLocationBanner.style.display = 'none';
+    updateBannerAndOfflinePanelLayout();
+  }
 
   if (!initialGpsZoomDone) {
     initialGpsZoomDone = true;
@@ -600,6 +630,7 @@ function recenterToGps() {
     if (missingLocationBanner) {
       missingLocationBanner.textContent = 'Geolokasjon støttes ikke på denne enheten';
       missingLocationBanner.style.display = 'block';
+      updateBannerAndOfflinePanelLayout();
     }
     return;
   }
@@ -628,9 +659,11 @@ function recenterToGps() {
       if (missingLocationBanner) {
         missingLocationBanner.textContent = 'Kunne ikke hente fersk posisjon. Sjekk GPS-signal/tillatelse.';
         missingLocationBanner.style.display = 'block';
+        updateBannerAndOfflinePanelLayout();
         setTimeout(() => {
           missingLocationBanner.style.display = isUserPositionAvailable ? 'none' : 'block';
           if (!isUserPositionAvailable) missingLocationBanner.textContent = 'Din posisjon er ikke tilgjengelig';
+          updateBannerAndOfflinePanelLayout();
         }, 4000);
       }
     },
@@ -1137,17 +1170,79 @@ if (createBtn) createBtn.addEventListener('click', async () => {
 
 const toggleOfflineBtn = document.getElementById('toggle-offline-area-btn');
 const toggleOfflineMarkersBtn = document.getElementById('toggle-offline-markers-btn');
+const offlineAreasListBtn = document.getElementById('offline-areas-list-btn');
+if (offlineAreasListBtn) {
+  // Sikre at knappen har listeikon og er skjult ved oppstart (vises kun i områdevalg)
+  offlineAreasListBtn.innerHTML = `
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <line x1="8" y1="6" x2="21" y2="6"></line>
+      <line x1="8" y1="12" x2="21" y2="12"></line>
+      <line x1="8" y1="18" x2="21" y2="18"></line>
+      <line x1="3" y1="6" x2="3.01" y2="6"></line>
+      <line x1="3" y1="12" x2="3.01" y2="12"></line>
+      <line x1="3" y1="18" x2="3.01" y2="18"></line>
+    </svg>
+  `;
+  offlineAreasListBtn.style.display = 'none';
+}
+
+const downloadedAreasModalBackdrop = document.getElementById('downloaded-areas-modal-backdrop');
+const downloadedAreasListEl = document.getElementById('downloaded-areas-list');
+const closeDownloadedAreasBtn = document.getElementById('close-downloaded-areas-btn');
+
+const mapTopProgressEl = document.getElementById('map-top-progress');
+const mapTopProgressBarEl = document.getElementById('map-top-progress-bar');
+const mapTopProgressTextEl = document.getElementById('map-top-progress-text');
+
 const offlinePanel = document.getElementById('offline-area-panel');
 const offlineDimsEl = document.getElementById('offline-area-dims');
 const offlineLimitMsgEl = document.getElementById('offline-area-limit-msg');
 const cancelOfflineBtn = document.getElementById('cancel-offline-area-btn');
 const downloadOfflineBtn = document.getElementById('download-offline-area-btn');
-const offlineAreaPane = map.createPane('offlineAreaPane'); offlineAreaPane.style.zIndex = 620;
-const offlineHandlesPane = map.createPane('offlineHandlesPane'); offlineHandlesPane.style.zIndex = 750;
+
+const offlineOverlayPane = map.createPane('offlineOverlayPane');
+offlineOverlayPane.style.zIndex = 380;
+offlineOverlayPane.style.pointerEvents = 'none';
+
+const offlineAreaPane = map.createPane('offlineAreaPane');
+offlineAreaPane.style.zIndex = 620;
+
+const offlineHandlesPane = map.createPane('offlineHandlesPane');
+offlineHandlesPane.style.zIndex = 750;
 
 let offlineSelectMode = false, showOfflineMarkers = true, currentOfflineBounds = null, offlineRectLayer = null, offlineCenterMarker = null;
+let offlineCheckMarker = null, offlineDarkOverlayLayer = null;
 const offlineCornerMarkers = {};
 let isBoxDragging = false, boxDragStartLatLng = null, boxDragStartCenter = null;
+let isDownloadingArea = false;
+
+/**
+ * Justerer plasseringa slik at offline-panelet og "Din posisjon er ikke tilgjengelig"-banneret
+ * aldri overlappar kvarandre, samtidig som horisontal midtstilling (translateX(-50%)) bevares.
+ */
+function updateBannerAndOfflinePanelLayout() {
+  if (!missingLocationBanner || !offlinePanel) return;
+
+  const isBannerVisible =
+    missingLocationBanner.style.display !== 'none' &&
+    window.getComputedStyle(missingLocationBanner).display !== 'none';
+
+  if (offlineSelectMode && isBannerVisible) {
+    requestAnimationFrame(() => {
+      const bannerRect = missingLocationBanner.getBoundingClientRect();
+      const bannerHeight = bannerRect.height || 40;
+
+      // Flytt kun med translateY (ikkje både margin-bottom og transform, som gav +60px dobbel effekt)
+      // og behold translateX(-50%) slik at boksen held seg midtstilt.
+      const liftPx = Math.max(8, Math.round(bannerHeight + 8));
+      offlinePanel.style.removeProperty('margin-bottom');
+      offlinePanel.style.setProperty('transform', `translate(-50%, -${liftPx}px)`, 'important');
+    });
+  } else {
+    offlinePanel.style.removeProperty('margin-bottom');
+    offlinePanel.style.removeProperty('transform');
+  }
+}
 
 function updateOfflineMarkersVisibility(visible) {
   showOfflineMarkers = visible;
@@ -1186,6 +1281,14 @@ function updateOfflineUI(clamped = false) {
     offlineCenterMarker.setLatLng([(north + south) / 2, (east + west) / 2]);
     const handleEl = offlineCenterMarker.getElement()?.querySelector('.offline-move-handle');
     if (handleEl) handleEl.classList.toggle('is-clamped', clamped);
+  }
+
+  if (offlineCheckMarker) {
+    offlineCheckMarker.setLatLng([north, west]);
+    const checkBtnEl = offlineCheckMarker.getElement()?.querySelector('.offline-check-btn');
+    if (checkBtnEl) {
+      checkBtnEl.classList.toggle('is-offline-blocked', isOfflineMode());
+    }
   }
 
   const { widthM, heightM } = getBoundsDimensionsMeters(currentOfflineBounds);
@@ -1252,14 +1355,139 @@ function stopMapBoxDrag() {
   map.dragging.enable(); map.off('mousemove', onMapBoxDragMove); map.off('mouseup', stopMapBoxDrag);
 }
 
+/**
+ * Slår sammen overlappende rektangler til ikke-overlappende rektangler som dekker nøyaktig
+ * samme område. Nødvendig for det mørke laget: Leaflet tegner polygoner med fill-rule «evenodd»,
+ * så et punkt der to hull overlapper telles to ganger og blir fylt (mørkt) igjen — som om
+ * området ikke var lastet ned.
+ * @param {Array<{south:number, west:number, north:number, east:number}>} rects
+ * @returns {Array<{south:number, west:number, north:number, east:number}>}
+ */
+function unionRectangles(rects) {
+  const xs = [...new Set(rects.flatMap((r) => [r.west, r.east]))].sort((a, b) => a - b);
+  const strips = [];
+
+  // Del kartet i vertikale striper mellom alle kant-koordinatene, og slå sammen y-intervallene
+  // som dekker hver stripe.
+  for (let i = 0; i < xs.length - 1; i++) {
+    const x0 = xs[i];
+    const x1 = xs[i + 1];
+    const intervals = rects
+      .filter((r) => r.west <= x0 && r.east >= x1)
+      .map((r) => [r.south, r.north])
+      .sort((a, b) => a[0] - b[0]);
+    const merged = [];
+    intervals.forEach(([south, north]) => {
+      const last = merged[merged.length - 1];
+      if (last && south <= last[1]) last[1] = Math.max(last[1], north);
+      else merged.push([south, north]);
+    });
+    merged.forEach(([south, north]) => strips.push({ south, west: x0, north, east: x1 }));
+  }
+
+  // Slå sammen nabostriper med identisk y-intervall til ett rektangel (færre hull, færre sømmer)
+  const result = [];
+  strips.forEach((strip) => {
+    const prev = result.find((r) => r.south === strip.south && r.north === strip.north && r.east === strip.west);
+    if (prev) prev.east = strip.east;
+    else result.push({ ...strip });
+  });
+  return result;
+}
+
+async function updateOfflineDarkOverlay() {
+  if (!offlineSelectMode) return;
+  try {
+    const areas = await getOfflineAreas();
+    const worldRing = [
+      [-90, -180],
+      [-90, 180],
+      [90, 180],
+      [90, -180],
+    ];
+    // Overlappende områder må slås sammen, ellers blir overlappen mørk (se unionRectangles)
+    const holes = unionRectangles(
+      (Array.isArray(areas) ? areas : [])
+        .filter((a) => a && a.bounds && typeof a.bounds.south === 'number')
+        .map((a) => a.bounds),
+    )
+      .map((b) => [
+        [b.south, b.west],
+        [b.north, b.west],
+        [b.north, b.east],
+        [b.south, b.east],
+      ]);
+
+    if (offlineDarkOverlayLayer) {
+      map.removeLayer(offlineDarkOverlayLayer);
+      offlineDarkOverlayLayer = null;
+    }
+
+    offlineDarkOverlayLayer = L.polygon([worldRing, ...holes], {
+      pane: 'offlineOverlayPane',
+      color: 'transparent',
+      fillColor: '#0f172a',
+      fillOpacity: 0.45,
+      interactive: false,
+    }).addTo(map);
+  } catch (err) {
+    console.warn('Kunne ikke oppdatere mørkt overlay for offline-områder:', err);
+  }
+}
+
+function createOfflineCheckMarker(latLng) {
+  const marker = L.marker(latLng, {
+    icon: L.divIcon({
+      className: '',
+      html: `
+        <div class="offline-check-hit" title="Last ned dette området">
+          <button type="button" class="offline-check-btn" id="offline-check-download-btn" aria-label="Last ned dette området" title="Last ned dette området">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          </button>
+        </div>
+      `,
+      iconSize: [48, 48],
+      iconAnchor: [56, 24],
+    }),
+    pane: 'offlineHandlesPane',
+    zIndexOffset: 2500,
+  }).addTo(map);
+
+  const checkBtnEl = marker.getElement()?.querySelector('.offline-check-btn');
+  if (checkBtnEl) {
+    checkBtnEl.classList.toggle('is-offline-blocked', isOfflineMode());
+    checkBtnEl.addEventListener('click', (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      startOfflineAreaDownload();
+    });
+    checkBtnEl.addEventListener('touchstart', (e) => {
+      e.stopPropagation();
+    });
+    checkBtnEl.addEventListener('mousedown', (e) => {
+      e.stopPropagation();
+    });
+  }
+
+  return marker;
+}
+
 function enterOfflineSelectMode() {
   if (pinDropMode) exitPinDropMode();
   offlineSelectMode = true;
 
+  // Brukeren har åpnet offline-valg: deaktiver oppstartssikringa
+  userHasMovedMap = true;
+  startViewGuardUntil = 0;
+
   if (toggleOfflineBtn) toggleOfflineBtn.textContent = '✕ Lukk områdevalg';
+  if (offlineAreasListBtn) offlineAreasListBtn.style.display = 'flex';
   if (toggleOfflineMarkersBtn) { toggleOfflineMarkersBtn.style.display = 'flex'; toggleOfflineMarkersBtn.textContent = showOfflineMarkers ? '📍 Skjul lokaliteter' : '📍 Vis lokaliteter'; }
   if (offlinePanel) offlinePanel.style.display = 'block';
   refreshMapOfflineStorageStats();
+  updateBannerAndOfflinePanelLayout();
 
   const center = map.getCenter();
   currentOfflineBounds = createCenteredBounds(center.lat, center.lng, DEFAULT_OFFLINE_AREA_SIDE_M, DEFAULT_OFFLINE_AREA_SIDE_M);
@@ -1277,6 +1505,8 @@ function enterOfflineSelectMode() {
   offlineCornerMarkers.se = createCornerHandleMarker('se', [south, east]);
   offlineCornerMarkers.sw = createCornerHandleMarker('sw', [south, west]);
 
+  offlineCheckMarker = createOfflineCheckMarker([north, west]);
+
   offlineCenterMarker = L.marker([(north + south) / 2, (east + west) / 2], {
     icon: L.divIcon({ className: '', html: '<div class="offline-handle-hit-center" title="Dra midtpunktet for å flytte området"><div class="offline-move-handle">✥</div></div>', iconSize: [56, 56], iconAnchor: [28, 28] }),
     pane: 'offlineHandlesPane', draggable: true, zIndexOffset: 2100,
@@ -1289,19 +1519,26 @@ function enterOfflineSelectMode() {
   attachDirectHandleDrag(offlineCenterMarker, applyCenter, () => updateOfflineUI(false));
 
   updateOfflineUI(false);
-  const panelHeight = offlinePanel ? offlinePanel.offsetHeight || 220 : 220;
-  map.fitBounds(L.latLngBounds([[south, west], [north, east]]).pad(0.35), { paddingTopLeft: [48, 75], paddingBottomRight: [48, panelHeight + 55], animate: true });
+  updateOfflineDarkOverlay();
+
+  // Fast zoom-nivå 11 når offline-område opnast
+  const centerPoint = [(north + south) / 2, (east + west) / 2];
+  map.setView(centerPoint, 11, { animate: true });
 }
 
 function exitOfflineSelectMode() {
   stopMapBoxDrag(); offlineSelectMode = false;
   if (!showOfflineMarkers) updateOfflineMarkersVisibility(true);
   if (toggleOfflineBtn) toggleOfflineBtn.textContent = '📦 Offline-område';
+  if (offlineAreasListBtn) offlineAreasListBtn.style.display = 'none';
   if (toggleOfflineMarkersBtn) toggleOfflineMarkersBtn.style.display = isOfflineMode() ? 'flex' : 'none';
   if (offlinePanel) offlinePanel.style.display = 'none';
+  updateBannerAndOfflinePanelLayout();
 
   if (offlineRectLayer) { map.removeLayer(offlineRectLayer); offlineRectLayer = null; }
   if (offlineCenterMarker) { map.removeLayer(offlineCenterMarker); offlineCenterMarker = null; }
+  if (offlineCheckMarker) { map.removeLayer(offlineCheckMarker); offlineCheckMarker = null; }
+  if (offlineDarkOverlayLayer) { map.removeLayer(offlineDarkOverlayLayer); offlineDarkOverlayLayer = null; }
   Object.keys(offlineCornerMarkers).forEach((key) => {
     if (offlineCornerMarkers[key]) { map.removeLayer(offlineCornerMarkers[key]); delete offlineCornerMarkers[key]; }
   });
@@ -1315,118 +1552,281 @@ if (cancelOfflineBtn) cancelOfflineBtn.addEventListener('click', exitOfflineSele
 const tileDownloadProgressEl = document.getElementById('tile-download-progress');
 const tileDownloadProgressTextEl = document.getElementById('tile-download-progress-text');
 
-function setTileDownloadProgressVisible(visible, text = 'Downloading map tiles...') {
-  if (!tileDownloadProgressEl) return;
-  if (visible) {
-    if (tileDownloadProgressTextEl) tileDownloadProgressTextEl.textContent = text;
-    tileDownloadProgressEl.style.display = 'flex';
-  } else {
-    tileDownloadProgressEl.style.display = 'none';
+function setTileDownloadProgressVisible(visible, text = 'Laster ned kartfliser...', percent = null) {
+  if (mapTopProgressEl) {
+    if (visible) {
+      if (mapTopProgressTextEl) mapTopProgressTextEl.textContent = text;
+      if (mapTopProgressBarEl) {
+        if (percent !== null) {
+          mapTopProgressBarEl.style.width = `${Math.min(100, Math.max(5, Math.round(percent)))}%`;
+        } else {
+          mapTopProgressBarEl.style.width = '30%';
+        }
+      }
+      mapTopProgressEl.style.display = 'flex';
+    } else {
+      mapTopProgressEl.style.display = 'none';
+      if (mapTopProgressBarEl) mapTopProgressBarEl.style.width = '0%';
+    }
+  }
+
+  if (tileDownloadProgressEl) {
+    if (visible) {
+      if (tileDownloadProgressTextEl) tileDownloadProgressTextEl.textContent = text;
+      tileDownloadProgressEl.style.display = 'flex';
+    } else {
+      tileDownloadProgressEl.style.display = 'none';
+    }
   }
 }
 
 const OFFLINE_DOWNLOAD_BLOCKED_MESSAGE = 'Kan ikke laste ned kart. Du er offline!';
 
-/** Offline-modus: gjør nedlastingsknappen grå (men trykkbar, så vi kan forklare hvorfor). */
+/** Offline-modus: gjør nedlastingsknapper grå (men trykkbare, så vi kan forklare hvorfor). */
 function updateDownloadButtonOfflineState() {
-  if (!downloadOfflineBtn) return;
   const blocked = isOfflineMode();
-  downloadOfflineBtn.classList.toggle('is-offline-blocked', blocked);
-  downloadOfflineBtn.setAttribute('aria-disabled', blocked ? 'true' : 'false');
-  downloadOfflineBtn.title = blocked ? OFFLINE_DOWNLOAD_BLOCKED_MESSAGE : '';
+  if (downloadOfflineBtn) {
+    downloadOfflineBtn.classList.toggle('is-offline-blocked', blocked);
+    downloadOfflineBtn.setAttribute('aria-disabled', blocked ? 'true' : 'false');
+    downloadOfflineBtn.title = blocked ? OFFLINE_DOWNLOAD_BLOCKED_MESSAGE : '';
+  }
+  const checkBtnEl = offlineCheckMarker?.getElement()?.querySelector('.offline-check-btn');
+  if (checkBtnEl) {
+    checkBtnEl.classList.toggle('is-offline-blocked', blocked);
+    checkBtnEl.title = blocked ? OFFLINE_DOWNLOAD_BLOCKED_MESSAGE : 'Last ned dette området';
+  }
 }
 updateDownloadButtonOfflineState();
 window.addEventListener('network_mode_changed', updateDownloadButtonOfflineState);
 window.addEventListener('storage', updateDownloadButtonOfflineState);
 
-if (downloadOfflineBtn) {
-  downloadOfflineBtn.addEventListener('click', async () => {
+async function startOfflineAreaDownload() {
+  if (isDownloadingArea) return;
+  if (isOfflineMode()) {
+    openMessageModal(OFFLINE_DOWNLOAD_BLOCKED_MESSAGE);
+    return;
+  }
+  if (!currentOfflineBounds) return;
+  const targetBounds = { ...currentOfflineBounds };
+
+  isDownloadingArea = true;
+  const checkBtnEl = offlineCheckMarker?.getElement()?.querySelector('.offline-check-btn');
+  if (checkBtnEl) checkBtnEl.disabled = true;
+  if (downloadOfflineBtn) {
+    downloadOfflineBtn.disabled = true;
+    downloadOfflineBtn.textContent = 'Laster ned lokaliteter …';
+  }
+  setTileDownloadProgressVisible(true, 'Laster ned lokaliteter …', 10);
+
+  try {
+    const existingOfflineSites = await getOfflineLocationsInBounds(targetBounds).catch(() => []);
+    let sitesInArea = [], savedInfo = null, sitesAlreadyDownloaded = false;
+
     if (isOfflineMode()) {
-      openMessageModal(OFFLINE_DOWNLOAD_BLOCKED_MESSAGE);
+      sitesInArea = existingOfflineSites;
+      sitesAlreadyDownloaded = existingOfflineSites.length > 0;
+      let pubCount = 0, privCount = 0;
+      existingOfflineSites.forEach((s) => { if (isPrivateSite(s) || s.isMine) privCount++; else pubCount++; });
+      savedInfo = { publicCount: pubCount, privateCount: privCount, name: 'Nedlastet område' };
+    } else {
+      let isLoggedIn = hasActiveAoLogin();
+      let fetchedSites = [];
+      try {
+        if (isLoggedIn) isLoggedIn = await ensureAoTokens();
+        fetchedSites = await fetchAoSitesByBounds(targetBounds);
+      } catch (err) { }
+      const fallbackSites = [...existingOfflineSites, ...currentRenderedSites];
+      const showOthersPrivate = shouldShowOthersPrivateSites();
+      const filteredSites = filterSitesForOfflineDownload(fetchedSites, fallbackSites, {
+        isLoggedIn,
+        showOthersPrivate,
+        cachedPrivateSites: isLoggedIn ? getCachedPrivateSites() : [],
+      });
+      sitesInArea = filterSitesInBounds(filteredSites, targetBounds);
+      savedInfo = await saveOfflineAreaLocations(targetBounds, sitesInArea, {
+        showOthersPrivate,
+        allSites: currentRenderedSites,
+      });
+    }
+
+    const activeTemplate = KARTVERKET_TOPO_URL_TEMPLATE;
+    const allTiles = calculateTilesForBounds(targetBounds, OFFLINE_ZOOM_LEVELS, activeTemplate);
+    const totalTilesCount = allTiles.length;
+    let cache = null;
+    if (typeof caches !== 'undefined') {
+      try { cache = await caches.open(MAP_TILE_CACHE_NAME); } catch (_) {}
+    }
+
+    const tilesToDownload = [];
+    if (cache) {
+      for (const t of allTiles) {
+        const tileUrl = typeof t === 'string' ? t : t.url;
+        if (tileUrl) {
+          const inCache = await cache.match(tileUrl);
+          if (!inCache) tilesToDownload.push(t);
+        } else { tilesToDownload.push(t); }
+      }
+    } else {
+      tilesToDownload.push(...allTiles);
+    }
+
+    const tilesAlreadyDownloaded = tilesToDownload.length === 0;
+    let failedCount = 0;
+
+    if (tilesAlreadyDownloaded) {
+      if (downloadOfflineBtn) downloadOfflineBtn.textContent = 'Kartfliser er allerede lagret';
+    } else {
+      setTileDownloadProgressVisible(true, `Laster ned kartfliser... (0/${tilesToDownload.length})`, 25);
+      const result = await downloadTilesInBatches(tilesToDownload, {
+        batchSize: MAX_TILE_BATCH_SIZE,
+        cacheName: MAP_TILE_CACHE_NAME,
+        onProgress: ({ completed, total }) => {
+          const pct = total > 0 ? 25 + (completed / total) * 70 : 50;
+          setTileDownloadProgressVisible(true, `Laster ned kartfliser (${completed}/${total}) …`, pct);
+          if (downloadOfflineBtn) downloadOfflineBtn.textContent = `Laster ned kartfliser (${completed}/${total}) …`;
+        },
+      });
+      failedCount = result.failed || 0;
+    }
+
+    clearFallbackTileMemo();
+    renderSites(sitesInArea, { fitToBounds: false });
+    await refreshMapOfflineStorageStats();
+    await updateOfflineDarkOverlay();
+    openDownloadModal(
+      savedInfo.publicCount,
+      savedInfo.privateCount,
+      sitesAlreadyDownloaded && tilesAlreadyDownloaded,
+      totalTilesCount,
+      failedCount,
+    );
+  } catch (e) {
+    openDownloadModal(0, 0, false, 0, 0);
+  } finally {
+    setTileDownloadProgressVisible(false);
+    isDownloadingArea = false;
+    if (checkBtnEl) checkBtnEl.disabled = false;
+    if (downloadOfflineBtn) {
+      downloadOfflineBtn.disabled = false;
+      downloadOfflineBtn.textContent = 'Last ned område for offline-bruk';
+    }
+  }
+}
+
+if (downloadOfflineBtn) {
+  downloadOfflineBtn.addEventListener('click', startOfflineAreaDownload);
+}
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+async function renderDownloadedAreasList() {
+  if (!downloadedAreasListEl) return;
+  downloadedAreasListEl.innerHTML = '<div style="padding:14px;text-align:center;color:#64748b;font-size:14px;">Laster nedlastede områder …</div>';
+
+  try {
+    const areas = await getOfflineAreas();
+    if (!areas || areas.length === 0) {
+      downloadedAreasListEl.innerHTML = '<div style="padding:24px 12px;text-align:center;color:#64748b;font-size:14px;">Ingen nedlastede områder ennå.</div>';
       return;
     }
-    if (!currentOfflineBounds) return;
-    const targetBounds = { ...currentOfflineBounds };
-    const originalText = downloadOfflineBtn.textContent;
-    downloadOfflineBtn.disabled = true; downloadOfflineBtn.textContent = 'Laster ned lokaliteter …';
-    setTileDownloadProgressVisible(true, 'Downloading map tiles...');
 
-    try {
-      const existingOfflineSites = await getOfflineLocationsInBounds(targetBounds).catch(() => []);
-      let sitesInArea = [], savedInfo = null, sitesAlreadyDownloaded = false;
+    downloadedAreasListEl.innerHTML = '';
+    areas.forEach((area) => {
+      const itemEl = document.createElement('div');
+      itemEl.className = 'downloaded-area-item';
+      itemEl.style.cssText = 'display:flex;align-items:center;justify-content:space-between;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:10px 12px;gap:10px;';
 
-      if (isOfflineMode()) {
-        // Ingen nettverk: bruk det som allerede ligger lagret innenfor rektangelet.
-        sitesInArea = existingOfflineSites; sitesAlreadyDownloaded = existingOfflineSites.length > 0;
-        let pubCount = 0, privCount = 0;
-        existingOfflineSites.forEach((s) => { if (isPrivateSite(s) || s.isMine) privCount++; else pubCount++; });
-        savedInfo = { publicCount: pubCount, privateCount: privCount };
-      } else {
-        // Hent ALLTID alle lokaliteter for hele rektangelet. Tidligere ble henting hoppet over
-        // så snart én lokalitet lå lagret innenfor (f.eks. fra vanlig kartbruk), og resten
-        // av rektangelet ble aldri lastet ned.
-        let isLoggedIn = hasActiveAoLogin();
-        let fetchedSites = [];
-        try {
-          if (isLoggedIn) isLoggedIn = await ensureAoTokens();
-          fetchedSites = await fetchAoSitesByBounds(targetBounds);
-        } catch (err) { }
-        // Mislyktes henting (tom liste): bruk det som er lagret + det som vises på kartet.
-        const fallbackSites = [...existingOfflineSites, ...currentRenderedSites];
-        const showOthersPrivate = shouldShowOthersPrivateSites();
-        const filteredSites = filterSitesForOfflineDownload(fetchedSites, fallbackSites, { isLoggedIn, showOthersPrivate, cachedPrivateSites: isLoggedIn ? getCachedPrivateSites() : [] });
-        sitesInArea = filterSitesInBounds(filteredSites, targetBounds);
-        savedInfo = await saveOfflineAreaLocations(targetBounds, sitesInArea, { showOthersPrivate });
-      }
+      const { widthM, heightM } = getBoundsDimensionsMeters(area.bounds || {});
+      const dimStr = `${formatKm(widthM)} × ${formatKm(heightM)} km`;
+      const count = area.totalCount != null ? area.totalCount : ((area.publicCount || 0) + (area.privateCount || 0));
+      const areaName = area.name || 'Nedlastet område';
 
-      // Tvinger alltid Kartverket Topo for offline-nedlasting
-      const activeTemplate = KARTVERKET_TOPO_URL_TEMPLATE;
+      const infoWrap = document.createElement('div');
+      infoWrap.style.cssText = 'flex:1;cursor:pointer;min-width:0;';
+      infoWrap.setAttribute('role', 'button');
+      infoWrap.setAttribute('tabindex', '0');
+      infoWrap.setAttribute('title', 'Sentrer og juster kartet til dette området');
+      infoWrap.innerHTML = `
+        <div style="font-weight:700;font-size:15px;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(areaName)}</div>
+        <div style="font-size:12px;color:#64748b;margin-top:2px;">ca. ${count} lokaliteter • ${dimStr}</div>
+      `;
 
-      // Beregn KUN for offline zoom nivåer (12 og 15)
-      const allTiles = calculateTilesForBounds(targetBounds, OFFLINE_ZOOM_LEVELS, activeTemplate);
-      const totalTilesCount = allTiles.length;
-      let cache = null;
-      if (typeof caches !== 'undefined') { try { cache = await caches.open(MAP_TILE_CACHE_NAME); } catch (_) {} }
-
-      const tilesToDownload = [];
-      if (cache) {
-        for (const t of allTiles) {
-          const tileUrl = typeof t === 'string' ? t : t.url;
-          if (tileUrl) {
-            const inCache = await cache.match(tileUrl);
-            if (!inCache) tilesToDownload.push(t);
-          } else { tilesToDownload.push(t); }
+      // Eit trykk på eit område sentrerer og justerer zoom for dette området
+      infoWrap.addEventListener('click', () => {
+        if (downloadedAreasModalBackdrop) downloadedAreasModalBackdrop.style.display = 'none';
+        if (area.bounds) {
+          const { north, south, east, west } = area.bounds;
+          map.fitBounds([[south, west], [north, east]], { padding: [30, 30], maxZoom: 15 });
         }
-      } else { tilesToDownload.push(...allTiles); }
+      });
 
-      const tilesAlreadyDownloaded = tilesToDownload.length === 0;
-      let failedCount = 0;
+      // Eit trykk på søppelbøtteikon til høgre for området slettar området frå lokal cache/offline område
+      const deleteBtn = document.createElement('button');
+      deleteBtn.type = 'button';
+      deleteBtn.setAttribute('aria-label', `Slett ${areaName}`);
+      deleteBtn.setAttribute('title', `Slett ${areaName}`);
+      deleteBtn.style.cssText = 'width:38px;height:38px;display:flex;align-items:center;justify-content:center;background:#fee2e2;color:#dc2626;border:1px solid #fecaca;border-radius:6px;cursor:pointer;font-size:16px;flex-shrink:0;';
+      deleteBtn.innerHTML = '🗑️';
 
-      if (tilesAlreadyDownloaded) {
-        downloadOfflineBtn.textContent = 'Kartfliser er allerede lagret';
-      } else {
-        setTileDownloadProgressVisible(true, `Laster ned kartfliser... (0/${tilesToDownload.length})`);
-        const result = await downloadTilesInBatches(tilesToDownload, {
-          batchSize: MAX_TILE_BATCH_SIZE, cacheName: MAP_TILE_CACHE_NAME,
-          onProgress: ({ completed, total }) => {
-            setTileDownloadProgressVisible(true, `Laster ned kartfliser (${completed}/${total}) ...`);
-            downloadOfflineBtn.textContent = `Laster ned kartfliser (${completed}/${total}) …`;
-          },
-        });
-        failedCount = result.failed || 0;
-      }
+      deleteBtn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        deleteBtn.disabled = true;
+        try {
+          await deleteOfflineArea(area.areaId);
+          await renderDownloadedAreasList();
+          await updateOfflineDarkOverlay();
+          await refreshMapOfflineStorageStats();
+          const remaining = await getAllOfflineLocations().catch(() => []);
+          renderSites(remaining, { fitToBounds: false });
+        } catch (err) {
+          console.error('Feil ved sletting av område:', err);
+          deleteBtn.disabled = false;
+        }
+      });
 
-      clearFallbackTileMemo();
-      renderSites(sitesInArea, { fitToBounds: false });
-      await refreshMapOfflineStorageStats();
-      openDownloadModal(savedInfo.publicCount, savedInfo.privateCount, sitesAlreadyDownloaded && tilesAlreadyDownloaded, totalTilesCount, failedCount);
-    } catch (e) {
-      openDownloadModal(0, 0, false, 0, 0);
-    } finally {
-      setTileDownloadProgressVisible(false); downloadOfflineBtn.disabled = false; downloadOfflineBtn.textContent = originalText;
-    }
+      itemEl.appendChild(infoWrap);
+      itemEl.appendChild(deleteBtn);
+      downloadedAreasListEl.appendChild(itemEl);
+    });
+  } catch (err) {
+    downloadedAreasListEl.innerHTML = '<div style="padding:14px;text-align:center;color:#dc2626;font-size:13px;">Kunne ikke laste nedlastede områder.</div>';
+  }
+}
+
+function openDownloadedAreasModal() {
+  if (!downloadedAreasModalBackdrop) return;
+  downloadedAreasModalBackdrop.style.display = 'flex';
+  renderDownloadedAreasList();
+}
+
+function closeDownloadedAreasModal() {
+  if (downloadedAreasModalBackdrop) downloadedAreasModalBackdrop.style.display = 'none';
+}
+
+if (offlineAreasListBtn) {
+  offlineAreasListBtn.addEventListener('click', openDownloadedAreasModal);
+}
+if (closeDownloadedAreasBtn) {
+  closeDownloadedAreasBtn.addEventListener('click', closeDownloadedAreasModal);
+}
+if (downloadedAreasModalBackdrop) {
+  downloadedAreasModalBackdrop.addEventListener('click', (e) => {
+    if (e.target === downloadedAreasModalBackdrop) closeDownloadedAreasModal();
   });
 }
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && downloadedAreasModalBackdrop && downloadedAreasModalBackdrop.style.display === 'flex') {
+    closeDownloadedAreasModal();
+  }
+});
 
 const mapStorageStatsEl = document.getElementById('map-offline-storage-stats');
 const mapSyncOfflineBtn = document.getElementById('map-sync-offline-btn');
@@ -1512,3 +1912,6 @@ if (mapClearConfirmBtn) {
 }
 
 refreshMapOfflineStorageStats();
+}
+
+startMapUI();

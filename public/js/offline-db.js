@@ -13,6 +13,7 @@ import {
   downloadTilesInBatches,
   filterSitesForOfflineDownload,
   dropOthersPrivateSites,
+  determineAreaName,
   OFFLINE_ZOOM_LEVELS,
   MAX_TILE_BATCH_SIZE,
   KARTVERKET_TOPO_URL_TEMPLATE,
@@ -382,8 +383,14 @@ export async function saveOfflineAreaLocations(bounds, sites, options = {}) {
     };
   });
 
+  const areaName =
+    typeof options.name === 'string' && options.name.trim()
+      ? options.name.trim()
+      : determineAreaName(validSites, options.allSites || []);
+
   const areaRecord = {
     areaId,
+    name: areaName,
     bounds: { ...normalizedBounds },
     publicCount,
     privateCount,
@@ -436,6 +443,7 @@ export async function saveOfflineAreaLocations(bounds, sites, options = {}) {
 
   return {
     areaId,
+    name: areaName,
     bounds: normalizedBounds,
     savedCount: records.length,
     publicCount,
@@ -742,6 +750,65 @@ export async function getOfflineAreas() {
     if (records.length > 0) return records;
   }
   return Array.from(memoryFallback.areas.values());
+}
+
+/**
+ * Slett et spesifikt nedlastet offline-område og tilhørende lokaliteter.
+ * @param {string} areaId
+ * @returns {Promise<{ deleted: boolean }>}
+ */
+export async function deleteOfflineArea(areaId) {
+  if (!areaId) return { deleted: false };
+  const strId = String(areaId);
+
+  // Fjern fra memory fallback
+  memoryFallback.areas.delete(strId);
+  for (const [k, v] of memoryFallback.locations.entries()) {
+    if (v && v.areaId === strId) {
+      memoryFallback.locations.delete(k);
+    }
+  }
+
+  const db = await openOfflineDb().catch(() => null);
+  if (db) {
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction([OFFLINE_AREAS_STORE, OFFLINE_LOCATIONS_STORE], 'readwrite');
+      const areasStore = tx.objectStore(OFFLINE_AREAS_STORE);
+      const locationsStore = tx.objectStore(OFFLINE_LOCATIONS_STORE);
+
+      areasStore.delete(strId);
+
+      try {
+        if (typeof IDBKeyRange !== 'undefined' && typeof locationsStore.delete === 'function') {
+          locationsStore.delete(IDBKeyRange.bound(`${strId}::`, `${strId}::\uffff`));
+        } else {
+          const req = locationsStore.getAll();
+          req.onsuccess = () => {
+            const list = Array.isArray(req.result) ? req.result : [];
+            list.forEach((rec) => {
+              if (rec && rec.areaId === strId) {
+                locationsStore.delete(rec.key);
+              }
+            });
+          };
+        }
+      } catch {
+        // Ignorer slettefeil for enkeltoppføringer
+      }
+
+      tx.oncomplete = () => {
+        db.close();
+        resolve();
+      };
+      tx.onerror = () => {
+        const err = tx.error;
+        db.close();
+        reject(err || new Error('Kunne ikke slette område fra IndexedDB'));
+      };
+    }).catch(() => {});
+  }
+
+  return { deleted: true };
 }
 
 /**

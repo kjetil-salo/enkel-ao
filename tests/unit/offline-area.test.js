@@ -23,6 +23,7 @@ import {
   latLonToTileXY,
   moveBoundsToCenter,
   resizeBoundsFromCorner,
+  determineAreaName,
 } from '../../public/js/offline-area.js';
 
 describe('offline-area bounding box helpers', () => {

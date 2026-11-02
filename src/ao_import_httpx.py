@@ -781,16 +781,14 @@ def post_with_curl(observations, login_token=None, auth_cookie=None, area_id='',
     else:
         queue_size = max(200, pre_existing_count + len(observations) + 20)
 
-    # Observasjoner får en unik markør i privat kommentar (kun synlig for reporter selv på
-    # AO), slik at vi etterpå kan koble raden i gjennomgangskøen til riktig lokal
-    # observasjon — se `_upload_pending_images`, `_resolve_temp_ids_for_publish` og
-    # `docs/bilde-opplasting-plan.md`. Bilde-observasjoner får den uansett (trengs til
-    # bildeopplasting); øvrige får den kun når scoped publisering faktisk trengs, slik at
-    # det store flertallet av sendinger aldri får en markør i privat kommentar i det hele
-    # tatt.
+    # Kun observasjoner med vedlagt bilde får en unik markør i privat kommentar (slik at
+    # bildet kan matches mot riktig rad i gjennomgangskøen hos AO). Observasjoner uten
+    # bilde skal aldri få denne private kommentaren.
     for obs in observations:
-        if obs.get('photo') or needs_scoped_publish:
+        if obs.get('photo'):
             obs['_importMarker'] = f'#imp-{secrets.token_hex(4)}'
+        else:
+            obs.pop('_importMarker', None)
 
     csv_data = observations_to_csv(observations)
     logger.debug(f'[AO-HTTPX] CSV length: {len(csv_data)}')
@@ -881,9 +879,10 @@ def post_with_curl(observations, login_token=None, auth_cookie=None, area_id='',
     # Steg 2c: slå opp TemporarySightingId for hele batchen når publiseringen må
     # begrenses (se merknaden ved needs_scoped_publish over). Umatchede observasjoner
     # publiseres ikke — fail-safe heller enn å risikere å dra med andres ventende funn.
+    # Scoped publisering kan kun brukes hvis ALLE observasjoner har markør (dvs. alle har bilde).
     temp_sighting_ids = None
     unmatched_for_publish = []
-    if needs_scoped_publish:
+    if needs_scoped_publish and observations and all(obs.get('_importMarker') for obs in observations):
         temp_sighting_ids, unmatched_for_publish = _resolve_temp_ids_for_publish(observations, rows or [])
         if not temp_sighting_ids:
             logger.error('[AO-HTTPX] Fant ingen av observasjonene igjen i gjennomgangskøen — avbryter uten å publisere')
@@ -912,7 +911,7 @@ def post_with_curl(observations, login_token=None, auth_cookie=None, area_id='',
         # ikke verifisert mot AO, se docs/ao-publish-selective-capture.md. Et forsøk som
         # gjenbruker en ID fra for 5-15 sekunder siden kan i verste fall treffe en rad
         # som ikke lenger finnes, uten at det gir et synlig unntak.
-        if needs_scoped_publish and attempt > 1:
+        if needs_scoped_publish and temp_sighting_ids is not None and attempt > 1:
             fresh_rows = review_queue_rows(login_token, auth_cookie, size=queue_size) or []
             temp_sighting_ids, unmatched_for_publish = _resolve_temp_ids_for_publish(observations, fresh_rows)
             if not temp_sighting_ids:
