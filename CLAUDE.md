@@ -454,6 +454,48 @@ Pure ES6 modules with no framework:
 - `map.js` — Kartvisning (Leaflet) med brukerposisjon, AO-lokaliteter og pin-drop for ny lokasjon
   - Kartlag: OpenStreetMap (standard), Kartverket Topo, Kartverket Gråtone — velges via `L.control.layers` nederst til venstre
   - Kartverket-tiles er gratis WMTS uten nøkkel (`cache.kartverket.no/v1/wmts/1.0.0/{topo|topograatone}/...`)
+  - **Tre-trinns visningsknapp** (`toggle-labels-btn`, v1.59.10): Alt → Skjul navn →
+    Skjul alt → Alt. Tilstandsmaskinen er ren og ligger i `public/js/kart-visning.js`
+    (`nesteVisning`/`knappetekst`/`visNavn`/`visLokaliteter`), dekket av
+    `tests/unit/kart-visning.test.js`; map.js eier bare koblingen mot Leaflet-lagene
+    - Bakgrunn: på steder med svært mange lokaliteter tett i tett (Lista) dekket
+      markørpinnene kartet helt, og den gamle to-tilstands-knappen hjalp ikke — den
+      lukket bare tooltipene. Brukeren fikk ikke zoomet inn for å finne lokaliteten han
+      skulle etterregistrere på (feltmelding 03.11.2026). Ble tre trinn på SAMME knapp
+      og ikke en ny knapp ved siden av, fordi første trykk da gjør nøyaktig det samme
+      som før — ingen må lære om
+    - «Skjul alt» tar hele `siteLayerGroup` av kartet med ett grep. Lag som
+      panorer-oppdateringen legger inn i en gruppe som ikke er på kartet, havner heller
+      ikke på kartet, så en henting kan ikke smette lokaliteter inn igjen bak ryggen på
+      brukeren — ingen egen bokføring nødvendig
+    - **`anvendVisning()` setter tooltip-tilstanden ETTER at gruppa er lagt tilbake på
+      kartet**: Leaflet åpner en permanent tooltip på nytt av seg selv når laget legges
+      til. Med motsatt rekkefølge ville et hopp fra «skjul alt» tilbake til
+      navn-av-tilstanden fått navnene til å dukke opp uoppfordret
+    - **`'ingen'` lagres ALDRI** (`tilLagretVerdi()` svarer `null`) — den er et
+      zoom-hjelpemiddel, ikke en innstilling. Åpnet kartet seg tomt neste gang, ville det
+      lest som at appen var i stuss. `lesLagretVisning()` er bakoverkompatibel med den
+      gamle `mapShowLabels_v1`-verdien `'0'`, så ingen mister valget sitt
+    - Markører brukeren selv har laget med pin-drop i økten (`labelMarkers`) blir
+      stående gjennom «skjul alt» — de er svaret på en handling han nettopp gjorde, og
+      forsvant de ville en vellykket opprettelse sett ut som en feilet
+    - Info-boksen beholder antallet, men merkes «(skjult)» (`#site-hidden-note`) — et
+      tomt kart med «12 lokaliteter» ved siden av ville lest som en feil
+    - **`anvendVisning()` løfter polygonene over radius-sirklene PÅ NYTT** hver gang
+      gruppa legges tilbake (`sistePolygonLag`), ikke bare i `renderSites()`:
+      `map.removeLayer()` river SVG-elementene ut av DOM-en, og `addTo(map)` legger dem
+      tilbake i gruppas innsettingsrekkefølge — altså nøyaktig den tegnerekkefølgen
+      `bringToFront()` fins for å overstyre. Uten dette falt polygonet bak sirkelen etter
+      en tur innom «skjul alt», og feltrapporten 01.10.2026 var tilbake. Samme kall dekker
+      at `bringToFront()` er et stille no-op på lag tegnet mens gruppa var av kartet
+    - Knappens `title` settes fra `knappetittel(visning)` sammen med teksten — en fast
+      tittel lovet det motsatte av trykket i «skjul alt»-tilstanden (hover på PC)
+    - Akseptert: `renderSites()` bygger fortsatt alle lagene ved panorering i skjult
+      tilstand, selv om ingen av dem kan vises. Bortkastet arbeid i noen sekunder, men en
+      lat tegning ville krevd et eget mellomlager for siste hentede liste — ikke verdt
+      risikoen for en knapp man står i kort
+    - `public/js/kart-visning.js` ligger bevisst IKKE i `STATIC_ASSETS` i `sw.js`:
+      `map.js` og `map.html` er ikke precachet der fra før, og kartsiden krever nett uansett
   - **Panorer-og-oppdater** (v1.53.15, radius+cache v1.53.19, fast radius v1.53.22):
     `map.on('moveend', ...)` henter nye lokaliteter for kartets NYE senter når brukeren panorerer.
     Radius er `AUTO_FETCH_RADIUS_M = max(3000, sizeMeters)` — en FAST verdi uansett zoom-nivå, ikke

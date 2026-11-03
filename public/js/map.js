@@ -20,6 +20,17 @@ import { createAoSite, ensureAoTokens, fetchAoSitesCached } from './api.js?v=v1.
 // map.html sin egen ?v=-tag, hver gang location.js endres.
 import { mergeAoSitesWithPrivateCache, isPrivateSite } from './location.js?v=v1.53.16';
 import { haversine } from './utils.js';
+// Versjonert import: HARD avhengighet til navngitte eksporter i en modul som
+// er ny i v1.59.10. Samme begrunnelse som location.js-importen over.
+import {
+  knappetekst,
+  knappetittel,
+  lesLagretVisning,
+  nesteVisning,
+  tilLagretVerdi,
+  visLokaliteter,
+  visNavn,
+} from './kart-visning.js?v=v1.59.10';
 
 // Hent data fra localStorage
 const mapData = localStorage.getItem('mapData');
@@ -77,40 +88,125 @@ L.control.layers({
   'Kartverket Gråtone': kartverketGrayscaleLayer
 }, null, { position: 'bottomleft', collapsed: true }).addTo(map);
 
-// Vis/skjul navn på lokalitetene — permanente tooltips kan forkludre kartet
-// når det er mange lokaliteter tett i tett. Husket per enhet.
-// Default PÅ: viderefører dagens oppførsel for de fleste. Den som synes
-// navnene er i veien skrur dem av med ett trykk, og valget huskes til neste
-// gang kartet åpnes.
+// Hvor mye av lokalitetene kartet viser — tre trinn på én knapp:
+// Alt → Skjul navn → Skjul alt → Alt. Se public/js/kart-visning.js for
+// tilstandsmaskinen og hvorfor det ble tre trinn og ikke to knapper.
+//
+// Første trykk gjør nøyaktig det samme som den gamle to-tilstands-knappen,
+// så valget er bakoverkompatibelt både i oppførsel og i localStorage.
 const SHOW_LABELS_KEY = 'mapShowLabels_v1';
-let showLabels = localStorage.getItem(SHOW_LABELS_KEY) !== '0';
+let visning = lesLagretVisning(localStorage.getItem(SHOW_LABELS_KEY));
 // Manuelt opprettede lokasjoner (pin-drop, se addNewSiteMarker) — disse ligger
 // utenfor siteLayerGroup og overlever derfor en panorer-oppdatering uendret.
+// De blir også stående gjennom «skjul alt»: en markør brukeren nettopp har
+// laget er svaret på en handling han gjorde, og forsvant den med resten ville
+// en vellykket opprettelse sett ut som en feilet. De er dessuten én-to per
+// økt, altså ikke en del av det rotet knappen finnes for å rydde unna. Bare
+// navnet deres følger navn-trinnet.
 const labelMarkers = [];
 // Hentede AO-lokaliteter — bygges på nytt for hvert kall til renderSites().
 const siteLabelMarkers = [];
+// Siste antall tegnede lokaliteter — lar anvendVisning() oppdatere info-boksen
+// uten å måtte tegne kartet på nytt.
+let sisteSiteCount = 0;
+// Polygonlagene fra siste tegning. Må leve på modulnivå fordi rekkefølgen
+// deres må gjenopprettes HVER gang laggruppa legges tilbake på kartet, ikke
+// bare når den tegnes — se anvendVisning().
+let sistePolygonLag = [];
 
 const toggleLabelsBtn = document.getElementById('toggle-labels-btn');
-function updateToggleLabelsBtnText() {
-  if (!toggleLabelsBtn) return;
-  toggleLabelsBtn.textContent = showLabels ? '🏷️ Skjul navn' : '🏷️ Vis navn';
-}
-function setShowLabels(value) {
-  showLabels = value;
-  try {
-    localStorage.setItem(SHOW_LABELS_KEY, value ? '1' : '0');
-  } catch (e) {
-    // Ikke kritisk om preferansen ikke lar seg lagre
+
+/**
+ * Tegn kartet slik gjeldende visning sier. Kalles både ved trykk på knappen
+ * og etter hver renderSites(), så en panorer-oppdatering ikke smetter inn
+ * lokaliteter brukeren har valgt å skjule.
+ */
+function anvendVisning() {
+  const lokaliteterSynlige = visLokaliteter(visning);
+
+  // Hele laggruppa av/på kartet med ett grep. Legges nye lag inn i en gruppe
+  // som IKKE er på kartet (f.eks. fra en panorer-oppdatering), havner de
+  // heller ikke på kartet — derfor trengs ingen egen bokføring for det
+  // tilfellet, og en skjult panorering kan ikke smette lokaliteter inn igjen.
+  if (lokaliteterSynlige) {
+    if (!map.hasLayer(siteLayerGroup)) siteLayerGroup.addTo(map);
+  } else if (map.hasLayer(siteLayerGroup)) {
+    map.removeLayer(siteLayerGroup);
   }
+
+  // Tooltip-tilstanden MÅ settes ETTER at lagene er lagt tilbake på kartet:
+  // Leaflet åpner en permanent tooltip på nytt av seg selv når laget legges
+  // til. Uten denne rekkefølgen ville et hopp fra «skjul alt» rett tilbake
+  // til navn-av-tilstanden fått navnene til å dukke opp igjen uoppfordret.
+  const navnSynlige = visNavn(visning);
   [...labelMarkers, ...siteLabelMarkers].forEach((marker) => {
-    if (value) marker.openTooltip();
+    if (navnSynlige) marker.openTooltip();
     else marker.closeTooltip();
   });
-  updateToggleLabelsBtnText();
+
+  // Løft polygonene over eventuelle overlappende radius-sirkler PÅ NYTT. Må
+  // skje her, ikke bare i renderSites(), av to grunner:
+  //   1. `map.removeLayer(siteLayerGroup)` river SVG-elementene ut av DOM-en,
+  //      og `addTo(map)` legger dem tilbake i gruppas egen innsettings-
+  //      rekkefølge — altså nøyaktig den tegnerekkefølgen bringToFront() fins
+  //      for å overstyre. Uten dette falt polygonet bak sirkelen etter en tur
+  //      innom «skjul alt», og brukeren fant ikke noe sted å trykke for å
+  //      velge det (samme symptom som feltrapporten 01.10.2026).
+  //   2. Tegnes det nye lag mens gruppa er av kartet (panorering i skjult
+  //      tilstand), er `bringToFront()` den gang et stille no-op — Leaflet
+  //      krever at laget har en renderer, og den får det først ved `add`.
+  // bringToFront() på et lag som ikke er på kartet er ufarlig (no-op), så
+  // dette kan kalles ubetinget.
+  sistePolygonLag.forEach((polygon) => polygon.bringToFront());
+
+  oppdaterInfoBoks();
+  if (toggleLabelsBtn) {
+    toggleLabelsBtn.textContent = knappetekst(visning);
+    // Tittelen må følge teksten: i «skjul alt»-tilstanden VISER neste trykk
+    // alt, og en fast tittel ville lovet det motsatte ved hover på PC.
+    toggleLabelsBtn.title = knappetittel(visning);
+  }
 }
+
+/**
+ * Info-boksen nede til høyre. Viser antallet selv når lokalitetene er skjult,
+ * men merket «(skjult)» — ellers ville et tomt kart med «12 lokaliteter» ved
+ * siden av lest som en feil.
+ */
+function oppdaterInfoBoks() {
+  const infoBox = document.getElementById('info-box');
+  const siteCountEl = document.getElementById('site-count');
+  const hiddenNoteEl = document.getElementById('site-hidden-note');
+  if (!infoBox || !siteCountEl) return;
+  if (sisteSiteCount > 0) {
+    siteCountEl.textContent = sisteSiteCount;
+    infoBox.style.display = 'block';
+  } else {
+    infoBox.style.display = 'none';
+  }
+  if (hiddenNoteEl) {
+    hiddenNoteEl.textContent = visLokaliteter(visning) ? '' : ' (skjult)';
+  }
+}
+
+function setVisning(nyVisning) {
+  visning = nyVisning;
+  const lagretVerdi = tilLagretVerdi(visning);
+  // null = «ikke en innstilling» (gjelder 'ingen'). Da står den forrige,
+  // lagrede preferansen urørt, og kartet åpner ikke tomt neste gang.
+  if (lagretVerdi !== null) {
+    try {
+      localStorage.setItem(SHOW_LABELS_KEY, lagretVerdi);
+    } catch (e) {
+      // Ikke kritisk om preferansen ikke lar seg lagre
+    }
+  }
+  anvendVisning();
+}
+
 if (toggleLabelsBtn) {
-  updateToggleLabelsBtnText();
-  toggleLabelsBtn.addEventListener('click', () => setShowLabels(!showLabels));
+  toggleLabelsBtn.textContent = knappetekst(visning);
+  toggleLabelsBtn.addEventListener('click', () => setVisning(nesteVisning(visning)));
 }
 
 // Marker for brukerens posisjon. Hvit kant for kontrast mot både lyse og
@@ -157,6 +253,9 @@ const manuallyPlacedSiteIds = new Set();
 function renderSites(sitesToRender, { fitToBounds = false } = {}) {
   siteLayerGroup.clearLayers();
   siteLabelMarkers.length = 0;
+  // Nullstilles sammen med resten: står det igjen lag fra forrige tegning her,
+  // ville anvendVisning() prøvd å løfte lag som allerede er ryddet bort.
+  sistePolygonLag = [];
 
   // Legg til alle markers i en bounds for auto-zoom
   const bounds = L.latLngBounds([[userPosition.lat, userPosition.lon]]);
@@ -273,7 +372,7 @@ function renderSites(sitesToRender, { fitToBounds = false } = {}) {
         fillOpacity: 0.15
       }).addTo(siteLayerGroup).bindPopup(popupHtml);
       polygon.on('click', () => {
-        if (showLabels) selectLocation(site.name || 'Ukjent lokalitet', site.id ?? null);
+        if (visNavn(visning)) selectLocation(site.name || 'Ukjent lokalitet', site.id ?? null);
       });
       polygonLayers.push(polygon);
     }
@@ -295,7 +394,7 @@ function renderSites(sitesToRender, { fitToBounds = false } = {}) {
           dashArray: '5 5'
         }).addTo(siteLayerGroup).bindPopup(popupHtml);
         radiusCircle.on('click', () => {
-          if (showLabels) selectLocation(site.name || 'Ukjent lokalitet', site.id ?? null);
+          if (visNavn(visning)) selectLocation(site.name || 'Ukjent lokalitet', site.id ?? null);
         });
       }
     }
@@ -325,13 +424,13 @@ function renderSites(sitesToRender, { fitToBounds = false } = {}) {
       className: tooltipClasses.join(' '),
       offset: [0, -35]
     });
-    if (!showLabels) marker.closeTooltip();
+    if (!visNavn(visning)) marker.closeTooltip();
     siteLabelMarkers.push(marker);
 
     // Samme logikk som polygonet over: navn synlig → velg direkte, navn
     // skrudd av → popup med bekreftelse (Leaflets standard popup-på-klikk).
     marker.on('click', () => {
-      if (showLabels) selectLocation(siteName, site.id ?? null);
+      if (visNavn(visning)) selectLocation(siteName, site.id ?? null);
     });
 
     // Legg til i bounds
@@ -354,14 +453,18 @@ function renderSites(sitesToRender, { fitToBounds = false } = {}) {
       ).addTo(siteLayerGroup);
     });
 
-    // Løft polygoner over eventuelle overlappende radius-sirkler. Uten dette
-    // avgjør kun tegnerekkefølgen (vilkårlig — samme rekkefølge som
+    // Polygoner skal løftes over eventuelle overlappende radius-sirkler. Uten
+    // det avgjør kun tegnerekkefølgen (vilkårlig — samme rekkefølge som
     // sitesToRender) hvilket lag som fanger klikket der en punktlokalitets
     // sirkel dekker en polygonlokalitet, og brukeren kan oppleve å ikke
     // finne noe sted å trykke for å velge polygonet (rapportert i felt,
     // 2026-10-01). Polygongrenser er en mer presis representasjon av
     // lokaliteten enn en sirkel, så de skal alltid vinne i overlapp.
-    polygonLayers.forEach(polygon => polygon.bringToFront());
+    //
+    // Selve løftingen gjøres av anvendVisning() nedenfor, som kalles på
+    // slutten av denne funksjonen OG hver gang laggruppa legges tilbake på
+    // kartet — se begrunnelsen der.
+    sistePolygonLag = polygonLayers;
   }
 
   // Zoom kartet til å vise alle markers (kun ved første last — en
@@ -374,18 +477,12 @@ function renderSites(sitesToRender, { fitToBounds = false } = {}) {
     map.fitBounds(bounds, { padding: [50, 50], animate: false });
   }
 
-  // Oppdater info-boksen — vis/skjul basert på om det faktisk er noe å vise
-  // i det nåværende utsnittet (viktig etter panorering til et tomt område)
-  const infoBox = document.getElementById('info-box');
-  const siteCountEl = document.getElementById('site-count');
-  if (infoBox && siteCountEl) {
-    if (siteCount > 0) {
-      siteCountEl.textContent = siteCount;
-      infoBox.style.display = 'block';
-    } else {
-      infoBox.style.display = 'none';
-    }
-  }
+  // Håndhev gjeldende visning på det nylig tegnede: lagene over ble lagt inn
+  // i siteLayerGroup uten hensyn til om brukeren har skjult navn eller alt.
+  // Dette oppdaterer også info-boksen — vist/skjult etter om det faktisk er
+  // noe i det nåværende utsnittet (viktig etter panorering til et tomt område).
+  sisteSiteCount = siteCount;
+  anvendVisning();
 
   return siteCount;
 }
@@ -702,7 +799,7 @@ function addNewSiteMarker(name, lat, lon, siteId) {
     className: 'site-label mine-label',
     offset: [0, -35]
   });
-  if (!showLabels) marker.closeTooltip();
+  if (!visNavn(visning)) marker.closeTooltip();
   labelMarkers.push(marker);
   marker.bindPopup(`<strong>★ ${name}</strong><br><em>Nettopp opprettet</em>`);
 }

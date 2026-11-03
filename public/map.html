@@ -289,13 +289,16 @@
 <body>
   <script src="/js/theme.js"></script>
   <a href="/" class="back-btn">← Tilbake</a>
-  <button type="button" class="back-btn" id="toggle-labels-btn" style="top:76px;right:10px;left:auto;" title="Vis eller skjul navn på lokaliteter">🏷️ Skjul navn</button>
+  <!-- Tre trinn: Alt → Skjul navn → Skjul alt → Alt. Teksten settes av
+       map.js (knappetekst() i kart-visning.js) og beskriver hva NESTE trykk
+       gjør; verdien her er bare det første trinnet før JS har kjørt. -->
+  <button type="button" class="back-btn" id="toggle-labels-btn" style="top:76px;right:10px;left:auto;" title="Trykk for å skjule navn, så alle lokaliteter — nyttig for å zoome inn der det er tett">🏷️ Skjul navn</button>
 
   <div id="map"></div>
 
   <div class="info-box" id="info-box" style="display: none;">
     <strong>Lokaliteter:</strong>
-    <span id="site-count">0</span> offentlige lokaliteter
+    <span id="site-count">0</span> offentlige lokaliteter<span id="site-hidden-note"></span>
   </div>
 
   <!-- Ny lokasjon: FAB, hint og avbryt -->
@@ -333,6 +336,6 @@
        egen HTTP-cache holde fast på en utdatert map.js i opptil 4 timer etter deploy,
        selv om siden lastes på nytt — helt til noe endrer selve URL-en. Samme mønster
        som main.js i index.html. -->
-  <script type="module" src="/js/map.js?v=v1.53.39"></script>
+  <script type="module" src="/js/map.js?v=v1.59.10"></script>
 </body>
 </html>
