@@ -693,6 +693,72 @@ def test_post_with_curl_scoped_publish_when_queue_not_empty(monkeypatch):
     assert sorted(published_with['ids']) == ['111', '222']
 
 
+def test_post_with_curl_scoped_publish_without_photos(monkeypatch):
+    """
+    Når observasjonene IKKE har bilder, men det ligger funn til gjennomgang fra før,
+    skal ALLE observasjonene likevel få markør og publiseres selektivt med
+    TemporarySightingId — aldri falle tilbake til PublishAll.
+    """
+    monkeypatch.setattr('src.ao_import_httpx.fetch_csrf_tokens',
+                        lambda lt, ac: ('FORM123', 'COOKIE456', None))
+
+    mock_response = Mock()
+    mock_response.text = '<html>OK</html>'
+    mock_response.status_code = 200
+    mock_client = Mock()
+    mock_client.__enter__ = Mock(return_value=mock_client)
+    mock_client.__exit__ = Mock(return_value=None)
+    mock_client.post = Mock(return_value=mock_response)
+    monkeypatch.setattr('httpx.Client', lambda: mock_client)
+    monkeypatch.setattr('time.sleep', lambda x: None)
+
+    # 1 pre-eksisterende funn til gjennomgang hos AO
+    submitted_calls = {'n': 0}
+    def fake_submitted(lt, ac):
+        submitted_calls['n'] += 1
+        return 1 if submitted_calls['n'] == 1 else 3
+
+    monkeypatch.setattr('src.ao_import_httpx.number_of_sightings_submitted', fake_submitted)
+
+    # Observasjoner UTEN bilder
+    observations = [
+        {'species': {'taxonName': 'Gråtrost'}, 'count': '1', 'timestamp': '2024-01-15T14:00:00Z', 'placeName': 'Oslo'},
+        {'species': {'taxonName': 'Kjøttmeis'}, 'count': '2', 'timestamp': '2024-01-15T14:00:00Z', 'placeName': 'Oslo'},
+    ]
+
+    _FREMMED = {'TemporarySightingId': 999, 'PrivateCommentLong': 'ligger til gjennomgang fra før'}
+    state = {'published': False}
+
+    def fake_review_rows(lt, ac, size=200):
+        if state['published']:
+            return [_FREMMED]
+        return [
+            _FREMMED,
+            {'TemporarySightingId': 111, 'PrivateCommentLong': observations[0].get('_importMarker', '')},
+            {'TemporarySightingId': 222, 'PrivateCommentLong': observations[1].get('_importMarker', '')},
+        ]
+
+    monkeypatch.setattr('src.ao_import_httpx.review_queue_rows', fake_review_rows)
+
+    published_with = {}
+    def fake_publish_all(lt, ac, temp_sighting_ids=None):
+        published_with['ids'] = temp_sighting_ids
+        state['published'] = True
+        return {'status': 200}
+
+    monkeypatch.setattr('src.ao_import_httpx.publish_all', fake_publish_all)
+
+    result = post_with_curl(observations, 'LOGIN123', 'AUTH456')
+
+    assert result['success'] is True
+    assert result['count'] == 2
+    # Begge observasjonene skal ha fått _importMarker selv om de ikke har foto
+    assert observations[0].get('_importMarker', '').startswith('#imp-')
+    assert observations[1].get('_importMarker', '').startswith('#imp-')
+    # Kun våre to temp-ID-er ble publisert — fremmed funn ble aldri publisert
+    assert sorted(published_with['ids']) == ['111', '222']
+
+
 def test_post_with_curl_scoped_publish_aborts_when_nothing_matches(monkeypatch):
     """
     Hvis INGEN av observasjonene finnes igjen i gjennomgangskøen etter import, skal

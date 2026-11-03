@@ -49,4 +49,17 @@ describe('Map features: default OSM, dynamic attribution, zoom 18, and GPS recen
     expect(mapJs).toContain("document.getElementById('gps-recenter-btn')");
     expect(mapJs).toContain("gpsRecenterBtn.addEventListener('click'");
   });
+
+  it('5. har robust vis/skjul navn med CSS-klasse og tvungen lukking ved zoom/klynging', () => {
+    // map.html skal ha CSS-regel som skjuler .site-label når .map-hide-labels er aktiv
+    expect(mapHtml).toContain('#map.map-hide-labels .site-label');
+    expect(mapHtml).toContain('display: none !important;');
+
+    // map.js skal håndtere DOM-klasse og håndheve lukking ved zoom og animasjoner
+    expect(mapJs).toContain('applyLabelsVisibilityDom');
+    expect(mapJs).toContain('enforceLabelsVisibility');
+    expect(mapJs).toContain("marker.on('add', () => { if (!showLabels) marker.closeTooltip(); });");
+    expect(mapJs).toContain("map.on('zoomend', enforceLabelsVisibility);");
+  });
 });
+

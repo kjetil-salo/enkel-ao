@@ -354,10 +354,29 @@ export async function handleDirectSend(observations, dom, callbacks) {
     const decoder = new TextDecoder();
     let buffer = '';
     let importResult = null;
+    let streamDone = false;
 
-    while (true) {
-      const { done, value } = await reader.read();
+    while (!streamDone) {
+      let readResult;
+      try {
+        readResult = await reader.read();
+      } catch (streamErr) {
+        // Firefox på Mac (og enkelte proxyer) kaster "TypeError: Error in input stream"
+        // når socketen lukkes fra serversiden. Dersom vi allerede har mottatt et
+        // vellykket resultat (eller 'done'-hendelsen ligger klar i bufferen),
+        // skal dette ikke feile sendingen eller hindre tømming av listen.
+        if (importResult && importResult.success) {
+          break;
+        }
+        if (buffer.includes('"phase":"done"') || buffer.includes('"phase": "done"')) {
+          break;
+        }
+        throw streamErr;
+      }
+
+      const { done, value } = readResult;
       if (done) break;
+
       buffer += decoder.decode(value, { stream: true });
       let sep;
       while ((sep = buffer.indexOf('\n\n')) >= 0) {
@@ -383,9 +402,30 @@ export async function handleDirectSend(observations, dom, callbacks) {
           _renderProgress(dom, 3, 3, `Publiserer ${t} observasjon${t !== 1 ? 'er' : ''} …`, null);
         } else if (evt.phase === 'done') {
           importResult = evt;
+          streamDone = true;
+          break;
         } else if (evt.phase === 'error') {
           throw new Error(evt.error || 'Import feilet');
         }
+      }
+    }
+
+    if (streamDone) {
+      try { await reader.cancel(); } catch (_) { /* ignorer */ }
+    }
+
+    // Hvis strømmen ble brutt før siste \n\n ble nådd, sjekk om ferdig-event ligger i bufferen
+    if (!importResult && buffer.trim()) {
+      const dataLine = buffer.split('\n').find((l) => l.startsWith('data:'));
+      if (dataLine) {
+        try {
+          const evt = JSON.parse(dataLine.slice(5).trim());
+          if (evt.phase === 'done') {
+            importResult = evt;
+          } else if (evt.phase === 'error') {
+            throw new Error(evt.error || 'Import feilet');
+          }
+        } catch (_) { /* ignorer */ }
       }
     }
 

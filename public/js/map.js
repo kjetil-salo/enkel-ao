@@ -523,22 +523,44 @@ let showLabels = localStorage.getItem(SHOW_LABELS_KEY) !== '0';
 const labelMarkers = [];
 const siteLabelMarkers = [];
 const toggleLabelsBtn = document.getElementById('toggle-labels-btn');
+const mapContainer = document.getElementById('map');
+
+function applyLabelsVisibilityDom() {
+  if (mapContainer) {
+    mapContainer.classList.toggle('map-hide-labels', !showLabels);
+  }
+}
 
 function updateToggleLabelsBtnText() {
   if (!toggleLabelsBtn) return;
   toggleLabelsBtn.textContent = showLabels ? '🏷️ Skjul navn' : '🏷️ Vis navn';
 }
+
+function enforceLabelsVisibility() {
+  applyLabelsVisibilityDom();
+  if (!showLabels) {
+    [...labelMarkers, ...siteLabelMarkers].forEach((marker) => {
+      if (marker && typeof marker.closeTooltip === 'function') {
+        marker.closeTooltip();
+      }
+    });
+  }
+}
+
 function setShowLabels(value) {
   showLabels = value;
   try {
     localStorage.setItem(SHOW_LABELS_KEY, value ? '1' : '0');
   } catch (e) {}
+  applyLabelsVisibilityDom();
   [...labelMarkers, ...siteLabelMarkers].forEach((marker) => {
     if (value) marker.openTooltip();
     else marker.closeTooltip();
   });
   updateToggleLabelsBtnText();
 }
+
+applyLabelsVisibilityDom();
 if (toggleLabelsBtn) {
   updateToggleLabelsBtnText();
   toggleLabelsBtn.addEventListener('click', () => setShowLabels(!showLabels));
@@ -799,9 +821,13 @@ function scheduleShapeVisibilityUpdate() {
 }
 
 if (typeof siteLayerGroup.on === 'function') {
-  ['animationend', 'spiderfied', 'unspiderfied'].forEach((evt) => siteLayerGroup.on(evt, scheduleShapeVisibilityUpdate));
+  ['animationend', 'spiderfied', 'unspiderfied'].forEach((evt) => {
+    siteLayerGroup.on(evt, scheduleShapeVisibilityUpdate);
+    siteLayerGroup.on(evt, enforceLabelsVisibility);
+  });
 }
 map.on('zoomend moveend', scheduleShapeVisibilityUpdate);
+map.on('zoomend', enforceLabelsVisibility);
 
 function renderSites(sitesToRender, { fitToBounds = false } = {}) {
   if (Array.isArray(sitesToRender)) currentRenderedSites = sitesToRender;
@@ -906,6 +932,7 @@ function renderSites(sitesToRender, { fitToBounds = false } = {}) {
       if (site.isSuper) tooltipClasses.push('super-label');
       marker.bindTooltip(tooltipText, { permanent: true, direction: 'top', className: tooltipClasses.join(' '), offset: hasPolygon ? [0, -4] : [0, -35] });
       if (!showLabels) marker.closeTooltip();
+      marker.on('add', () => { if (!showLabels) marker.closeTooltip(); });
       siteLabelMarkers.push(marker);
 
       marker.on('click', () => { if (showLabels) selectLocation(siteName, site.id ?? null); });
@@ -1132,6 +1159,7 @@ function addNewSiteMarker(name, lat, lon, siteId) {
   const marker = L.marker([lat, lon], { icon: L.icon({ iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-yellow.png', shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png', iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41] }) }).addTo(map);
   marker.bindTooltip(`★ ${name}`, { permanent: true, direction: 'top', className: 'site-label mine-label', offset: [0, -35] });
   if (!showLabels) marker.closeTooltip();
+  marker.on('add', () => { if (!showLabels) marker.closeTooltip(); });
   labelMarkers.push(marker);
   marker.bindPopup(`<strong>★ ${name}</strong><br><em>Nettopp opprettet</em>`);
 }
@@ -1250,7 +1278,11 @@ function updateOfflineMarkersVisibility(visible) {
     if (!map.hasLayer(siteShapesGroup)) siteShapesGroup.addTo(map);
     if (!map.hasLayer(siteLayerGroup)) siteLayerGroup.addTo(map);
     labelMarkers.forEach((m) => { if (!map.hasLayer(m)) m.addTo(map); });
-    if (showLabels) [...labelMarkers, ...siteLabelMarkers].forEach((m) => m.openTooltip());
+    if (showLabels) {
+      [...labelMarkers, ...siteLabelMarkers].forEach((m) => m.openTooltip());
+    } else {
+      enforceLabelsVisibility();
+    }
   } else {
     if (map.hasLayer(siteShapesGroup)) map.removeLayer(siteShapesGroup);
     if (map.hasLayer(siteLayerGroup)) map.removeLayer(siteLayerGroup);

@@ -1172,6 +1172,8 @@ class Handler(SimpleHTTPRequestHandler):
         self.send_header('Cache-Control', 'no-cache')
         self.send_header('X-Accel-Buffering', 'no')
         self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Connection', 'close')
+        self.close_connection = True
         self.end_headers()
 
         def emit(event):

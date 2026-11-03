@@ -211,6 +211,13 @@
       font-weight: 700;
     }
 
+    /* Skjul navnelapper på kartet når innstillingen er satt til å skjule navn */
+    #map.map-hide-labels .site-label,
+    .map-hide-labels .site-label,
+    .map-hide-labels .leaflet-tooltip.site-label {
+      display: none !important;
+    }
+
     /* Styling for velg-knapp i popup */
     .leaflet-popup-content button {
       background: #22c55e;
