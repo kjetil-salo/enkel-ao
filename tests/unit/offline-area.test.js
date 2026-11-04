@@ -407,7 +407,7 @@ describe('dynamic viewport location fetching (20x20 km rule & 10x10 km cap)', ()
     expect(onlineRes.sites.map((s) => s.id)).toEqual([601]);
     expect(fetchSitesByBounds).toHaveBeenCalledTimes(1);
 
-    // 2. Hybrid-modus med treff i lokalt mellomlager: Returnerer cache uten nettverkskall
+    // 2. Hybrid-modus supplerer delvise cachetreff fra nettet
     fetchSitesByBounds.mockClear();
     const hybridHitRes = await fetchDynamicViewportSites(viewport8km, center, {
       networkMode: 'hybrid',
@@ -417,10 +417,11 @@ describe('dynamic viewport location fetching (20x20 km rule & 10x10 km cap)', ()
       fetchSitesByBounds,
     });
     expect(hybridHitRes.mode).toBe('hybrid');
-    expect(hybridHitRes.source).toBe('cache');
-    expect(hybridHitRes.sites.map((s) => s.id)).toEqual([501]);
-    expect(fetchSitesByBounds).not.toHaveBeenCalled();
+    expect(hybridHitRes.source).toBe('network');
+    expect(hybridHitRes.sites.map((s) => s.id)).toEqual([501, 601]);
+    expect(fetchSitesByBounds).toHaveBeenCalledTimes(1);
 
+    fetchSitesByBounds.mockClear();
     // 3. Hybrid-modus uten treff i lokalt mellomlager (panorert utenfor nedlastet område): Faller tilbake til nettverk
     const hybridMissRes = await fetchDynamicViewportSites(viewport8km, center, {
       networkMode: 'hybrid',
@@ -449,6 +450,17 @@ describe('dynamic viewport location fetching (20x20 km rule & 10x10 km cap)', ()
     expect(offlineRes.sites).toEqual([]);
     expect(fetchSitesByBounds).not.toHaveBeenCalled();
     expect(ensureTokens).not.toHaveBeenCalled();
+  });
+
+  it('beholder delvise hybridtreff når nettverkshentingen feiler', async () => {
+    const cachedSites = [{ id: 1, name: 'Lokalt', lat: center.lat, lon: center.lon }];
+    const result = await fetchDynamicViewportSites(createExtentBounds(center.lat, center.lon, 8000), center, {
+      networkMode: 'hybrid',
+      getOfflineLocationsInBounds: async () => cachedSites,
+      fetchSitesByBounds: async () => { throw new Error('uten dekning'); },
+    });
+    expect(result.source).toBe('cache');
+    expect(result.sites).toEqual(cachedSites);
   });
 });
 

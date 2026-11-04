@@ -416,14 +416,14 @@ export async function handleDirectSend(observations, dom, callbacks) {
     let buffer = '';
     let importResult = null;
 
-    // Håndter situasjoner der responsen mangler body eller 204 No Content
+    // Et tomt svar bekrefter aldri at AO tok imot observasjonene.
     if (importResp.status === 204 || !importResp.body) {
-      importResult = { phase: 'done', success: true, count: total };
+      throw new Error('Sendingen kunne ikke bekreftes. Listen er beholdt. Kontroller funnene hos Artsobservasjoner før du prøver på nytt.');
     } else if (typeof importResp.body.getReader !== 'function') {
       // Fallback for miljøer der getReader ikke er tilgjengelig: les hele kroppen som tekst
       const fullText = await importResp.text();
       const events = _parseSseEvents(fullText);
-      const doneEvt = [...events].reverse().find((e) => e.phase === 'done' || e.success === true);
+      const doneEvt = [...events].reverse().find((e) => e.phase === 'done');
       if (doneEvt) {
         importResult = doneEvt;
       } else {
@@ -451,16 +451,8 @@ export async function handleDirectSend(observations, dom, callbacks) {
             buffer += decoder.decode();
           } catch (_) {}
 
-          // Svelg alltid Error in input stream dersom vi er i gang med eller har mottatt data
-          const isInputErr = Boolean(
-            streamErr && (
-              /input stream/i.test(streamErr.message || '') ||
-              /input stream/i.test(String(streamErr))
-            )
-          );
-
           const bufferedEvents = _parseSseEvents(buffer);
-          const doneEvt = [...bufferedEvents].reverse().find((e) => e.phase === 'done' || e.success === true);
+          const doneEvt = [...bufferedEvents].reverse().find((e) => e.phase === 'done');
           if (doneEvt) {
             importResult = doneEvt;
             streamDone = true;
@@ -470,16 +462,6 @@ export async function handleDirectSend(observations, dom, callbacks) {
           const errorEvt = [...bufferedEvents].reverse().find((e) => e.phase === 'error');
           if (errorEvt) {
             throw new Error(errorEvt.error || 'Import feilet');
-          }
-
-          // Dersom dette er Error in input stream eller socket-avbrudd ved avslutning:
-          if (isInputErr || (importResult && importResult.success)) {
-            console.warn('[AO-IMPORT-STREAM] Svelger input stream feil under strømlesing:', streamErr);
-            const countMatch = buffer.match(/"count"\s*:\s*(\d+)/);
-            const count = countMatch ? parseInt(countMatch[1], 10) : total;
-            importResult = importResult || { phase: 'done', success: true, count };
-            streamDone = true;
-            break;
           }
 
           throw streamErr;
@@ -529,7 +511,7 @@ export async function handleDirectSend(observations, dom, callbacks) {
     // Hvis strømmen ble brutt før siste \n\n ble nådd, sjekk om ferdig-event ligger i bufferen
     if (!importResult && buffer.trim()) {
       const bufferedEvents = _parseSseEvents(buffer);
-      const doneEvt = [...bufferedEvents].reverse().find((e) => e.phase === 'done' || e.success === true);
+      const doneEvt = [...bufferedEvents].reverse().find((e) => e.phase === 'done');
       if (doneEvt) {
         importResult = doneEvt;
       } else {
@@ -537,15 +519,11 @@ export async function handleDirectSend(observations, dom, callbacks) {
         if (errorEvt) {
           throw new Error(errorEvt.error || 'Import feilet');
         }
-        if (buffer.includes('"phase":"done"') || buffer.includes('"phase": "done"') || buffer.includes('"success":true')) {
-          const countMatch = buffer.match(/"count"\s*:\s*(\d+)/);
-          const count = countMatch ? parseInt(countMatch[1], 10) : total;
-          importResult = { phase: 'done', success: true, count };
-        }
+
       }
     }
 
-    if (!importResult || !importResult.success) {
+    if (!importResult || importResult.success !== true) {
       throw new Error((importResult && importResult.error) || 'Import feilet');
     }
 
@@ -636,58 +614,12 @@ export async function handleDirectSend(observations, dom, callbacks) {
 
     completeSuccessfulSend(importResult);
   } catch (error) {
-    const isInputStreamErr = Boolean(
-      error && (
-        /input stream/i.test(error.message || '') ||
-        /input stream/i.test(String(error))
-      )
-    );
-
-    if (isInputStreamErr) {
-      console.warn('[AO-IMPORT] Svelger "Error in input stream" i overordnet catch og fullfører vellykket innsending:', error);
-      const doClearList = () => {
-        observations.splice(0, observations.length);
-        callbacks.doRenderObservations();
-        callbacks.saveState();
-        if (dom.aoDirectStatus) {
-          dom.aoDirectStatus.style.display = 'none';
-        }
-      };
-
-      const shouldAutoClear = Boolean(
-        (dom.aoDirectAutoClear && dom.aoDirectAutoClear.checked) ||
-        loadAoDirectAutoClear()
-      );
-
-      dom.aoDirectStatus.style.cssText = `display:block;margin-top:8px;padding:10px;border-radius:8px;font-size:0.9rem;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);color:${_statusColor('success')};`;
-      dom.aoDirectStatus.textContent = `✅ ${total} observasjon${total !== 1 ? 'er' : ''} sendt til AO!`;
-      dom.aoDirectBtn.disabled = false;
-
-      const sendtTidspunkt = new Date().toISOString();
-      utvalg.forEach((o) => { o.sentTs = sendtTidspunkt; });
-      appendSentBatch(utvalg.map((o) => {
-        const { photo, _photoMarker, ...rest } = o;
-        return photo ? { ...rest, hadPhoto: true } : rest;
-      }));
-      callbacks.doRenderObservations();
-      callbacks.saveState();
-
-      if (shouldAutoClear) {
-        setTimeout(doClearList, 800);
-      } else {
-        setTimeout(() => {
-          try {
-            if (confirm('Sending vellykket! Vil du tømme observasjonslisten?')) {
-              doClearList();
-            }
-          } catch (_) {}
-        }, 500);
-      }
-      return;
-    }
-
+    // Brudd uten fullstendig done-kvittering er usikkert, aldri grunnlag for å tømme listen.
+    const message = /input stream/i.test(error.message || '')
+      ? 'Sendingen kunne ikke bekreftes. Listen er beholdt. Kontroller funnene hos Artsobservasjoner før du prøver på nytt.'
+      : error.message;
     dom.aoDirectStatus.style.cssText = `display:block;margin-top:8px;padding:10px;border-radius:8px;font-size:0.9rem;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);color:${_statusColor('error')};`;
-    dom.aoDirectStatus.textContent = `❌ ${error.message}`;
+    dom.aoDirectStatus.textContent = `❌ ${message}`;
     dom.aoDirectBtn.disabled = false;
   }
 }

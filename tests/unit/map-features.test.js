@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import fs from 'fs';
 import path from 'path';
 
-describe('Map features: default OSM, dynamic attribution, zoom 18, and GPS recenter button', () => {
+describe('Map features: default OSM, dynamic attribution, zoom 15, and GPS recenter button', () => {
   const mapHtmlPath = path.resolve(__dirname, '../../public/map.html');
   const mapJsPath = path.resolve(__dirname, '../../public/js/map.js');
 
@@ -31,8 +31,8 @@ describe('Map features: default OSM, dynamic attribution, zoom 18, and GPS recen
     expect(mapJs).toContain('updateMapAttribution');
   });
 
-  it('3. har satt geolocation zoom level til 18 (nest mest innzoomede nivå / 30m målestokk)', () => {
-    expect(mapJs).toContain('const GEOLOCATION_ZOOM_LEVEL = 18;');
+  it('3. har satt geolocation zoomnivå til 15 (300 m målestokk)', () => {
+    expect(mapJs).toContain('const GEOLOCATION_ZOOM_LEVEL = 15;');
     expect(mapJs).toContain('map.setView([lat, lon], GEOLOCATION_ZOOM_LEVEL');
   });
 

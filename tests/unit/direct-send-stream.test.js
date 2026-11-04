@@ -318,7 +318,7 @@ describe('SSE Stream Parsing og Error in input stream resiliens', () => {
       expect(observations.length).toBe(0);
     });
 
-    it('svelger TypeError: Error in input stream selv om feilen kastes direkte under strømoppstart, og tømmer listen ved auto-clear', async () => {
+    it('beholder listen uten sendtmarkering når strømoppstarten feiler før kvittering', async () => {
       store['ao_username'] = 'testbruker';
       store['ao_password'] = 'hemmelig';
       store['ao_tokens'] = JSON.stringify({ loginToken: 'tok123', authCookie: 'cook123' });
@@ -345,14 +345,42 @@ describe('SSE Stream Parsing og Error in input stream resiliens', () => {
 
       await handleDirectSend(observations, dom, callbacks);
 
-      // Verifiser at rød feilboks IKKE vises og at vellykket sending indikeres
-      expect(dom.aoDirectStatus.textContent).toContain('✅ 3 observasjoner sendt til AO!');
-      expect(dom.aoDirectStatus.textContent).not.toContain('❌ Error in input stream');
-      expect(observations[0].sentTs).toBeDefined();
-
+      expect(dom.aoDirectStatus.textContent).toContain('Sendingen kunne ikke bekreftes');
+      expect(observations[0].sentTs).toBeUndefined();
+      expect(callbacks.saveState).not.toHaveBeenCalled();
       vi.advanceTimersByTime(1500);
-      // Verifiser at listen ble tømt automatisk
-      expect(observations.length).toBe(0);
+      expect(observations.length).toBe(3);
+    });
+
+    it.each(['tomt svar', 'bare fremdrift', 'avkortet done'])('beholder observasjoner uten gyldig kvittering: %s', async (scenario) => {
+      store['ao_username'] = 'testbruker';
+      store['ao_password'] = 'hemmelig';
+      saveAoDirectAutoClear(true);
+      const observations = [{ species: { taxonName: 'Kjøttmeis' }, count: 1 }];
+      const { dom } = lagTestDom();
+      const callbacks = { doRenderObservations: vi.fn(), saveState: vi.fn() };
+      let reads = 0;
+      const text = scenario === 'bare fremdrift'
+        ? 'data: {"phase":"publishing","total":1}\n\n'
+        : 'data: {"phase":"done","success":true,"count":1';
+      const body = scenario === 'tomt svar' ? null : {
+        getReader: () => ({
+          read: async () => {
+            if (++reads === 1) return { done: false, value: new TextEncoder().encode(text) };
+            throw new TypeError('Error in input stream');
+          },
+          cancel: async () => {},
+        }),
+      };
+      vi.stubGlobal('fetch', vi.fn(async (url) => url === '/api/ao-login'
+        ? { ok: true, json: async () => ({ success: true }) }
+        : { ok: true, status: scenario === 'tomt svar' ? 204 : 200, body }));
+      await handleDirectSend(observations, dom, callbacks);
+      expect(dom.aoDirectStatus.textContent).toContain('❌');
+      expect(observations[0].sentTs).toBeUndefined();
+      expect(callbacks.saveState).not.toHaveBeenCalled();
+      vi.advanceTimersByTime(1500);
+      expect(observations).toHaveLength(1);
     });
   });
 });

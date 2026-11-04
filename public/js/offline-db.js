@@ -8,6 +8,7 @@
 
 import {
   filterSitesInBounds,
+  mergeCachedSites,
   createCenteredBounds,
   calculateTilesForBounds,
   downloadTilesInBatches,
@@ -17,7 +18,7 @@ import {
   OFFLINE_ZOOM_LEVELS,
   MAX_TILE_BATCH_SIZE,
   KARTVERKET_TOPO_URL_TEMPLATE,
-} from './offline-area.js';
+} from './offline-area.js?v=v1.59.9';
 import { haversine } from './utils.js';
 
 export const OFFLINE_DB_NAME = 'enkel_ao_offline_db';
@@ -667,8 +668,8 @@ export async function getOfflineLocationsNear(lat, lon, radiusMeters = 1000) {
 /**
  * Hent lokaliteter for en gitt posisjon og radius i henhold til aktiv nettverksmodus:
  * - 'online' (Network-First): Hent fra nettverk (med fallback til IndexedDB ved nettverksfeil).
- * - 'hybrid' (Cache-First): Sjekk IndexedDB først; hvis treff i området, returner lokalt uten nettverkskall.
- *   Hvis ingen treff lokalt, hent fra nettverk.
+ * - 'hybrid': Suppler lokale treff fra nettverket; bruk lokale treff ved nettverksfeil.
+ *   Delvise cachetreff beviser ikke full dekning av radiusen.
  * - 'offline' (Strict Cache-Only): Strengt kun fra IndexedDB, aldri nettverkskall.
  *
  * @param {number} lat
@@ -689,25 +690,10 @@ export async function fetchLocationsWithNetworkMode(lat, lon, radiusMeters = 100
     return { sites: allOffline, source: 'cache', mode };
   }
 
-  if (mode === 'hybrid') {
-    const cachedNear = await getOfflineLocationsNear(lat, lon, radiusMeters).catch(() => []);
-    if (cachedNear.length > 0) {
-      return { sites: cachedNear, source: 'cache', mode };
-    }
-    // Fallback til nettverk når området ikke finnes i lokalt mellomlager
-    if (typeof deps.ensureTokens === 'function') {
-      await deps.ensureTokens();
-    }
-    const networkSites =
-      typeof deps.fetchOnline === 'function'
-        ? await deps.fetchOnline(lat, lon, radiusMeters)
-        : [];
-    const list = Array.isArray(networkSites) ? networkSites : [];
-    if (deps.persistOpportunistic && list.length > 0) {
-      await saveOpportunisticOfflineLocations(list).catch(() => {});
-    }
-    return { sites: list, source: 'network', mode };
-  }
+  // Enkeltlokaliteter beviser ikke at hele den nye radiusen er lastet ned.
+  const cachedNear = mode === 'hybrid'
+    ? await getOfflineLocationsNear(lat, lon, radiusMeters).catch(() => [])
+    : [];
 
   // 'online' (Network-First)
   try {
@@ -718,7 +704,11 @@ export async function fetchLocationsWithNetworkMode(lat, lon, radiusMeters = 100
       typeof deps.fetchOnline === 'function'
         ? await deps.fetchOnline(lat, lon, radiusMeters)
         : [];
-    const list = Array.isArray(networkSites) ? networkSites : [];
+    const fresh = Array.isArray(networkSites) ? networkSites : [];
+    if (mode === 'hybrid' && fresh.length === 0 && cachedNear.length > 0) {
+      return { sites: cachedNear, source: 'cache', mode };
+    }
+    const list = mode === 'hybrid' ? mergeCachedSites(cachedNear, fresh) : fresh;
     if (deps.persistOpportunistic && list.length > 0) {
       await saveOpportunisticOfflineLocations(list).catch(() => {});
     }
@@ -944,7 +934,7 @@ export async function syncOfflineAreas(deps = {}) {
     const existingInArea = await getOfflineLocationsInBounds(bounds).catch(() => []);
     const ownPrivateInBounds = filterSitesInBounds(cachedPrivateSites, bounds);
 
-    const filteredSites = filterSitesForOfflineDownload(fetchedSites, existingInArea, {
+    const filteredSites = filterSitesForOfflineDownload(mergeCachedSites(existingInArea, fetchedSites), [], {
       isLoggedIn,
       showOthersPrivate,
       cachedPrivateSites: ownPrivateInBounds,

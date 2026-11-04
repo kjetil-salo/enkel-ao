@@ -203,6 +203,28 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // Testinnsending stopper her; mock-serveren kontakter aldri Artsobservasjoner.
+  if (pathname === '/api/ao-login' && req.method === 'POST') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ success: true, loginToken: 'mock-token', authCookie: 'mock-cookie', userId: '42' }));
+    return;
+  }
+  if (pathname === '/api/ao-import-stream' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', () => {
+      const count = JSON.parse(body).observations.length;
+      res.writeHead(200, { 'Content-Type': 'text/event-stream' });
+      res.end(`data: ${JSON.stringify({ phase: 'done', success: true, count })}\n\n`);
+    });
+    return;
+  }
+  if (pathname === '/api/ao-private-sites' || pathname === '/api/ao-queue-count' || pathname === '/api/log-export') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ sites: [], count: 0, ok: true }));
+    return;
+  }
+
   // /api/species - artssøk
   if (pathname === '/api/species') {
     const search = url.searchParams.get('search') || '';

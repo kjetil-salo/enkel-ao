@@ -67,6 +67,7 @@ export function initAutocomplete(placeInput, onSelect, getPosition = null) {
   let debounceTimer = null;
   let currentResults = [];
   let activeIndex = -1;
+  let requestSeq = 0;
 
   // Opprett dropdown for resultater
   const dropdown = document.createElement('div');
@@ -110,7 +111,8 @@ export function initAutocomplete(placeInput, onSelect, getPosition = null) {
   /**
    * Hent autocomplete-resultater i henhold til aktiv nettverksmodus (online / hybrid / offline)
    */
-  async function fetchAutocomplete(term) {
+  async function fetchAutocomplete(term, seq) {
+    const isCurrent = () => seq === requestSeq;
     if (!term || term.length < 2) {
       dropdown.style.display = 'none';
       return;
@@ -122,23 +124,25 @@ export function initAutocomplete(placeInput, onSelect, getPosition = null) {
     // 1. Streng Offline-modus: Søk utelukkende i lokalt mellomlager (IndexedDB), ingen nettverkskall
     if (mode === 'offline') {
       const localResults = await searchOfflineAutocomplete(term, pos);
+      if (!isCurrent()) return;
       currentResults = localResults;
       renderResults(localResults);
       return;
     }
 
-    // 2. Hybrid-modus (Cache-First): Sjekk lokalt mellomlager først; fall tilbake til nettverk kun hvis ingen treff
+    // Vis lokale treff straks, men suppler dem: et tekstsøk kan ha flere treff på nettet.
+    let localResults = [];
     if (mode === 'hybrid') {
-      const localResults = await searchOfflineAutocomplete(term, pos);
+      localResults = await searchOfflineAutocomplete(term, pos);
+      if (!isCurrent()) return;
       if (localResults.length > 0) {
         currentResults = localResults;
         renderResults(localResults);
-        return;
       }
     }
 
     // Vis loading-indikator før nettverkskall
-    showLoading();
+    if (localResults.length === 0) showLoading();
 
     try {
       // Sjekk om bruker er innlogget (for private lokaliteter)
@@ -160,6 +164,7 @@ export function initAutocomplete(placeInput, onSelect, getPosition = null) {
       }
       const response = await fetch(url, { headers });
       const data = await response.json();
+      if (!isCurrent()) return;
 
       // Håndter auto-relogin: oppdater auth cookie hvis den ble fornyet
       if (data.refreshed_auth_cookie) {
@@ -174,7 +179,10 @@ export function initAutocomplete(placeInput, onSelect, getPosition = null) {
         }));
       }
 
-      const results = sortLocationAutocompleteResults(data.results || []);
+      const merged = new Map([...localResults, ...(data.results || [])].map((result) => [
+        result.id != null ? String(result.id) : result.value, result,
+      ]));
+      const results = sortLocationAutocompleteResults(Array.from(merged.values())).slice(0, 30);
       currentResults = results;
 
       // Vis resultater (kan være fra lokal DB selv uten innlogging)
@@ -202,8 +210,10 @@ export function initAutocomplete(placeInput, onSelect, getPosition = null) {
         renderResults(results);
       }
     } catch (error) {
+      if (!isCurrent()) return;
       console.error('Autocomplete-feil:', error);
-      dropdown.style.display = 'none';
+      currentResults = localResults;
+      renderResults(localResults);
     }
   }
 
@@ -331,8 +341,8 @@ export function initAutocomplete(placeInput, onSelect, getPosition = null) {
     const name = selected.value;
     const id = selected.id;
 
+    invalidateResults();
     placeInput.value = name;
-    dropdown.style.display = 'none';
 
     // Callback til parent-komponent
     if (onSelect) {
@@ -343,18 +353,28 @@ export function initAutocomplete(placeInput, onSelect, getPosition = null) {
   /**
    * Event listeners
    */
+  function invalidateResults() {
+    requestSeq++;
+    if (debounceTimer) clearTimeout(debounceTimer);
+    dropdown.style.display = 'none';
+    activeIndex = -1;
+    currentResults = [];
+  }
+
   placeInput.addEventListener('input', (e) => {
     const value = e.target.value.trim();
 
+    invalidateResults();
+    const seq = requestSeq;
     // Debounce for å unngå for mange requests
-    if (debounceTimer) clearTimeout(debounceTimer);
 
     debounceTimer = setTimeout(() => {
-      fetchAutocomplete(value);
+      fetchAutocomplete(value, seq);
     }, 300);
   });
 
   placeInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') { invalidateResults(); return; }
     if (!currentResults.length) return;
 
     if (e.key === 'ArrowDown') {
@@ -370,22 +390,19 @@ export function initAutocomplete(placeInput, onSelect, getPosition = null) {
         e.preventDefault();
         selectItem(activeIndex);
       }
-    } else if (e.key === 'Escape') {
-      dropdown.style.display = 'none';
-      activeIndex = -1;
     }
   });
 
   // Lukk dropdown ved klikk utenfor
   document.addEventListener('click', (e) => {
     if (!placeInput.contains(e.target) && !dropdown.contains(e.target)) {
-      dropdown.style.display = 'none';
-      activeIndex = -1;
+      invalidateResults();
     }
   });
 
   // Cleanup-funksjon for å deaktivere autocomplete
   return () => {
+    invalidateResults();
     if (dropdown && dropdown.parentElement) {
       dropdown.parentElement.removeChild(dropdown);
     }

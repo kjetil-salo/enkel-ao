@@ -18,13 +18,12 @@
  */
 
 import { getVisitTimeSpan, visitExists } from './visits.js';
+import { getNetworkMode, isOfflineMode as isAppOfflineMode } from './offline-db.js';
 
 const DEBOUNCE_MS = 400;
 const RARITY_CACHE_KEY = 'ao_rarity_cache_v1';
 const RARITY_SITE_AREAS_KEY = 'ao_site_areas_v1';
 const RARITY_TTL_MS = 180 * 24 * 60 * 60 * 1000; // 180 dager
-const NETWORK_MODE_STORAGE_KEY = 'network_mode_v1';
-const LEGACY_NETWORK_MODE_STORAGE_KEY = 'enkel_ao_network_mode_v1';
 
 let debounceTimer = null;
 let requestSeq = 0;
@@ -39,29 +38,11 @@ function enqueueRarityFetch(taskFn) {
   return next;
 }
 
-function getNetworkMode() {
-  try {
-    const raw =
-      localStorage.getItem(NETWORK_MODE_STORAGE_KEY) ||
-      localStorage.getItem(LEGACY_NETWORK_MODE_STORAGE_KEY);
-    const mode = typeof raw === 'string' ? raw.trim().toLowerCase() : '';
-    if (mode === 'online' || mode === 'hybrid' || mode === 'offline') {
-      return mode;
-    }
-    if (localStorage.getItem('offline_mode_v1') === '1') {
-      return 'offline';
-    }
-  } catch (e) {
-    // ignorer
-  }
-  return 'hybrid';
-}
-
 function isOfflineMode() {
   if (typeof navigator !== 'undefined' && navigator.onLine === false) {
     return true;
   }
-  return getNetworkMode() === 'offline';
+  return isAppOfflineMode();
 }
 
 function loadRarityCache() {
@@ -121,17 +102,17 @@ function resolveAreasForSite(siteId, state) {
  *
  * @returns {{ warning: {Header?: string, Body?: string}|null, ts: number, isStale: boolean } | null}
  */
-export function getCachedRarity(taxonId, siteId, state = null) {
-  if (!taxonId || !siteId) return null;
+export function getCachedRarity(taxonId, siteId, dateStr, state = null) {
+  if (!taxonId || !siteId || !/^\d{4}-\d{2}-\d{2}$/.test(dateStr || '')) return null;
   const cache = loadRarityCache();
   const areas = resolveAreasForSite(siteId, state);
 
   let entry = null;
   if (areas) {
-    entry = cache[`areas:${areas}::${taxonId}`] || null;
+    entry = cache[`areas:${areas}::${taxonId}::${dateStr}`] || null;
   }
   if (!entry) {
-    entry = cache[`site:${siteId}::${taxonId}`] || null;
+    entry = cache[`site:${siteId}::${taxonId}::${dateStr}`] || null;
   }
   if (!entry || typeof entry.ts !== 'number') return null;
 
@@ -146,8 +127,8 @@ export function getCachedRarity(taxonId, siteId, state = null) {
 /**
  * Lagre sjeldenhetsresultat på telefonen for bruk i offline- og hybridmodus.
  */
-export function setCachedRarity(taxonId, siteId, areasCsv, warning) {
-  if (!taxonId || !siteId) return;
+export function setCachedRarity(taxonId, siteId, dateStr, areasCsv, warning) {
+  if (!taxonId || !siteId || !/^\d{4}-\d{2}-\d{2}$/.test(dateStr || '')) return;
   const now = Date.now();
   const normalizedWarning =
     warning && (warning.Header || warning.Body)
@@ -160,11 +141,11 @@ export function setCachedRarity(taxonId, siteId, areasCsv, warning) {
   };
 
   const cache = loadRarityCache();
-  cache[`site:${siteId}::${taxonId}`] = record;
+  cache[`site:${siteId}::${taxonId}::${dateStr}`] = record;
 
   if (areasCsv && typeof areasCsv === 'string' && areasCsv.trim()) {
     const cleanAreas = areasCsv.trim();
-    cache[`areas:${cleanAreas}::${taxonId}`] = record;
+    cache[`areas:${cleanAreas}::${taxonId}::${dateStr}`] = record;
     saveSiteArea(siteId, cleanAreas);
   }
 
@@ -256,15 +237,16 @@ export function checkRarity(state, dom) {
     return;
   }
 
-  const key = `${taxonId}::${siteId}::${dateStr}`;
+  const mode = isOfflineMode() ? 'offline' : getNetworkMode();
+  const key = `${taxonId}::${siteId}::${dateStr}::${mode}`;
   if (key === lastKey) return;
   lastKey = key;
+  const seq = ++requestSeq;
 
   hideRarityBox(dom);
   if (debounceTimer) clearTimeout(debounceTimer);
 
-  const mode = isOfflineMode() ? 'offline' : getNetworkMode();
-  const cached = getCachedRarity(taxonId, siteId, state);
+  const cached = getCachedRarity(taxonId, siteId, dateStr, state);
 
   if (cached && cached.warning) {
     showRarityBox(dom, cached.warning);
@@ -281,7 +263,6 @@ export function checkRarity(state, dom) {
     return;
   }
 
-  const seq = ++requestSeq;
   debounceTimer = setTimeout(() => {
     const headers = getAoHeaders();
     if (!headers['X-AO-Login-Token']) return; // uinnlogget = stille no-op
@@ -289,7 +270,7 @@ export function checkRarity(state, dom) {
 
     // Kjør nettverkskallet sekvensielt (én om gangen)
     enqueueRarityFetch(async () => {
-      if (seq !== requestSeq) return; // bruker har allerede byttet art/lokalitet
+      if (seq !== requestSeq || isOfflineMode()) return; // art, sted eller nettverksmodus kan ha endret seg
 
       try {
         const url = `/api/ao-rarity?taxonId=${encodeURIComponent(taxonId)}`
@@ -312,7 +293,7 @@ export function checkRarity(state, dom) {
 
         // Husk svaret på telefonen for senere offline- og hybridbruk
         if ('warning' in data || 'information' in data || 'areas' in data) {
-          setCachedRarity(taxonId, siteId, data.areas || null, data.warning || null);
+          setCachedRarity(taxonId, siteId, dateStr, data.areas || null, data.warning || null);
         }
 
         if (seq !== requestSeq) return;

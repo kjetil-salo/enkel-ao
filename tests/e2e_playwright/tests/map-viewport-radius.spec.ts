@@ -50,6 +50,12 @@ test.describe('Kart: fast hente-radius ved panorering, uavhengig av zoom', () =>
     // som standard) tar imot +/-. Deterministisk og skriptbart i motsetning
     // til museklikk/drag, uten behov for noen test-hook inn i map.js.
     await page.locator('#map').click({ position: { x: 100, y: 400 } });
+    // GPS åpner nå på nivå 15. Bruk samme skala (13) som geometriprøvene opprinnelig hadde.
+    await page.waitForTimeout(350);
+    for (let i = 0; i < 2; i++) {
+      await page.keyboard.press('-');
+      await page.waitForTimeout(350);
+    }
 
     // Zoom kraftig INN og UT (samme senter, INGEN panorering). Med en fast
     // radius har zoom alene ingenting nytt å hente — dette skal derfor IKKE
@@ -129,6 +135,12 @@ test.describe('Kart: fast hente-radius ved panorering, uavhengig av zoom', () =>
     await page.goto(`${BASE}/map.html`);
     await expect(page.locator('.leaflet-container')).toBeVisible();
     await page.locator('#map').click({ position: { x: 100, y: 400 } });
+    // GPS åpner nå på nivå 15. Bruk samme skala (13) som geometriprøvene opprinnelig hadde.
+    await page.waitForTimeout(350);
+    for (let i = 0; i < 2; i++) {
+      await page.keyboard.press('-');
+      await page.waitForTimeout(350);
+    }
 
     // Panorer til A: nok tastetrykk til å klart passere minRefetchDistance,
     // la debouncen (600ms) slå til slik at fetch for A faktisk starter (og
@@ -189,6 +201,12 @@ test.describe('Kart: fast hente-radius ved panorering, uavhengig av zoom', () =>
     await page.goto(`${BASE}/map.html`);
     await expect(page.locator('.leaflet-container')).toBeVisible();
     await page.locator('#map').click({ position: { x: 100, y: 400 } });
+    // GPS åpner nå på nivå 15. Bruk samme skala (13) som geometriprøvene opprinnelig hadde.
+    await page.waitForTimeout(350);
+    for (let i = 0; i < 2; i++) {
+      await page.keyboard.press('-');
+      await page.waitForTimeout(350);
+    }
 
     // Panorer til et sted mens AO svarer 500.
     for (let i = 0; i < 4; i++) {

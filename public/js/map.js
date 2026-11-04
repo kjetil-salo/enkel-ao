@@ -20,12 +20,14 @@ import {
   fetchDynamicViewportSites,
   filterSitesForOfflineDownload,
   filterSitesInBounds,
+  mergeCachedSites,
   getBoundsDimensionsMeters,
   moveBoundsToCenter,
   resizeBoundsFromCorner,
-} from './offline-area.js?v=v1.59.4';
+} from './offline-area.js?v=v1.59.9';
 import {
   getNetworkMode,
+  fetchLocationsWithNetworkMode,
   isOfflineMode,
   isHybridMode,
   saveOfflineAreaLocations,
@@ -38,7 +40,7 @@ import {
   syncOfflineAreas,
   clearAllOfflineData,
   syncNetworkModeToServiceWorker,
-} from './offline-db.js?v=v1.59.4';
+} from './offline-db.js?v=v1.59.9';
 
 // Hent data fra localStorage — fall tilbake til Svortland, Bømlo dersom mapData mangler
 let data = {};
@@ -566,6 +568,8 @@ if (toggleLabelsBtn) {
   toggleLabelsBtn.addEventListener('click', () => setShowLabels(!showLabels));
 }
 
+const offlinePanel = document.getElementById('offline-area-panel');
+let offlineSelectMode = false;
 let userMarker = null;
 
 function updateUserPositionOnMap({ lat, lon, accuracy }) {
@@ -1010,11 +1014,11 @@ if (!isOfflineMode() && !isUserPositionAvailable && (!sites || sites.length === 
     const seq = ++fetchSeq;
     try {
       const center = map.getCenter();
-      await ensureAoTokens();
-      const bboxSites = await fetchAoSitesCached(center.lat, center.lng, AUTO_FETCH_RADIUS_M);
+      const { sites: bboxSites } = await fetchLocationsWithNetworkMode(center.lat, center.lng, AUTO_FETCH_RADIUS_M, {
+        ensureTokens: ensureAoTokens, fetchOnline: fetchAoSitesCached, persistOpportunistic: true,
+      });
       if (seq !== fetchSeq || bboxSites.length === 0) return;
 
-      saveOpportunisticOfflineLocations(bboxSites).catch(()=>{});
       const merged = mergeAoSitesWithPrivateCache(bboxSites, { lat: center.lat, lon: center.lng }, sizeMeters);
       renderSites(merged, { fitToBounds: false });
     } catch (e) {
@@ -1057,11 +1061,11 @@ function handleMapMoveEnd() {
     }
 
     try {
-      await ensureAoTokens();
-      const bboxSites = await fetchAoSitesCached(center.lat, center.lng, AUTO_FETCH_RADIUS_M);
+      const { sites: bboxSites } = await fetchLocationsWithNetworkMode(center.lat, center.lng, AUTO_FETCH_RADIUS_M, {
+        ensureTokens: ensureAoTokens, fetchOnline: fetchAoSitesCached, persistOpportunistic: true,
+      });
       if (seq !== fetchSeq) return;
       
-      if (bboxSites.length > 0) saveOpportunisticOfflineLocations(bboxSites).catch(()=>{});
       if (bboxSites.length === 0) return;
 
       const merged = mergeAoSitesWithPrivateCache(bboxSites, { lat: center.lat, lon: center.lng }, sizeMeters);
@@ -1222,7 +1226,6 @@ const mapTopProgressEl = document.getElementById('map-top-progress');
 const mapTopProgressBarEl = document.getElementById('map-top-progress-bar');
 const mapTopProgressTextEl = document.getElementById('map-top-progress-text');
 
-const offlinePanel = document.getElementById('offline-area-panel');
 const offlineDimsEl = document.getElementById('offline-area-dims');
 const offlineLimitMsgEl = document.getElementById('offline-area-limit-msg');
 const cancelOfflineBtn = document.getElementById('cancel-offline-area-btn');
@@ -1238,7 +1241,7 @@ offlineAreaPane.style.zIndex = 620;
 const offlineHandlesPane = map.createPane('offlineHandlesPane');
 offlineHandlesPane.style.zIndex = 750;
 
-let offlineSelectMode = false, showOfflineMarkers = true, currentOfflineBounds = null, offlineRectLayer = null, offlineCenterMarker = null;
+let showOfflineMarkers = true, currentOfflineBounds = null, offlineRectLayer = null, offlineCenterMarker = null;
 let offlineCheckMarker = null, offlineDarkOverlayLayer = null;
 const offlineCornerMarkers = {};
 let isBoxDragging = false, boxDragStartLatLng = null, boxDragStartCenter = null;
@@ -1669,7 +1672,7 @@ async function startOfflineAreaDownload() {
       } catch (err) { }
       const fallbackSites = [...existingOfflineSites, ...currentRenderedSites];
       const showOthersPrivate = shouldShowOthersPrivateSites();
-      const filteredSites = filterSitesForOfflineDownload(fetchedSites, fallbackSites, {
+      const filteredSites = filterSitesForOfflineDownload(mergeCachedSites(fallbackSites, fetchedSites), [], {
         isLoggedIn,
         showOthersPrivate,
         cachedPrivateSites: isLoggedIn ? getCachedPrivateSites() : [],

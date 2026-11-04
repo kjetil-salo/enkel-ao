@@ -545,6 +545,17 @@ export function dropOthersPrivateSites(sites, showOthersPrivate = false) {
   return list.filter((s) => !isOthersPrivateSite(s));
 }
 
+/** Slå sammen delvise cachetreff med ferske treff; nettverkets versjon vinner. */
+export function mergeCachedSites(cachedSites, networkSites) {
+  const merged = new Map();
+  for (const site of [...(Array.isArray(cachedSites) ? cachedSites : []), ...(Array.isArray(networkSites) ? networkSites : [])]) {
+    if (!site) continue;
+    const key = site.id != null ? `id:${site.id}` : `${site.name}::${site.lat}::${site.lon}`;
+    merged.set(key, site);
+  }
+  return Array.from(merged.values());
+}
+
 /**
  * Filtrer og slå sammen lokaliteter for nedlasting til offline-bruk.
  * Regler:
@@ -784,65 +795,59 @@ export async function fetchDynamicViewportSites(viewportBounds, centerPosition, 
     };
   }
 
-  // 2. Hybrid-modus (Cache-First): Sjekk lokalt mellomlager først; fall tilbake til nettverk hvis tomt
+  // Delvise treff er supplement/fallback, ikke bevis på komplett dekning.
+  let cachedSites = [];
   if (mode === 'hybrid' && typeof deps.getOfflineLocationsInBounds === 'function') {
-    try {
-      const cachedSites = await deps.getOfflineLocationsInBounds(plan.fetchBounds);
-      if (Array.isArray(cachedSites) && cachedSites.length > 0) {
-        return {
-          ...plan,
-          sites: cachedSites,
-          source: 'cache',
-          mode,
-        };
+    cachedSites = await deps.getOfflineLocationsInBounds(plan.fetchBounds).catch(() => []);
+  }
+
+  try {
+    // 3. Online-modus (Network-First) eller Hybrid fallback til nettverk
+    let isLoggedIn = typeof deps.checkLoggedIn === 'function' ? Boolean(deps.checkLoggedIn()) : false;
+    if (isLoggedIn && typeof deps.ensureTokens === 'function') {
+      const tokenOk = await deps.ensureTokens();
+      if (typeof tokenOk === 'boolean') {
+        isLoggedIn = tokenOk;
       }
-    } catch {
-      // Fall tilbake til nettverk dersom lesing fra lokalt mellomlager feiler
     }
-  }
 
-  // 3. Online-modus (Network-First) eller Hybrid fallback til nettverk
-  let isLoggedIn = typeof deps.checkLoggedIn === 'function' ? Boolean(deps.checkLoggedIn()) : false;
-  if (isLoggedIn && typeof deps.ensureTokens === 'function') {
-    const tokenOk = await deps.ensureTokens();
-    if (typeof tokenOk === 'boolean') {
-      isLoggedIn = tokenOk;
+    const rawSites =
+      typeof deps.fetchSitesByBounds === 'function'
+        ? await deps.fetchSitesByBounds(plan.fetchBounds)
+        : [];
+
+    const showOthersPrivate =
+      typeof deps.getShowOthersPrivate === 'function' ? Boolean(deps.getShowOthersPrivate()) : false;
+    const allCachedPrivate =
+      isLoggedIn && typeof deps.getPrivateSitesCache === 'function'
+        ? deps.getPrivateSitesCache()
+        : [];
+    const ownPrivateInBounds = filterSitesInBounds(allCachedPrivate, plan.fetchBounds);
+
+    const filtered = filterSitesForOfflineDownload(mergeCachedSites(cachedSites, rawSites), [], {
+      isLoggedIn,
+      showOthersPrivate,
+      cachedPrivateSites: ownPrivateInBounds,
+    });
+
+    const sites = filterSitesInBounds(filtered, plan.fetchBounds);
+
+    if (sites.length > 0 && typeof deps.saveOpportunisticLocations === 'function') {
+      try {
+        await deps.saveOpportunisticLocations(sites, plan.fetchBounds);
+      } catch {
+        // Ignorer lagringsfeil slik at kartvisningen aldri blokkeres
+      }
     }
+
+    return {
+      ...plan,
+      sites,
+      source: Array.isArray(rawSites) && rawSites.length > 0 ? 'network' : 'cache',
+      mode,
+    };
+  } catch (err) {
+    if (cachedSites.length > 0) return { ...plan, sites: cachedSites, source: 'cache', mode };
+    throw err;
   }
-
-  const rawSites =
-    typeof deps.fetchSitesByBounds === 'function'
-      ? await deps.fetchSitesByBounds(plan.fetchBounds)
-      : [];
-
-  const showOthersPrivate =
-    typeof deps.getShowOthersPrivate === 'function' ? Boolean(deps.getShowOthersPrivate()) : false;
-  const allCachedPrivate =
-    isLoggedIn && typeof deps.getPrivateSitesCache === 'function'
-      ? deps.getPrivateSitesCache()
-      : [];
-  const ownPrivateInBounds = filterSitesInBounds(allCachedPrivate, plan.fetchBounds);
-
-  const filtered = filterSitesForOfflineDownload(rawSites, [], {
-    isLoggedIn,
-    showOthersPrivate,
-    cachedPrivateSites: ownPrivateInBounds,
-  });
-
-  const sites = filterSitesInBounds(filtered, plan.fetchBounds);
-
-  if (sites.length > 0 && typeof deps.saveOpportunisticLocations === 'function') {
-    try {
-      await deps.saveOpportunisticLocations(sites, plan.fetchBounds);
-    } catch {
-      // Ignorer lagringsfeil slik at kartvisningen aldri blokkeres
-    }
-  }
-
-  return {
-    ...plan,
-    sites,
-    source: 'network',
-    mode,
-  };
 }

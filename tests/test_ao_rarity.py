@@ -273,7 +273,7 @@ class TestGetAoRarity:
         result, refreshed = get_ao_rarity(
             1, 2, '2026-09-12', login_token='tok', auth_cookie='c1', location_db=mock_db
         )
-        assert result == {'warning': None, 'information': None}
+        assert result == {'warning': None, 'information': None, 'areas': '12,34'}
         assert fetch_called == []
         mock_db.set_areas.assert_not_called()
 
@@ -290,7 +290,7 @@ class TestGetAoRarity:
         result, refreshed = get_ao_rarity(
             1, 2, '2026-09-12', login_token='tok', auth_cookie='c1', location_db=mock_db
         )
-        assert result == {'warning': 'w', 'information': None}
+        assert result == {'warning': 'w', 'information': None, 'areas': '12,34'}
         mock_db.set_areas.assert_called_once_with(2, '12,34')
 
     def test_cache_lookup_raises_falls_back_to_fetch(self, monkeypatch):
@@ -308,7 +308,7 @@ class TestGetAoRarity:
         result, refreshed = get_ao_rarity(
             1, 2, '2026-09-12', login_token='tok', auth_cookie='c1', location_db=mock_db
         )
-        assert result == {'warning': None, 'information': None}
+        assert result == {'warning': None, 'information': None, 'areas': '12,34'}
 
     def test_set_areas_raises_does_not_break_result(self, monkeypatch):
         mock_db = MagicMock()
@@ -324,7 +324,7 @@ class TestGetAoRarity:
         result, refreshed = get_ao_rarity(
             1, 2, '2026-09-12', login_token='tok', auth_cookie='c1', location_db=mock_db
         )
-        assert result == {'warning': None, 'information': None}
+        assert result == {'warning': None, 'information': None, 'areas': '12,34'}
 
     def test_no_areas_available_returns_none(self, monkeypatch):
         mock_db = MagicMock()
@@ -351,7 +351,7 @@ class TestGetAoRarity:
         result, refreshed = get_ao_rarity(
             1, 2, '2026-09-12', login_token='tok', auth_cookie='c1', location_db=None
         )
-        assert result == {'warning': None, 'information': None}
+        assert result == {'warning': None, 'information': None, 'areas': '12,34'}
 
     def test_full_relogin_fails_returns_none_gracefully(self, monkeypatch):
         """Innlogget bruker uten gyldig auth_cookie hvor relogin feiler

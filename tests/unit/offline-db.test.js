@@ -175,7 +175,7 @@ describe('offline-db (persistent lagring av nedlastede kartområder og 3-veis ne
     expect(onlineRes.sites.map((s) => s.id)).toEqual([999]);
     expect(fetchOnline).toHaveBeenCalledTimes(1);
 
-    // 2. Hybrid-modus (Cache-First) innenfor nedlastet område: Serverer fra IndexedDB uten nettverkskall
+    // 2. Hybrid supplerer delvise cachetreff, også innenfor et lagret område
     fetchOnline.mockClear();
     ensureTokens.mockClear();
     setNetworkMode('hybrid');
@@ -183,11 +183,12 @@ describe('offline-db (persistent lagring av nedlastede kartområder og 3-veis ne
       fetchOnline,
       ensureTokens,
     });
-    expect(hybridHitRes.source).toBe('cache');
-    expect(hybridHitRes.sites.map((s) => s.id)).toEqual([301]);
-    expect(fetchOnline).not.toHaveBeenCalled();
+    expect(hybridHitRes.source).toBe('network');
+    expect(hybridHitRes.sites.map((s) => s.id)).toEqual([301, 999]);
+    expect(fetchOnline).toHaveBeenCalledTimes(1);
 
-    // 3. Hybrid-modus (Cache-First) utenfor nedlastet område: Faller tilbake til nettverket
+    // 3. Uten cachetreff brukes nettverkslisten
+    fetchOnline.mockClear();
     const hybridMissRes = await fetchLocationsWithNetworkMode(63.4305, 10.3951, 1000, {
       fetchOnline,
       ensureTokens,
@@ -644,3 +645,40 @@ describe('deaktivering av Fellestur, Tidligere sendt og Mine delinger i offline-
 });
 
 
+describe('hybrid med delvis lokalitetscache', () => {
+  beforeEach(async () => { localStorage.clear(); await clearOfflineDatabase(); });
+
+  it('supplerer ved utvidet radius og oppdaterer cachede lokaliteter uten duplikater', async () => {
+    await saveOpportunisticOfflineLocations([{ id: 1, name: 'Gammelt navn', lat: 60, lon: 5 }]);
+    const fetchOnline = vi.fn(async () => [
+      { id: '1', name: 'Nytt navn', lat: 60, lon: 5 },
+      { id: 2, name: 'Lenger unna', lat: 60.01, lon: 5 },
+    ]);
+    const result = await fetchLocationsWithNetworkMode(60, 5, 2000, { mode: 'hybrid', fetchOnline });
+    expect(fetchOnline).toHaveBeenCalledWith(60, 5, 2000);
+    expect(result.sites.map(s => s.name)).toEqual(['Nytt navn', 'Lenger unna']);
+  });
+
+  it('bevarer lokale treff ved feil eller degradert tomt svar fra backend', async () => {
+    await saveOpportunisticOfflineLocations([{ id: 1, name: 'Lokalt', lat: 60, lon: 5 }]);
+    for (const fetchOnline of [async () => { throw new Error('uten nett'); }, async () => []]) {
+      const result = await fetchLocationsWithNetworkMode(60, 5, 2000, { mode: 'hybrid', fetchOnline });
+      expect(result.source).toBe('cache');
+      expect(result.sites.map(s => s.id)).toEqual([1]);
+    }
+  });
+
+  it('sletter ikke lagrede lokaliteter når gjensynk gir et delvis ikke-tomt svar', async () => {
+    const bounds = { north: 60.02, south: 59.98, east: 5.02, west: 4.98 };
+    const sites = [
+      { id: 1, name: 'A', lat: 60, lon: 5 },
+      { id: 2, name: 'B', lat: 60.001, lon: 5 },
+    ];
+    await saveOfflineAreaLocations(bounds, sites);
+    await syncOfflineAreas({
+      fetchSitesByBounds: async () => [{ ...sites[0], name: 'A oppdatert' }],
+      cacheStorage: { open: async () => ({ match: async () => ({}) }) },
+    });
+    expect((await getAllOfflineLocations()).map(s => s.name)).toEqual(['A oppdatert', 'B']);
+  });
+});

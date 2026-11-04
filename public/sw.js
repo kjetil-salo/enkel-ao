@@ -366,7 +366,9 @@ throw err;
  * i øvrige moduler sendes de uendret videre.
  */
 async function handleApiFetch(request) {
-const allowBypass = request.headers.get('x-allow-offline-network') === '1';
+const allowBypass = request.method === 'POST'
+  && ['/api/ao-login', '/api/ao-import-stream'].includes(new URL(request.url).pathname)
+  && request.headers.get('x-allow-offline-network') === '1';
 if (allowBypass) {
 return fetch(request);
 }
