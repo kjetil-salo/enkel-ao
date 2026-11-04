@@ -367,6 +367,7 @@ export async function handleDirectSend(observations, dom, callbacks) {
   _renderProgress(dom, 1, 3, 'Logger inn på AO…');
 
   const extraHeaders = allowOfflineBypass ? { 'X-Allow-Offline-Network': '1' } : {};
+  let awaitingImportReceipt = false;
 
   try {
     const loginResp = await fetch('/api/ao-login', {
@@ -387,6 +388,7 @@ export async function handleDirectSend(observations, dom, callbacks) {
 
     _renderProgress(dom, 2, 3, `Sender ${total} observasjon${total !== 1 ? 'er' : ''} …`, 0);
 
+    awaitingImportReceipt = true;
     const importResp = await fetch('/api/ao-import-stream', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...extraHeaders },
@@ -410,6 +412,7 @@ export async function handleDirectSend(observations, dom, callbacks) {
           if (t && t.trim()) msg = t.trim();
         } catch (__) { /* ignorer */ }
       }
+      awaitingImportReceipt = false;
       throw new Error(msg);
     }
 
@@ -429,6 +432,7 @@ export async function handleDirectSend(observations, dom, callbacks) {
       } else {
         const errorEvt = [...events].reverse().find((e) => e.phase === 'error');
         if (errorEvt) {
+          awaitingImportReceipt = false;
           throw new Error(errorEvt.error || 'Import feilet');
         }
         throw new Error('Import feilet');
@@ -461,6 +465,7 @@ export async function handleDirectSend(observations, dom, callbacks) {
 
           const errorEvt = [...bufferedEvents].reverse().find((e) => e.phase === 'error');
           if (errorEvt) {
+            awaitingImportReceipt = false;
             throw new Error(errorEvt.error || 'Import feilet');
           }
 
@@ -498,6 +503,7 @@ export async function handleDirectSend(observations, dom, callbacks) {
             streamDone = true;
             break;
           } else if (evt.phase === 'error') {
+            awaitingImportReceipt = false;
             throw new Error(evt.error || 'Import feilet');
           }
         }
@@ -517,12 +523,16 @@ export async function handleDirectSend(observations, dom, callbacks) {
       } else {
         const errorEvt = [...bufferedEvents].reverse().find((e) => e.phase === 'error');
         if (errorEvt) {
+          awaitingImportReceipt = false;
           throw new Error(errorEvt.error || 'Import feilet');
         }
 
       }
     }
 
+    if (importResult && typeof importResult.success === 'boolean') {
+      awaitingImportReceipt = false;
+    }
     if (!importResult || importResult.success !== true) {
       throw new Error((importResult && importResult.error) || 'Import feilet');
     }
@@ -615,7 +625,7 @@ export async function handleDirectSend(observations, dom, callbacks) {
     completeSuccessfulSend(importResult);
   } catch (error) {
     // Brudd uten fullstendig done-kvittering er usikkert, aldri grunnlag for å tømme listen.
-    const message = /input stream/i.test(error.message || '')
+    const message = awaitingImportReceipt
       ? 'Sendingen kunne ikke bekreftes. Listen er beholdt. Kontroller funnene hos Artsobservasjoner før du prøver på nytt.'
       : error.message;
     dom.aoDirectStatus.style.cssText = `display:block;margin-top:8px;padding:10px;border-radius:8px;font-size:0.9rem;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);color:${_statusColor('error')};`;

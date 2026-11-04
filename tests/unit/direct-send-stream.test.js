@@ -352,7 +352,25 @@ describe('SSE Stream Parsing og Error in input stream resiliens', () => {
       expect(observations.length).toBe(3);
     });
 
-    it.each(['tomt svar', 'bare fremdrift', 'avkortet done'])('beholder observasjoner uten gyldig kvittering: %s', async (scenario) => {
+    it.each(['HTTP', 'SSE'])('viser konkret avvisningsgrunn fra serveren: %s', async (scenario) => {
+      store['ao_username'] = 'testbruker';
+      store['ao_password'] = 'hemmelig';
+      const observations = [{ species: { taxonName: 'Kjøttmeis' }, count: 1 }];
+      const { dom } = lagTestDom();
+      const callbacks = { doRenderObservations: vi.fn(), saveState: vi.fn() };
+      const error = 'Lokaliteten mangler';
+      vi.stubGlobal('fetch', vi.fn(async (url) => {
+        if (url === '/api/ao-login') return { ok: true, json: async () => ({ success: true }) };
+        if (scenario === 'HTTP') return { ok: false, json: async () => ({ error }) };
+        return { ok: true, body: { text: true }, text: async () => `data: ${JSON.stringify({ phase: 'error', error })}\n\n` };
+      }));
+      await handleDirectSend(observations, dom, callbacks);
+      expect(dom.aoDirectStatus.textContent).toBe(`❌ ${error}`);
+      expect(observations[0].sentTs).toBeUndefined();
+      expect(callbacks.saveState).not.toHaveBeenCalled();
+    });
+
+    it.each(['tomt svar', 'bare fremdrift', 'avkortet done', 'vanlig EOF', 'avkortet EOF', 'generisk leseavbrudd'])('beholder observasjoner uten gyldig kvittering: %s', async (scenario) => {
       store['ao_username'] = 'testbruker';
       store['ao_password'] = 'hemmelig';
       saveAoDirectAutoClear(true);
@@ -360,14 +378,15 @@ describe('SSE Stream Parsing og Error in input stream resiliens', () => {
       const { dom } = lagTestDom();
       const callbacks = { doRenderObservations: vi.fn(), saveState: vi.fn() };
       let reads = 0;
-      const text = scenario === 'bare fremdrift'
+      const text = ['bare fremdrift', 'vanlig EOF', 'generisk leseavbrudd'].includes(scenario)
         ? 'data: {"phase":"publishing","total":1}\n\n'
         : 'data: {"phase":"done","success":true,"count":1';
       const body = scenario === 'tomt svar' ? null : {
         getReader: () => ({
           read: async () => {
             if (++reads === 1) return { done: false, value: new TextEncoder().encode(text) };
-            throw new TypeError('Error in input stream');
+            if (scenario.endsWith('EOF')) return { done: true };
+            throw new TypeError(scenario === 'generisk leseavbrudd' ? 'Network connection lost' : 'Error in input stream');
           },
           cancel: async () => {},
         }),
@@ -376,7 +395,8 @@ describe('SSE Stream Parsing og Error in input stream resiliens', () => {
         ? { ok: true, json: async () => ({ success: true }) }
         : { ok: true, status: scenario === 'tomt svar' ? 204 : 200, body }));
       await handleDirectSend(observations, dom, callbacks);
-      expect(dom.aoDirectStatus.textContent).toContain('❌');
+      expect(dom.aoDirectStatus.textContent).toContain('Sendingen kunne ikke bekreftes');
+      expect(dom.aoDirectStatus.textContent).toContain('Kontroller funnene hos Artsobservasjoner før du prøver på nytt');
       expect(observations[0].sentTs).toBeUndefined();
       expect(callbacks.saveState).not.toHaveBeenCalled();
       vi.advanceTimersByTime(1500);
