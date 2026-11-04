@@ -33,7 +33,7 @@ export const DEFAULT_NETWORK_MODE = 'hybrid';
 // En avvikende URL får nettleseren til å bytte ut workeren ved sidebytte, og da mister
 // den modusen sin fra minnet. Versjonert URL omgår Cloudflares edge-cache av /sw.js,
 // og versjonen oppdateres sammen med de andre treffene ved release.
-export const SERVICE_WORKER_URL = '/sw.js?v=v1.59.4';
+export const SERVICE_WORKER_URL = '/sw.js?v=v1.59.9';
 export const NETWORK_MODE_CACHE_URL = 'https://enkel-ao.local/__network_mode__';
 export const MAP_TILE_CACHE_NAME = 'enkel-ao-kartverket-tiles-v1';
 export const OPPORTUNISTIC_AREA_ID = 'opportunistic';
@@ -79,11 +79,16 @@ export function normalizeNetworkMode(mode) {
  */
 export function getNetworkMode() {
   try {
-    const stored = localStorage.getItem(NETWORK_MODE_KEY);
+    const raw = localStorage.getItem(NETWORK_MODE_KEY);
+    const stored = typeof raw === 'string' ? raw.trim().toLowerCase() : '';
     if (stored === 'online' || stored === 'hybrid' || stored === 'offline') {
+      if (raw !== stored) {
+        localStorage.setItem(NETWORK_MODE_KEY, stored);
+      }
       return stored;
     }
     if (localStorage.getItem(OFFLINE_MODE_KEY) === '1') {
+      localStorage.setItem(NETWORK_MODE_KEY, 'offline');
       return 'offline';
     }
     // Første oppstart: lagre standardmodusen slik at alle sider og Service Worker

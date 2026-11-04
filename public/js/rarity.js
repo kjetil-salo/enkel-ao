@@ -23,7 +23,8 @@ const DEBOUNCE_MS = 400;
 const RARITY_CACHE_KEY = 'ao_rarity_cache_v1';
 const RARITY_SITE_AREAS_KEY = 'ao_site_areas_v1';
 const RARITY_TTL_MS = 180 * 24 * 60 * 60 * 1000; // 180 dager
-const NETWORK_MODE_STORAGE_KEY = 'enkel_ao_network_mode_v1';
+const NETWORK_MODE_STORAGE_KEY = 'network_mode_v1';
+const LEGACY_NETWORK_MODE_STORAGE_KEY = 'enkel_ao_network_mode_v1';
 
 let debounceTimer = null;
 let requestSeq = 0;
@@ -40,10 +41,15 @@ function enqueueRarityFetch(taskFn) {
 
 function getNetworkMode() {
   try {
-    const raw = localStorage.getItem(NETWORK_MODE_STORAGE_KEY);
+    const raw =
+      localStorage.getItem(NETWORK_MODE_STORAGE_KEY) ||
+      localStorage.getItem(LEGACY_NETWORK_MODE_STORAGE_KEY);
     const mode = typeof raw === 'string' ? raw.trim().toLowerCase() : '';
     if (mode === 'online' || mode === 'hybrid' || mode === 'offline') {
       return mode;
+    }
+    if (localStorage.getItem('offline_mode_v1') === '1') {
+      return 'offline';
     }
   } catch (e) {
     // ignorer

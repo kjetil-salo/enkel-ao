@@ -158,7 +158,11 @@ body.theme-light .mode-pill.after-mode {
   user-select: none;
   appearance: none;
   -webkit-appearance: none;
-  transition: all var(--transition-base);
+  transition: transform var(--transition-base), opacity var(--transition-base);
+}
+
+.offline-toggle-pill:not([data-network-mode]) {
+  visibility: hidden;
 }
 
 .offline-toggle-pill.is-online {
@@ -688,4 +692,15 @@ input:checked + .slider:before {
   display: block;
   color: var(--color-warning);
   margin-bottom: 2px;
+}
+
+/* === Deaktiverte handlinger i offline-modus === */
+.is-offline-disabled {
+  opacity: 0.38 !important;
+  cursor: not-allowed !important;
+}
+
+.is-offline-disabled svg,
+.is-offline-disabled * {
+  pointer-events: none;
 }

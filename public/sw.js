@@ -1,11 +1,10 @@
-/
-
-Service Worker for Enkel-AO (PWA app-shell og kartflis-cache).
-*/
+/**
+ * Service Worker for Enkel-AO (PWA app-shell og kartflis-cache).
+ */
 
 const CACHE_NAME = 'fugleobs-v193';
 const MAP_TILE_CACHE_NAME = 'enkel-ao-kartverket-tiles-v1';
-const NETWORK_MODE_CACHE_URL = 'https://enkel-ao.local/network_mode';
+const NETWORK_MODE_CACHE_URL = 'https://enkel-ao.local/__network_mode__';
 
 const STATIC_ASSETS = [
 '/',
@@ -148,14 +147,11 @@ currentNetworkMode = normalizeSwMode(data.mode);
 }
 });
 
-/
-
-Sjekk om en URL er en kartflis-forespørsel som skal håndteres av kartflis-strategien.
-
-@param {string} urlString
-
-@returns {boolean}
-*/
+/**
+ * Sjekk om en URL er en kartflis-forespørsel som skal håndteres av kartflis-strategien.
+ * @param {string} urlString
+ * @returns {boolean}
+ */
 function isMapTileRequest(urlString) {
 try {
 const url = new URL(urlString);
@@ -168,14 +164,11 @@ return false;
 }
 }
 
-/
-
-Sjekk om en forespørsel gjelder appens egne statiske filer eller navigasjon (app-shell).
-
-@param {Request} request
-
-@returns {boolean}
-*/
+/**
+ * Sjekk om en forespørsel gjelder appens egne statiske filer eller navigasjon (app-shell).
+ * @param {Request} request
+ * @returns {boolean}
+ */
 function isAppShellRequest(request) {
 try {
 const url = new URL(request.url);
@@ -187,16 +180,12 @@ return false;
 }
 }
 
-/
-
-Finn gjeldende nettverksmodus ('online' | 'hybrid' | 'offline') i Service Worker.
-
-Leser først fra minne, deretter fra Cache API-oppføringen dersom SW har startet på nytt.
-
-@param {Cache|null} cache
-
-@returns {Promise<'online'|'hybrid'|'offline'>}
-*/
+/**
+ * Finn gjeldende nettverksmodus ('online' | 'hybrid' | 'offline') i Service Worker.
+ * Leser først fra minne, deretter fra Cache API-oppføringen dersom SW har startet på nytt.
+ * @param {Cache|null} cache
+ * @returns {Promise<'online'|'hybrid'|'offline'>}
+ */
 async function resolveSwNetworkMode(cache) {
 if (currentNetworkMode) {
 return currentNetworkMode;
@@ -300,12 +289,10 @@ throw err;
 }
 }
 
-/
-
-Slå opp en app-shell-forespørsel i mellomlageret (med fallback til forsiden ved navigasjon).
-
-@returns {Promise<Response|null>}
-*/
+/**
+ * Slå opp en app-shell-forespørsel i mellomlageret (med fallback til forsiden ved navigasjon).
+ * @returns {Promise<Response|null>}
+ */
 async function matchAppShell(cache, request) {
 if (!cache) return null;
 try {
@@ -374,13 +361,16 @@ throw err;
 }
 }
 
-/
-
-Appens egne /api/-kall (alle metoder). I offline-modus går de aldri til nettverket;
-
-i øvrige moduler sendes de uendret videre.
-*/
+/**
+ * Appens egne /api/-kall (alle metoder). I offline-modus går de aldri til nettverket;
+ * i øvrige moduler sendes de uendret videre.
+ */
 async function handleApiFetch(request) {
+const allowBypass = request.headers.get('x-allow-offline-network') === '1';
+if (allowBypass) {
+return fetch(request);
+}
+
 const mode = await resolveSwNetworkMode(await openCacheSafe(MAP_TILE_CACHE_NAME));
 if (mode === 'offline') {
 return new Response(JSON.stringify({ error: 'Offline-modus: ingen nettverkskall' }), {
@@ -401,14 +391,11 @@ return false;
 }
 }
 
-/
-
-Eksterne ressurser som ikke er kartfliser (Leaflet fra unpkg, markørikoner m.m.).
-
-Offline-modus: kun fra mellomlager. Ellers: nettverk, og en kopi lagres så de
-
-finnes lokalt neste gang appen brukes offline.
-*/
+/**
+ * Eksterne ressurser som ikke er kartfliser (Leaflet fra unpkg, markørikoner m.m.).
+ * Offline-modus: kun fra mellomlager. Ellers: nettverk, og en kopi lagres så de
+ * finnes lokalt neste gang appen brukes offline.
+ */
 function isExternalAssetRequest(request) {
 try {
 const url = new URL(request.url);

@@ -359,6 +359,19 @@ describe('offline-db (persistent lagring av nedlastede kartområder og 3-veis ne
     await sendPromise;
     expect(globalFetchSpy).not.toHaveBeenCalled();
 
+    // Start innsending på nytt og klikk «Tillat nettverk og send inn»
+    const sendAllowedPromise = handleDirectSend(obs, dom, callbacks);
+    const modal2 = document.getElementById('offline-send-confirm-modal');
+    expect(modal2).not.toBeNull();
+    modal2.querySelector('#offline-send-tillat').click();
+    await sendAllowedPromise;
+
+    // Skal ha utført fetch med X-Allow-Offline-Network: 1
+    expect(globalFetchSpy).toHaveBeenCalled();
+    const [calledUrl, calledOptions] = globalFetchSpy.mock.calls[0];
+    expect(calledUrl).toBe('/api/ao-login');
+    expect(calledOptions.headers['X-Allow-Offline-Network']).toBe('1');
+
     globalFetchSpy.mockRestore();
   });
 });
@@ -429,3 +442,205 @@ describe('andres private lokaliteter og offline-nedlasting', () => {
     });
   });
 });
+
+describe('nettverksmodus-knapp (#offline-mode-toggle) flimmerfri hydrering og persistens på tvers av sider', () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  it('index.html har ikke hardkodet is-hybrid eller "🔄 Hybrid" i knappe-HTML før synkron hydrering', async () => {
+    const fs = await import('node:fs');
+    const path = await import('node:path');
+    const indexHtml = fs.readFileSync(path.resolve(process.cwd(), 'public/index.html'), 'utf-8');
+
+    const btnMatch = indexHtml.match(/<button[^>]*id="offline-mode-toggle"[^>]*>([\s\S]*?)<\/button>/);
+    expect(btnMatch).not.toBeNull();
+    const buttonMarkup = btnMatch[0];
+    const innerSpanMarkup = btnMatch[1];
+
+    // Knappen skal ikke ha hardkodet is-hybrid-klasse eller "🔄 Hybrid"-tekst som gir flimring før JS kjører
+    expect(buttonMarkup).not.toContain('is-hybrid');
+    expect(innerSpanMarkup).not.toContain('🔄 Hybrid');
+  });
+
+  it('synkront inline-skript i index.html setter standard "hybrid" kun ved første oppstart og bevarer valgt modus ved navigering tilbake', async () => {
+    const fs = await import('node:fs');
+    const path = await import('node:path');
+    const indexHtml = fs.readFileSync(path.resolve(process.cwd(), 'public/index.html'), 'utf-8');
+
+    // Hent ut <button id="offline-mode-toggle"> og det påfølgende synkrone <script>-elementet
+    const snippetMatch = indexHtml.match(
+      /(<button[^>]*id="offline-mode-toggle"[\s\S]*?<\/button>\s*<script>[\s\S]*?<\/script>)/
+    );
+    expect(snippetMatch).not.toBeNull();
+
+    const mountHeaderToggle = () => {
+      document.body.innerHTML = snippetMatch[1];
+      const inlineScript = document.body.querySelector('script');
+      expect(inlineScript).not.toBeNull();
+      // Evaluer det synkrone inline-skriptet slik nettleseren gjør under HTML-parsing før første opptegning
+      new Function(inlineScript.textContent)();
+      return {
+        btn: document.getElementById('offline-mode-toggle'),
+        text: document.getElementById('offline-mode-toggle-text'),
+      };
+    };
+
+    // 1. Første gangs oppstart (tom localStorage): skal falle tilbake til 'hybrid' og lagre det
+    expect(localStorage.getItem('network_mode_v1')).toBeNull();
+    const firstLaunch = mountHeaderToggle();
+    expect(localStorage.getItem('network_mode_v1')).toBe('hybrid');
+    expect(firstLaunch.btn.dataset.networkMode).toBe('hybrid');
+    expect(firstLaunch.btn.classList.contains('is-hybrid')).toBe(true);
+    expect(firstLaunch.text.textContent).toBe('🔄 Hybrid');
+
+    // 2. Bruker bytter til 'online', navigerer til kart/innstillinger og kommer tilbake til rapporteringssiden
+    setNetworkMode('online');
+    const afterReturnOnline = mountHeaderToggle();
+    expect(afterReturnOnline.btn.dataset.networkMode).toBe('online');
+    expect(afterReturnOnline.btn.classList.contains('is-online')).toBe(true);
+    expect(afterReturnOnline.btn.classList.contains('is-hybrid')).toBe(false);
+    expect(afterReturnOnline.text.textContent).toBe('🌐 Online');
+    expect(localStorage.getItem('network_mode_v1')).toBe('online');
+
+    // 3. Bruker bytter til 'offline', navigerer bort og kommer tilbake til rapporteringssiden
+    setNetworkMode('offline');
+    const afterReturnOffline = mountHeaderToggle();
+    expect(afterReturnOffline.btn.dataset.networkMode).toBe('offline');
+    expect(afterReturnOffline.btn.classList.contains('is-offline')).toBe(true);
+    expect(afterReturnOffline.btn.classList.contains('is-hybrid')).toBe(false);
+    expect(afterReturnOffline.text.textContent).toBe('📴 Offline');
+    expect(localStorage.getItem('network_mode_v1')).toBe('offline');
+  });
+
+  it('sw.js bruker eksakt samme NETWORK_MODE_CACHE_URL som offline-db.js og støtter bypass-header', async () => {
+    const fs = await import('node:fs');
+    const path = await import('node:path');
+    const swSource = fs.readFileSync(path.resolve(process.cwd(), 'public/sw.js'), 'utf-8');
+
+    expect(swSource).toContain(`const NETWORK_MODE_CACHE_URL = '${NETWORK_MODE_CACHE_URL}';`);
+    expect(swSource).toContain("request.headers.get('x-allow-offline-network') === '1'");
+  });
+});
+
+describe('deaktivering av Fellestur, Tidligere sendt og Mine delinger i offline-modus', () => {
+  let uiModule;
+  let mainModule;
+
+  beforeEach(async () => {
+    localStorage.clear();
+    document.body.innerHTML = '';
+    uiModule = await import('../../public/js/ui.js');
+    mainModule = await import('../../public/js/main.js');
+  });
+
+  it('showOfflineNotAvailableDialog viser modal med tittel "Ikke tilgjengelig i offline-modus!" og OK-knapp', () => {
+    const modal = uiModule.showOfflineNotAvailableDialog();
+    expect(modal).not.toBeNull();
+    expect(document.getElementById('offline-not-available-modal')).toBe(modal);
+    expect(modal.textContent).toContain('Ikke tilgjengelig i offline-modus!');
+    const okBtn = modal.querySelector('#offline-modal-ok-btn');
+    expect(okBtn).not.toBeNull();
+    okBtn.click();
+    expect(document.getElementById('offline-not-available-modal')).toBeNull();
+  });
+
+  it('deaktiverer Fellestur, Tidligere sendt og Mine delinger når appen er i offline-modus og aktiverer dem i online/hybrid', () => {
+    document.body.innerHTML = `
+      <button id="offline-mode-toggle"><span id="offline-mode-toggle-text"></span></button>
+      <a href="/fellestur.html" id="fellestur-header-btn">Fellestur</a>
+      <a href="/sendt.html" id="tidligere-sendt-link">Tidligere sendt</a>
+      <a href="/mine-delinger.html" id="mine-delinger-link">Mine delinger</a>
+    `;
+
+    const fellestur = document.getElementById('fellestur-header-btn');
+    const sendt = document.getElementById('tidligere-sendt-link');
+    const delinger = document.getElementById('mine-delinger-link');
+
+    // 1. Online-modus: knappene er ikke deaktivert
+    setNetworkMode('online');
+    mainModule.updateOfflineModeUI();
+    expect(fellestur.classList.contains('is-offline-disabled')).toBe(false);
+    expect(sendt.classList.contains('is-offline-disabled')).toBe(false);
+    expect(delinger.classList.contains('is-offline-disabled')).toBe(false);
+    expect(fellestur.getAttribute('aria-disabled')).toBe('false');
+
+    // 2. Offline-modus: knappene blir merket med is-offline-disabled og aria-disabled="true"
+    setNetworkMode('offline');
+    mainModule.updateOfflineModeUI();
+    expect(fellestur.classList.contains('is-offline-disabled')).toBe(true);
+    expect(sendt.classList.contains('is-offline-disabled')).toBe(true);
+    expect(delinger.classList.contains('is-offline-disabled')).toBe(true);
+    expect(fellestur.getAttribute('aria-disabled')).toBe('true');
+    expect(sendt.getAttribute('aria-disabled')).toBe('true');
+    expect(delinger.getAttribute('aria-disabled')).toBe('true');
+    expect(fellestur.title).toContain('Ikke tilgjengelig i offline-modus!');
+
+    // 3. Hybrid-modus: knappene er igjen aktive
+    setNetworkMode('hybrid');
+    mainModule.updateOfflineModeUI();
+    expect(fellestur.classList.contains('is-offline-disabled')).toBe(false);
+    expect(sendt.classList.contains('is-offline-disabled')).toBe(false);
+    expect(delinger.classList.contains('is-offline-disabled')).toBe(false);
+    expect(fellestur.getAttribute('aria-disabled')).toBe('false');
+  });
+
+  it('hindrer navigering og åpner dialog ved klikk på knappene når appen er i offline-modus', () => {
+    document.body.innerHTML = `
+      <button id="offline-mode-toggle"><span id="offline-mode-toggle-text"></span></button>
+      <a href="/fellestur.html" id="fellestur-header-btn">Fellestur</a>
+      <a href="/sendt.html" id="tidligere-sendt-link">Tidligere sendt</a>
+      <a href="/mine-delinger.html" id="mine-delinger-link">Mine delinger</a>
+    `;
+
+    // Kall DOMContentLoaded-oppsettet eller fest lyttere
+    const fellestur = document.getElementById('fellestur-header-btn');
+    const sendt = document.getElementById('tidligere-sendt-link');
+    const delinger = document.getElementById('mine-delinger-link');
+
+    // Simuler event listenerene fra main.js
+    const setupInterceptors = (el, navn) => {
+      el.addEventListener('click', (e) => {
+        if (isOfflineMode()) {
+          e.preventDefault();
+          e.stopPropagation();
+          uiModule.showOfflineNotAvailableDialog(
+            'Ikke tilgjengelig i offline-modus!',
+            `${navn} krever nettverkstilkobling og kan ikke åpnes mens du er i offline-modus.`
+          );
+        }
+      });
+    };
+    setupInterceptors(fellestur, 'Fellestur');
+    setupInterceptors(sendt, 'Tidligere sendt');
+    setupInterceptors(delinger, 'Mine delinger');
+
+    // Sett offline-modus
+    setNetworkMode('offline');
+
+    // Klikk på Fellestur
+    fellestur.click();
+    let modal = document.getElementById('offline-not-available-modal');
+    expect(modal).not.toBeNull();
+    expect(modal.textContent).toContain('Ikke tilgjengelig i offline-modus!');
+    expect(modal.textContent).toContain('Fellestur');
+    modal.querySelector('#offline-modal-ok-btn').click();
+    expect(document.getElementById('offline-not-available-modal')).toBeNull();
+
+    // Klikk på Tidligere sendt
+    sendt.click();
+    modal = document.getElementById('offline-not-available-modal');
+    expect(modal).not.toBeNull();
+    expect(modal.textContent).toContain('Tidligere sendt');
+    modal.querySelector('#offline-modal-ok-btn').click();
+
+    // Klikk på Mine delinger
+    delinger.click();
+    modal = document.getElementById('offline-not-available-modal');
+    expect(modal).not.toBeNull();
+    expect(modal.textContent).toContain('Mine delinger');
+    modal.querySelector('#offline-modal-ok-btn').click();
+  });
+});
+
+

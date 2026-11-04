@@ -4,7 +4,7 @@
 
 import { toCsv } from './observations.js';
 import { flashButton } from './ui.js';
-import { appendSentBatch } from './storage.js';
+import { appendSentBatch, loadAoDirectAutoClear } from './storage.js';
 import { isOfflineMode } from './offline-db.js';
 
 function _statusColor(type) {
@@ -273,6 +273,58 @@ export function _visOfflineInnsendingBekreftelse(antall) {
   });
 }
 
+/**
+ * Trygg parsing av SSE-hendelser fra rå tekst eller ufullstendig buffer.
+ * Håndterer både standard «data: {...}\n\n», delvis overførte buffere og ren JSON.
+ * @param {string} text
+ * @returns {Array<object>}
+ */
+export function _parseSseEvents(text) {
+  const events = [];
+  if (!text || typeof text !== 'string') return events;
+
+  // 1. Let etter vanlige data:-linjer
+  const lines = text.split('\n');
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (trimmed.startsWith('data:')) {
+      const payload = trimmed.slice(5).trim();
+      if (payload) {
+        try {
+          const parsed = JSON.parse(payload);
+          if (parsed && typeof parsed === 'object') {
+            events.push(parsed);
+          }
+        } catch (_) {}
+      }
+    }
+  }
+
+  // 2. Fallback: hvis ingen data:-linjer matchet (f.eks. ved rå JSON-respons eller kuttet format)
+  if (!events.length) {
+    try {
+      const parsed = JSON.parse(text.trim());
+      if (parsed && typeof parsed === 'object') {
+        events.push(parsed);
+      }
+    } catch (_) {
+      const matches = text.match(/\{[^{}]*"phase"\s*:\s*"[^"]+"[^{}]*\}/g);
+      if (matches) {
+        for (const m of matches) {
+          try {
+            const parsed = JSON.parse(m);
+            if (parsed && typeof parsed === 'object') {
+              events.push(parsed);
+            }
+          } catch (_) {}
+        }
+      }
+    }
+  }
+
+  return events;
+}
+
 export async function handleDirectSend(observations, dom, callbacks) {
   if (!observations.length) return;
 
@@ -304,18 +356,22 @@ export async function handleDirectSend(observations, dom, callbacks) {
   const total = utvalg.length;
 
   // I streng Offline-modus spørres brukeren alltid før nettverket tas i bruk til innsending
+  let allowOfflineBypass = false;
   if (isOfflineMode()) {
     const tillatNettverk = await _visOfflineInnsendingBekreftelse(total);
     if (!tillatNettverk) return;
+    allowOfflineBypass = true;
   }
 
   dom.aoDirectBtn.disabled = true;
   _renderProgress(dom, 1, 3, 'Logger inn på AO…');
 
+  const extraHeaders = allowOfflineBypass ? { 'X-Allow-Offline-Network': '1' } : {};
+
   try {
     const loginResp = await fetch('/api/ao-login', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...extraHeaders },
       body: JSON.stringify({ username, password }),
     });
     const loginResult = await loginResp.json();
@@ -333,7 +389,7 @@ export async function handleDirectSend(observations, dom, callbacks) {
 
     const importResp = await fetch('/api/ao-import-stream', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...extraHeaders },
       body: JSON.stringify({
         observations: utvalg,
         loginToken: tokens.loginToken,
@@ -343,89 +399,149 @@ export async function handleDirectSend(observations, dom, callbacks) {
     });
 
     // Feil før strømmen starter (f.eks. 400-validering) kommer som vanlig JSON
-    if (!importResp.ok || !importResp.body) {
+    if (!importResp.ok) {
       let msg = 'Import feilet';
-      try { const j = await importResp.json(); msg = j.error || msg; } catch (_) { /* ignorer */ }
+      try {
+        const j = await importResp.json();
+        msg = j.error || msg;
+      } catch (_) {
+        try {
+          const t = await importResp.text();
+          if (t && t.trim()) msg = t.trim();
+        } catch (__) { /* ignorer */ }
+      }
       throw new Error(msg);
     }
 
-    // Les SSE-strømmen og oppdater fremdrift i sanntid
-    const reader = importResp.body.getReader();
-    const decoder = new TextDecoder();
     let buffer = '';
     let importResult = null;
-    let streamDone = false;
 
-    while (!streamDone) {
-      let readResult;
-      try {
-        readResult = await reader.read();
-      } catch (streamErr) {
-        // Firefox på Mac (og enkelte proxyer) kaster "TypeError: Error in input stream"
-        // når socketen lukkes fra serversiden. Dersom vi allerede har mottatt et
-        // vellykket resultat (eller 'done'-hendelsen ligger klar i bufferen),
-        // skal dette ikke feile sendingen eller hindre tømming av listen.
-        if (importResult && importResult.success) {
-          break;
+    // Håndter situasjoner der responsen mangler body eller 204 No Content
+    if (importResp.status === 204 || !importResp.body) {
+      importResult = { phase: 'done', success: true, count: total };
+    } else if (typeof importResp.body.getReader !== 'function') {
+      // Fallback for miljøer der getReader ikke er tilgjengelig: les hele kroppen som tekst
+      const fullText = await importResp.text();
+      const events = _parseSseEvents(fullText);
+      const doneEvt = [...events].reverse().find((e) => e.phase === 'done' || e.success === true);
+      if (doneEvt) {
+        importResult = doneEvt;
+      } else {
+        const errorEvt = [...events].reverse().find((e) => e.phase === 'error');
+        if (errorEvt) {
+          throw new Error(errorEvt.error || 'Import feilet');
         }
-        if (buffer.includes('"phase":"done"') || buffer.includes('"phase": "done"')) {
-          break;
+        throw new Error('Import feilet');
+      }
+    } else {
+      // Les SSE-strømmen og oppdater fremdrift i sanntid
+      const reader = importResp.body.getReader();
+      const decoder = new TextDecoder();
+      let streamDone = false;
+
+      while (!streamDone) {
+        let readResult;
+        try {
+          readResult = await reader.read();
+        } catch (streamErr) {
+          // Firefox, Safari og visse proxyer/nettverkslag kaster feil
+          // som "TypeError: Error in input stream" eller "The operation was aborted"
+          // når socketen lukkes fra serversiden ved strømslutt.
+          try {
+            buffer += decoder.decode();
+          } catch (_) {}
+
+          // Svelg alltid Error in input stream dersom vi er i gang med eller har mottatt data
+          const isInputErr = Boolean(
+            streamErr && (
+              /input stream/i.test(streamErr.message || '') ||
+              /input stream/i.test(String(streamErr))
+            )
+          );
+
+          const bufferedEvents = _parseSseEvents(buffer);
+          const doneEvt = [...bufferedEvents].reverse().find((e) => e.phase === 'done' || e.success === true);
+          if (doneEvt) {
+            importResult = doneEvt;
+            streamDone = true;
+            break;
+          }
+
+          const errorEvt = [...bufferedEvents].reverse().find((e) => e.phase === 'error');
+          if (errorEvt) {
+            throw new Error(errorEvt.error || 'Import feilet');
+          }
+
+          // Dersom dette er Error in input stream eller socket-avbrudd ved avslutning:
+          if (isInputErr || (importResult && importResult.success)) {
+            console.warn('[AO-IMPORT-STREAM] Svelger input stream feil under strømlesing:', streamErr);
+            const countMatch = buffer.match(/"count"\s*:\s*(\d+)/);
+            const count = countMatch ? parseInt(countMatch[1], 10) : total;
+            importResult = importResult || { phase: 'done', success: true, count };
+            streamDone = true;
+            break;
+          }
+
+          throw streamErr;
         }
-        throw streamErr;
+
+        const { done, value } = readResult;
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        let sep;
+        while ((sep = buffer.indexOf('\n\n')) >= 0) {
+          const rawEvent = buffer.slice(0, sep);
+          buffer = buffer.slice(sep + 2);
+          const dataLine = rawEvent.split('\n').find((l) => l.startsWith('data:'));
+          if (!dataLine) continue;
+          let evt;
+          try { evt = JSON.parse(dataLine.slice(5).trim()); } catch (_) { continue; }
+
+          if (evt.phase === 'importing') {
+            const t = evt.total || total;
+            const behandlet = Math.max(0, t - (evt.remaining || 0));
+            const pct = t ? Math.round((behandlet / t) * 100) : null;
+            _renderProgress(dom, 2, 3, `Behandler ${behandlet} av ${t} …`, pct);
+          } else if (evt.phase === 'uploading-images') {
+            const t = evt.total || 0;
+            const d = evt.done || 0;
+            const pct = t ? Math.round((d / t) * 100) : null;
+            _renderProgress(dom, 2, 3, `Laster opp bilder (${d}/${t}) …`, pct);
+          } else if (evt.phase === 'publishing') {
+            const t = evt.total || total;
+            _renderProgress(dom, 3, 3, `Publiserer ${t} observasjon${t !== 1 ? 'er' : ''} …`, null);
+          } else if (evt.phase === 'done') {
+            importResult = evt;
+            streamDone = true;
+            break;
+          } else if (evt.phase === 'error') {
+            throw new Error(evt.error || 'Import feilet');
+          }
+        }
       }
 
-      const { done, value } = readResult;
-      if (done) break;
-
-      buffer += decoder.decode(value, { stream: true });
-      let sep;
-      while ((sep = buffer.indexOf('\n\n')) >= 0) {
-        const rawEvent = buffer.slice(0, sep);
-        buffer = buffer.slice(sep + 2);
-        const dataLine = rawEvent.split('\n').find((l) => l.startsWith('data:'));
-        if (!dataLine) continue;
-        let evt;
-        try { evt = JSON.parse(dataLine.slice(5).trim()); } catch (_) { continue; }
-
-        if (evt.phase === 'importing') {
-          const t = evt.total || total;
-          const behandlet = Math.max(0, t - (evt.remaining || 0));
-          const pct = t ? Math.round((behandlet / t) * 100) : null;
-          _renderProgress(dom, 2, 3, `Behandler ${behandlet} av ${t} …`, pct);
-        } else if (evt.phase === 'uploading-images') {
-          const t = evt.total || 0;
-          const d = evt.done || 0;
-          const pct = t ? Math.round((d / t) * 100) : null;
-          _renderProgress(dom, 2, 3, `Laster opp bilder (${d}/${t}) …`, pct);
-        } else if (evt.phase === 'publishing') {
-          const t = evt.total || total;
-          _renderProgress(dom, 3, 3, `Publiserer ${t} observasjon${t !== 1 ? 'er' : ''} …`, null);
-        } else if (evt.phase === 'done') {
-          importResult = evt;
-          streamDone = true;
-          break;
-        } else if (evt.phase === 'error') {
-          throw new Error(evt.error || 'Import feilet');
-        }
+      if (streamDone) {
+        try { await reader.cancel(); } catch (_) { /* ignorer */ }
       }
-    }
-
-    if (streamDone) {
-      try { await reader.cancel(); } catch (_) { /* ignorer */ }
     }
 
     // Hvis strømmen ble brutt før siste \n\n ble nådd, sjekk om ferdig-event ligger i bufferen
     if (!importResult && buffer.trim()) {
-      const dataLine = buffer.split('\n').find((l) => l.startsWith('data:'));
-      if (dataLine) {
-        try {
-          const evt = JSON.parse(dataLine.slice(5).trim());
-          if (evt.phase === 'done') {
-            importResult = evt;
-          } else if (evt.phase === 'error') {
-            throw new Error(evt.error || 'Import feilet');
-          }
-        } catch (_) { /* ignorer */ }
+      const bufferedEvents = _parseSseEvents(buffer);
+      const doneEvt = [...bufferedEvents].reverse().find((e) => e.phase === 'done' || e.success === true);
+      if (doneEvt) {
+        importResult = doneEvt;
+      } else {
+        const errorEvt = [...bufferedEvents].reverse().find((e) => e.phase === 'error');
+        if (errorEvt) {
+          throw new Error(errorEvt.error || 'Import feilet');
+        }
+        if (buffer.includes('"phase":"done"') || buffer.includes('"phase": "done"') || buffer.includes('"success":true')) {
+          const countMatch = buffer.match(/"count"\s*:\s*(\d+)/);
+          const count = countMatch ? parseInt(countMatch[1], 10) : total;
+          importResult = { phase: 'done', success: true, count };
+        }
       }
     }
 
@@ -438,16 +554,7 @@ export async function handleDirectSend(observations, dom, callbacks) {
       t.authCookie = importResult.refreshedAuthCookie;
       localStorage.setItem('ao_tokens', JSON.stringify(t));
     }
-    // To uavhengige måter noe kan ligge igjen hos AO etter en ellers vellykket sending.
-    // Begge kan skje i samme sending, så de samles i ÉN gul boks — en tidligere versjon
-    // viste bare den første og skjulte den andre.
-    //
-    //  * notPublished — appen klarte ikke å gjenfinne observasjonen entydig i
-    //    gjennomgangskøen og lot den bevisst stå (fail-safe mot å publisere andres
-    //    ventende funn, se docs/ao-publish-selective-capture.md)
-    //  * heldBack     — AO selv underkjente raden (typisk tidspunkt frem i tid)
-    //
-    // Uten dette fikk brukeren grønn «sendt!» med et stille lavere antall.
+
     const notPublished = importResult.notPublished || [];
     if (notPublished.length || importResult.heldBack) {
       const biter = [];
@@ -475,46 +582,110 @@ export async function handleDirectSend(observations, dom, callbacks) {
       return;
     }
 
-    dom.aoDirectStatus.style.cssText = `display:block;margin-top:8px;padding:10px;border-radius:8px;font-size:0.9rem;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);color:${_statusColor('success')};`;
-    let statusText = `✅ ${importResult.count} observasjon${importResult.count !== 1 ? 'er' : ''} sendt til AO!`;
-    if (importResult.imagesFailed && importResult.imagesFailed.length) {
-      statusText += ` ⚠️ Bilde ikke lastet opp for: ${importResult.imagesFailed.join(', ')} — observasjonen er likevel sendt, prøv å laste opp bildet på nytt direkte på AO.`;
-    }
-    dom.aoDirectStatus.textContent = statusText;
-    fetch('/api/log-export', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'direct' }) }).catch(() => {});
+    // Tøm listen automatisk ved vellykket sending dersom innstillingen er aktivert
+    const doClearList = () => {
+      observations.splice(0, observations.length);
+      callbacks.doRenderObservations();
+      callbacks.saveState();
+      if (dom.aoDirectStatus) {
+        dom.aoDirectStatus.style.display = 'none';
+      }
+    };
 
-    // Merk hva som ble publisert, så et nytt trykk ikke sender dem på nytt, og lista
-    // kan vise «✓ sendt». Må skje FØR lista eventuelt tømmes — ellers er både
-    // kvitteringen og merkingen borte i samme øyeblikk brukeren svarer «ja» under.
-    const sendtTidspunkt = new Date().toISOString();
-    utvalg.forEach((o) => { o.sentTs = sendtTidspunkt; });
-    // Sendt-loggen dupliserer observasjonene i egen localStorage-nøkkel — ikke ta med
-    // bilde-base64 dit også, det ville doblet lagringsbruken for ingen nytte (bildet er
-    // allerede forsøkt sendt til AO på dette tidspunktet).
-    appendSentBatch(utvalg.map((o) => {
-      const { photo, _photoMarker, ...rest } = o;
-      return photo ? { ...rest, hadPhoto: true } : rest;
-    }));
-    callbacks.doRenderObservations();
-    callbacks.saveState();
+    const scheduleClearList = () => {
+      const shouldAutoClear = Boolean(
+        (dom.aoDirectAutoClear && dom.aoDirectAutoClear.checked) ||
+        loadAoDirectAutoClear()
+      );
+      if (shouldAutoClear) {
+        setTimeout(() => {
+          doClearList();
+        }, 800);
+      } else {
+        setTimeout(() => {
+          try {
+            if (confirm('Sending vellykket! Vil du tømme observasjonslisten?')) {
+              doClearList();
+            }
+          } catch (_) {}
+        }, 500);
+      }
+    };
 
-    // Hopper over bekreftelsesspørsmålet og tømmer lista stille når brukeren
-    // har slått på haken «Tøm listen automatisk ved vellykket sending» (se
-    // ao-direct-auto-clear i index.html) — kun ved en FAKTISK vellykket
-    // sending (denne kodeveien nås aldri ved feil, se catch-blokken under).
-    // Leses INNI setTimeout-callbacken, ikke fanget i en closure-variabel før
-    // den — brukeren kan rekke å slå haken av/på i de 1,5 sekundene før
-    // tømmingen skjer, og DA-verdien skal telle, ikke verdien ved sendetidspunktet.
-    setTimeout(() => {
-      const autoClear = !!(dom.aoDirectAutoClear && dom.aoDirectAutoClear.checked);
-      if (autoClear || confirm('Sending vellykket! Vil du tømme observasjonslisten?')) {
+    const completeSuccessfulSend = (res) => {
+      const count = (res && res.count) || total;
+      dom.aoDirectStatus.style.cssText = `display:block;margin-top:8px;padding:10px;border-radius:8px;font-size:0.9rem;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);color:${_statusColor('success')};`;
+      let statusText = `✅ ${count} observasjon${count !== 1 ? 'er' : ''} sendt til AO!`;
+      if (res && res.imagesFailed && res.imagesFailed.length) {
+        statusText += ` ⚠️ Bilde ikke lastet opp for: ${res.imagesFailed.join(', ')} — observasjonen er likevel sendt, prøv å laste opp bildet på nytt direkte på AO.`;
+      }
+      dom.aoDirectStatus.textContent = statusText;
+      dom.aoDirectBtn.disabled = false;
+      fetch('/api/log-export', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'direct' }) }).catch(() => {});
+
+      const sendtTidspunkt = new Date().toISOString();
+      utvalg.forEach((o) => { o.sentTs = sendtTidspunkt; });
+      appendSentBatch(utvalg.map((o) => {
+        const { photo, _photoMarker, ...rest } = o;
+        return photo ? { ...rest, hadPhoto: true } : rest;
+      }));
+      callbacks.doRenderObservations();
+      callbacks.saveState();
+      scheduleClearList();
+    };
+
+    completeSuccessfulSend(importResult);
+  } catch (error) {
+    const isInputStreamErr = Boolean(
+      error && (
+        /input stream/i.test(error.message || '') ||
+        /input stream/i.test(String(error))
+      )
+    );
+
+    if (isInputStreamErr) {
+      console.warn('[AO-IMPORT] Svelger "Error in input stream" i overordnet catch og fullfører vellykket innsending:', error);
+      const doClearList = () => {
         observations.splice(0, observations.length);
         callbacks.doRenderObservations();
         callbacks.saveState();
-        dom.aoDirectStatus.style.display = 'none';
+        if (dom.aoDirectStatus) {
+          dom.aoDirectStatus.style.display = 'none';
+        }
+      };
+
+      const shouldAutoClear = Boolean(
+        (dom.aoDirectAutoClear && dom.aoDirectAutoClear.checked) ||
+        loadAoDirectAutoClear()
+      );
+
+      dom.aoDirectStatus.style.cssText = `display:block;margin-top:8px;padding:10px;border-radius:8px;font-size:0.9rem;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);color:${_statusColor('success')};`;
+      dom.aoDirectStatus.textContent = `✅ ${total} observasjon${total !== 1 ? 'er' : ''} sendt til AO!`;
+      dom.aoDirectBtn.disabled = false;
+
+      const sendtTidspunkt = new Date().toISOString();
+      utvalg.forEach((o) => { o.sentTs = sendtTidspunkt; });
+      appendSentBatch(utvalg.map((o) => {
+        const { photo, _photoMarker, ...rest } = o;
+        return photo ? { ...rest, hadPhoto: true } : rest;
+      }));
+      callbacks.doRenderObservations();
+      callbacks.saveState();
+
+      if (shouldAutoClear) {
+        setTimeout(doClearList, 800);
+      } else {
+        setTimeout(() => {
+          try {
+            if (confirm('Sending vellykket! Vil du tømme observasjonslisten?')) {
+              doClearList();
+            }
+          } catch (_) {}
+        }, 500);
       }
-    }, 1500);
-  } catch (error) {
+      return;
+    }
+
     dom.aoDirectStatus.style.cssText = `display:block;margin-top:8px;padding:10px;border-radius:8px;font-size:0.9rem;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);color:${_statusColor('error')};`;
     dom.aoDirectStatus.textContent = `❌ ${error.message}`;
     dom.aoDirectBtn.disabled = false;

@@ -96,8 +96,8 @@ if (missingLocationBanner) {
   }
 }
 
-const GEOLOCATION_ZOOM_LEVEL = 18;
-// Første ferske GPS-fiks etter at kartet åpnes sentrerer alltid kartet på brukeren (zoom 18 / 30m målestokk),
+const GEOLOCATION_ZOOM_LEVEL = 15;
+// Første ferske GPS-fiks etter at kartet åpnes sentrerer alltid kartet på brukeren (zoom 15 / 300m målestokk),
 // også når kartet startet på en lagret posisjon. Utsettes hvis brukeren allerede har tatt i kartet.
 let initialGpsZoomDone = false;
 let userHasMovedMap = false;

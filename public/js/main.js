@@ -20,7 +20,7 @@ import { logPageView, loadActivities, fetchAoSites, fetchAndCachePrivateSites, h
 // sjekklisten i CLAUDE.md. Bump SAMTIDIG som index.html sin egen ?v=-tag for
 // main.js, hver gang storage.js får en ny eksport main.js begynner å bruke.
 import { loadObservations, saveObservations, loadAoSearchRadius, saveAoSearchRadius, loadLocationSortMode, saveLocationSortMode, loadAoDirectAutoClear, saveAoDirectAutoClear, saveLastKnownPosition, loadLastKnownPosition } from './storage.js?v=v1.59.9';
-import { setStatus, setLocationStatus, showToast, haversine, MODE_SPLASH_DURATION_MS } from './ui.js';
+import { setStatus, setLocationStatus, showToast, showOfflineNotAvailableDialog, haversine, MODE_SPLASH_DURATION_MS } from './ui.js';
 import { DEFAULT_MAP_CENTER, setAoSiteSuggestions, initLocation, openMap, openMapPage, updateCreateSiteBtnVisibility, initCreateSite } from './location.js?v=v1.59.9';
 // Versjonert import: observations.js sitt eget innhold (ikke bare hvilke
 // eksporter den har) endret seg vesentlig i dag (speciesDisplayName-bruk i
@@ -1440,34 +1440,82 @@ function setupModeToggle() {
 
 /**
  * Oppdater UI for 3-veis nettverksvelger (Online / Hybrid / Offline) øverst i hovedgrensesnittet
+ * samt deaktivering av funksjoner som krever nettverk (Fellestur, Tidligere sendt, Mine delinger).
  */
-function updateOfflineModeUI() {
+export function updateOfflineModeUI() {
   const toggleBtn = document.getElementById('offline-mode-toggle');
   const toggleText = document.getElementById('offline-mode-toggle-text');
-  if (!toggleBtn) return;
 
   const mode = getNetworkMode();
-  toggleBtn.dataset.networkMode = mode;
+  const offline = mode === 'offline';
 
-  if (mode === 'offline') {
-    if (toggleText) toggleText.textContent = '📴 Offline';
-    toggleBtn.className = 'pill offline-toggle-pill is-offline';
-    toggleBtn.setAttribute('aria-pressed', 'true');
-    toggleBtn.setAttribute('aria-label', 'Nettverksmodus: Offline. Trykk for å bytte til Online.');
-    toggleBtn.title = 'Nettverksmodus: Offline (kun lokalt mellomlager). Trykk for å bytte til Online.';
-  } else if (mode === 'hybrid') {
-    if (toggleText) toggleText.textContent = '🔄 Hybrid';
-    toggleBtn.className = 'pill offline-toggle-pill is-hybrid';
-    toggleBtn.setAttribute('aria-pressed', 'mixed');
-    toggleBtn.setAttribute('aria-label', 'Nettverksmodus: Hybrid. Trykk for å bytte til Offline.');
-    toggleBtn.title = 'Nettverksmodus: Hybrid (lokalt mellomlager først, nettverk ved behov). Trykk for å bytte til Offline.';
-  } else {
-    if (toggleText) toggleText.textContent = '🌐 Online';
-    toggleBtn.className = 'pill offline-toggle-pill is-online';
-    toggleBtn.setAttribute('aria-pressed', 'false');
-    toggleBtn.setAttribute('aria-label', 'Nettverksmodus: Online. Trykk for å bytte til Hybrid.');
-    toggleBtn.title = 'Nettverksmodus: Online (henter alltid ferskeste data). Trykk for å bytte til Hybrid.';
+  if (toggleBtn) {
+    toggleBtn.dataset.networkMode = mode;
+
+    if (offline) {
+      if (toggleText) toggleText.textContent = '📴 Offline';
+      toggleBtn.className = 'pill offline-toggle-pill is-offline';
+      toggleBtn.setAttribute('aria-pressed', 'true');
+      toggleBtn.setAttribute('aria-label', 'Nettverksmodus: Offline. Trykk for å bytte til Online.');
+      toggleBtn.title = 'Nettverksmodus: Offline (kun lokalt mellomlager). Trykk for å bytte til Online.';
+    } else if (mode === 'hybrid') {
+      if (toggleText) toggleText.textContent = '🔄 Hybrid';
+      toggleBtn.className = 'pill offline-toggle-pill is-hybrid';
+      toggleBtn.setAttribute('aria-pressed', 'mixed');
+      toggleBtn.setAttribute('aria-label', 'Nettverksmodus: Hybrid. Trykk for å bytte til Offline.');
+      toggleBtn.title = 'Nettverksmodus: Hybrid (lokalt mellomlager først, nettverk ved behov). Trykk for å bytte til Offline.';
+    } else {
+      if (toggleText) toggleText.textContent = '🌐 Online';
+      toggleBtn.className = 'pill offline-toggle-pill is-online';
+      toggleBtn.setAttribute('aria-pressed', 'false');
+      toggleBtn.setAttribute('aria-label', 'Nettverksmodus: Online. Trykk for å bytte til Hybrid.');
+      toggleBtn.title = 'Nettverksmodus: Online (henter alltid ferskeste data). Trykk for å bytte til Hybrid.';
+    }
   }
+
+  // Deaktiver "Fellestur", "Tidligere sendt" og "Mine delinger" i offline-modus
+  const fellesturBtn = document.getElementById('fellestur-header-btn');
+  const sendtBtn = document.getElementById('tidligere-sendt-link');
+  const delingerBtn = document.getElementById('mine-delinger-link');
+
+  [
+    { el: fellesturBtn, navn: 'Fellestur' },
+    { el: sendtBtn, navn: 'Tidligere sendt' },
+    { el: delingerBtn, navn: 'Mine delinger' },
+  ].forEach(({ el, navn }) => {
+    if (!el) return;
+    el.classList.toggle('is-offline-disabled', offline);
+    el.setAttribute('aria-disabled', offline ? 'true' : 'false');
+    if (offline) {
+      el.title = `${navn}: Ikke tilgjengelig i offline-modus!`;
+    } else {
+      el.removeAttribute('title');
+    }
+  });
+}
+
+/**
+ * Avskjær klikk på nettverksavhengige knapper/lenker mens appen er i offline-modus
+ * og vis dialogen "Ikke tilgjengelig i offline-modus!".
+ */
+function setupOfflineDisabledInterceptors() {
+  const intercept = (el, navn) => {
+    if (!el) return;
+    el.addEventListener('click', (e) => {
+      if (isOfflineMode()) {
+        e.preventDefault();
+        e.stopPropagation();
+        showOfflineNotAvailableDialog(
+          'Ikke tilgjengelig i offline-modus!',
+          `${navn} krever nettverkstilkobling og kan ikke åpnes mens du er i offline-modus.`
+        );
+      }
+    });
+  };
+
+  intercept(document.getElementById('fellestur-header-btn'), 'Fellestur');
+  intercept(document.getElementById('tidligere-sendt-link'), 'Tidligere sendt');
+  intercept(document.getElementById('mine-delinger-link'), 'Mine delinger');
 }
 
 /**
@@ -1540,13 +1588,25 @@ function setupOfflineModeToggle() {
   });
 }
 
-// Gjenopprettet fra bfcache (tilbake-knappen) kjører ikke DOMContentLoaded på nytt —
+// Synkroniser knappen umiddelbart ved modul-evaluering (før DOMContentLoaded)
+updateOfflineModeUI();
+
+// Gjenopprettet fra bfcache (tilbake-knappen) eller vanlig navigasjon —
 // les innlogging og nettverksmodus på nytt så badge og modusvelger aldri er utdatert.
-window.addEventListener('pageshow', (e) => {
-  if (!e.persisted) return;
+window.addEventListener('pageshow', () => {
   updateAoDirectVisibility();
   updateOfflineModeUI();
   syncNetworkModeToServiceWorker(getNetworkMode()).catch(() => {});
+});
+
+window.addEventListener('network_mode_changed', () => {
+  updateOfflineModeUI();
+});
+
+window.addEventListener('storage', (e) => {
+  if (!e || !e.key || e.key === 'network_mode_v1' || e.key === 'offline_mode_v1') {
+    updateOfflineModeUI();
+  }
 });
 
 window.addEventListener('DOMContentLoaded', () => {
@@ -1560,6 +1620,7 @@ window.addEventListener('DOMContentLoaded', () => {
   setupModeToggle();
   updateOfflineModeUI();
   setupOfflineModeToggle();
+  setupOfflineDisabledInterceptors();
   updateAoDirectVisibility();
   setupFellesturBanner();
 

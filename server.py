@@ -1166,19 +1166,23 @@ class Handler(SimpleHTTPRequestHandler):
             self._send_json({'error': f'Ugyldig forespørsel: {e}'}, status=400)
             return
 
-        # Start SSE-strøm
+        # Start SSE-strøm med HTTP/1.1 chunked transfer encoding
+        self.protocol_version = 'HTTP/1.1'
         self.send_response(200)
         self.send_header('Content-Type', 'text/event-stream; charset=utf-8')
-        self.send_header('Cache-Control', 'no-cache')
+        self.send_header('Cache-Control', 'no-cache, no-transform')
         self.send_header('X-Accel-Buffering', 'no')
         self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Transfer-Encoding', 'chunked')
         self.send_header('Connection', 'close')
         self.close_connection = True
         self.end_headers()
 
         def emit(event):
             try:
-                self.wfile.write(f'data: {json.dumps(event)}\n\n'.encode('utf-8'))
+                payload = f'data: {json.dumps(event)}\n\n'.encode('utf-8')
+                chunk_header = f'{len(payload):X}\r\n'.encode('ascii')
+                self.wfile.write(chunk_header + payload + b'\r\n')
                 self.wfile.flush()
             except Exception:
                 pass  # Klienten kan ha koblet fra — la importen fullføre uansett
@@ -1199,6 +1203,13 @@ class Handler(SimpleHTTPRequestHandler):
         except Exception as e:
             logger.error(f'[AO-IMPORT-STREAM] Uventet feil: {e}')
             emit({'phase': 'error', 'error': f'Server-feil: {str(e)}'})
+        finally:
+            try:
+                # Korrekt HTTP/1.1 chunked encoding terminering
+                self.wfile.write(b'0\r\n\r\n')
+                self.wfile.flush()
+            except Exception:
+                pass
 
     def _handle_ao_login_post(self):
         """Håndter innlogging til AO med brukernavn/passord."""
