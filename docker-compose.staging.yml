@@ -10,17 +10,12 @@ services:
       # Merker hjemskjerm-ikonet «Enkel-AO-S» og gråtoner det, slik at
       # staging ikke kan forveksles med prod på telefonen.
       - APP_ENV=staging
-      - LOCATION_DB_PATH=/shared/locations.db
+      - LOCATION_DB_PATH=/data/staging-locations.db
       - LOG_DIR=/data/logs
     volumes:
       - ./data:/data
-      - shared-locations:/shared
     logging:
       driver: "json-file"
       options:
         max-size: "10m"
         max-file: "3"
-
-volumes:
-  shared-locations:
-    external: true

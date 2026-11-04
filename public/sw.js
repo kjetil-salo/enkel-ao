@@ -2,7 +2,7 @@
  * Service Worker for Enkel-AO (PWA app-shell og kartflis-cache).
  */
 
-const CACHE_NAME = 'fugleobs-v193';
+const CACHE_NAME = 'fugleobs-v195';
 const MAP_TILE_CACHE_NAME = 'enkel-ao-kartverket-tiles-v1';
 const NETWORK_MODE_CACHE_URL = 'https://enkel-ao.local/__network_mode__';
 
@@ -106,16 +106,21 @@ await self.skipWaiting();
 return;
 }
 const cache = await caches.open(CACHE_NAME);
-await Promise.allSettled(
+const results = await Promise.allSettled(
 STATIC_ASSETS.map(async (asset) => {
 const resp = await fetch(asset, { cache: 'no-cache' });
-if (resp && resp.ok) {
+if (!resp || !resp.ok) throw new Error(`Kunne ikke laste ${asset}`);
 await cache.put(asset, resp);
-}
 }),
 );
-} catch {
-// Ignorer enkeltfeil ved forhåndscaching slik at installasjon aldri blokkeres
+// Behold den aktive workeren dersom appskallet ikke er komplett. Eksterne
+// kartressurser er valgfrie, slik at en CDN-feil ikke stopper oppdateringen.
+const missingLocalAsset = results.some((result, index) =>
+result.status === 'rejected' && new URL(STATIC_ASSETS[index], self.location.origin).origin === self.location.origin);
+if (missingLocalAsset) throw new Error('Oppdateringen av appskallet er ufullstendig');
+} catch (error) {
+await caches.delete(CACHE_NAME);
+throw error;
 }
 await self.skipWaiting();
 })(),

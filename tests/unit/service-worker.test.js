@@ -47,6 +47,36 @@ it('er gyldig JavaScript og installerer appskallet', async () => {
   expect(await cache.match('/js/offline-db.js')).toBeDefined();
 });
 
+it.each(['nettverksbrudd', 'HTTP-feil'])('beholder gammel offline-cache hvis appskallet ikke kan oppdateres: %s', async (scenario) => {
+  const oldCache = await cachesMock.open('fugleobs-v194');
+  await oldCache.put('/index.html', new Response('gammelt fungerende appskall'));
+  const { handlers, context } = worker(vi.fn(async asset => {
+    if (asset === '/js/main.js') {
+      if (scenario === 'HTTP-feil') return new Response('utilgjengelig', { status: 503 });
+      throw new TypeError('Nettverket er brutt');
+    }
+    return new Response('ny ressurs');
+  }));
+  let installing;
+  handlers.install({ waitUntil: promise => { installing = promise; } });
+  await expect(installing).rejects.toThrow('appskallet er ufullstendig');
+  expect(context.self.skipWaiting).not.toHaveBeenCalled();
+  expect(await cachesMock.keys()).toContain('fugleobs-v194');
+  expect(await cachesMock.keys()).not.toContain(vm.runInContext('CACHE_NAME', context));
+  expect(await (await oldCache.match('/index.html')).text()).toBe('gammelt fungerende appskall');
+});
+
+it('kan oppdatere appskallet selv om en ekstern kartressurs feiler', async () => {
+  const { handlers, context } = worker(vi.fn(async asset => {
+    if (asset.startsWith('https://')) throw new TypeError('CDN utilgjengelig');
+    return new Response('ny ressurs');
+  }));
+  let installing;
+  handlers.install({ waitUntil: promise => { installing = promise; } });
+  await installing;
+  expect(context.self.skipWaiting).toHaveBeenCalled();
+});
+
 it('gjenoppretter valgt offline-modus fra cachen når workeren starter på nytt', async () => {
   await syncNetworkModeToServiceWorker('offline');
   const { context } = worker();
