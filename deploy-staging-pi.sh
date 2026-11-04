@@ -26,6 +26,13 @@ rsync -av --delete \
   --exclude '*.pyc' \
   --exclude '.env' \
   --exclude '.codex-tmp' \
+  --exclude '.codex' \
+  --exclude '.claude' \
+  --exclude '.pytest_cache' \
+  --exclude '.coverage' \
+  --exclude '.DS_Store' \
+  --exclude '*.log' \
+  --exclude '/test-results' \
   --exclude 'node_modules' \
   --exclude 'tests' \
   --exclude 'tools' \
