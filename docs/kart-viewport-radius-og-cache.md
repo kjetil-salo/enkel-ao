@@ -208,8 +208,30 @@ ekstra nettverkskall til `/api/ao-private-sites` ved HVER eneste panorering,
 uavhengig av bbox-cachen over. Fikset med `hasFreshPrivateSitesCache()`, som
 sjekker cache-alder i stedet for listelengde. Se `api.js`.
 
+## Panorering mens lokalitetene er skjult (v1.59.10)
+
+Den tre-trinns visningsknappen på kartet (se `CLAUDE.md` under `map.js`) kan
+skjule alle lokalitetene, og da tas hele `siteLayerGroup` av kartet. Det
+påvirker ikke hentingen beskrevet over: `moveend` fyrer som før, radiusen er
+den samme, og svaret caches som før. Forskjellen er kun at lagene legges inn i
+en laggruppe som ikke er på kartet, og derfor ikke vises.
+
+Det er med vilje. Hentingen er hele poenget med å kunne zoome og panorere i
+skjult tilstand: trykker du «Vis alt» etterpå, er lokalitetene for stedet du
+nå står på allerede hentet. Alternativet — å la hentingen hvile mens visningen
+er av — ville spart noe arbeid, men gjort det første trykket tilbake tregt
+nettopp når brukeren venter på det.
+
+Konsekvens å være klar over ved feilsøking: panorerer du og «ser ingenting»,
+sjekk knappeteksten øverst til høyre før du mistenker henting eller cache.
+Står det «👁️ Vis alt», er lokalitetene skjult, ikke uteblitt.
+
 ## Testdekning
 
+- `tests/e2e_playwright/tests/map-visning-toggle.spec.ts` — panorering i skjult
+  tilstand henter fortsatt lokaliteter uten å tegne dem, og ett trykk på «Vis
+  alt» viser dem (inkludert de som ble hentet mens de var skjult). Dekker også
+  at polygoner fortsatt ligger over radius-sirkler etter en skjul/vis-runde.
 - `tests/e2e_playwright/tests/map-viewport-radius.spec.ts` — gulv/tak på
   hente-radius, race-fiksen ved rask A→B-panorering, ingen krasj ved et AO
   500-svar midt i panorering.
