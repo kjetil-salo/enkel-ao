@@ -5,17 +5,152 @@
  * /api/ao-rarity og viser en ⚠️-boks når AO returnerer en Warning.
  * Information alene vises ikke i v1 (bevisst terskel).
  *
+ * Alle sjeldenhetskall som har blitt gjort på telefonen huskes lokalt i
+ * localStorage (ao_rarity_cache_v1) for bruk i offline- og hybridmodus:
+ * - Online-modus: henter alltid fersk informasjon fra server (og oppdaterer cachen).
+ * - Hybrid-modus: bruker lokal cache direkte når den er yngre enn 180 dager. Er
+ *   den over 180 dager gammel (LRSK/NSKF kan ha gjort endringer) eller mangler,
+ *   hentes den fra server én om gangen.
+ * - Offline-modus: bruker alltid lokal cache (uansett alder), aldri nettverkskall.
+ *
  * Stille no-op ved uinnlogget bruker eller nettverks-/AO-feil — aldri en
  * feilmelding brukeren merker mens skjemaet fylles ut.
  */
 
 import { getVisitTimeSpan, visitExists } from './visits.js';
+import { getNetworkMode, isOfflineMode as isAppOfflineMode } from './offline-db.js';
 
 const DEBOUNCE_MS = 400;
+const RARITY_CACHE_KEY = 'ao_rarity_cache_v1';
+const RARITY_SITE_AREAS_KEY = 'ao_site_areas_v1';
+const RARITY_TTL_MS = 180 * 24 * 60 * 60 * 1000; // 180 dager
 
 let debounceTimer = null;
 let requestSeq = 0;
 let lastKey = null;
+
+// Sekvensiell kø så nettverkskall mot AO alltid kjører én om gangen
+let fetchQueuePromise = Promise.resolve();
+
+function enqueueRarityFetch(taskFn) {
+  const next = fetchQueuePromise.then(() => taskFn()).catch(() => {});
+  fetchQueuePromise = next;
+  return next;
+}
+
+function isOfflineMode() {
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+    return true;
+  }
+  return isAppOfflineMode();
+}
+
+function loadRarityCache() {
+  try {
+    const raw = localStorage.getItem(RARITY_CACHE_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch (e) {
+    return {};
+  }
+}
+
+function saveRarityCache(cache) {
+  try {
+    localStorage.setItem(RARITY_CACHE_KEY, JSON.stringify(cache));
+  } catch (e) {
+    // localStorage full eller utilgjengelig - ignorer stille
+  }
+}
+
+function loadSiteAreasMap() {
+  try {
+    const raw = localStorage.getItem(RARITY_SITE_AREAS_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch (e) {
+    return {};
+  }
+}
+
+function saveSiteArea(siteId, areasCsv) {
+  if (!siteId || !areasCsv || typeof areasCsv !== 'string') return;
+  try {
+    const map = loadSiteAreasMap();
+    map[String(siteId)] = areasCsv.trim();
+    localStorage.setItem(RARITY_SITE_AREAS_KEY, JSON.stringify(map));
+  } catch (e) {
+    // ignorer
+  }
+}
+
+function resolveAreasForSite(siteId, state) {
+  if (!siteId) return null;
+  if (state && typeof state.currentPlaceAreas === 'string' && state.currentPlaceAreas.trim()) {
+    return state.currentPlaceAreas.trim();
+  }
+  const map = loadSiteAreasMap();
+  return map[String(siteId)] || null;
+}
+
+/**
+ * Slå opp sjeldenhetsdata i telefonens lokale cache.
+ * Sjekker først på Areas-streng (delt mellom lokaliteter i samme kommune/region),
+ * deretter direkte på siteId.
+ *
+ * @returns {{ warning: {Header?: string, Body?: string}|null, ts: number, isStale: boolean } | null}
+ */
+export function getCachedRarity(taxonId, siteId, dateStr, state = null) {
+  if (!taxonId || !siteId || !/^\d{4}-\d{2}-\d{2}$/.test(dateStr || '')) return null;
+  const cache = loadRarityCache();
+  const areas = resolveAreasForSite(siteId, state);
+
+  let entry = null;
+  if (areas) {
+    entry = cache[`areas:${areas}::${taxonId}::${dateStr}`] || null;
+  }
+  if (!entry) {
+    entry = cache[`site:${siteId}::${taxonId}::${dateStr}`] || null;
+  }
+  if (!entry || typeof entry.ts !== 'number') return null;
+
+  const isStale = Date.now() - entry.ts > RARITY_TTL_MS;
+  return {
+    warning: entry.warning || null,
+    ts: entry.ts,
+    isStale,
+  };
+}
+
+/**
+ * Lagre sjeldenhetsresultat på telefonen for bruk i offline- og hybridmodus.
+ */
+export function setCachedRarity(taxonId, siteId, dateStr, areasCsv, warning) {
+  if (!taxonId || !siteId || !/^\d{4}-\d{2}-\d{2}$/.test(dateStr || '')) return;
+  const now = Date.now();
+  const normalizedWarning =
+    warning && (warning.Header || warning.Body)
+      ? { Header: warning.Header || '', Body: warning.Body || '' }
+      : null;
+
+  const record = {
+    warning: normalizedWarning,
+    ts: now,
+  };
+
+  const cache = loadRarityCache();
+  cache[`site:${siteId}::${taxonId}::${dateStr}`] = record;
+
+  if (areasCsv && typeof areasCsv === 'string' && areasCsv.trim()) {
+    const cleanAreas = areasCsv.trim();
+    cache[`areas:${cleanAreas}::${taxonId}::${dateStr}`] = record;
+    saveSiteArea(siteId, cleanAreas);
+  }
+
+  saveRarityCache(cache);
+}
 
 function getAoHeaders() {
   const headers = {};
@@ -81,9 +216,11 @@ function resetRarity(dom) {
 /**
  * Sjekk sjeldenhet for valgt art x lokalitet x dato (debounced, race-safe).
  *
- * Kalles fra updateSectionStates() hver gang art eller lokasjon endres.
- * Gjør ingenting nytt hvis nøkkelen (art+lokasjon+dato) er uendret siden
- * sist — unngår unødvendig re-sjekk og flimring ved f.eks. antall-endring.
+ * - Offline-modus: bruker kun telefonens lokale cache (aldri nettverkskall).
+ * - Hybrid-modus: bruker lokal cache direkte hvis yngre enn 180 dager. Hvis
+ *   eldre enn 180 dager (eller ikke sjekket før), sjekkes /api/ao-rarity én om gangen.
+ * - Online-modus: henter alltid fersk status fra /api/ao-rarity (og lagrer svaret
+ *   i lokal cache for senere offline-/hybridbruk).
  */
 export function checkRarity(state, dom) {
   const taxonId = state.selectedSpecies && state.selectedSpecies.taxonId;
@@ -100,43 +237,75 @@ export function checkRarity(state, dom) {
     return;
   }
 
-  const key = `${taxonId}::${siteId}::${dateStr}`;
+  const mode = isOfflineMode() ? 'offline' : getNetworkMode();
+  const key = `${taxonId}::${siteId}::${dateStr}::${mode}`;
   if (key === lastKey) return;
   lastKey = key;
+  const seq = ++requestSeq;
 
   hideRarityBox(dom);
   if (debounceTimer) clearTimeout(debounceTimer);
 
-  const seq = ++requestSeq;
-  debounceTimer = setTimeout(async () => {
+  const cached = getCachedRarity(taxonId, siteId, dateStr, state);
+
+  if (cached && cached.warning) {
+    showRarityBox(dom, cached.warning);
+  }
+
+  // I offline-modus brukes kun lokal cache (aldri nettverkskall)
+  if (mode === 'offline') {
+    return;
+  }
+
+  // I hybrid-modus brukes lokal cache uten nettverkskall så lenge den er under 180 dager gammel.
+  // I online-modus hentes alltid fersk informasjon fra server.
+  if (mode === 'hybrid' && cached && !cached.isStale) {
+    return;
+  }
+
+  debounceTimer = setTimeout(() => {
     const headers = getAoHeaders();
     if (!headers['X-AO-Login-Token']) return; // uinnlogget = stille no-op
+    if (isOfflineMode()) return;
 
-    try {
-      const url = `/api/ao-rarity?taxonId=${encodeURIComponent(taxonId)}`
-        + `&siteId=${encodeURIComponent(siteId)}&date=${encodeURIComponent(dateStr)}`;
-      const resp = await fetch(url, { headers });
-      if (seq !== requestSeq) return; // utdatert - art/plass/dato endret i mellomtiden
-      if (!resp.ok) return;
+    // Kjør nettverkskallet sekvensielt (én om gangen)
+    enqueueRarityFetch(async () => {
+      if (seq !== requestSeq || isOfflineMode()) return; // art, sted eller nettverksmodus kan ha endret seg
 
-      const data = await resp.json();
-      if (seq !== requestSeq) return;
+      try {
+        const url = `/api/ao-rarity?taxonId=${encodeURIComponent(taxonId)}`
+          + `&siteId=${encodeURIComponent(siteId)}&date=${encodeURIComponent(dateStr)}`;
+        const resp = await fetch(url, { headers });
+        if (!resp.ok) return;
 
-      if (data.refreshedAuthCookie) {
-        try {
-          const tokens = JSON.parse(localStorage.getItem('ao_tokens') || '{}');
-          tokens.authCookie = data.refreshedAuthCookie;
-          localStorage.setItem('ao_tokens', JSON.stringify(tokens));
-        } catch (e) {
-          // ignorer - samme best-effort som andre AO-kall
+        const data = await resp.json();
+        if (!data || typeof data !== 'object') return;
+
+        if (data.refreshedAuthCookie) {
+          try {
+            const tokens = JSON.parse(localStorage.getItem('ao_tokens') || '{}');
+            tokens.authCookie = data.refreshedAuthCookie;
+            localStorage.setItem('ao_tokens', JSON.stringify(tokens));
+          } catch (e) {
+            // ignorer - samme best-effort som andre AO-kall
+          }
         }
-      }
 
-      if (data.warning) {
-        showRarityBox(dom, data.warning);
+        // Husk svaret på telefonen for senere offline- og hybridbruk
+        if ('warning' in data || 'information' in data || 'areas' in data) {
+          setCachedRarity(taxonId, siteId, dateStr, data.areas || null, data.warning || null);
+        }
+
+        if (seq !== requestSeq) return;
+
+        if (data.warning) {
+          showRarityBox(dom, data.warning);
+        } else if ('warning' in data) {
+          hideRarityBox(dom);
+        }
+      } catch (e) {
+        // Nettverksfeil e.l. - behold eventuelt cacha varsel på skjermen, stille no-op
       }
-    } catch (e) {
-      // Nettverksfeil e.l. - stille no-op, jf. konvensjonen for eksterne API-feil
-    }
+    });
   }, DEBOUNCE_MS);
 }

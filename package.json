@@ -3,8 +3,9 @@
   "version": "1.5.0",
   "private": true,
   "scripts": {
-    "dev": "python3 server.py",
-    "start": "python3 server.py",
+    "dev": "python3 -c 'import httpx, dotenv, user_agents, supabase' 2>/dev/null || (command -v pip3 >/dev/null || (python3 -c 'import urllib.request; urllib.request.urlretrieve(\"https://bootstrap.pypa.io/get-pip.py\", \"/tmp/get-pip.py\")' && python3 /tmp/get-pip.py -q && rm -f /tmp/get-pip.py)) && python3 -c 'import httpx, dotenv, user_agents, supabase' 2>/dev/null || pip3 install -q -r requirements.txt; python3 server.py",
+    "start": "python3 -c 'import httpx, dotenv, user_agents, supabase' 2>/dev/null || (command -v pip3 >/dev/null || (python3 -c 'import urllib.request; urllib.request.urlretrieve(\"https://bootstrap.pypa.io/get-pip.py\", \"/tmp/get-pip.py\")' && python3 /tmp/get-pip.py -q && rm -f /tmp/get-pip.py)) && python3 -c 'import httpx, dotenv, user_agents, supabase' 2>/dev/null || pip3 install -q -r requirements.txt; python3 server.py",
+    "build": "python3 -m py_compile server.py",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:ui": "vitest --ui",

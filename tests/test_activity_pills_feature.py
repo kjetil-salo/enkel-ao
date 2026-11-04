@@ -2,7 +2,10 @@
 Test for konfigurerbare aktivitetspills feature.
 Verifiserer at storage, observation-commit og settings-siden fungerer sammen.
 """
-import pytest
+try:
+    import pytest
+except ImportError:
+    pytest = None
 import json
 import re
 
@@ -45,7 +48,7 @@ def test_settings_has_new_ui():
     # Skal ha nytt UI
     assert 'activity-pills-config' in content
     assert 'add-activity-pill' in content
-    assert 'Aktivitets-hurtigknapper (0-6)' in content
+    assert 'Aktivitets-hurtigknapper (0-8)' in content
 
 
 def test_settings_imports_correct_modules():
@@ -56,7 +59,7 @@ def test_settings_imports_correct_modules():
     assert 'loadActivityPills' in content
     assert 'saveActivityPills' in content
     assert 'ACTIVITY_SHORT_SUGGESTIONS' in content
-    assert 'import { loadActivities } from' in content
+    assert re.search(r'import\s*\{[^}]*loadActivities[^}]*\}\s*from', content) is not None
 
 
 def test_default_pills_match_plan():

@@ -114,19 +114,66 @@ function showHint() {
   function position() {
     const sr = section.getBoundingClientRect();
     const cr = card.getBoundingClientRect();
+    const legend = section.querySelector('legend');
+    const lr = legend ? legend.getBoundingClientRect() : null;
+
+    // Mål faktisk containing block for position:absolute (inset: 0) inne i <fieldset>.
+    // Nettlesere (Chromium vs Firefox vs WebKit) plasserer top:0 ulikt under/ved <legend>.
+    const probe = document.createElement('span');
+    probe.style.cssText =
+      'position:absolute;inset:0;pointer-events:none;visibility:hidden;z-index:-1;';
+    section.appendChild(probe);
+    const pr = probe.getBoundingClientRect();
+    probe.remove();
+
+    if (pr.width > 0 || pr.height > 0) {
+      const targetTop = (lr && lr.height > 0 ? Math.min(sr.top, lr.top) : sr.top) - 4;
+      const targetBottom = sr.bottom + 2;
+      const spotTop = Math.round(targetTop - pr.top);
+      const spotBottom = Math.round(pr.bottom - targetBottom);
+      section.style.setProperty('--coachmark-spot-top', `${spotTop}px`);
+      section.style.setProperty('--coachmark-spot-bottom', `${spotBottom}px`);
+    } else if (lr) {
+      // Fallback for testmiljø uten layout-motor (JSDOM)
+      const legendHeight = lr.height || 0;
+      if (legendHeight > 0) {
+        const spotTop = -Math.round(legendHeight + 6);
+        section.style.setProperty('--coachmark-spot-top', `${spotTop}px`);
+      }
+    }
+
+    const borderLeft = card.clientLeft || 0;
+    const borderTop = card.clientTop || 0;
     const width = Math.min(360, sr.width);
     bubble.style.width = `${width}px`;
-    bubble.style.left = `${sr.left - cr.left}px`;
-    bubble.style.top = `${sr.bottom - cr.top + 12}px`;
+    bubble.style.left = `${sr.left - cr.left - borderLeft}px`;
+    bubble.style.top = `${sr.bottom - cr.top - borderTop + 8}px`;
+  }
+
+  let resizeObserver = null;
+  if (typeof window.ResizeObserver === 'function') {
+    resizeObserver = new window.ResizeObserver(() => {
+      position();
+    });
+    resizeObserver.observe(card);
+    resizeObserver.observe(section);
   }
 
   function dismiss() {
     markHintSeen();
+    if (resizeObserver) {
+      resizeObserver.disconnect();
+      resizeObserver = null;
+    }
     section.classList.remove('coachmark-spot');
+    section.style.removeProperty('--coachmark-spot-top');
+    section.style.removeProperty('--coachmark-spot-bottom');
     card.classList.remove('coachmark-open');
     dim.remove();
     bubble.remove();
     window.removeEventListener('resize', position);
+    window.removeEventListener('scroll', position, true);
+    window.removeEventListener('load', position);
   }
 
   button.addEventListener('click', dismiss);
@@ -134,10 +181,15 @@ function showHint() {
   // Naturlig fullføring: når brukeren faktisk oppdaterer lokasjon, er jobben gjort.
   document.getElementById('loc-btn')?.addEventListener('click', dismiss, { once: true });
   window.addEventListener('resize', position);
+  window.addEventListener('scroll', position, true);
+  window.addEventListener('load', position);
 
   card.appendChild(dim);
   card.appendChild(bubble);
   position();
+  if (typeof window.requestAnimationFrame === 'function') {
+    window.requestAnimationFrame(position);
+  }
   button.focus({ preventScroll: true });
 }
 

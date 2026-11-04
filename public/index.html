@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="icon" href="/favicon.png" type="image/png" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-    <link rel="manifest" href="/manifest.json" />
+    <link rel="manifest" href="/manifest.json">
     <!-- iOS bruker denne som navn under hjemskjerm-ikonet (ikke manifestets
          short_name). Uten den avleder iOS navnet fra <title> og kutter det.
          Staging overstyrer verdien server-side, se _send_env_index i server.py. -->
@@ -24,7 +24,7 @@
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta name="twitter:card" content="summary_large_image" />
-    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="style.css?v=v1.59.4" />
   </head>
   <body>
     <script src="/js/theme.js"></script>
@@ -39,9 +39,64 @@
                  modusbytte — satte den textContent på selve pillen, ville
                  bytte-ikonet blitt slettet med det samme. -->
             <button type="button" class="pill mode-pill" id="mode-pill" title="Klikk for å bytte mellom Felt og Etterregistrering" aria-label="Modus: Felt. Trykk for å bytte til Etterregistrering."><span id="mode-pill-text">Felt</span><svg class="mode-pill-swap" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8.5h14"/><path d="M13.5 4.5 17.5 8.5 13.5 12.5"/><path d="M21 15.5H7"/><path d="M10.5 11.5 6.5 15.5 10.5 19.5"/></svg></button>
+            <button type="button" class="pill offline-toggle-pill" id="offline-mode-toggle" title="Bytt mellom Online, Hybrid og Offline-modus" aria-pressed="mixed" aria-label="Nettverksmodus: Hybrid. Trykk for å bytte til Offline."><span id="offline-mode-toggle-text"></span></button>
+            <script>
+              (function() {
+                var mode = 'hybrid';
+                try {
+                  var raw = (localStorage.getItem('network_mode_v1') || '').trim().toLowerCase();
+                  if (raw === 'online' || raw === 'hybrid' || raw === 'offline') {
+                    mode = raw;
+                  } else if (localStorage.getItem('offline_mode_v1') === '1') {
+                    mode = 'offline';
+                    localStorage.setItem('network_mode_v1', 'offline');
+                  } else {
+                    mode = 'hybrid';
+                    localStorage.setItem('network_mode_v1', 'hybrid');
+                  }
+                } catch (e) {}
+                var toggleBtn = document.getElementById('offline-mode-toggle');
+                var toggleText = document.getElementById('offline-mode-toggle-text');
+                if (toggleBtn) {
+                  toggleBtn.dataset.networkMode = mode;
+                  if (mode === 'offline') {
+                    if (toggleText) toggleText.textContent = '📴 Offline';
+                    toggleBtn.className = 'pill offline-toggle-pill is-offline';
+                    toggleBtn.setAttribute('aria-pressed', 'true');
+                    toggleBtn.setAttribute('aria-label', 'Nettverksmodus: Offline. Trykk for å bytte til Online.');
+                    toggleBtn.title = 'Nettverksmodus: Offline (kun lokalt mellomlager). Trykk for å bytte til Online.';
+                  } else if (mode === 'online') {
+                    if (toggleText) toggleText.textContent = '🌐 Online';
+                    toggleBtn.className = 'pill offline-toggle-pill is-online';
+                    toggleBtn.setAttribute('aria-pressed', 'false');
+                    toggleBtn.setAttribute('aria-label', 'Nettverksmodus: Online. Trykk for å bytte til Hybrid.');
+                    toggleBtn.title = 'Nettverksmodus: Online (henter alltid ferskeste data). Trykk for å bytte til Hybrid.';
+                  } else {
+                    if (toggleText) toggleText.textContent = '🔄 Hybrid';
+                    toggleBtn.className = 'pill offline-toggle-pill is-hybrid';
+                    toggleBtn.setAttribute('aria-pressed', 'mixed');
+                    toggleBtn.setAttribute('aria-label', 'Nettverksmodus: Hybrid. Trykk for å bytte til Offline.');
+                    toggleBtn.title = 'Nettverksmodus: Hybrid (lokalt mellomlager først, nettverk ved behov). Trykk for å bytte til Offline.';
+                  }
+                }
+                var fellesturHeaderBtn = document.getElementById('fellestur-header-btn');
+                if (fellesturHeaderBtn) {
+                  var isOff = mode === 'offline';
+                  if (isOff) {
+                    fellesturHeaderBtn.classList.add('is-offline-disabled');
+                    fellesturHeaderBtn.setAttribute('aria-disabled', 'true');
+                    fellesturHeaderBtn.title = 'Fellestur: Ikke tilgjengelig i offline-modus!';
+                  } else {
+                    fellesturHeaderBtn.classList.remove('is-offline-disabled');
+                    fellesturHeaderBtn.setAttribute('aria-disabled', 'false');
+                    fellesturHeaderBtn.removeAttribute('title');
+                  }
+                }
+              })();
+            </script>
           </div>
           <div class="header-actions">
-            <a href="/settings.html" id="ao-status-dot" class="ao-status-dot" aria-label="AO-innloggingsstatus"></a>
+            <a href="/settings.html" id="ao-status-dot" class="ao-status-dot" aria-label="Ikke innlogget mot Artsobservasjoner. Trykk for å logge inn.">Logg inn</a>
             <!-- Fellestur hører hjemme i nav-ikonraden, ikke i ④ Send inn der den
                  lå før: en tur må startes FØR man registrerer noe, ellers havner
                  ikke funnene i den delte loggen. ④ står dessuten grå og død
@@ -54,7 +109,7 @@
                  ikoner. Tre hoder sier dessuten «gruppe», som er hele poenget
                  med en fellestur. SVG arver currentColor, så den følger
                  muted→accent på hover slik emoji-naboene ikke gjør. -->
-            <a href="/fellestur.html" aria-label="Fellestur – registrer sammen med andre i én delt logg" style="color: var(--muted); text-decoration: none; font-size: 1.2rem; padding: 4px 8px; border-radius: 8px; transition: all 0.2s; display: flex; align-items: center;" title="Fellestur – registrer sammen med andre i én delt logg" onmouseover="this.style.color='var(--accent)'; this.style.background='var(--accent-soft)'" onmouseout="this.style.color='var(--muted)'; this.style.background='transparent'"><svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="3.4"/><path d="M5.8 20v-1.2A4.2 4.2 0 0 1 10 14.6h4a4.2 4.2 0 0 1 4.2 4.2V20"/><circle cx="4.2" cy="9.8" r="2.1"/><path d="M1.4 19.4v-1a3.4 3.4 0 0 1 2.5-3.3"/><circle cx="19.8" cy="9.8" r="2.1"/><path d="M22.6 19.4v-1a3.4 3.4 0 0 0-2.5-3.3"/></svg></a>
+            <a href="/fellestur.html" id="fellestur-header-btn" aria-label="Fellestur – registrer sammen med andre i én delt logg" style="color: var(--muted); text-decoration: none; font-size: 1.2rem; padding: 4px 8px; border-radius: 8px; transition: all 0.2s; display: flex; align-items: center;" title="Fellestur – registrer sammen med andre i én delt logg" onmouseover="this.style.color='var(--accent)'; this.style.background='var(--accent-soft)'" onmouseout="this.style.color='var(--muted)'; this.style.background='transparent'"><svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="3.4"/><path d="M5.8 20v-1.2A4.2 4.2 0 0 1 10 14.6h4a4.2 4.2 0 0 1 4.2 4.2V20"/><circle cx="4.2" cy="9.8" r="2.1"/><path d="M1.4 19.4v-1a3.4 3.4 0 0 1 2.5-3.3"/><circle cx="19.8" cy="9.8" r="2.1"/><path d="M22.6 19.4v-1a3.4 3.4 0 0 0-2.5-3.3"/></svg></a>
             <a href="/help.html" aria-label="Hjelp" style="color: var(--muted); text-decoration: none; font-size: 1.2rem; padding: 4px 8px; border-radius: 8px; transition: all 0.2s; display: flex; align-items: center;" title="Hjelp" onmouseover="this.style.color='var(--accent)'; this.style.background='var(--accent-soft)'" onmouseout="this.style.color='var(--muted)'; this.style.background='transparent'">📖</a>
             <a href="/settings.html" aria-label="Innstillinger" style="color: var(--muted); text-decoration: none; font-size: 1.2rem; padding: 4px 8px; border-radius: 8px; transition: all 0.2s; display: flex; align-items: center;" title="Innstillinger" onmouseover="this.style.color='var(--accent)'; this.style.background='var(--accent-soft)'" onmouseout="this.style.color='var(--muted)'; this.style.background='transparent'">⚙️</a>
             <div class="kbd-hint">
@@ -82,6 +137,7 @@
             <span id="loc-pinned-name" class="loc-pinned-name"></span>
             <span id="loc-pinned-visit" class="loc-pinned-visit" style="display:none;"></span>
           </button>
+          <button type="button" id="loc-pinned-map-btn" class="loc-pinned-map-btn" aria-label="Åpne kart" title="Åpne kart">🗺️</button>
           <button type="button" id="loc-change-btn" class="loc-change-btn">Bytt lokasjon</button>
         </div>
 
@@ -173,7 +229,7 @@
             <div class="badge" id="result-count">0 treff</div>
           </div>
 
-          <div style="display:flex;gap:8px;margin-top:10px;align-items:flex-end;">
+          <div id="art-antall-row" style="display:flex;gap:8px;margin-top:10px;align-items:flex-end;">
             <div style="flex:1;min-width:0;">
               <label for="search" style="display:block;">Art</label>
               <div class="input-wrap" style="display:flex;align-items:center;gap:8px;">
@@ -382,8 +438,8 @@
             </button>
           </div>
           <div style="margin-top:10px;text-align:center;display:flex;gap:14px;justify-content:center;">
-            <a href="/sendt.html" style="color:var(--muted);font-size:0.8em;text-decoration:none;">📤 Tidligere sendt</a>
-            <a href="/mine-delinger.html" style="color:var(--muted);font-size:0.8em;text-decoration:none;">🔗 Mine delinger</a>
+            <a href="/sendt.html" id="tidligere-sendt-link" style="color:var(--muted);font-size:0.8em;text-decoration:none;">📤 Tidligere sendt</a>
+            <a href="/mine-delinger.html" id="mine-delinger-link" style="color:var(--muted);font-size:0.8em;text-decoration:none;">🔗 Mine delinger</a>
           </div>
         </fieldset>
         <div style="margin-top:8px;text-align:center;">

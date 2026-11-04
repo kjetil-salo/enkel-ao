@@ -1,6 +1,17 @@
 import { test as base, expect } from '@playwright/test';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { CURRENT_NEWS_SPLASH, STORAGE_KEY as NEWS_STORAGE_KEY } from '../../public/js/news-splash.js';
-import { HINT_ID, STORAGE_KEY as HINT_STORAGE_KEY } from '../../public/js/first-run-hint.js';
+
+// Hent verdiene uten å laste nettlesermodulene (og deres versjonerte imports) i Node.
+const hintSource = readFileSync(resolve(__dirname, '../../public/js/first-run-hint.js'), 'utf8');
+function hintConstant(name: string): string {
+  const match = hintSource.match(new RegExp(`export const ${name} = ['\"]([^'\"]+)['\"]`));
+  if (!match) throw new Error(`Fant ikke ${name} i first-run-hint.js`);
+  return match[1];
+}
+const HINT_ID = hintConstant('HINT_ID');
+const HINT_STORAGE_KEY = hintConstant('STORAGE_KEY');
 
 /**
  * Delt test-fixture for hele E2E-suiten. Alle spec-filer bør importere

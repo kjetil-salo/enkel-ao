@@ -23,6 +23,9 @@ export function flashButton(button, successLabel) {
   }, 1200);
 }
 
+export const DEFAULT_TOAST_DURATION_MS = 1500;
+export const MODE_SPLASH_DURATION_MS = DEFAULT_TOAST_DURATION_MS * 2; // 3000 ms — dobbelt så lenge ved endring av modus
+
 /**
  * Vis toast-melding
  * @param {string} msg - Meldingen som skal vises
@@ -33,7 +36,7 @@ export function flashButton(button, successLabel) {
  * @param {string} options.borderColor - Overstyr rammefargen (f.eks. advarsel)
  */
 export function showToast(msg, options = {}) {
-  const { onUndo, duration = 1500, raw = false, borderColor = null } = options;
+  const { onUndo, duration = DEFAULT_TOAST_DURATION_MS, raw = false, borderColor = null } = options;
 
   // Lyst tema snur fargene i både toast og Angre-knapp. Leses ved hvert kall,
   // siden toast-elementet gjenbrukes på tvers av temabytte.
@@ -237,5 +240,122 @@ export function setLocationStatus(locDot, locText, mode, text) {
  * @param {number} lon2 - Lengdegrad 2
  * @returns {number} - Avstand i meter
  */
+/**
+ * Vis modal dialog når brukeren trykker på en funksjon som er deaktivert i offline-modus
+ * @param {string} [tittel='Ikke tilgjengelig i offline-modus!']
+ * @param {string} [melding='Denne funksjonen krever nettverkstilkobling og kan ikke brukes mens du er i offline-modus.']
+ */
+export function showOfflineNotAvailableDialog(
+  tittel = 'Ikke tilgjengelig i offline-modus!',
+  melding = 'Denne funksjonen krever nettverkstilkobling og kan ikke brukes mens du er i offline-modus.'
+) {
+  // Fjern eventuell eksisterende dialog først
+  const eksisterende = document.getElementById('offline-not-available-modal');
+  if (eksisterende) eksisterende.remove();
+
+  const lysttema = document.body && document.body.classList.contains('theme-light');
+
+  const overlay = document.createElement('div');
+  overlay.id = 'offline-not-available-modal';
+  overlay.setAttribute('role', 'dialog');
+  overlay.setAttribute('aria-modal', 'true');
+  overlay.setAttribute('aria-labelledby', 'offline-modal-title');
+  Object.assign(overlay.style, {
+    position: 'fixed',
+    inset: '0',
+    zIndex: '10000',
+    background: 'rgba(0, 0, 0, 0.55)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '16px',
+    animation: 'fade-in 0.15s ease-out',
+  });
+
+  const box = document.createElement('div');
+  Object.assign(box.style, {
+    background: lysttema ? '#ffffff' : 'var(--card-bg, #1e293b)',
+    color: lysttema ? '#1a1a1a' : 'var(--text, #e5e7eb)',
+    borderRadius: '14px',
+    padding: '22px 20px 18px',
+    maxWidth: '380px',
+    width: '100%',
+    boxShadow: '0 12px 36px rgba(0, 0, 0, 0.4)',
+    border: `1px solid ${lysttema ? '#e2e8f0' : 'rgba(148, 163, 184, 0.25)'}`,
+    textAlign: 'center',
+  });
+
+  const iconEl = document.createElement('div');
+  iconEl.textContent = '📴';
+  iconEl.style.fontSize = '2.2rem';
+  iconEl.style.marginBottom = '8px';
+  iconEl.setAttribute('aria-hidden', 'true');
+
+  const titleEl = document.createElement('h3');
+  titleEl.id = 'offline-modal-title';
+  titleEl.textContent = tittel;
+  Object.assign(titleEl.style, {
+    margin: '0 0 10px 0',
+    fontSize: '1.1rem',
+    fontWeight: '700',
+    lineHeight: '1.3',
+  });
+
+  const msgEl = document.createElement('p');
+  msgEl.textContent = melding;
+  Object.assign(msgEl.style, {
+    margin: '0 0 18px 0',
+    fontSize: '0.88rem',
+    color: lysttema ? '#475569' : 'var(--muted, #9ca3af)',
+    lineHeight: '1.45',
+  });
+
+  const okBtn = document.createElement('button');
+  okBtn.type = 'button';
+  okBtn.id = 'offline-modal-ok-btn';
+  okBtn.textContent = 'OK';
+  Object.assign(okBtn.style, {
+    width: '100%',
+    padding: '11px 16px',
+    borderRadius: '8px',
+    border: 'none',
+    background: 'var(--accent, #3b82f6)',
+    color: '#ffffff',
+    fontSize: '0.95rem',
+    fontWeight: '600',
+    cursor: 'pointer',
+    transition: 'opacity 0.15s',
+  });
+
+  box.appendChild(iconEl);
+  box.appendChild(titleEl);
+  box.appendChild(msgEl);
+  box.appendChild(okBtn);
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+
+  const lukk = () => overlay.remove();
+  okBtn.addEventListener('click', lukk);
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) lukk();
+  });
+
+  const onKey = (e) => {
+    if (e.key === 'Escape' || e.key === 'Enter') {
+      window.removeEventListener('keydown', onKey);
+      lukk();
+    }
+  };
+  window.addEventListener('keydown', onKey);
+
+  // Gi fokus til OK-knappen
+  try {
+    okBtn.focus();
+  } catch (_) {}
+
+  return overlay;
+}
+
 // Re-eksporter haversine fra utils for bakoverkompatibilitet
 export { haversine } from './utils.js';
+

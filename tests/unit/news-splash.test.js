@@ -108,3 +108,39 @@ describe('news-splash', () => {
     expect(hasReadNews(CURRENT_NEWS_SPLASH.id)).toBe(false);
   });
 });
+
+describe('first-run-hint (onboarding-overlay posisjonering)', () => {
+  it('beregner --coachmark-spot-top ut fra legend-høyde og posisjonerer boblen relativt til kortets padding-boks', async () => {
+    const { initFirstRunHint } = await import('../../public/js/first-run-hint.js');
+    document.cookie = 'enkelAoHintRead=; Max-Age=0; Path=/';
+    vi.stubGlobal('scrollTo', vi.fn());
+
+    const card = document.createElement('div');
+    card.className = 'card';
+    Object.defineProperty(card, 'clientLeft', { value: 1 });
+    Object.defineProperty(card, 'clientTop', { value: 1 });
+    card.getBoundingClientRect = () => ({ left: 10, top: 50, right: 390, bottom: 500, width: 380, height: 450 });
+
+    const section = document.createElement('fieldset');
+    section.className = 'section-main section-lokasjon';
+    section.getBoundingClientRect = () => ({ left: 26, top: 110, right: 374, bottom: 230, width: 348, height: 120 });
+
+    const legend = document.createElement('legend');
+    legend.textContent = '① Lokasjon';
+    legend.getBoundingClientRect = () => ({ left: 32, top: 100, right: 120, bottom: 118, width: 88, height: 18 });
+
+    section.appendChild(legend);
+    card.appendChild(section);
+    document.body.appendChild(card);
+
+    initFirstRunHint();
+
+    expect(section.classList.contains('coachmark-spot')).toBe(true);
+    expect(section.style.getPropertyValue('--coachmark-spot-top')).toBe('-24px');
+
+    const bubble = card.querySelector('.coachmark-bubble');
+    expect(bubble).toBeTruthy();
+    expect(bubble.style.left).toBe('15px'); // 26 - 10 - 1
+    expect(bubble.style.top).toBe('187px'); // 230 - 50 - 1 + 8
+  });
+});

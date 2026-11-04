@@ -2,8 +2,44 @@
  * Autocomplete-modul for stedsnavn i etterregistreringsmodus
  */
 
+import { getNetworkMode, getAllOfflineLocations } from './offline-db.js';
+import { haversine } from './utils.js';
+
 function isMineResult(result) {
   return result?.isMine === true || result?.ColorString === '#ffff00';
+}
+
+/**
+ * Søk i lokalt lagrede offline-lokaliteter i IndexedDB og konverter til autocomplete-format.
+ * @param {string} term
+ * @param {{ lat?: number, lon?: number }|null} pos
+ * @returns {Promise<Array>}
+ */
+async function searchOfflineAutocomplete(term, pos = null) {
+  const q = String(term || '').trim().toLowerCase();
+  if (q.length < 2) return [];
+  const allOffline = await getAllOfflineLocations().catch(() => []);
+  const matches = allOffline
+    .filter((site) => site && typeof site.name === 'string' && site.name.toLowerCase().includes(q))
+    .map((site) => {
+      const lat = parseFloat(site.lat);
+      const lon = parseFloat(site.lon);
+      const dist =
+        pos && typeof pos.lat === 'number' && typeof pos.lon === 'number' && !isNaN(lat) && !isNaN(lon)
+          ? haversine(pos.lat, pos.lon, lat, lon)
+          : null;
+      return {
+        id: site.id ?? null,
+        value: site.name,
+        presentationvalue: site.name,
+        subvalue: site.municipality || (site.raw && site.raw.municipalityName) || '',
+        isMine: Boolean(site.isMine),
+        isPrivate: Boolean(site.isPrivate || (site.raw && site.raw.isPrivate)),
+        isSuper: Boolean(site.isSuper),
+        _distance: dist,
+      };
+    });
+  return sortLocationAutocompleteResults(matches).slice(0, 30);
 }
 
 /**
@@ -31,6 +67,7 @@ export function initAutocomplete(placeInput, onSelect, getPosition = null) {
   let debounceTimer = null;
   let currentResults = [];
   let activeIndex = -1;
+  let requestSeq = 0;
 
   // Opprett dropdown for resultater
   const dropdown = document.createElement('div');
@@ -72,16 +109,40 @@ export function initAutocomplete(placeInput, onSelect, getPosition = null) {
   }
 
   /**
-   * Hent autocomplete-resultater fra backend
+   * Hent autocomplete-resultater i henhold til aktiv nettverksmodus (online / hybrid / offline)
    */
-  async function fetchAutocomplete(term) {
+  async function fetchAutocomplete(term, seq) {
+    const isCurrent = () => seq === requestSeq;
     if (!term || term.length < 2) {
       dropdown.style.display = 'none';
       return;
     }
 
-    // Vis loading-indikator
-    showLoading();
+    const pos = getPosition && getPosition();
+    const mode = getNetworkMode();
+
+    // 1. Streng Offline-modus: Søk utelukkende i lokalt mellomlager (IndexedDB), ingen nettverkskall
+    if (mode === 'offline') {
+      const localResults = await searchOfflineAutocomplete(term, pos);
+      if (!isCurrent()) return;
+      currentResults = localResults;
+      renderResults(localResults);
+      return;
+    }
+
+    // Vis lokale treff straks, men suppler dem: et tekstsøk kan ha flere treff på nettet.
+    let localResults = [];
+    if (mode === 'hybrid') {
+      localResults = await searchOfflineAutocomplete(term, pos);
+      if (!isCurrent()) return;
+      if (localResults.length > 0) {
+        currentResults = localResults;
+        renderResults(localResults);
+      }
+    }
+
+    // Vis loading-indikator før nettverkskall
+    if (localResults.length === 0) showLoading();
 
     try {
       // Sjekk om bruker er innlogget (for private lokaliteter)
@@ -97,13 +158,13 @@ export function initAutocomplete(placeInput, onSelect, getPosition = null) {
       const savedUsername = localStorage.getItem('ao_username');
       if (savedUsername) headers['X-AO-Username'] = savedUsername;
 
-      const pos = getPosition && getPosition();
       let url = `/api/ao-autocomplete?term=${encodeURIComponent(term)}`;
       if (pos && typeof pos.lat === 'number' && typeof pos.lon === 'number') {
         url += `&lat=${pos.lat}&lon=${pos.lon}`;
       }
       const response = await fetch(url, { headers });
       const data = await response.json();
+      if (!isCurrent()) return;
 
       // Håndter auto-relogin: oppdater auth cookie hvis den ble fornyet
       if (data.refreshed_auth_cookie) {
@@ -118,7 +179,10 @@ export function initAutocomplete(placeInput, onSelect, getPosition = null) {
         }));
       }
 
-      const results = sortLocationAutocompleteResults(data.results || []);
+      const merged = new Map([...localResults, ...(data.results || [])].map((result) => [
+        result.id != null ? String(result.id) : result.value, result,
+      ]));
+      const results = sortLocationAutocompleteResults(Array.from(merged.values())).slice(0, 30);
       currentResults = results;
 
       // Vis resultater (kan være fra lokal DB selv uten innlogging)
@@ -146,8 +210,10 @@ export function initAutocomplete(placeInput, onSelect, getPosition = null) {
         renderResults(results);
       }
     } catch (error) {
+      if (!isCurrent()) return;
       console.error('Autocomplete-feil:', error);
-      dropdown.style.display = 'none';
+      currentResults = localResults;
+      renderResults(localResults);
     }
   }
 
@@ -275,8 +341,8 @@ export function initAutocomplete(placeInput, onSelect, getPosition = null) {
     const name = selected.value;
     const id = selected.id;
 
+    invalidateResults();
     placeInput.value = name;
-    dropdown.style.display = 'none';
 
     // Callback til parent-komponent
     if (onSelect) {
@@ -287,18 +353,28 @@ export function initAutocomplete(placeInput, onSelect, getPosition = null) {
   /**
    * Event listeners
    */
+  function invalidateResults() {
+    requestSeq++;
+    if (debounceTimer) clearTimeout(debounceTimer);
+    dropdown.style.display = 'none';
+    activeIndex = -1;
+    currentResults = [];
+  }
+
   placeInput.addEventListener('input', (e) => {
     const value = e.target.value.trim();
 
+    invalidateResults();
+    const seq = requestSeq;
     // Debounce for å unngå for mange requests
-    if (debounceTimer) clearTimeout(debounceTimer);
 
     debounceTimer = setTimeout(() => {
-      fetchAutocomplete(value);
+      fetchAutocomplete(value, seq);
     }, 300);
   });
 
   placeInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') { invalidateResults(); return; }
     if (!currentResults.length) return;
 
     if (e.key === 'ArrowDown') {
@@ -314,22 +390,19 @@ export function initAutocomplete(placeInput, onSelect, getPosition = null) {
         e.preventDefault();
         selectItem(activeIndex);
       }
-    } else if (e.key === 'Escape') {
-      dropdown.style.display = 'none';
-      activeIndex = -1;
     }
   });
 
   // Lukk dropdown ved klikk utenfor
   document.addEventListener('click', (e) => {
     if (!placeInput.contains(e.target) && !dropdown.contains(e.target)) {
-      dropdown.style.display = 'none';
-      activeIndex = -1;
+      invalidateResults();
     }
   });
 
   // Cleanup-funksjon for å deaktivere autocomplete
   return () => {
+    invalidateResults();
     if (dropdown && dropdown.parentElement) {
       dropdown.parentElement.removeChild(dropdown);
     }
