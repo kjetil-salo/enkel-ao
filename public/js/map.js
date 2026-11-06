@@ -677,10 +677,18 @@ function anvendVisning() {
   // som IKKE er på kartet (f.eks. fra en panorer-oppdatering), havner de
   // heller ikke på kartet — derfor trengs ingen egen bokføring for det
   // tilfellet, og en skjult panorering kan ikke smette lokaliteter inn igjen.
+  // BEGGE laggruppene: markørene ligger i siteLayerGroup, mens polygoner og
+  // radius-sirkler ligger i siteShapesGroup (lagt til i offline-arbeidet).
+  // Tar vi bare den første, blir flatene stående igjen og «skjul alt» dekker
+  // fortsatt kartet — nettopp det knappen finnes for å rydde unna.
+  // Zoom-logikken i updateShapeVisibility() legger og fjerner ENKELTLAG inne i
+  // gruppa, så den er uavhengig av om gruppa selv er på kartet.
   if (visLokaliteter(visning)) {
     if (!map.hasLayer(siteLayerGroup)) siteLayerGroup.addTo(map);
-  } else if (map.hasLayer(siteLayerGroup)) {
-    map.removeLayer(siteLayerGroup);
+    if (!map.hasLayer(siteShapesGroup)) siteShapesGroup.addTo(map);
+  } else {
+    if (map.hasLayer(siteLayerGroup)) map.removeLayer(siteLayerGroup);
+    if (map.hasLayer(siteShapesGroup)) map.removeLayer(siteShapesGroup);
   }
 
   applyLabelsVisibilityDom();
@@ -1470,7 +1478,6 @@ function updateBannerAndOfflinePanelLayout() {
 function updateOfflineMarkersVisibility(visible) {
   showOfflineMarkers = visible;
   if (visible) {
-    if (!map.hasLayer(siteShapesGroup)) siteShapesGroup.addTo(map);
     labelMarkers.forEach((m) => { if (!map.hasLayer(m)) m.addTo(map); });
     // anvendVisning() avgjør selv om siteLayerGroup skal på kartet og hvilke
     // tooltips som skal stå åpne. La den gjøre det her også, ellers kjemper
