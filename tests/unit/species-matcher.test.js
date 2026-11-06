@@ -576,3 +576,35 @@ describe('Rangering: vanlegaste fugl først på halvskrivne søk', () => {
     expect(namn.indexOf('snøugle')).toBeLessThan(namn.indexOf('fuglekonge'));
   });
 });
+
+describe('Gruppe-takson (familiar, ordenar og «ub.»-takson) nedst', () => {
+  // Den lokale artslista hadde berre art og underart, så «måkefamilien» og
+  // «ub. grå-/sildemåke» fanst ikkje hos oss i det heile. AO tillet å
+  // rapportere på gruppenivå, så valet er reelt - det var berre usynleg.
+  // Gruppene er henta inn av tools/sync_species_groups.py og merkte erGruppe.
+  const liste = [
+    { nameNob: 'gråmåke', nameNno: 'gråmåse', latinName: 'Larus argentatus', antallFunn: 595150 },
+    { nameNob: 'fiskemåke', nameNno: 'fiskemåse', latinName: 'Larus canus', antallFunn: 546881 },
+    { nameNob: 'måkefamilien', nameNno: 'måkefamilien', latinName: 'Laridae', erGruppe: true },
+    { nameNob: 'ub. grå-/sildemåke', nameNno: 'ub. grå-/sildemåke', latinName: 'Larus argentatus/fuscus', erGruppe: true },
+  ];
+
+  it('let artane liggje føre gruppene på eit halvskrive søk', () => {
+    const treff = searchSpecies('måke', liste, 'nb');
+    const førsteGruppe = treff.findIndex((s) => s.erGruppe);
+    const sisteArt = treff.map((s) => Boolean(s.erGruppe)).lastIndexOf(false);
+    expect(treff[0].nameNob).toBe('gråmåke');
+    expect(førsteGruppe).toBeGreaterThan(sisteArt);
+  });
+
+  it('tek gruppene MED - dei skal stå nedst, ikkje vere borte', () => {
+    // Heile poenget: den som ikkje fekk artsbestemt måken, skal finne valet.
+    const namn = searchSpecies('måke', liste, 'nb').map((s) => s.nameNob);
+    expect(namn).toContain('måkefamilien');
+    expect(namn).toContain('ub. grå-/sildemåke');
+  });
+
+  it('let eit ferdigskrive gruppenamn vinne, som for artar', () => {
+    expect(searchSpecies('måkefamilien', liste, 'nb')[0].nameNob).toBe('måkefamilien');
+  });
+});

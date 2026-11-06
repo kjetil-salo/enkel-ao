@@ -605,6 +605,17 @@ function sluttarPaSoket(species, q, useNynorsk) {
 }
 
 /**
+ * Er dette et gruppe-takson (familie, orden eller «ub.»-takson) og ikke en art?
+ *
+ * Flagget settes av tools/sync_species_groups.py. AOs eget `leaf`-felt duger
+ * ikke: det betyr «har underliggende takson», så vanlige arter med underarter
+ * er merket der også.
+ */
+function erGruppeTakson(species) {
+  return Boolean(species && species.erGruppe);
+}
+
+/**
  * Rangering av søketreff.
  *
  * Prinsippet: har du skrevet artsnavnet ferdig, vinner det alltid. Har du
@@ -637,14 +648,25 @@ function compareScoredEntries(a, b, useNynorsk, q) {
     return b.score - a.score;
   }
 
-  // 3. Reine artar/underartar skal alltid liggje føre hybridar ("... x ...").
+  // 3. Gruppe-takson nederst. Søker du «måke», vil du ha gråmåke og fiskemåke
+  //    — ikke «måkefamilien». Men står gruppa nederst i lista, finner du den
+  //    den dagen du faktisk ikke fikk artsbestemt fuglen, og lærer samtidig at
+  //    valget finnes. Skriver du «måkefamilien» helt ut, er det et eksakt
+  //    treff og håndtert over.
+  const aGruppeTakson = erGruppeTakson(a.species);
+  const bGruppeTakson = erGruppeTakson(b.species);
+  if (aGruppeTakson !== bGruppeTakson) {
+    return aGruppeTakson ? 1 : -1;
+  }
+
+  // 4. Reine artar/underartar skal alltid liggje føre hybridar ("... x ...")..
   const aHybrid = isHybridItem(a.species);
   const bHybrid = isHybridItem(b.species);
   if (aHybrid !== bHybrid) {
     return aHybrid ? 1 : -1;
   }
 
-  // 4. Treff i et norsk navn før treff som bare finnes i det latinske.
+  // 5. Treff i et norsk navn før treff som bare finnes i det latinske.
   //    Uten dette klatrer en vanlig art opp på et latinsk delordstreff:
   //    søk på «me» ga svarttrost på andreplass, fordi Turdus merula treffer
   //    og arten er vanlig. Den som skriver norsk, leter etter et norsk navn.
@@ -654,7 +676,7 @@ function compareScoredEntries(a, b, useNynorsk, q) {
     return aNorsk ? -1 : 1;
   }
 
-  // 5. Navn som slutter på søkeordet først: etterleddet er artsgruppa, og det
+  // 6. Navn som slutter på søkeordet først: etterleddet er artsgruppa, og det
   //    er slik fuglefolk søker. «ugle» skal gi kattugle og jordugle før
   //    fuglekonge, som bare har bokstavene liggende inne i seg.
   const aSlutt = sluttarPaSoket(a.species, q, useNynorsk);
@@ -663,7 +685,7 @@ function compareScoredEntries(a, b, useNynorsk, q) {
     return aSlutt ? -1 : 1;
   }
 
-  // 6. Sjeldenhetsgruppe: supersjeldne arter skal aldri ligge øverst på et
+  // 7. Sjeldenhetsgruppe: supersjeldne arter skal aldri ligge øverst på et
   //    halvskrevet søk, uansett hvor godt bokstavene passer. Se sjeldenhetsgruppe().
   const aGruppe = sjeldenhetsgruppe(a.species);
   const bGruppe = sjeldenhetsgruppe(b.species);
@@ -671,7 +693,7 @@ function compareScoredEntries(a, b, useNynorsk, q) {
     return aGruppe - bGruppe;
   }
 
-  // 7. Innenfor samme gruppe: flest funn først, altså den arten brukeren
+  // 8. Innenfor samme gruppe: flest funn først, altså den arten brukeren
   //    mest sannsynlig mener.
   const aFunn = funntall(a.species) ?? 0;
   const bFunn = funntall(b.species) ?? 0;
@@ -679,20 +701,20 @@ function compareScoredEntries(a, b, useNynorsk, q) {
     return bFunn - aFunn;
   }
 
-  // 8. Først her teller hvor godt bokstavene passer. To arter som er like
+  // 9. Først her teller hvor godt bokstavene passer. To arter som er like
   //    vanlige og like sjeldne skilles av at den ene treffer bedre.
   if (b.score !== a.score) {
     return b.score - a.score;
   }
 
-  // 9. Hovedart føre underart.
+  // 10. Hovedart føre underart.
   const aSub = isSubspeciesItem(a.species);
   const bSub = isSubspeciesItem(b.species);
   if (aSub !== bSub) {
     return aSub ? 1 : -1;
   }
 
-  // 10. Fallback: Alfabetisk sortering på visningsnamn (norsk)
+  // 11. Fallback: Alfabetisk sortering på visningsnamn (norsk)
   const aNno = getSpeciesNameNno(a.species);
   const aNob = getSpeciesNameNob(a.species);
   const bNno = getSpeciesNameNno(b.species);

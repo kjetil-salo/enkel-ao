@@ -25,12 +25,43 @@ def test_no_duplicate_species():
     assert not duplicates, f'Duplikate (norsk, latin)-par funnet: {duplicates}'
 
 
+def _arter():
+    """Bare de ekte artene — uten gruppe-takson, som har egne krav."""
+    return [s for s in _load() if not s.get('erGruppe')]
+
+
 def test_no_nameless_taxonomic_group_rows():
-    species = _load()
-    for s in species:
+    """
+    Artsradene skal ikke inneholde slekter eller familier som har sneket seg
+    inn fra datakonverteringen — en rad med ettordslatin og uten reelt norsk
+    navn er søppel, ikke en art.
+
+    Gruppene som ER lagt inn med vilje (tools/sync_species_groups.py) er unntatt:
+    de har ettordslatin nettopp fordi de ikke er arter, og er merket erGruppe.
+    De testes av test_group_taxa_are_well_formed under.
+    """
+    for s in _arter():
         latin = s.get('latin', '')
         assert len(latin.split()) >= 2, f'Ettordslatin (slekt/familie, ikke art): {s}'
-    assert all(s.get('norwegian') != 'nan' for s in species), 'Rad uten reelt artsnavn (norwegian=="nan") funnet'
+    assert all(s.get('norwegian') != 'nan' for s in _load()), 'Rad uten reelt artsnavn (norwegian=="nan") funnet'
+
+
+def test_group_taxa_are_well_formed():
+    """
+    Gruppe-takson (familier, ordener og «ub.»-takson) skal være gjenkjennelige
+    og komplette nok til å sendes til AO.
+
+    De har bevisst IKKE antallFunn: gruppene rangeres ikke på hvor vanlige de
+    er, og et tall ville latt dem konkurrere med artene i sorteringen i stedet
+    for å ligge nederst (se compareScoredEntries i species-matcher.js).
+    """
+    grupper = [s for s in _load() if s.get('erGruppe')]
+    assert grupper, 'Ingen gruppe-takson i artslista — kjør tools/sync_species_groups.py'
+    for g in grupper:
+        assert g.get('norwegian'), f'Gruppe uten norsk navn: {g}'
+        assert g.get('taxonId'), f'Gruppe uten taxonId (kan ikke sendes til AO): {g}'
+        assert g.get('nameNob') == g.get('norwegian'), f'nameNob samsvarer ikke: {g}'
+        assert 'antallFunn' not in g, f'Gruppe skal ikke ha antallFunn: {g}'
 
 
 def test_nynorsk_field_present_and_reasonable_coverage():
@@ -41,7 +72,7 @@ def test_nynorsk_field_present_and_reasonable_coverage():
 
 
 def test_extended_data_model_fields_and_antall_funn():
-    species = _load()
+    species = _arter()
     for s in species:
         assert 'antallFunn' in s and isinstance(s['antallFunn'], int) and s['antallFunn'] >= 0, (
             f'Mangler gyldig antallFunn på {s}'
