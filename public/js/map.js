@@ -3,9 +3,9 @@
  */
 
 // Versjonert import
-import { createAoSite, ensureAoTokens, fetchAoSitesCached, fetchAoSitesByBounds, getCachedPrivateSites, hasActiveAoLogin } from './api.js?v=v1.60.0';
-import { mergeAoSitesWithPrivateCache, isPrivateSite, shouldShowOthersPrivateSites, DEFAULT_MAP_CENTER } from './location.js?v=v1.60.0';
-import { saveLastKnownPosition, loadLastKnownPosition } from './storage.js?v=v1.60.0';
+import { createAoSite, ensureAoTokens, fetchAoSitesCached, fetchAoSitesByBounds, getCachedPrivateSites, hasActiveAoLogin } from './api.js?v=v1.60.1';
+import { mergeAoSitesWithPrivateCache, isPrivateSite, shouldShowOthersPrivateSites, DEFAULT_MAP_CENTER } from './location.js?v=v1.60.1';
+import { saveLastKnownPosition, loadLastKnownPosition } from './storage.js?v=v1.60.1';
 import { haversine } from './utils.js';
 import {
   DEFAULT_OFFLINE_AREA_SIDE_M,
@@ -24,9 +24,10 @@ import {
   getBoundsDimensionsMeters,
   moveBoundsToCenter,
   resizeBoundsFromCorner,
-} from './offline-area.js?v=v1.60.0';
+} from './offline-area.js?v=v1.60.1';
 import {
   getNetworkMode,
+  setNetworkMode,
   fetchLocationsWithNetworkMode,
   isOfflineMode,
   isHybridMode,
@@ -40,7 +41,7 @@ import {
   syncOfflineAreas,
   clearAllOfflineData,
   syncNetworkModeToServiceWorker,
-} from './offline-db.js?v=v1.60.0';
+} from './offline-db.js?v=v1.60.1';
 
 // Hent data fra localStorage — fall tilbake til Svortland, Bømlo dersom mapData mangler
 let data = {};
@@ -301,6 +302,112 @@ function clearFallbackTileMemo() {
 const BLANK_TILE_DATA_URL =
   'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
 
+// ============================================================
+// Varsel når kartet ikke får en eneste flis
+// ============================================================
+// I offline-modus settes manglende fliser til BLANK_TILE_DATA_URL. Det gir et
+// helt tomt kart der lokalitetspinnene likevel står (de kommer fra den lokale
+// databasen) — og uten en forklaring leser det som at kartet er ødelagt, ikke
+// som at området aldri ble lastet ned. Feltmelding 05.11.2026.
+//
+// Vi teller fliser i stedet for å gjette på modus: hybrid uten dekning ender i
+// samme tomme kart, og over-/underzoom-fallbacken kan redde et utsnitt selv i
+// offline. Bare «null ekte fliser» er et sikkert tegn.
+let flisTeller = { ekte: 0, blanke: 0 };
+let flisVarselTimer = null;
+
+/** Registrerer hva en flis endte opp med, og vurderer varselet etterpå. */
+function registrerFlis(erEkte) {
+  if (erEkte) flisTeller.ekte += 1;
+  else flisTeller.blanke += 1;
+  clearTimeout(flisVarselTimer);
+  // Fliser kommer i puljer; vent til utsnittet har satt seg før vi dømmer.
+  flisVarselTimer = setTimeout(oppdaterTomtKartVarsel, 600);
+}
+
+/**
+ * Setter flis-kilden og bokfører UTFALLET, ikke intensjonen: i hybrid-modus
+ * settes nettverks-URL-en først og feiler etterpå når dekningen mangler, så en
+ * bokføring i det src settes ville regnet den tomme flisen som en ekte en — og
+ * varselet uteblitt nettopp der det trengs mest (målt i hybrid uten nett).
+ */
+function settFlisKilde(tile, src) {
+  if (src === BLANK_TILE_DATA_URL) {
+    registrerFlis(false);
+  } else {
+    tile.addEventListener('load', () => registrerFlis(true), { once: true });
+    tile.addEventListener('error', () => registrerFlis(false), { once: true });
+  }
+  tile.src = src;
+}
+
+/** Nullstiller tellingen — nytt utsnitt skal vurderes på egne fliser. */
+function nullstillFlisTeller() {
+  flisTeller = { ekte: 0, blanke: 0 };
+  clearTimeout(flisVarselTimer);
+}
+
+function hentFlisVarselEl() {
+  let el = document.getElementById('tomt-kart-varsel');
+  if (el) return el;
+  const kartEl = document.getElementById('map');
+  if (!kartEl) return null;
+  el = document.createElement('div');
+  el.id = 'tomt-kart-varsel';
+  el.className = 'tomt-kart-varsel';
+  el.setAttribute('role', 'status');
+  el.style.display = 'none';
+  // Bygges her, ikke i map.html: da slipper siden å holde to blokker i synk,
+  // og varselet følger koden som vet når det trengs.
+  el.innerHTML = `
+    <div class="tomt-kart-varsel-ikon" aria-hidden="true">🗺️</div>
+    <h2 class="tomt-kart-varsel-tittel">Ingen kartbakgrunn her</h2>
+    <p class="tomt-kart-varsel-tekst" id="tomt-kart-varsel-tekst"></p>
+    <div class="tomt-kart-varsel-knapper">
+      <button type="button" id="tomt-kart-varsel-online-btn">Bytt til Online</button>
+      <button type="button" id="tomt-kart-varsel-lukk-btn">Lukk</button>
+    </div>`;
+  kartEl.appendChild(el);
+  el.querySelector('#tomt-kart-varsel-lukk-btn').addEventListener('click', () => {
+    el.style.display = 'none';
+    flisVarselLukket = true;
+  });
+  el.querySelector('#tomt-kart-varsel-online-btn').addEventListener('click', () => {
+    setNetworkMode('online');
+    // Enklest og tryggest: hent siden på nytt, så alle lag bygges i ny modus.
+    window.location.reload();
+  });
+  return el;
+}
+
+// Lukker brukeren varselet, skal det ikke komme tilbake ved hver panorering.
+let flisVarselLukket = false;
+
+function oppdaterTomtKartVarsel() {
+  const el = hentFlisVarselEl();
+  if (!el) return;
+  const tomt = flisTeller.ekte === 0 && flisTeller.blanke > 0;
+  if (!tomt || flisVarselLukket) {
+    el.style.display = 'none';
+    return;
+  }
+  const mode = getNetworkMode();
+  const tekst = el.querySelector('#tomt-kart-varsel-tekst');
+  const onlineBtn = el.querySelector('#tomt-kart-varsel-online-btn');
+  if (mode === 'offline') {
+    tekst.textContent =
+      'Appen står i Offline-modus, og dette området er ikke lastet ned. '
+      + 'Lokalitetene vises fortsatt, men kartbakgrunnen finnes bare for områder du har lastet ned på forhånd.';
+    onlineBtn.style.display = '';
+  } else {
+    tekst.textContent =
+      'Kartflisene kunne ikke hentes — mest sannsynlig ingen dekning her. '
+      + 'Lokalitetene vises fortsatt. Last ned området på forhånd neste gang du har nett.';
+    onlineBtn.style.display = 'none';
+  }
+  el.style.display = '';
+}
+
 function createCachedTileLayer(urlTemplate, options = {}) {
   const CachedTileLayer = L.TileLayer.extend({
     createTile(coords, done) {
@@ -321,7 +428,7 @@ function createCachedTileLayer(urlTemplate, options = {}) {
 
         // Om me er online eller nettlesaren manglar støtte for Cache API, last flisa normalt
         if (mode === 'online' || !hasCaches) {
-          tile.src = url;
+          settFlisKilde(tile, url);
           return tile;
         }
 
@@ -379,27 +486,27 @@ function createCachedTileLayer(urlTemplate, options = {}) {
             const exactSelected = await cache.match(url);
             if (exactSelected) {
               const resolved = await resolveFromCache();
-              if (resolved) { tile.src = resolved; return; }
+              if (resolved) { settFlisKilde(tile, resolved); return; }
             }
             tile.addEventListener(
               'error',
               async () => {
                 try {
                   const resolved = await resolveFromCache();
-                  if (resolved) tile.src = resolved;
+                  if (resolved) settFlisKilde(tile, resolved);
                 } catch (_) { /* tile blir stående tom */ }
               },
               { once: true },
             );
-            tile.src = url;
+            settFlisKilde(tile, url);
             return;
           }
 
           // Offline-modus (cache-only): aldri nettverk. Ingenting brukbart = tom flis.
-          tile.src = (await resolveFromCache()) || BLANK_TILE_DATA_URL;
+          settFlisKilde(tile, (await resolveFromCache()) || BLANK_TILE_DATA_URL);
         }).catch(() => {
           // Cache API feilet. Offline: tom flis; ellers last normalt.
-          tile.src = mode === 'offline' ? BLANK_TILE_DATA_URL : url;
+          settFlisKilde(tile, mode === 'offline' ? BLANK_TILE_DATA_URL : url);
         });
       } catch (err) {
         console.error("Kritisk feil under oppteikning av flis:", err);
@@ -830,6 +937,7 @@ if (typeof siteLayerGroup.on === 'function') {
     siteLayerGroup.on(evt, enforceLabelsVisibility);
   });
 }
+map.on('movestart zoomstart', nullstillFlisTeller);
 map.on('zoomend moveend', scheduleShapeVisibilityUpdate);
 map.on('zoomend', enforceLabelsVisibility);
 

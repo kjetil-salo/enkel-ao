@@ -24,7 +24,7 @@
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta name="twitter:card" content="summary_large_image" />
-    <link rel="stylesheet" href="style.css?v=v1.60.0" />
+    <link rel="stylesheet" href="style.css?v=v1.60.1" />
   </head>
   <body>
     <script src="/js/theme.js"></script>
@@ -38,7 +38,7 @@
             <!-- Teksten bor i sin egen span fordi updateModeUI() skriver den ved hvert
                  modusbytte — satte den textContent på selve pillen, ville
                  bytte-ikonet blitt slettet med det samme. -->
-            <button type="button" class="pill mode-pill" id="mode-pill" title="Klikk for å bytte mellom Felt og Etterregistrering" aria-label="Modus: Felt. Trykk for å bytte til Etterregistrering."><span id="mode-pill-text">Felt</span><svg class="mode-pill-swap" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8.5h14"/><path d="M13.5 4.5 17.5 8.5 13.5 12.5"/><path d="M21 15.5H7"/><path d="M10.5 11.5 6.5 15.5 10.5 19.5"/></svg></button>
+            <button type="button" class="pill mode-pill" id="mode-pill" title="Klikk for å bytte mellom Felt og Etterregistrering" aria-label="Modus: Felt. Trykk for å bytte til Etterregistrering."><span id="mode-pill-text">Felt</span><span class="mode-pill-short" aria-hidden="true">Etterreg.</span><svg class="mode-pill-swap" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8.5h14"/><path d="M13.5 4.5 17.5 8.5 13.5 12.5"/><path d="M21 15.5H7"/><path d="M10.5 11.5 6.5 15.5 10.5 19.5"/></svg></button>
             <button type="button" class="pill offline-toggle-pill" id="offline-mode-toggle" title="Bytt mellom Online, Hybrid og Offline-modus" aria-pressed="mixed" aria-label="Nettverksmodus: Hybrid. Trykk for å bytte til Offline."><span id="offline-mode-toggle-text"></span></button>
             <script>
               (function() {
@@ -97,6 +97,14 @@
           </div>
           <div class="header-actions">
             <a href="/settings.html" id="ao-status-dot" class="ao-status-dot" aria-label="Ikke innlogget mot Artsobservasjoner. Trykk for å logge inn.">Logg inn</a>
+            <details class="header-menu" id="header-menu">
+              <summary aria-label="Meny" title="Meny"><span aria-hidden="true">⋯</span></summary>
+              <nav class="header-menu-links" aria-label="Hovedmeny">
+                <a href="/fellestur.html">Fellestur</a>
+                <a href="/help.html">Hjelp</a>
+                <a href="/settings.html">Innstillinger</a>
+              </nav>
+            </details>
             <!-- Fellestur hører hjemme i nav-ikonraden, ikke i ④ Send inn der den
                  lå før: en tur må startes FØR man registrerer noe, ellers havner
                  ikke funnene i den delte loggen. ④ står dessuten grå og død
@@ -117,6 +125,65 @@
             </div>
           </div>
         </header>
+        <script type="module">
+          // Toppraden trappes ned bare så mye som faktisk trengs. Se
+          // header-plass.js for hvorfor dette ikke kan gjøres i ren CSS.
+          import { tilpassHeader } from '/js/header-plass.js?v=v1.60.1';
+
+          const appHeader = document.querySelector('.app-header');
+
+          // Måler vi mens vi selv skriver data-komprimering, måler vi oss selv
+          // i ring. Flagget er enklere og sikrere enn å filtrere observatørens
+          // poster, som kommer i blandede batcher.
+          let maaler = false;
+          let planlagt = false;
+          const maal = () => {
+            if (maaler || planlagt) return;
+            planlagt = true;
+            // Neste frame, ikke om 50 ms: main.js skriver kontoteksten rett
+            // etter at vi har målt første gang, og en debounce der ville latt
+            // headeren stå for bred i et synlig øyeblikk.
+            requestAnimationFrame(() => {
+              planlagt = false;
+              maaler = true;
+              try {
+                tilpassHeader(appHeader);
+              } finally {
+                maaler = false;
+              }
+            });
+          };
+
+          // Første måling synkront, så raden aldri vises ukomprimert.
+          tilpassHeader(appHeader);
+          window.addEventListener('resize', maal);
+          window.addEventListener('orientationchange', maal);
+
+          // Modusbytte og nettverksbytte endrer tekstbredden uten å endre
+          // viewporten, og main.js fyller kontoteksten etter at vi har målt -
+          // resize alene er altså ikke nok. En observatør slipper å kjenne
+          // hver enkelt knapp.
+          new MutationObserver(maal).observe(appHeader, {
+            subtree: true, childList: true, characterData: true, attributes: true,
+          });
+
+          // Webfonter kan lande etter første måling og endre tekstbredden.
+          if (document.fonts && document.fonts.ready) document.fonts.ready.then(maal).catch(() => {});
+        </script>
+        <script>
+          // Details gir tastaturstyring også i eldre Safari. Lukk i tillegg
+          // ved trykk utenfor og Escape, uten å stjele fokus fra skjemaet.
+          const headerMenu = document.getElementById('header-menu');
+          document.addEventListener('pointerdown', (event) => {
+            if (!headerMenu.contains(event.target)) headerMenu.open = false;
+          });
+          document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && headerMenu.open) {
+              headerMenu.open = false;
+              headerMenu.querySelector('summary').focus();
+            }
+          });
+        </script>
 
         <!-- Vises kun når en fellestur er aktiv på denne enheten -->
         <div id="fellestur-banner" style="display:none;flex-direction:column;gap:6px;background:var(--accent-soft);border:1px solid var(--accent);border-radius:10px;padding:8px 12px;margin-bottom:10px;font-size:0.85em;">
@@ -454,20 +521,20 @@
 
     </div>
 
-    <script type="module" src="/js/main.js?v=v1.60.0"></script>
+    <script type="module" src="/js/main.js?v=v1.60.1"></script>
     <script type="module">
       // Registrer Service Worker for offline-støtte.
       // Versjonert URL: Cloudflare overstyrer origin sin max-age=300 med 4 timer, så
       // en endret /sw.js kan bli liggende i edge-cachen og aldri nå installerte apper.
       // Bruk inline versjon her: /js/version.js kan selv være cachet i gammel versjon.
-      const VERSION = 'v1.60.0';
+      const VERSION = 'v1.60.1';
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register(`/sw.js?v=${VERSION}`).catch(() => {});
       }
     </script>
     <footer class="footer-credit">Versjon <span id="version"></span>  |  <a href="/changelog.html" style="color:var(--accent);text-decoration:none;">Endringslogg</a>  |  <a href="/feedback.html" style="color:var(--accent);text-decoration:none;">Gi tilbakemelding</a>  |  © 2026 Kjetil Salomonsen</footer>
     <script type="module">
-      const VERSION = 'v1.60.0';
+      const VERSION = 'v1.60.1';
       document.getElementById('version').textContent = VERSION;
     </script>
 
@@ -822,7 +889,7 @@
       }
     </style>
     <script type="module">
-      import { initPhotoPicker } from './js/photo-picker.js?v=v1.60.0';
+      import { initPhotoPicker } from './js/photo-picker.js?v=v1.60.1';
 
       const extraModal = document.getElementById('extra-fields-modal');
       const extraOpenBtn = document.getElementById('extra-fields-open-btn');

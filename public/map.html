@@ -702,6 +702,72 @@
       padding: 16px;
     }
 
+    /* Varsel når kartet ikke fikk en eneste flis (se oppdaterTomtKartVarsel()
+       i map.js). Ligger inne i #map, men med pointer-events: none på panelet
+       utenom knappene, slik at man fortsatt kan panorere og zoome kartet under
+       — varselet forklarer noe, det skal ikke ta kartet fra brukeren. */
+    .tomt-kart-varsel {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 900;
+      width: min(320px, calc(100% - 32px));
+      padding: 18px 20px;
+      border: 2px solid rgba(0, 0, 0, 0.15);
+      border-radius: 14px;
+      background: #ffffff;
+      color: #0f172a;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+      text-align: center;
+      pointer-events: none;
+    }
+
+    .tomt-kart-varsel-ikon {
+      font-size: 2rem;
+      margin-bottom: 6px;
+    }
+
+    .tomt-kart-varsel-tittel {
+      margin: 0 0 6px;
+      font-size: 1.05rem;
+      font-weight: 600;
+    }
+
+    .tomt-kart-varsel-tekst {
+      margin: 0 0 14px;
+      font-size: 0.88rem;
+      line-height: 1.45;
+      color: #475569;
+    }
+
+    .tomt-kart-varsel-knapper {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      pointer-events: auto;
+    }
+
+    .tomt-kart-varsel-knapper button {
+      min-height: 44px;
+      padding: 0 16px;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.92rem;
+      font-weight: 500;
+      cursor: pointer;
+    }
+
+    #tomt-kart-varsel-online-btn {
+      background: #3b82f6;
+      color: #ffffff;
+    }
+
+    #tomt-kart-varsel-lukk-btn {
+      background: #e2e8f0;
+      color: #0f172a;
+    }
+
     .offline-download-modal {
       background: #ffffff;
       color: #0f172a;
@@ -913,6 +979,6 @@
   </script>
 
   <!-- Versjonert URL -->
-  <script type="module" src="/js/map.js?v=v1.60.0"></script>
+  <script type="module" src="/js/map.js?v=v1.60.1"></script>
 </body>
 </html>
