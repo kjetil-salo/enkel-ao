@@ -3,9 +3,9 @@
  */
 
 // Versjonert import
-import { createAoSite, ensureAoTokens, fetchAoSitesCached, fetchAoSitesByBounds, getCachedPrivateSites, hasActiveAoLogin } from './api.js?v=v1.60.1';
-import { mergeAoSitesWithPrivateCache, isPrivateSite, shouldShowOthersPrivateSites, DEFAULT_MAP_CENTER } from './location.js?v=v1.60.1';
-import { saveLastKnownPosition, loadLastKnownPosition } from './storage.js?v=v1.60.1';
+import { createAoSite, ensureAoTokens, fetchAoSitesCached, fetchAoSitesByBounds, getCachedPrivateSites, hasActiveAoLogin } from './api.js?v=v1.60.2';
+import { mergeAoSitesWithPrivateCache, isPrivateSite, shouldShowOthersPrivateSites, DEFAULT_MAP_CENTER } from './location.js?v=v1.60.2';
+import { saveLastKnownPosition, loadLastKnownPosition } from './storage.js?v=v1.60.2';
 import { haversine } from './utils.js';
 import {
   DEFAULT_OFFLINE_AREA_SIDE_M,
@@ -24,7 +24,7 @@ import {
   getBoundsDimensionsMeters,
   moveBoundsToCenter,
   resizeBoundsFromCorner,
-} from './offline-area.js?v=v1.60.1';
+} from './offline-area.js?v=v1.60.2';
 import {
   getNetworkMode,
   setNetworkMode,
@@ -41,7 +41,7 @@ import {
   syncOfflineAreas,
   clearAllOfflineData,
   syncNetworkModeToServiceWorker,
-} from './offline-db.js?v=v1.60.1';
+} from './offline-db.js?v=v1.60.2';
 
 // Hent data fra localStorage — fall tilbake til Svortland, Bømlo dersom mapData mangler
 let data = {};

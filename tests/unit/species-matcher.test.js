@@ -141,9 +141,11 @@ describe('searchSpecies – Krav frå Steg 1', () => {
     const results = searchSpecies('star', sampleSpeciesList, 'nn');
     expect(results.length).toBeGreaterThanOrEqual(2);
     expect(results[0].nameNno).toBe('stare');
-    // starrsanger (600p) skal liggje bak stare (800p), og føre rosenstare (400p)
+    // Poengsummen avgjer berre mellom eksakte treff. For halvskrivne søk er
+    // det sjeldenheita som styrer: storrsongar har 25 funn i Noreg og skal
+    // liggje bak rosenstare (450), sjølv om han treffer betre på bokstavane.
     const names = results.map((s) => s.nameNno);
-    expect(names).toEqual(['stare', 'storrsongar', 'rosenstare']);
+    expect(names).toEqual(['stare', 'rosenstare', 'storrsongar']);
   });
 
   it('Krav 2: Søk på "raudstrupe" gir "raudstrupe" som #1 (framfor "raudstrupesnipe")', () => {
@@ -158,6 +160,10 @@ describe('searchSpecies – Krav frå Steg 1', () => {
     expect(resultsNob[0].nameNno).toBe('raudstrupe');
   });
 
+  // svartraudstjert har 'raud' inne i namnet og treffer difor dårlegare på
+  // bokstavane enn raudhalsgås og raudstrupesnipe - men han er ein vanleg
+  // norsk hekkefugl, medan dei to andre er sjeldne gjester. Då skal han ligge
+  // føre: ein halvskriven søkestreng skal gi den fuglen du faktisk kan sjå.
   it('Krav 3: Søk på "raud" sorterer vanlege artar øvst (via antallFunn) og gir 0 treff på "isabellavarsler"', () => {
     const results = searchSpecies('raud', sampleSpeciesList, 'nn');
     const names = results.map((s) => s.nameNno);
@@ -172,9 +178,9 @@ describe('searchSpecies – Krav frå Steg 1', () => {
       'raudstrupe',
       'raudstilk',
       'raudnebbterne',
+      'svartraudstjert',
       'raudhalsgås',
       'raudstrupesnipe',
-      'svartraudstjert',
     ]);
   });
 
@@ -519,5 +525,54 @@ describe('sjeldenhetsgruppe – supersjeldne arter skal ikke ligge øverst', () 
     const kandidater = [art('rødstrupe', 428362), art('rødstrupetrost', 0), art('rødstrupesnipe', 6)];
     const navn = searchSpecies('rødstrupetrost', kandidater, 'nb').map((r) => r.nameNob);
     expect(navn[0]).toBe('rødstrupetrost');
+  });
+});
+
+describe('Rangering: vanlegaste fugl først på halvskrivne søk', () => {
+  // Poengsummen måler kor godt bokstavane passar. Han veit ingenting om kva
+  // fugl ein faktisk kan få sjå, og låg difor feil veg: søk på «me» gav
+  // mestersanger (prefiks, 2 funn i Noreg) over kjøttmeis (ordgrense,
+  // 646 041 funn). Meldt frå felt 06.11.2026.
+  const fuglar = [
+    { nameNob: 'kjøttmeis', nameNno: 'kjøtmeis', latinName: 'Parus major', antallFunn: 646041 },
+    { nameNob: 'blåmeis', nameNno: 'blåmeis', latinName: 'Cyanistes caeruleus', antallFunn: 533018 },
+    { nameNob: 'mestersanger', nameNno: 'mestersongar', latinName: 'Acrocephalus orientalis', antallFunn: 2 },
+    { nameNob: 'mellomspett', nameNno: 'mellomspett', latinName: 'Dendrocoptes medius', antallFunn: 1 },
+    { nameNob: 'svarttrost', nameNno: 'svarttrast', latinName: 'Turdus merula', antallFunn: 561902 },
+    { nameNob: 'fuglekonge', nameNno: 'fuglekonge', latinName: 'Regulus regulus', antallFunn: 161801 },
+    { nameNob: 'kattugle', nameNno: 'kattugle', latinName: 'Strix aluco', antallFunn: 58514 },
+    { nameNob: 'snøugle', nameNno: 'snøugle', latinName: 'Bubo scandiacus', antallFunn: 180 },
+  ];
+
+  it('set den vanlegaste arten først sjølv om ein sjeldan art treffer betre på bokstavane', () => {
+    const namn = searchSpecies('me', fuglar, 'nb').map((s) => s.nameNob);
+    expect(namn[0]).toBe('kjøttmeis');
+    expect(namn.indexOf('kjøttmeis')).toBeLessThan(namn.indexOf('mestersanger'));
+    expect(namn.indexOf('blåmeis')).toBeLessThan(namn.indexOf('mellomspett'));
+  });
+
+  it('let eit ferdigskrive artsnamn vinne, uansett kor sjeldan arten er', () => {
+    // Skriv ein mestersanger inn heilt, og det er mestersanger ein skal få -
+    // to funn i Noreg eller ei.
+    expect(searchSpecies('mestersanger', fuglar, 'nb')[0].nameNob).toBe('mestersanger');
+    expect(searchSpecies('snøugle', fuglar, 'nb')[0].nameNob).toBe('snøugle');
+  });
+
+  it('set treff i norsk namn føre treff som berre finst i det latinske', () => {
+    // Turdus merula inneheld «me», og svarttrost er vanleg - men den som
+    // skriv norsk, leitar etter eit norsk namn. Dei aller fleste brukar ikkje
+    // latinske namn i det heile.
+    const namn = searchSpecies('me', fuglar, 'nb').map((s) => s.nameNob);
+    expect(namn.indexOf('kjøttmeis')).toBeLessThan(namn.indexOf('svarttrost'));
+    expect(namn.indexOf('blåmeis')).toBeLessThan(namn.indexOf('svarttrost'));
+  });
+
+  it('set artsgruppa (etterleddet) føre eit tilfeldig treff inne i eit anna ord', () => {
+    // «ugle» skal gi ugler - ikkje fuglekonge, sjølv om bokstavane står der
+    // (f-ugle-konge) og arten er nær tre gonger så vanleg som kattugle.
+    const namn = searchSpecies('ugle', fuglar, 'nb').map((s) => s.nameNob);
+    expect(namn[0]).toBe('kattugle');
+    expect(namn.indexOf('kattugle')).toBeLessThan(namn.indexOf('fuglekonge'));
+    expect(namn.indexOf('snøugle')).toBeLessThan(namn.indexOf('fuglekonge'));
   });
 });

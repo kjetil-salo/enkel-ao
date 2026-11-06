@@ -10,7 +10,7 @@
 // og en manglende navngitt eksport gir SyntaxError som stopper HELE main.js,
 // ikke bare den ene funksjonen. Bump ved hver nye eksport vi blir avhengige
 // av. Samme fallgruve som storage.js-importen under og map.js sin api.js-import.
-import { logPageView, loadActivities, fetchAoSites, fetchAndCachePrivateSites, hasFreshPrivateSitesCache, ensureAoTokens } from './api.js?v=v1.60.1';
+import { logPageView, loadActivities, fetchAoSites, fetchAndCachePrivateSites, hasFreshPrivateSitesCache, ensureAoTokens } from './api.js?v=v1.60.2';
 // Versjonert import: denne linjen har en HARD avhengighet til to navngitte
 // eksporter (loadAoDirectAutoClear/saveAoDirectAutoClear) som ikke fantes i
 // tiderligere versjoner av storage.js. Uten ?v= her kan Cloudflare servere en
@@ -19,9 +19,9 @@ import { logPageView, loadActivities, fetchAoSites, fetchAndCachePrivateSites, h
 // altså hele appen, se samme fallgruve for map.js/location.js (v1.53.15) og
 // sjekklisten i CLAUDE.md. Bump SAMTIDIG som index.html sin egen ?v=-tag for
 // main.js, hver gang storage.js får en ny eksport main.js begynner å bruke.
-import { loadObservations, saveObservations, loadAoSearchRadius, saveAoSearchRadius, loadLocationSortMode, saveLocationSortMode, loadAoDirectAutoClear, saveAoDirectAutoClear, saveLastKnownPosition, loadLastKnownPosition } from './storage.js?v=v1.60.1';
-import { setStatus, setLocationStatus, showToast, showOfflineNotAvailableDialog, haversine, MODE_SPLASH_DURATION_MS } from './ui.js?v=v1.60.1';
-import { DEFAULT_MAP_CENTER, setAoSiteSuggestions, initLocation, openMap, openMapPage, updateCreateSiteBtnVisibility, initCreateSite } from './location.js?v=v1.60.1';
+import { loadObservations, saveObservations, loadAoSearchRadius, saveAoSearchRadius, loadLocationSortMode, saveLocationSortMode, loadAoDirectAutoClear, saveAoDirectAutoClear, saveLastKnownPosition, loadLastKnownPosition } from './storage.js?v=v1.60.2';
+import { setStatus, setLocationStatus, showToast, showOfflineNotAvailableDialog, haversine, MODE_SPLASH_DURATION_MS } from './ui.js?v=v1.60.2';
+import { DEFAULT_MAP_CENTER, setAoSiteSuggestions, initLocation, openMap, openMapPage, updateCreateSiteBtnVisibility, initCreateSite } from './location.js?v=v1.60.2';
 // Versjonert import: observations.js sitt eget innhold (ikke bare hvilke
 // eksporter den har) endret seg vesentlig i dag (speciesDisplayName-bruk i
 // ③-lista og slett-toasten). En stale cachet kopi av selve FILEN - ikke bare
@@ -31,7 +31,7 @@ import { DEFAULT_MAP_CENTER, setAoSiteSuggestions, initLocation, openMap, openMa
 // timer, uten noen SyntaxError som varsler om det (funksjonene fantes jo
 // allerede - bare med gammel logikk). Se species-search.js/
 // observation-commit.js under for samme fiks, og docs/CLAUDE.md.
-import { renderObservations } from './observations.js?v=v1.60.1';
+import { renderObservations } from './observations.js?v=v1.60.2';
 import { getVisitTimeSpan, isVisitLocked, visitExists } from './visits.js';
 
 // Nye moduler
@@ -42,14 +42,14 @@ import { updateSectionStates, pulseSearchFieldAndFocus } from './form-state.js';
 // gang har vært versjonert. Dette var den faktiske årsaken til at Kjetil
 // testet v1.53.25 og fortsatt bare så gammel oppførsel i vanlig søk -
 // nettleseren hans hadde en cachet species-search.js fra v1.53.24.
-import { fetchResults, renderResults, chooseItem, updateSubtaxaCheckboxState } from './species-search.js?v=v1.60.1';
-import { commitObservation, renderActivityPills } from './observation-commit.js?v=v1.60.1';
+import { fetchResults, renderResults, chooseItem, updateSubtaxaCheckboxState } from './species-search.js?v=v1.60.2';
+import { commitObservation, renderActivityPills } from './observation-commit.js?v=v1.60.2';
 import { handleExport, handleCopy, handleCopyAndOpen, handleClear, handleDirectSend, oppdaterAoKoHint }
-  from './export-operations.js?v=v1.60.1';
+  from './export-operations.js?v=v1.60.2';
 import { openShareDialog } from './share.js';
 import { initAutocomplete } from './autocomplete.js';
-import { initNewsSplash } from './news-splash.js?v=v1.60.1';
-import { initFirstRunHint, shouldShowHint } from './first-run-hint.js?v=v1.60.1';
+import { initNewsSplash } from './news-splash.js?v=v1.60.2';
+import { initFirstRunHint, shouldShowHint } from './first-run-hint.js?v=v1.60.2';
 import { hentAktivFellestur, forlatFellestur } from './fellestur-client.js';
 import { oppdaterSpeilFraServer, hentSpeilVersjon } from './fellestur-sync.js';
 import {
@@ -61,7 +61,7 @@ import {
   fetchLocationsWithNetworkMode,
   saveOpportunisticOfflineLocations,
   syncNetworkModeToServiceWorker,
-} from './offline-db.js?v=v1.60.1';
+} from './offline-db.js?v=v1.60.2';
 
 // ============================================================
 // Applikasjonstilstand

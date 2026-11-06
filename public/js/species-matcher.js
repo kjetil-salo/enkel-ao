@@ -570,45 +570,129 @@ export function sjeldenhetsgruppe(species) {
   return 2;
 }
 
-function compareScoredEntries(a, b, useNynorsk) {
-  // 1. Høgste Match Score vinn
-  if (b.score !== a.score) {
+/**
+ * Er dette et ferdigskrevet artsnavn, ikke bare begynnelsen på et?
+ *
+ * EXACT_ALT (900) teller med: skriver man artsnavnet ferdig på nynorsk eller
+ * med et alternativt navn, er det like mye et ferdig navn som bokmålsformen.
+ */
+function erEksaktTreff(score) {
+  return score >= MATCH_SCORES.EXACT_ALT;
+}
+
+/**
+ * Slutter et av navnene på søkeordet?
+ *
+ * Norske fuglenavn er sammensatte, og etterleddet er gruppa: kattugle,
+ * blåmeis, gråmåke, løvsanger. Skriver man «ugle», er det ugler man leter
+ * etter — ikke fuglekonge, selv om bokstavene står der (f-ugle-konge) og
+ * arten er vanligere. Poengmodellen kan ikke skille dem: begge får 400
+ * (WORD_BOUNDARY_PRIMARY).
+ */
+function sluttarPaSoket(species, q, useNynorsk) {
+  const term = (q || '').trim().toLowerCase();
+  if (!term) return false;
+  // Berre hovuddelen av namnet, ikkje underartstillegget etter komma: ein
+  // underart som heiter «rødvingetrost, nominat-rødvingetrost» sluttar
+  // teknisk på søket «rødvingetrost» utan at det seier noko om artsgruppe,
+  // og ville då klatra forbi sysken sine heilt vilkårleg.
+  const hovuddel = (navn) => (navn || '').toLowerCase().split(',')[0].trim();
+  const nno = hovuddel(getSpeciesNameNno(species));
+  const nob = hovuddel(getSpeciesNameNob(species));
+  const primary = useNynorsk ? nno : nob;
+  const alt = useNynorsk ? nob : nno;
+  return primary.endsWith(term) || alt.endsWith(term);
+}
+
+/**
+ * Rangering av søketreff.
+ *
+ * Prinsippet: har du skrevet artsnavnet ferdig, vinner det alltid. Har du
+ * ikke det, vil du ha den vanligste arten som matcher — uansett om en sjelden
+ * art tilfeldigvis begynner med de samme bokstavene.
+ *
+ * Før lå poengsummen (Match Score) øverst, og sjeldenhet var bare en
+ * tie-breaker ved helt lik score. I praksis slo den derfor nesten aldri inn:
+ * søk på «me» ga mestersanger (prefiks, 800 poeng, 2 funn i Norge) og
+ * mellomspett (600, 1 funn) over kjøttmeis (ordgrense, 400 poeng, 646 041
+ * funn). Poengsummen måler hvor godt bokstavene passer; den vet ingenting om
+ * hvilken fugl man faktisk kan få se.
+ *
+ * Eksakte treff holdes utenfor nettopp fordi de er et eksplisitt valg:
+ * skriver man «mestersanger», skal man få mestersanger selv om den har to
+ * funn totalt.
+ */
+function compareScoredEntries(a, b, useNynorsk, q) {
+  const aEksakt = erEksaktTreff(a.score);
+  const bEksakt = erEksaktTreff(b.score);
+
+  // 1. Et ferdigskrevet artsnavn slår alt annet.
+  if (aEksakt !== bEksakt) {
+    return aEksakt ? -1 : 1;
+  }
+
+  // 2. Mellom to eksakte treff avgjør poengsummen: primærnavnet før et
+  //    alternativt navn.
+  if (aEksakt && b.score !== a.score) {
     return b.score - a.score;
   }
 
-  // 2. Reine artar/underartar skal alltid liggje føre hybridar ("... x ...") ved lik poengsum
+  // 3. Reine artar/underartar skal alltid liggje føre hybridar ("... x ...").
   const aHybrid = isHybridItem(a.species);
   const bHybrid = isHybridItem(b.species);
   if (aHybrid !== bHybrid) {
     return aHybrid ? 1 : -1;
   }
 
-  // 3a. Sjeldenhetsgruppe: supersjeldne arter skal aldri ligge øverst, uansett
-  //     hvor mange funn de nest sjeldneste har. Se sjeldenhetsgruppe().
+  // 4. Treff i et norsk navn før treff som bare finnes i det latinske.
+  //    Uten dette klatrer en vanlig art opp på et latinsk delordstreff:
+  //    søk på «me» ga svarttrost på andreplass, fordi Turdus merula treffer
+  //    og arten er vanlig. Den som skriver norsk, leter etter et norsk navn.
+  const aNorsk = a.score >= MATCH_SCORES.WORD_BOUNDARY_ALT;
+  const bNorsk = b.score >= MATCH_SCORES.WORD_BOUNDARY_ALT;
+  if (aNorsk !== bNorsk) {
+    return aNorsk ? -1 : 1;
+  }
+
+  // 5. Navn som slutter på søkeordet først: etterleddet er artsgruppa, og det
+  //    er slik fuglefolk søker. «ugle» skal gi kattugle og jordugle før
+  //    fuglekonge, som bare har bokstavene liggende inne i seg.
+  const aSlutt = sluttarPaSoket(a.species, q, useNynorsk);
+  const bSlutt = sluttarPaSoket(b.species, q, useNynorsk);
+  if (aSlutt !== bSlutt) {
+    return aSlutt ? -1 : 1;
+  }
+
+  // 6. Sjeldenhetsgruppe: supersjeldne arter skal aldri ligge øverst på et
+  //    halvskrevet søk, uansett hvor godt bokstavene passer. Se sjeldenhetsgruppe().
   const aGruppe = sjeldenhetsgruppe(a.species);
   const bGruppe = sjeldenhetsgruppe(b.species);
   if (aGruppe !== bGruppe) {
     return aGruppe - bGruppe;
   }
 
-  // 3b. Innenfor samme gruppe: flest funn først, altså den arten brukeren
-  //     mest sannsynlig mener. Trygt her, fordi gruppa over allerede har
-  //     skilt ut streiffuglene - dette sammenligner bare arter som er
-  //     omtrent like plausible å få øye på.
+  // 7. Innenfor samme gruppe: flest funn først, altså den arten brukeren
+  //    mest sannsynlig mener.
   const aFunn = funntall(a.species) ?? 0;
   const bFunn = funntall(b.species) ?? 0;
   if (bFunn !== aFunn) {
     return bFunn - aFunn;
   }
 
-  // 4. Hvis begge er ikkje-hybrid, prioriter hovedart føre underart ved lik score
+  // 8. Først her teller hvor godt bokstavene passer. To arter som er like
+  //    vanlige og like sjeldne skilles av at den ene treffer bedre.
+  if (b.score !== a.score) {
+    return b.score - a.score;
+  }
+
+  // 9. Hovedart føre underart.
   const aSub = isSubspeciesItem(a.species);
   const bSub = isSubspeciesItem(b.species);
   if (aSub !== bSub) {
     return aSub ? 1 : -1;
   }
 
-  // 5. Fallback: Alfabetisk sortering på visningsnamn (norsk)
+  // 10. Fallback: Alfabetisk sortering på visningsnamn (norsk)
   const aNno = getSpeciesNameNno(a.species);
   const aNob = getSpeciesNameNob(a.species);
   const bNno = getSpeciesNameNno(b.species);
@@ -719,7 +803,7 @@ export function searchSpecies(query, speciesList, userLanguage = 'nn') {
   }
 
   // 3. Sorter toppnivå (hovudartar + frittståande underartar)
-  scoredTopLevel.sort((a, b) => compareScoredEntries(a, b, useNynorsk));
+  scoredTopLevel.sort((a, b) => compareScoredEntries(a, b, useNynorsk, q));
 
   // 4. Bygg resultatliste med tilhøyrande underartar grupperte direkte under kvar sin hovudart
   const result = [];
@@ -731,7 +815,7 @@ export function searchSpecies(query, speciesList, userLanguage = 'nn') {
       const parentKey = rawId !== undefined && rawId !== null && rawId !== '' ? String(rawId) : null;
       if (parentKey && linkedSubsByParentId.has(parentKey)) {
         const subs = linkedSubsByParentId.get(parentKey);
-        subs.sort((a, b) => compareScoredEntries(a, b, useNynorsk));
+        subs.sort((a, b) => compareScoredEntries(a, b, useNynorsk, q));
         for (const subEntry of subs) {
           result.push(subEntry.species);
         }

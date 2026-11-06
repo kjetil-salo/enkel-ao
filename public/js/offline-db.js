@@ -18,7 +18,7 @@ import {
   OFFLINE_ZOOM_LEVELS,
   MAX_TILE_BATCH_SIZE,
   KARTVERKET_TOPO_URL_TEMPLATE,
-} from './offline-area.js?v=v1.60.1';
+} from './offline-area.js?v=v1.60.2';
 import { haversine } from './utils.js';
 
 export const OFFLINE_DB_NAME = 'enkel_ao_offline_db';
@@ -34,7 +34,7 @@ export const DEFAULT_NETWORK_MODE = 'hybrid';
 // En avvikende URL får nettleseren til å bytte ut workeren ved sidebytte, og da mister
 // den modusen sin fra minnet. Versjonert URL omgår Cloudflares edge-cache av /sw.js,
 // og versjonen oppdateres sammen med de andre treffene ved release.
-export const SERVICE_WORKER_URL = '/sw.js?v=v1.60.1';
+export const SERVICE_WORKER_URL = '/sw.js?v=v1.60.2';
 export const NETWORK_MODE_CACHE_URL = 'https://enkel-ao.local/__network_mode__';
 export const MAP_TILE_CACHE_NAME = 'enkel-ao-kartverket-tiles-v1';
 export const OPPORTUNISTIC_AREA_ID = 'opportunistic';
