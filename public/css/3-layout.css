@@ -60,18 +60,178 @@ header {
   gap: var(--space-sm);
 }
 
-/* Moduspillen og navigasjonsikonene får ikke plass på samme linje på de
-   smaleste mobilene, særlig når teksten er «Etterregistrering». La
-   navigasjonen gå kontrollert til en ny, høyrejustert linje i stedet for å
-   gjøre siden bredere enn viewporten og skyve ikoner utenfor skjermen. */
-@media (max-width: 430px) {
+.header-menu,
+.mode-pill-short {
+  display: none;
+}
+
+/* Mobil: én rad, med de sjeldnere valgene samlet i en meny. */
+@media (max-width: 599px) {
   .app-header {
-    flex-wrap: wrap;
+    gap: var(--space-xs);
+  }
+
+  .app-header .title {
+    gap: var(--space-xs);
+    font-size: 0.95rem;
+    white-space: nowrap;
+    /* Uten dette krymper flex barna til de «passer», og overflyten
+       tilpassHeader() måler på ville aldri oppstått — raden ville i stedet
+       blitt stygg av seg selv. */
+    flex-shrink: 0;
+  }
+
+  .app-header .header-actions {
+    flex-shrink: 0;
+  }
+
+  .app-header .mode-pill {
+    margin-left: 0;
+    min-width: 44px;
+    min-height: 44px;
+    padding: 3px 6px;
+    justify-content: center;
+    font-size: 0.75rem !important;
+  }
+
+  .app-header .after-mode #mode-pill-text {
+    display: none;
+  }
+
+  .app-header .after-mode .mode-pill-short {
+    display: inline;
+  }
+
+  /* Nettverkspillen er en trykkflate på linje med de andre og skal være like
+     lett å treffe i felt — også i full form, der den ellers blir 30 px høy og
+     står midtstilt i en 44 px rad. */
+  .app-header #offline-mode-toggle {
+    min-height: 44px;
   }
 
   .header-actions {
     margin-left: auto;
     gap: var(--space-xs);
+  }
+
+  .header-actions > a:not(.ao-status-dot) {
+    display: none !important; /* De eksisterende ikonlenkene har inline display. */
+  }
+
+  /* Kontolenka er 20 px høy i uinnlogget tilstand («Logg inn») og blir da
+     stående midt i raden med en trykkflate godt under 44 px. Vi utvider bare
+     flaten — selve merket (den grønne initialsirkelen når man ER innlogget)
+     beholder utseendet sitt. */
+  .app-header #ao-status-dot {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  /* Toppraden trappes ned i trinn av tilpassHeader() i header-plass.js, som
+     måler faktisk overflyt. Et fast breakpoint måtte gjettet på en bredde, og
+     gjettet feil: på 430 px med god plass ble både appnavnet og nettverksordet
+     borte helt unødvendig. Rekkefølgen er en prioritering — nettverksmodusen
+     er driftsinfo man må kunne lese i felt, appnavnet er bare identitet, og
+     logoen bærer den alene. Derfor ofres appnavnet i to steg FØR ordet
+     Online/Hybrid/Offline røres. Logoen står i alle trinn. */
+
+  /* Trinn 1: kortformen. ::before, ikke textContent — teksten eies av
+     markupen, og en JS som skrev over den ville tapt mot neste oppdatering. */
+  .app-header[data-komprimering='1'] #app-title {
+    font-size: 0;
+  }
+
+  .app-header[data-komprimering='1'] #app-title::before {
+    content: 'EAO';
+    font-size: 0.95rem;
+  }
+
+  /* Trinn 2 og 3: appnavnet vekk. */
+  .app-header[data-komprimering='2'] #app-title,
+  .app-header[data-komprimering='3'] #app-title {
+    display: none;
+  }
+
+  /* Trinn 3, siste utvei: nettverksordet vekk, symbolet alene. Symbolet
+     finnes allerede i data-network-mode, så JS-en som skriver teksten
+     trenger ingen endring, og aria-label beholder ordene for skjermleser. */
+  .app-header[data-komprimering='3'] #offline-mode-toggle {
+    min-width: 44px;
+    padding: 0;
+    justify-content: center;
+    font-size: 0 !important;
+  }
+
+  .app-header[data-komprimering='3'] #offline-mode-toggle::before {
+    font-size: 1.15rem;
+    line-height: 1;
+  }
+
+  .app-header[data-komprimering='3'] #offline-mode-toggle[data-network-mode='online']::before {
+    content: '\1F310';
+  }
+
+  .app-header[data-komprimering='3'] #offline-mode-toggle[data-network-mode='hybrid']::before {
+    content: '\1F504';
+  }
+
+  .app-header[data-komprimering='3'] #offline-mode-toggle[data-network-mode='offline']::before {
+    content: '\1F4F4';
+  }
+
+  .header-menu {
+    display: block;
+    position: relative;
+    flex-shrink: 0;
+  }
+
+  .header-menu summary {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: var(--radius-sm);
+    color: var(--color-muted);
+    font-size: 1.5rem;
+    cursor: pointer;
+    list-style: none;
+  }
+
+  .header-menu summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .header-menu[open] summary,
+  .header-menu summary:hover,
+  .header-menu-links a:hover {
+    background: var(--color-accent-soft);
+    color: var(--color-accent);
+  }
+
+  .header-menu-links {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    z-index: var(--z-modal);
+    width: 200px;
+    padding: var(--space-xs);
+    border: 1px solid var(--border-color-medium);
+    border-radius: var(--radius-md);
+    background: var(--color-card-bg);
+    box-shadow: var(--shadow-md);
+  }
+
+  .header-menu-links a {
+    display: flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 0 var(--space-md);
+    border-radius: var(--radius-sm);
+    color: var(--color-text);
   }
 }
 

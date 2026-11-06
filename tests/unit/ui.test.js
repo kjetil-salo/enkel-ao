@@ -1,5 +1,13 @@
 import { describe, it, expect } from 'vitest';
-import { haversine, setLocationStatus } from '../../public/js/ui.js';
+import { haversine, setLocationStatus, DEFAULT_TOAST_DURATION_MS, MODE_SPLASH_DURATION_MS } from '../../public/js/ui.js';
+
+describe('splash / toast varighet ved modusendring', () => {
+  it('viser splash-vindu ved endring av modus dobbelt så lenge som standard toast', () => {
+    expect(DEFAULT_TOAST_DURATION_MS).toBe(1500);
+    expect(MODE_SPLASH_DURATION_MS).toBe(DEFAULT_TOAST_DURATION_MS * 2);
+    expect(MODE_SPLASH_DURATION_MS).toBe(3000);
+  });
+});
 
 describe('haversine', () => {
   it('should calculate distance between Oslo and Bergen correctly', () => {
@@ -84,3 +92,4 @@ describe('setLocationStatus', () => {
     expect(() => setLocationStatus(null, locText, 'pending', 'Henter …')).not.toThrow();
   });
 });
+

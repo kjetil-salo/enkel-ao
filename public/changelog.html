@@ -4,6 +4,8 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="icon" href="/favicon.png" type="image/png" />
+    <link rel="apple-touch-icon" href="/icon-192.png" />
+    <link rel="manifest" href="/manifest.json">
     <title>Endringslogg – Fugleobservasjoner</title>
     <style>
       :root {
@@ -172,12 +174,45 @@
 
         <div class="version">
           <div class="version-header">
-            <span class="version-number">v1.59.10</span>
-            <span class="version-date">3. november 2026</span>
+            <span class="version-number">v1.60.3</span>
+            <span class="version-date">6. november 2026</span>
           </div>
           <div class="section-title">Nytt</div>
           <ul class="changes">
             <li><strong>Kartknappen kan nå skjule alle lokalitetene, ikke bare navnene.</strong> På steder der lokalitetene ligger tett i tett var kartet helt dekket av markører, så det var umulig å zoome inn og finne stedet du skulle registrere på. Knappen oppe til høyre har fått tre trinn: første trykk skjuler navnene som før, andre trykk skjuler alle lokalitetene så du ser kartet under og får zoomet deg inn, tredje trykk henter dem tilbake. «Skjul alt» huskes ikke til neste gang, så kartet åpner aldri tomt. Takk til Ole Gunnar for forslaget.</li>
+          </ul>
+        </div>
+        <div class="version">
+          <div class="version-header">
+            <span class="version-number">v1.60.2</span>
+            <span class="version-date">6. november 2026</span>
+          </div>
+          <div class="section-title">Rettet</div>
+          <ul class="changes">
+            <li><strong>Artssøket gir deg den fuglen du faktisk kan se.</strong> Søkte du på noe som står inne i navnet, kunne en streiffugl legge seg øverst: «me» ga mestersanger (2 funn i Norge) og mellomspett (1 funn) før kjøttmeis (646 041). Nå teller det hvor vanlig arten er – har du skrevet artsnavnet ferdig, vinner det uansett. Samtidig gir «ugle» ugler i stedet for fuglekonge, og norske navn går foran treff som bare finnes i det latinske navnet.</li>
+          </ul>
+        </div>
+        <div class="version">
+          <div class="version-header">
+            <span class="version-number">v1.60.1</span>
+            <span class="version-date">5. november 2026</span>
+          </div>
+          <div class="section-title">Rettet</div>
+          <ul class="changes">
+            <li><strong>Toppraden får plass på én linje igjen, også på de smaleste telefonene.</strong> Med den nye nettverksknappen ble toppraden for bred, og knappene ble presset utenfor skjermen. Fellestur, Hjelp og Innstillinger er nå samlet i en meny bak ⋯, og alle knappene er store nok å treffe med fingeren. Raden måler nå selv hvor mye plass den har: er det trangt, kortes «Enkel-AO» ned til «EAO» og vike helt om nødvendig – mens Online/Hybrid/Offline blir stående, siden det er det du trenger å lese i felt. Logoen står alltid. På PC er toppraden uendret.</li>
+            <li><strong>Tomt kart sier nå hvorfor.</strong> Står appen i Offline-modus i et område du ikke har lastet ned, ble kartet helt blankt mens lokalitetene lå der – det så ut som en feil. Nå kommer det en forklaring, med ett trykk tilbake til Online. Mangler du bare dekning, sier meldingen det i stedet.</li>
+          </ul>
+        </div>
+        <div class="version">
+          <div class="version-header">
+            <span class="version-number">v1.60.0</span>
+            <span class="version-date">4. november 2026</span>
+          </div>
+          <div class="section-title">Nytt</div>
+          <ul class="changes">
+            <li><strong>Ta med kart og lokaliteter uten dekning.</strong> Velg et område i kartet og last det ned før turen. Du kan velge mellom online, hybrid og offline, og administrere nedlastede områder i appen.</li>
+            <li><strong>Smidigere kart og hurtigregistrering.</strong> Kartet åpnes uten å vente på GPS, har en knapp for å finne posisjonen igjen og samler tettliggende lokaliteter i klynger. Du kan velge og sortere opptil åtte aktivitetspiller.</li>
+            <li>Takk til <strong>Espen Hollund</strong> for bidraget med offline-støtte, kartforbedringer og bedre flyt i felt.</li>
           </ul>
         </div>
         <div class="version">

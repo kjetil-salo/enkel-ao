@@ -27,7 +27,7 @@ const localStorageMock = {
 vi.stubGlobal('localStorage', localStorageMock);
 
 const { createAoSite, ensureAoTokens, getCachedPrivateSites } = await import('../../public/js/api.js');
-const { isPrivateSite, getSiteLabel, setAoSiteSuggestions, mergeAoSitesWithPrivateCache, openMap, openMapPage, initCreateSite } = await import('../../public/js/location.js');
+const { isPrivateSite, getSiteLabel, setAoSiteSuggestions, mergeAoSitesWithPrivateCache, openMap, openMapPage, initCreateSite, initLocation } = await import('../../public/js/location.js');
 
 // ─── isPrivateSite ────────────────────────────────────────────
 
@@ -164,9 +164,30 @@ describe('openMapPage', () => {
     return JSON.parse(localStorageStore.mapData);
   }
 
-  it('should not store anything when userPosition is missing lat/lon', () => {
+  it('should fall back to Svortland, Bømlo (59.7928, 5.1723) and navigate when userPosition is missing', () => {
     openMapPage(null, [], 1500);
-    expect(localStorageStore.mapData).toBeUndefined();
+    const saved = readMapData();
+    expect(saved.userPosition.lat).toBe(59.7928);
+    expect(saved.userPosition.lon).toBe(5.1723);
+    expect(saved.userPosition.isFallback).toBe(true);
+    expect(saved.sizeMeters).toBe(1500);
+    expect(window.location.href).toBe('/map.html');
+  });
+
+  it('skal sentrere på siste kjente posisjon dersom lokasjon er ukjent og siste kjente eksisterer', () => {
+    localStorageStore.ao_last_known_position_v1 = JSON.stringify({
+      lat: 63.4305,
+      lon: 10.3951,
+      accuracy: 12,
+    });
+    openMapPage(null, [], 1500);
+    const saved = readMapData();
+    expect(saved.userPosition.lat).toBe(63.4305);
+    expect(saved.userPosition.lon).toBe(10.3951);
+    expect(saved.userPosition.isFallback).toBe(true);
+    expect(saved.userPosition.isLastKnown).toBe(true);
+    expect(saved.sizeMeters).toBe(1500);
+    expect(window.location.href).toBe('/map.html');
   });
 
   it('should store a valid positive sizeMeters unchanged', () => {
@@ -711,3 +732,90 @@ describe('initCreateSite — onSiteCreated callback', () => {
     expect(onSiteCreated).toHaveBeenCalledWith('Testvika', null);
   });
 });
+
+// ─── initLocation — fysisk GPS med enableHighAccuracy: true ─────────
+describe('initLocation — enableHighAccuracy: true', () => {
+  it('kaller getCurrentPosition og watchPosition med enableHighAccuracy: true for å vekke fysisk GPS', () => {
+    const getCurrentPosition = vi.fn((success) => {
+      success({
+        coords: { latitude: 59.7928, longitude: 5.1723, accuracy: 85 },
+      });
+    });
+    const watchPosition = vi.fn(() => 1);
+    const clearWatch = vi.fn();
+
+    vi.stubGlobal('navigator', {
+      geolocation: {
+        getCurrentPosition,
+        watchPosition,
+        clearWatch,
+      },
+    });
+
+    const locBtn = document.createElement('button');
+    const locDot = document.createElement('span');
+    const locText = document.createElement('span');
+    const locMapBtn = document.createElement('button');
+
+    initLocation({ locBtn, locDot, locText, locMapBtn }, vi.fn(), 1000);
+    locBtn.click();
+
+    expect(getCurrentPosition).toHaveBeenCalledTimes(1);
+    expect(getCurrentPosition.mock.calls[0][2]).toEqual(
+      expect.objectContaining({ enableHighAccuracy: true, maximumAge: 0 }),
+    );
+    expect(watchPosition).toHaveBeenCalledTimes(1);
+    expect(watchPosition.mock.calls[0][2]).toEqual(
+      expect.objectContaining({ enableHighAccuracy: true, maximumAge: 0 }),
+    );
+  });
+
+  it('stopper ikke på et grovt ±45m/±100m nettverks-fix, men venter på fysisk GPS (<= 15m)', async () => {
+    let watchCallback = null;
+    const getCurrentPosition = vi.fn((success) => {
+      // Simulerer grovt WiFi/mobilnett-fix (±45m eller ±100m)
+      success({
+        coords: { latitude: 59.7928, longitude: 5.1723, accuracy: 45 },
+      });
+    });
+    const watchPosition = vi.fn((success) => {
+      watchCallback = success;
+      return 42;
+    });
+    const clearWatch = vi.fn();
+
+    vi.stubGlobal('navigator', {
+      geolocation: {
+        getCurrentPosition,
+        watchPosition,
+        clearWatch,
+      },
+    });
+
+    const locBtn = document.createElement('button');
+    const locDot = document.createElement('span');
+    const locText = document.createElement('span');
+    const locMapBtn = document.createElement('button');
+    const onPositionUpdate = vi.fn();
+
+    initLocation({ locBtn, locDot, locText, locMapBtn }, onPositionUpdate, 1000);
+    locBtn.click();
+
+    // Ved ±45m skal watchPosition fortsatt kjøre (ikke kalt clearWatch ennå)
+    expect(clearWatch).not.toHaveBeenCalled();
+
+    // Når fysisk GPS-chip låser satellitter og leverer ±5m:
+    watchCallback({
+      coords: { latitude: 59.7929, longitude: 5.1724, accuracy: 5 },
+    });
+
+    await new Promise((r) => setTimeout(r, 20));
+    expect(clearWatch).toHaveBeenCalledWith(42);
+    expect(onPositionUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ accuracy: 5 }),
+      expect.any(Array),
+      1000,
+    );
+  });
+});
+

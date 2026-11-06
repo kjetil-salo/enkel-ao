@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>Tidligere sendt</title>
     <link rel="icon" href="/favicon.png" type="image/png" />
+    <link rel="apple-touch-icon" href="/icon-192.png" />
+    <link rel="manifest" href="/manifest.json">
     <link rel="stylesheet" href="/style.css" />
     <style>
       body { font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -465,9 +467,9 @@
       // (v1.59.7). En cachet gammel kopi ville gitt TypeError i det slideren eller
       // zoomen brukes — eller SyntaxError som stopper hele denne modulen. Se
       // «Versjonering» i CLAUDE.md (v1.53.15).
-      import { initPhotoPicker } from '/js/photo-picker.js?v=v1.59.9';
-      import { lagBildeEditor } from '/js/bilde-editor.js?v=v1.59.7';
-      import { loggInnMedLagretLegitimasjon } from '/js/api.js?v=v1.54.3';
+      import { initPhotoPicker } from '/js/photo-picker.js?v=v1.60.3';
+      import { lagBildeEditor } from '/js/bilde-editor.js?v=v1.60.3';
+      import { loggInnMedLagretLegitimasjon } from '/js/api.js?v=v1.60.3';
 
       const MND = ['januar', 'februar', 'mars', 'april', 'mai', 'juni',
         'juli', 'august', 'september', 'oktober', 'november', 'desember'];

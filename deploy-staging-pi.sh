@@ -2,12 +2,14 @@
 # Deploy enkel-ao STAGING til Raspberry Pi (aos.efugl.no)
 #
 # Egen mappe (~/enkel-ao-staging) og egen database, atskilt fra produksjon —
-# samme mønster som dagens-funn-staging på Pi-en. Deler kun den skrivebeskyttede
-# lokasjonsdatabasen (shared-locations) med produksjon, slik at stedssøk uten
-# AO-innlogging faktisk fungerer i staging (i motsetning til Fly-staging, som
-# mangler LOCATION_DB_PATH).
+# samme mønster som dagens-funn-staging på Pi-en. Stedssøk bruker en egen
+# SQLite-kopi i data/staging-locations.db, slik at staging ikke skriver til
+# produksjonens shared-locations. Kopien klargjøres før første utrulling.
 
 set -e
+
+SOURCE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SOURCE_DIR"
 
 PI_HOST="kjetil@100.76.35.106"
 PI_DIR="~/enkel-ao-staging"
@@ -24,6 +26,13 @@ rsync -av --delete \
   --exclude '*.pyc' \
   --exclude '.env' \
   --exclude '.codex-tmp' \
+  --exclude '.codex' \
+  --exclude '.claude' \
+  --exclude '.pytest_cache' \
+  --exclude '.coverage' \
+  --exclude '.DS_Store' \
+  --exclude '*.log' \
+  --exclude '/test-results' \
   --exclude 'node_modules' \
   --exclude 'tests' \
   --exclude 'tools' \
@@ -33,7 +42,7 @@ rsync -av --delete \
   --exclude 'mock' \
   --exclude 'docker-compose.pi.yml' \
   --exclude '/data' \
-  /Users/kjetil/git/enkel-ao/ \
+  "$SOURCE_DIR/" \
   "$PI_HOST:$PI_DIR/"
 
 echo "🏗️  Bygger og starter staging-container på Pi..."

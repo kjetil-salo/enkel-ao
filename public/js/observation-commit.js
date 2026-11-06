@@ -2,7 +2,7 @@
  * Observasjons-modul for validering, lagring og aktivitets-pills
  */
 
-import { defaultCoObservers, loadActivityPills, speciesDisplayName } from './storage.js?v=v1.59.9';
+import { defaultCoObservers, loadActivityPills, speciesDisplayName } from './storage.js?v=v1.60.3';
 import { showToast } from './ui.js';
 import { toLocalISOString } from './utils.js';
 import { resolveVisitIdForNewObservation, getVisitTimeSpan, isVisitLocked, visitExists } from './visits.js';
@@ -288,8 +288,63 @@ export function commitObservation(state, dom, callbacks) {
   callbacks.updateSectionStates();
 }
 
+/**
+ * Gjør aktivitetslinja scrollbar med mus og touchpad (både klikk-og-dra og rullehjul/tofinger-swipe).
+ */
+export function setupPillsDragToScroll(el) {
+  if (!el || el.dataset.dragScrollInit === 'true') return;
+  el.dataset.dragScrollInit = 'true';
+
+  let isDown = false;
+  let startX = 0;
+  let scrollLeft = 0;
+  let hasDragged = false;
+
+  // Klikk og dra med musa (drag-to-scroll)
+  el.addEventListener('mousedown', (e) => {
+    if (e.button !== 0) return;
+    isDown = true;
+    hasDragged = false;
+    el.dataset.isDragging = 'false';
+    startX = e.pageX - el.offsetLeft;
+    scrollLeft = el.scrollLeft;
+    el.classList.add('is-dragging-scroll');
+  });
+
+  window.addEventListener('mousemove', (e) => {
+    if (!isDown) return;
+    const x = e.pageX - el.offsetLeft;
+    const walk = x - startX;
+    if (Math.abs(walk) > 5) {
+      hasDragged = true;
+      el.dataset.isDragging = 'true';
+    }
+    el.scrollLeft = scrollLeft - walk;
+  });
+
+  const stopDrag = () => {
+    if (isDown) {
+      isDown = false;
+      el.classList.remove('is-dragging-scroll');
+      if (hasDragged) {
+        setTimeout(() => {
+          el.dataset.isDragging = 'false';
+        }, 60);
+      } else {
+        el.dataset.isDragging = 'false';
+      }
+    }
+  };
+
+  window.addEventListener('mouseup', stopDrag);
+
+  // Feltet tar kun imot sidescrolling (via native overflow-x scroll) og draing med mus.
+  // Nedoverscrolling/vertikal scrolling skal ikke fanges opp av feltet, men passere uhindret til siden.
+}
+
 export function renderActivityPills(dom, commitFn) {
   if (!dom.activityPillsEl) return;
+  setupPillsDragToScroll(dom.activityPillsEl);
   dom.activityPillsEl.innerHTML = '';
 
   getActivePills().forEach(p => {
@@ -303,6 +358,10 @@ export function renderActivityPills(dom, commitFn) {
     if (display !== label) pill.title = label; // fullt navn ved forkortelse
     pill.role = 'button';
     pill.addEventListener('click', () => {
+      // Ignorer klikk dersom brukeren dro linjen for å scrolle
+      if (dom.activityPillsEl.dataset.isDragging === 'true') {
+        return;
+      }
       if (dom.activitySelect) {
         // Match på fullt navn – kortnavnet er kun visning
         for (let i = 0; i < dom.activitySelect.options.length; i++) {

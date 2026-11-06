@@ -44,6 +44,8 @@ export default defineConfig({
     },
   ],
   use: {
+    // Side-mocker skal se API-kallene. Offline-testene slår workeren eksplisitt på.
+    serviceWorkers: 'block',
     baseURL: process.env.BASE_URL || 'http://localhost:3000',
     headless: true,
     viewport: { width: 480, height: 800 },

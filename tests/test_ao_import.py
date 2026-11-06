@@ -653,8 +653,8 @@ def test_post_with_curl_scoped_publish_when_queue_not_empty(monkeypatch):
     monkeypatch.setattr('src.ao_import_httpx.number_of_sightings_submitted', fake_submitted)
 
     observations = [
-        {'species': {'taxonName': 'Gråspurv'}, 'count': '1', 'timestamp': '2024-01-15T14:00:00Z', 'placeName': 'Oslo'},
-        {'species': {'taxonName': 'Skjære'}, 'count': '1', 'timestamp': '2024-01-15T14:00:00Z', 'placeName': 'Oslo'},
+        {'species': {'taxonName': 'Gråspurv'}, 'count': '1', 'timestamp': '2024-01-15T14:00:00Z', 'placeName': 'Oslo', 'photo': 'data:image/jpeg;base64,QUJD'},
+        {'species': {'taxonName': 'Skjære'}, 'count': '1', 'timestamp': '2024-01-15T14:00:00Z', 'placeName': 'Oslo', 'photo': 'data:image/jpeg;base64,QUJD'},
     ]
 
     # Tilstandsbasert (ikke kall-telling): køen inneholder våre rader helt til
@@ -690,6 +690,72 @@ def test_post_with_curl_scoped_publish_when_queue_not_empty(monkeypatch):
     assert result['count'] == 2
     assert 'notPublished' not in result
     assert 'heldBack' not in result
+    assert sorted(published_with['ids']) == ['111', '222']
+
+
+def test_post_with_curl_scoped_publish_without_photos(monkeypatch):
+    """
+    Når observasjonene IKKE har bilder, men det ligger funn til gjennomgang fra før,
+    skal ALLE observasjonene likevel få markør og publiseres selektivt med
+    TemporarySightingId — aldri falle tilbake til PublishAll.
+    """
+    monkeypatch.setattr('src.ao_import_httpx.fetch_csrf_tokens',
+                        lambda lt, ac: ('FORM123', 'COOKIE456', None))
+
+    mock_response = Mock()
+    mock_response.text = '<html>OK</html>'
+    mock_response.status_code = 200
+    mock_client = Mock()
+    mock_client.__enter__ = Mock(return_value=mock_client)
+    mock_client.__exit__ = Mock(return_value=None)
+    mock_client.post = Mock(return_value=mock_response)
+    monkeypatch.setattr('httpx.Client', lambda: mock_client)
+    monkeypatch.setattr('time.sleep', lambda x: None)
+
+    # 1 pre-eksisterende funn til gjennomgang hos AO
+    submitted_calls = {'n': 0}
+    def fake_submitted(lt, ac):
+        submitted_calls['n'] += 1
+        return 1 if submitted_calls['n'] == 1 else 3
+
+    monkeypatch.setattr('src.ao_import_httpx.number_of_sightings_submitted', fake_submitted)
+
+    # Observasjoner UTEN bilder
+    observations = [
+        {'species': {'taxonName': 'Gråtrost'}, 'count': '1', 'timestamp': '2024-01-15T14:00:00Z', 'placeName': 'Oslo'},
+        {'species': {'taxonName': 'Kjøttmeis'}, 'count': '2', 'timestamp': '2024-01-15T14:00:00Z', 'placeName': 'Oslo'},
+    ]
+
+    _FREMMED = {'TemporarySightingId': 999, 'PrivateCommentLong': 'ligger til gjennomgang fra før'}
+    state = {'published': False}
+
+    def fake_review_rows(lt, ac, size=200):
+        if state['published']:
+            return [_FREMMED]
+        return [
+            _FREMMED,
+            {'TemporarySightingId': 111, 'PrivateCommentLong': observations[0].get('_importMarker', '')},
+            {'TemporarySightingId': 222, 'PrivateCommentLong': observations[1].get('_importMarker', '')},
+        ]
+
+    monkeypatch.setattr('src.ao_import_httpx.review_queue_rows', fake_review_rows)
+
+    published_with = {}
+    def fake_publish_all(lt, ac, temp_sighting_ids=None):
+        published_with['ids'] = temp_sighting_ids
+        state['published'] = True
+        return {'status': 200}
+
+    monkeypatch.setattr('src.ao_import_httpx.publish_all', fake_publish_all)
+
+    result = post_with_curl(observations, 'LOGIN123', 'AUTH456')
+
+    assert result['success'] is True
+    assert result['count'] == 2
+    # Begge observasjonene skal ha fått _importMarker selv om de ikke har foto
+    assert observations[0].get('_importMarker', '').startswith('#imp-')
+    assert observations[1].get('_importMarker', '').startswith('#imp-')
+    # Kun våre to temp-ID-er ble publisert — fremmed funn ble aldri publisert
     assert sorted(published_with['ids']) == ['111', '222']
 
 
@@ -736,7 +802,7 @@ def test_post_with_curl_scoped_publish_aborts_when_nothing_matches(monkeypatch):
     monkeypatch.setattr('src.ao_import_httpx.publish_all', fake_publish_all)
 
     observations = [
-        {'species': {'taxonName': 'Gråspurv'}, 'count': '1', 'timestamp': '2024-01-15T14:00:00Z', 'placeName': 'Oslo'}
+        {'species': {'taxonName': 'Gråspurv'}, 'count': '1', 'timestamp': '2024-01-15T14:00:00Z', 'placeName': 'Oslo', 'photo': 'data:image/jpeg;base64,QUJD'}
     ]
     result = post_with_curl(observations, 'LOGIN123', 'AUTH456')
 
@@ -771,7 +837,7 @@ def test_post_with_curl_retry_treats_vanished_rows_as_published(monkeypatch):
     monkeypatch.setattr('src.ao_import_httpx.number_of_sightings_submitted', lambda lt, ac: 2)
 
     observations = [
-        {'species': {'taxonName': 'Gråspurv'}, 'count': '1', 'timestamp': '2024-01-15T14:00:00Z', 'placeName': 'Oslo'}
+        {'species': {'taxonName': 'Gråspurv'}, 'count': '1', 'timestamp': '2024-01-15T14:00:00Z', 'placeName': 'Oslo', 'photo': 'data:image/jpeg;base64,QUJD'}
     ]
 
     _FREMMED = {'TemporarySightingId': 900, 'PrivateCommentLong': 'fremmed funn'}
@@ -832,7 +898,7 @@ def test_post_with_curl_unknown_queue_count_waits_for_markers(monkeypatch):
     monkeypatch.setattr('src.ao_import_httpx.number_of_sightings_importing', lambda lt, ac: 0)
 
     observations = [
-        {'species': {'taxonName': 'Gråspurv'}, 'count': '1', 'timestamp': '2024-01-15T14:00:00Z', 'placeName': 'Oslo'}
+        {'species': {'taxonName': 'Gråspurv'}, 'count': '1', 'timestamp': '2024-01-15T14:00:00Z', 'placeName': 'Oslo', 'photo': 'data:image/jpeg;base64,QUJD'}
     ]
 
     fremmede = [{'TemporarySightingId': 900 + i, 'PrivateCommentLong': f'fremmed {i}'} for i in range(5)]
@@ -985,6 +1051,115 @@ def test_post_with_curl_uploads_photo_when_marker_shares_column_with_private_com
     assert 'imagesFailed' not in result
     assert len(upload_calls) == 1
     assert upload_calls[0][0] == 999888
+
+
+def test_post_with_curl_no_photo_never_gets_import_marker_or_private_comment(monkeypatch):
+    """Observasjoner uten foto skal aldri få importMarker eller privat kommentar i CSV-payload."""
+    monkeypatch.setattr('src.ao_import_httpx.fetch_csrf_tokens',
+                        lambda lt, ac: ('FORM123', 'COOKIE456', None))
+
+    posted_csv = []
+    mock_response = Mock()
+    mock_response.text = '<html>OK</html>'
+    mock_response.status_code = 200
+    mock_client = Mock()
+    mock_client.__enter__ = Mock(return_value=mock_client)
+    mock_client.__exit__ = Mock(return_value=None)
+
+    def fake_post(url, **kwargs):
+        content = kwargs.get('content', '')
+        import urllib.parse
+        parsed = urllib.parse.parse_qs(content)
+        obs_csv = parsed.get('ImportSightingViewModel.Observations', [''])[0]
+        posted_csv.append(obs_csv)
+        return mock_response
+
+    mock_client.post = fake_post
+    monkeypatch.setattr('httpx.Client', lambda: mock_client)
+    monkeypatch.setattr('time.sleep', lambda x: None)
+    monkeypatch.setattr('src.ao_import_httpx._poll_importing_done', lambda *a, **kw: None)
+    monkeypatch.setattr('src.ao_import_httpx.publish_all', lambda lt, ac, temp_sighting_ids=None: {'status': 200})
+    monkeypatch.setattr('src.ao_import_httpx.number_of_sightings_submitted', lambda lt, ac: 0)
+
+    observations = [
+        {'species': {'taxonName': 'Gråspurv'}, 'count': '1', 'timestamp': '2024-01-15T14:00:00Z', 'placeName': 'Oslo'},
+        {'species': {'taxonName': 'Kjøttmeis'}, 'count': '2', 'timestamp': '2024-01-15T14:00:00Z', 'placeName': 'Oslo'}
+    ]
+
+    result = post_with_curl(observations, 'LOGIN123', 'AUTH456')
+
+    assert result['success'] is True
+    # Ingen av observasjonene skal ha fått _importMarker
+    assert '_importMarker' not in observations[0]
+    assert '_importMarker' not in observations[1]
+
+    # I CSV-dataene skal privat kommentar (kolonne 15) være helt tom
+    assert len(posted_csv) == 1
+    rows = posted_csv[0].split('\r\n')
+    assert len(rows) >= 3
+    col_gråspurv = rows[1].split('\t')[15]
+    col_kjøttmeis = rows[2].split('\t')[15]
+    assert col_gråspurv == ''
+    assert col_kjøttmeis == ''
+
+
+def test_post_with_curl_only_photo_observation_gets_import_marker_and_private_comment(monkeypatch):
+    """Kun observasjon med bilde skal få markør/privat kommentar i CSV-payload."""
+    monkeypatch.setattr('src.ao_import_httpx.fetch_csrf_tokens',
+                        lambda lt, ac: ('FORM123', 'COOKIE456', None))
+
+    posted_csv = []
+    mock_response = Mock()
+    mock_response.text = '<html>OK</html>'
+    mock_response.status_code = 200
+    mock_client = Mock()
+    mock_client.__enter__ = Mock(return_value=mock_client)
+    mock_client.__exit__ = Mock(return_value=None)
+
+    def fake_post(url, **kwargs):
+        content = kwargs.get('content', '')
+        import urllib.parse
+        parsed = urllib.parse.parse_qs(content)
+        obs_csv = parsed.get('ImportSightingViewModel.Observations', [''])[0]
+        posted_csv.append(obs_csv)
+        return mock_response
+
+    mock_client.post = fake_post
+    monkeypatch.setattr('httpx.Client', lambda: mock_client)
+    monkeypatch.setattr('time.sleep', lambda x: None)
+    monkeypatch.setattr('src.ao_import_httpx._poll_importing_done', lambda *a, **kw: None)
+    monkeypatch.setattr('src.ao_import_httpx.publish_all', lambda lt, ac, temp_sighting_ids=None: {'status': 200})
+    monkeypatch.setattr('src.ao_import_httpx.number_of_sightings_submitted', lambda lt, ac: 0)
+
+    observations = [
+        {'species': {'taxonName': 'Gråspurv'}, 'count': '1', 'timestamp': '2024-01-15T14:00:00Z', 'placeName': 'Oslo'},
+        {'species': {'taxonName': 'Kjøttmeis'}, 'count': '2', 'timestamp': '2024-01-15T14:00:00Z', 'placeName': 'Oslo', 'photo': 'data:image/jpeg;base64,QUJD'}
+    ]
+
+    def fake_review_rows(lt, ac, size=200):
+        # Svar med en rad som matcher kjøttmeis-markøren
+        marker = observations[1].get('_importMarker', '')
+        return [{'SightingId': 777, 'TemporarySightingId': 888, 'PrivateCommentLong': marker}]
+
+    monkeypatch.setattr('src.ao_import_httpx.review_queue_rows', fake_review_rows)
+    monkeypatch.setattr('src.ao_import_httpx.upload_image', lambda *a, **kw: {'id': 1})
+
+    result = post_with_curl(observations, 'LOGIN123', 'AUTH456')
+
+    assert result['success'] is True
+    # Gråspurv (uten foto) skal IKKE ha _importMarker
+    assert '_importMarker' not in observations[0]
+    # Kjøttmeis (med foto) SKAL ha _importMarker
+    assert '_importMarker' in observations[1]
+    assert observations[1]['_importMarker'].startswith('#imp-')
+
+    # Sjekk CSV-innhold
+    assert len(posted_csv) == 1
+    rows = posted_csv[0].split('\r\n')
+    col_gråspurv = rows[1].split('\t')[15]
+    col_kjøttmeis = rows[2].split('\t')[15]
+    assert col_gråspurv == ''
+    assert col_kjøttmeis == observations[1]['_importMarker']
 
 
 def test_post_with_curl_reports_failed_image_without_blocking_publish(monkeypatch):

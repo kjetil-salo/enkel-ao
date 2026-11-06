@@ -42,6 +42,12 @@ test.describe('Kart: bbox-cache og tomt-svar-håndtering ved panorering', () => 
     await page.goto(`${BASE}/map.html`);
     await expect(page.locator('.leaflet-container')).toBeVisible();
     await page.locator('#map').click({ position: { x: 100, y: 400 } });
+    // GPS åpner nå på nivå 15. Bruk samme skala (13) som geometriprøvene opprinnelig hadde.
+    await page.waitForTimeout(350);
+    for (let i = 0; i < 2; i++) {
+      await page.keyboard.press('-');
+      await page.waitForTimeout(350);
+    }
 
     // Panorer til P1 — første kall, skal treffe nettverket og bli cachet.
     for (let i = 0; i < 4; i++) {
@@ -108,6 +114,12 @@ test.describe('Kart: bbox-cache og tomt-svar-håndtering ved panorering', () => 
     await page.goto(`${BASE}/map.html`);
     await expect(page.locator('.leaflet-container')).toBeVisible();
     await page.locator('#map').click({ position: { x: 100, y: 400 } });
+    // GPS åpner nå på nivå 15. Bruk samme skala (13) som geometriprøvene opprinnelig hadde.
+    await page.waitForTimeout(350);
+    for (let i = 0; i < 2; i++) {
+      await page.keyboard.press('-');
+      await page.waitForTimeout(350);
+    }
 
     // Panorer til stedet med det ekte treffet.
     for (let i = 0; i < 4; i++) {

@@ -3,7 +3,7 @@
  */
 import { hentAktivFellestur } from './fellestur-client.js';
 import { lastSpeil, lagreSpeilOgSynk, hentTurMedobservatorer } from './fellestur-sync.js';
-import { translateDedicatedSubspeciesToNynorsk } from './species-matcher.js?v=v1.59.9';
+import { translateDedicatedSubspeciesToNynorsk } from './species-matcher.js?v=v1.60.3';
 
 const STORAGE_KEY = 'fugleobservasjoner_v1';
 const MEDOBS_KEY = 'medobs_list_v1';
@@ -13,6 +13,7 @@ const SENT_KEY = 'sent_observations_v1';
 const LOCATION_SORT_KEY = 'location_sort_mode_v1';
 const AO_DIRECT_AUTO_CLEAR_KEY = 'ao_direct_auto_clear_v1';
 const NYNORSK_ARTSNAVN_KEY = 'nynorsk_artsnavn_v1';
+export const LAST_KNOWN_POSITION_KEY = 'ao_last_known_position_v1';
 
 /**
  * Teknisk beskrivelse av siste feilede saveObservations()-kall (f.eks.
@@ -419,7 +420,7 @@ export function saveActivityPills(pills) {
   try {
     const config = {
       version: 1,
-      pills: pills.slice(0, 6).map(p => {
+      pills: pills.slice(0, 8).map(p => {
         const pill = { label: p.label, value: p.value };
         const short = (p.short || '').trim().slice(0, 5);
         if (short) pill.short = short; // tomt kortnavn utelates → vis fullt navn
@@ -442,7 +443,7 @@ export function loadActivityPills() {
     if (raw) {
       const config = JSON.parse(raw);
       if (config.version === 1 && Array.isArray(config.pills)) {
-        return config.pills;
+        return config.pills.slice(0, 8);
       }
     }
   } catch (e) {
@@ -480,3 +481,84 @@ function migrateFromOldPillCount() {
   // Default for helt nye brukere: 4 første
   return defaultPills.slice(0, 4);
 }
+
+/**
+ * Lagre siste kjente brukerposisjon til localStorage.
+ * Lagrer kun gyldige posisjoner som ikke er merket som fallback.
+ * @param {Object} pos - { lat, lon, accuracy }
+ * @returns {boolean}
+ */
+export function saveLastKnownPosition(pos) {
+  if (!pos || typeof pos !== 'object') return false;
+  if (pos.isFallback) return false;
+  const lat = Number(pos.lat);
+  const lon = Number(pos.lon);
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) return false;
+
+  try {
+    const payload = {
+      lat,
+      lon,
+      accuracy: typeof pos.accuracy === 'number' && Number.isFinite(pos.accuracy) ? pos.accuracy : null,
+      timestamp: Date.now(),
+    };
+    window.localStorage.setItem(LAST_KNOWN_POSITION_KEY, JSON.stringify(payload));
+    return true;
+  } catch (e) {
+    console.warn('Kunne ikke lagre siste kjente posisjon til localStorage', e);
+    return false;
+  }
+}
+
+/**
+ * Hent siste kjente brukerposisjon fra localStorage.
+ * Returnerer null dersom ingen gyldig posisjon er lagret.
+ * @returns {{lat: number, lon: number, accuracy: number|null, timestamp: number|null}|null}
+ */
+export function loadLastKnownPosition() {
+  if (typeof window === 'undefined' || !window.localStorage) return null;
+
+  try {
+    const raw = window.localStorage.getItem(LAST_KNOWN_POSITION_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === 'object') {
+        const lat = Number(parsed.lat);
+        const lon = Number(parsed.lon);
+        if (Number.isFinite(lat) && Number.isFinite(lon)) {
+          return {
+            lat,
+            lon,
+            accuracy: typeof parsed.accuracy === 'number' && Number.isFinite(parsed.accuracy) ? parsed.accuracy : null,
+            timestamp: parsed.timestamp || null,
+          };
+        }
+      }
+    }
+  } catch (e) {
+    console.warn('Kunne ikke lese siste kjente posisjon fra localStorage', e);
+  }
+
+  // Backup-sjekk fra mapData dersom nøkkelen ikke finnes ennå
+  try {
+    const rawMapData = window.localStorage.getItem('mapData');
+    if (rawMapData) {
+      const md = JSON.parse(rawMapData);
+      if (md && md.userPosition && !md.userPosition.isFallback) {
+        const lat = Number(md.userPosition.lat);
+        const lon = Number(md.userPosition.lon);
+        if (Number.isFinite(lat) && Number.isFinite(lon)) {
+          return {
+            lat,
+            lon,
+            accuracy: typeof md.userPosition.accuracy === 'number' ? md.userPosition.accuracy : null,
+            timestamp: null,
+          };
+        }
+      }
+    }
+  } catch (_) {}
+
+  return null;
+}
+

@@ -13,7 +13,7 @@ import type { Page, Route } from '@playwright/test';
 const BASE = process.env.BASE_URL || 'http://localhost:3000';
 
 const GRASPURV = {
-  taxonId: 4126,
+  taxonId: 4397, // Samme taxonId som gråspurv i appens lokale artsliste.
   taxonName: 'Gråspurv',
   scientificNameHtml: '<em>Passer domesticus</em>',
   speciesGroupId: 8,
@@ -129,7 +129,7 @@ test.describe('Sjeldenhetsvarsel', () => {
     await expect(page.locator('#rarity-warning-header')).toHaveText('Sjelden art!');
     await expect(page.locator('#rarity-warning-body')).toHaveText('Denne arten er sjelden sett her.');
 
-    expect(capturedUrl).toContain('taxonId=4126');
+    expect(capturedUrl).toContain(`taxonId=${GRASPURV.taxonId}`);
     expect(capturedUrl).toContain('siteId=9001');
     expect(capturedHeaders['x-ao-login-token']).toBe('tok-123');
   });

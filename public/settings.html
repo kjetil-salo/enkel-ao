@@ -4,7 +4,10 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Innstillinger – Fugleobservasjoner</title>
-    <link rel="stylesheet" href="style.css" />
+    <link rel="icon" href="/favicon.png" type="image/png" />
+    <link rel="apple-touch-icon" href="/icon-192.png" />
+    <link rel="manifest" href="/manifest.json">
+    <link rel="stylesheet" href="style.css?v=v1.60.3" />
       <style>
         .settings-card {
           background: var(--card-bg, #111827);
@@ -109,6 +112,61 @@
         .theme-seg-btn:not([aria-checked="true"]):hover {
           background: var(--color-accent-soft, rgba(59,130,246,0.15));
         }
+
+        /* Dra-og-slepp for aktivitetsknapper */
+        .pill-config-row {
+          display: flex;
+          gap: 8px;
+          align-items: center;
+          width: 100%;
+          padding: 4px;
+          border-radius: 8px;
+          background: rgba(255, 255, 255, 0.02);
+          border: 1px solid transparent;
+          transition: background 0.15s, border-color 0.15s, transform 0.15s, box-shadow 0.15s;
+        }
+        .pill-config-row.is-dragging {
+          opacity: 0.45;
+          background: rgba(59, 130, 246, 0.15);
+          border: 1px dashed #3b82f6;
+        }
+        .pill-config-row.is-touch-dragging {
+          opacity: 0.96;
+          background: #1e293b;
+          border: 1px solid #3b82f6;
+          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+          transform: scale(1.02);
+          z-index: 100;
+        }
+        body.theme-light .pill-config-row.is-touch-dragging {
+          background: #ffffff;
+          border-color: #3b82f6;
+          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+        }
+        .pill-drag-handle {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 32px;
+          height: 38px;
+          font-size: 1.35em;
+          color: var(--muted, #94a3b8);
+          cursor: grab;
+          user-select: none;
+          -webkit-user-select: none;
+          touch-action: none;
+          border-radius: 6px;
+          flex-shrink: 0;
+          transition: color 0.15s, background 0.15s;
+        }
+        .pill-drag-handle:hover,
+        .pill-drag-handle:active {
+          color: #3b82f6;
+          background: rgba(59, 130, 246, 0.12);
+        }
+        .pill-drag-handle:active {
+          cursor: grabbing;
+        }
       </style>
   </head>
   <body style="margin:0;min-height:100vh;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:radial-gradient(circle at top,#1f2937 0,#020617 55%);color:var(--text,#e5e7eb);padding:6px 0 0 0;">
@@ -142,10 +200,36 @@
         Viser andres private lokasjoner på kartet og i lokasjonsforslaget. Av som standard – i tettbygde strøk blir det ellers uoversiktlig. Dine egne lokaliteter vises alltid.
       </div>
 
+      <div id="storage-management-section" style="margin-top:8px;margin-bottom:22px;padding:16px 0;border-top:1px solid rgba(148,163,184,0.12);border-bottom:1px solid rgba(148,163,184,0.12);">
+        <h3 style="margin:0 0 4px 0;font-size:1em;color:var(--text,#e5e7eb);">Lagring / Offline-data</h3>
+        <p style="font-size:0.82em;color:var(--muted,#aaa);margin:0 0 10px 0;">
+          Oversikt over lagrede lokaliteter og kartfliser på denne enheten. Du kan oppdatere dine lagrede
+          offline-områder med ferske lokaliteter og manglende kartfliser, eller tømme alt offline-innhold.
+        </p>
+        <div id="offline-storage-stats"
+          style="margin-bottom:12px;padding:10px 12px;border-radius:8px;background:rgba(148,163,184,0.1);border:1px solid rgba(148,163,184,0.22);font-size:0.88em;color:var(--text,#e5e7eb);">
+          Laster lagringsoversikt …
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button type="button" id="sync-offline-areas-btn"
+            style="padding:10px 16px;border-radius:8px;border:none;background:#3b82f6;color:white;font-size:0.95em;cursor:pointer;">
+            🔄 Synkroniser offline-områder
+          </button>
+          <button type="button" id="clear-offline-data-btn"
+            style="padding:10px 16px;border-radius:8px;border:1px solid rgba(239,68,68,0.45);background:transparent;color:#ef4444;font-size:0.95em;cursor:pointer;">
+            🗑️ Slett offline-data
+          </button>
+        </div>
+        <div id="offline-sync-progress" role="status" aria-live="polite"
+          style="display:none;margin-top:10px;padding:10px 12px;border-radius:8px;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.3);font-size:0.85em;color:var(--text,#e5e7eb);">
+        </div>
+        <div id="offline-storage-status" style="display:none;margin-top:8px;padding:10px;border-radius:8px;font-size:0.85em;"></div>
+      </div>
+
       <div class="settings-row" style="flex-direction: column; align-items: flex-start; gap: 12px;">
-        <span class="settings-label">Aktivitets-hurtigknapper (0-6)</span>
+        <span class="settings-label">Aktivitets-hurtigknapper (0-8)</span>
         <div style="font-size:0.92em;color:var(--muted,#aaa);margin-bottom:8px;">
-          Velg hvilke aktiviteter som vises som hurtigknapper. Maks 6. Rekkefølgen i lista bestemmer rekkefølgen på skjermen.
+          Velg hvilke aktiviteter som vises som hurtigknapper. Maks 8. Dra i symbolet ⠿ for å endre rekkefølgen.
           Skriv eventuelt et kort navn (maks 5 tegn) i «Kort»-feltet for mer kompakte knapper – tomt felt viser fullt navn.
         </div>
 
@@ -241,12 +325,29 @@
         <p style="font-size:0.82em;color:var(--muted,#aaa);margin:0 0 14px 0;">
           Appen sjekker selv etter ny versjon, men det kan ta litt tid før den slår gjennom –
           spesielt hvis appen har stått åpen lenge. Trykk her for å tvinge fram nyeste versjon
-          med en gang, i stedet for å lukke og åpne appen på nytt.
+          med en gang, i stedet for å lukke og åpne appen på nytt. Nedlastede offline-kartfliser bevares.
         </p>
         <button type="button" id="force-update-btn"
           style="padding:10px 16px;border-radius:8px;border:none;background:#3b82f6;color:white;font-size:0.95em;cursor:pointer;">
           🔄 Hent nyeste versjon
         </button>
+        <script>
+          (function() {
+            try {
+              var m = (localStorage.getItem('network_mode_v1') || '').trim().toLowerCase();
+              var o = localStorage.getItem('offline_mode_v1') === '1';
+              if (m === 'offline' || o || (typeof navigator !== 'undefined' && navigator.onLine === false)) {
+                var btn = document.getElementById('force-update-btn');
+                if (btn) {
+                  btn.setAttribute('aria-disabled', 'true');
+                  btn.style.setProperty('background', '#64748b', 'important');
+                  btn.style.setProperty('opacity', '0.5', 'important');
+                  btn.style.setProperty('cursor', 'not-allowed', 'important');
+                }
+              }
+            } catch(e) {}
+          })();
+        </script>
         <div id="update-status" style="display:none;margin-top:8px;padding:10px;border-radius:8px;font-size:0.85em;"></div>
       </div>
 
@@ -282,9 +383,62 @@
         <a href="/" style="color:#3b82f6;text-decoration:none;font-size:1.05em;">← Tilbake</a>
       </div>
     </div>
+
+    <!-- Bekreftelsesmodal for sletting av offline-data -->
+    <div id="clear-offline-confirm-modal" role="dialog" aria-modal="true" aria-labelledby="clear-offline-confirm-title"
+      style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(2,6,23,0.75);backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:16px;">
+      <div style="background:var(--card-bg,#0f172a);color:var(--text,#e5e7eb);border:1px solid rgba(239,68,68,0.45);border-radius:14px;max-width:420px;width:100%;padding:22px 20px;box-shadow:0 20px 40px rgba(0,0,0,0.45);">
+        <h3 id="clear-offline-confirm-title" style="margin:0 0 10px 0;font-size:1.08em;color:#ef4444;">
+          ⚠️ Slett offline-data?
+        </h3>
+        <p id="clear-offline-confirm-text" style="margin:0 0 18px 0;font-size:0.95em;line-height:1.45;color:var(--text,#e5e7eb);">
+          Er du sikker på at du vil slette alle nedlastede lokaliteter og kartlag? Dette kan ikke angres.
+        </p>
+        <div style="display:flex;gap:10px;justify-content:flex-end;">
+          <button type="button" id="clear-offline-cancel-btn"
+            style="padding:10px 16px;border-radius:8px;border:1px solid rgba(148,163,184,0.35);background:transparent;color:var(--text,#e5e7eb);font-size:0.95em;cursor:pointer;">
+            Avbryt
+          </button>
+          <button type="button" id="clear-offline-confirm-btn"
+            style="padding:10px 16px;border-radius:8px;border:none;background:#ef4444;color:white;font-weight:600;font-size:0.95em;cursor:pointer;">
+            Ja, slett offline-data
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal ved forsøk på å hente nyeste versjon i offline-modus -->
+    <div id="offline-update-modal" role="dialog" aria-modal="true" aria-labelledby="offline-update-title"
+      style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(2,6,23,0.75);backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:16px;">
+      <div style="background:var(--card-bg,#0f172a);color:var(--text,#e5e7eb);border:1px solid rgba(239,68,68,0.45);border-radius:14px;max-width:420px;width:100%;padding:22px 20px;box-shadow:0 20px 40px rgba(0,0,0,0.45);text-align:center;">
+        <div style="font-size:2.2em;margin-bottom:10px;">⚠️</div>
+        <h3 id="offline-update-title" style="margin:0 0 10px 0;font-size:1.1em;color:#ef4444;font-weight:700;">
+          Du er offline!
+        </h3>
+        <p id="offline-update-text" style="margin:0 0 20px 0;font-size:0.95em;line-height:1.45;color:var(--text,#e5e7eb);">
+          Du er offline! Kan ikke hente nyeste versjon.
+        </p>
+        <div style="display:flex;gap:10px;justify-content:center;">
+          <button type="button" id="offline-update-close-btn"
+            style="padding:10px 24px;border-radius:8px;border:none;background:#3b82f6;color:white;font-weight:600;font-size:0.95em;cursor:pointer;">
+            OK
+          </button>
+        </div>
+      </div>
+    </div>
+
     <script type="module">
-      import { loadActivityPills, saveActivityPills, ACTIVITY_SHORT_SUGGESTIONS, loadNynorskArtsnavn, saveNynorskArtsnavn } from './js/storage.js?v=v1.53.23';
-      import { loadActivities } from './js/api.js';
+      import { loadActivityPills, saveActivityPills, ACTIVITY_SHORT_SUGGESTIONS, loadNynorskArtsnavn, saveNynorskArtsnavn } from './js/storage.js?v=v1.60.3';
+      import { loadActivities, fetchAoSitesByBounds, hasActiveAoLogin, ensureAoTokens, getCachedPrivateSites } from './js/api.js?v=v1.60.3';
+      import { shouldShowOthersPrivateSites } from './js/location.js?v=v1.60.3';
+      import {
+        getOfflineStorageStats,
+        syncOfflineAreas,
+        clearAllOfflineData,
+        clearAppCachesPreservingMapTiles,
+      } from './js/offline-db.js?v=v1.60.3';
+
+      // Service Worker registreres og modus synkroniseres av offline-db.js (importert over).
 
       const nynorskCb = document.getElementById('show-nynorsk');
       nynorskCb.checked = loadNynorskArtsnavn();
@@ -292,8 +446,144 @@
         saveNynorskArtsnavn(nynorskCb.checked);
       });
 
+      // --- Lagring / Offline-data ---
+      const storageStatsEl = document.getElementById('offline-storage-stats');
+      const syncOfflineBtn = document.getElementById('sync-offline-areas-btn');
+      const clearOfflineBtn = document.getElementById('clear-offline-data-btn');
+      const syncProgressEl = document.getElementById('offline-sync-progress');
+      const storageStatusEl = document.getElementById('offline-storage-status');
+      const clearConfirmModal = document.getElementById('clear-offline-confirm-modal');
+      const clearCancelBtn = document.getElementById('clear-offline-cancel-btn');
+      const clearConfirmBtn = document.getElementById('clear-offline-confirm-btn');
+
+      function showOfflineStorageStatus(msg, isError = false) {
+        if (!storageStatusEl) return;
+        const l = document.body.classList.contains('theme-light');
+        const color = isError ? (l ? '#dc2626' : '#fca5a5') : (l ? '#16a34a' : '#86efac');
+        const bg = isError ? 'rgba(239,68,68,0.1)' : 'rgba(34,197,94,0.1)';
+        const bd = isError ? 'rgba(239,68,68,0.3)' : 'rgba(34,197,94,0.3)';
+        storageStatusEl.style.cssText = `display:block;margin-top:8px;padding:10px;border-radius:8px;font-size:0.85em;background:${bg};border:1px solid ${bd};color:${color};`;
+        storageStatusEl.textContent = msg;
+      }
+
+      async function refreshOfflineStorageStats() {
+        if (!storageStatsEl) return;
+        try {
+          const stats = await getOfflineStorageStats();
+          const areaPart =
+            stats.areasCount > 0
+              ? ` (${stats.areasCount} offline-område${stats.areasCount === 1 ? '' : 'r'})`
+              : '';
+          storageStatsEl.textContent = `Lagret lokalt: ca. ${stats.locationsCount} lokaliteter${areaPart} og ${stats.tilesCount} kartfliser.`;
+        } catch {
+          storageStatsEl.textContent = 'Lagret lokalt: 0 lokaliteter og 0 kartfliser.';
+        }
+      }
+
+      if (syncOfflineBtn) {
+        syncOfflineBtn.addEventListener('click', async () => {
+          syncOfflineBtn.disabled = true;
+          if (clearOfflineBtn) clearOfflineBtn.disabled = true;
+          if (storageStatusEl) storageStatusEl.style.display = 'none';
+          if (syncProgressEl) {
+            syncProgressEl.style.display = 'block';
+            syncProgressEl.textContent = '⏳ Starter synkronisering av lagrede offline-områder …';
+          }
+
+          try {
+            const summary = await syncOfflineAreas({
+              fetchSitesByBounds: fetchAoSitesByBounds,
+              checkLoggedIn: hasActiveAoLogin,
+              ensureTokens: ensureAoTokens,
+              getShowOthersPrivate: shouldShowOthersPrivateSites,
+              getPrivateSitesCache: getCachedPrivateSites,
+              onProgress: ({ areaIndex, totalAreas, phase, completedTiles, totalTiles }) => {
+                if (!syncProgressEl) return;
+                if (phase === 'locations') {
+                  syncProgressEl.textContent = `⏳ Synkroniserer område ${areaIndex} av ${totalAreas}: oppdaterer lokaliteter …`;
+                } else {
+                  syncProgressEl.textContent = `⏳ Synkroniserer område ${areaIndex} av ${totalAreas}: kartfliser (${completedTiles}/${totalTiles}) …`;
+                }
+              },
+            });
+
+            await refreshOfflineStorageStats();
+
+            if (summary.syncedAreas === 0) {
+              showOfflineStorageStatus('ℹ️ Ingen lagrede offline-områder å synkronisere ennå. Du kan laste ned et område i kartvisningen.', false);
+            } else {
+              showOfflineStorageStatus(
+                `✅ Synkroniserte ${summary.syncedAreas} offline-område${summary.syncedAreas === 1 ? '' : 'r'} (${summary.totalLocations} lokaliteter og ${summary.totalTilesCached} kartfliser).`,
+                false,
+              );
+            }
+          } catch (err) {
+            showOfflineStorageStatus(`❌ Kunne ikke synkronisere offline-områder: ${err.message || 'Ukjent feil'}`, true);
+          } finally {
+            if (syncProgressEl) syncProgressEl.style.display = 'none';
+            syncOfflineBtn.disabled = false;
+            if (clearOfflineBtn) clearOfflineBtn.disabled = false;
+          }
+        });
+      }
+
+      function openClearOfflineModal() {
+        if (!clearConfirmModal) return;
+        clearConfirmModal.style.display = 'flex';
+        if (clearCancelBtn) clearCancelBtn.focus();
+      }
+
+      function closeClearOfflineModal() {
+        if (!clearConfirmModal) return;
+        clearConfirmModal.style.display = 'none';
+      }
+
+      if (clearOfflineBtn) {
+        // Sletter INGENTING direkte — viser alltid sikkerhetsmodal først
+        clearOfflineBtn.addEventListener('click', openClearOfflineModal);
+      }
+
+      if (clearCancelBtn) {
+        clearCancelBtn.addEventListener('click', closeClearOfflineModal);
+      }
+
+      if (clearConfirmModal) {
+        clearConfirmModal.addEventListener('click', (e) => {
+          if (e.target === clearConfirmModal) closeClearOfflineModal();
+        });
+      }
+
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && clearConfirmModal && clearConfirmModal.style.display === 'flex') {
+          closeClearOfflineModal();
+        }
+      });
+
+      if (clearConfirmBtn) {
+        clearConfirmBtn.addEventListener('click', async () => {
+          clearConfirmBtn.disabled = true;
+          try {
+            await clearAllOfflineData();
+            closeClearOfflineModal();
+            await refreshOfflineStorageStats();
+            showOfflineStorageStatus('✅ Alle nedlastede lokaliteter og kartfliser er slettet.', false);
+          } catch (err) {
+            closeClearOfflineModal();
+            showOfflineStorageStatus(`❌ Feil ved sletting av offline-data: ${err.message || 'Ukjent feil'}`, true);
+          } finally {
+            clearConfirmBtn.disabled = false;
+          }
+        });
+      }
+
+      // Eksponer hjelpefunksjonen til den ikkemodulære oppdateringsknappen under
+      window.__clearAppCachesPreservingMapTiles = clearAppCachesPreservingMapTiles;
+
+      refreshOfflineStorageStats();
+
       let availableActivities = []; // Lastes inn ved init
       let isInitializing = true;    // Undertrykk «✓ Lagret» under første render
+      let draggedRow = null;
 
       async function initActivityPillsConfig() {
         // Last alle aktiviteter fra JSON
@@ -301,6 +591,32 @@
 
         const container = document.getElementById('activity-pills-config');
         const addBtn = document.getElementById('add-activity-pill');
+
+        // Drag & drop-støtte på beholderen (for desktop mus)
+        container.addEventListener('dragover', (e) => {
+          e.preventDefault();
+          if (!draggedRow) return;
+          e.dataTransfer.dropEffect = 'move';
+          const targetRow = e.target.closest('.pill-config-row');
+          if (targetRow && targetRow !== draggedRow && targetRow.parentNode === container) {
+            const rect = targetRow.getBoundingClientRect();
+            const midY = rect.top + rect.height / 2;
+            if (e.clientY < midY) {
+              container.insertBefore(draggedRow, targetRow);
+            } else {
+              container.insertBefore(draggedRow, targetRow.nextSibling);
+            }
+          }
+        });
+
+        container.addEventListener('drop', (e) => {
+          e.preventDefault();
+          if (draggedRow) {
+            draggedRow.classList.remove('is-dragging');
+            draggedRow = null;
+            savePillsFromUI(container);
+          }
+        });
 
         // Render eksisterende pills
         const savedPills = loadActivityPills();
@@ -314,7 +630,7 @@
 
         // Add-knapp event
         addBtn.addEventListener('click', () => {
-          if (container.children.length < 6) {
+          if (container.children.length < 8) {
             addPillRow(container, null); // null = ingen forhåndsvalgt
             updateAddButtonState(addBtn, container);
           }
@@ -346,6 +662,88 @@
         const row = document.createElement('div');
         row.className = 'pill-config-row';
         row.style.cssText = 'display: flex; gap: 8px; align-items: center; width: 100%;';
+        row.draggable = true;
+
+        // Dra-håndtak (⠿)
+        const dragHandle = document.createElement('div');
+        dragHandle.className = 'pill-drag-handle';
+        dragHandle.textContent = '⠿';
+        dragHandle.title = 'Dra for å endre rekkefølge (eller bruk piltaster)';
+        dragHandle.setAttribute('aria-label', 'Dra for å endre rekkefølge');
+        dragHandle.setAttribute('role', 'button');
+        dragHandle.setAttribute('tabindex', '0');
+
+        // Tastaturtilgjengelighet for å flytte opp/ned med piltaster
+        dragHandle.addEventListener('keydown', (e) => {
+          if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            const prev = row.previousElementSibling;
+            if (prev) {
+              container.insertBefore(row, prev);
+              savePillsFromUI(container);
+              dragHandle.focus();
+            }
+          } else if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            const next = row.nextElementSibling;
+            if (next) {
+              container.insertBefore(row, next.nextElementSibling);
+              savePillsFromUI(container);
+              dragHandle.focus();
+            }
+          }
+        });
+
+        // Desktop HTML5 drag-hendelser
+        row.addEventListener('dragstart', (e) => {
+          draggedRow = row;
+          e.dataTransfer.effectAllowed = 'move';
+          e.dataTransfer.setData('text/plain', '');
+          requestAnimationFrame(() => {
+            row.classList.add('is-dragging');
+          });
+        });
+        row.addEventListener('dragend', () => {
+          row.classList.remove('is-dragging');
+          draggedRow = null;
+          savePillsFromUI(container);
+        });
+
+        // Mobil touch-hendelser på dra-håndtaket
+        let isTouching = false;
+        dragHandle.addEventListener('touchstart', (e) => {
+          if (e.touches.length !== 1) return;
+          isTouching = true;
+          row.classList.add('is-touch-dragging');
+        }, { passive: false });
+
+        dragHandle.addEventListener('touchmove', (e) => {
+          if (!isTouching || e.touches.length !== 1) return;
+          e.preventDefault(); // Forhindre sidescrolling under flytting
+          const touch = e.touches[0];
+          const elUnder = document.elementFromPoint(touch.clientX, touch.clientY);
+          const targetRow = elUnder ? elUnder.closest('.pill-config-row') : null;
+          if (targetRow && targetRow !== row && targetRow.parentNode === container) {
+            const rect = targetRow.getBoundingClientRect();
+            const midY = rect.top + rect.height / 2;
+            if (touch.clientY < midY) {
+              container.insertBefore(row, targetRow);
+            } else {
+              container.insertBefore(row, targetRow.nextSibling);
+            }
+          }
+        }, { passive: false });
+
+        const finishTouch = () => {
+          if (isTouching) {
+            isTouching = false;
+            row.classList.remove('is-touch-dragging');
+            savePillsFromUI(container);
+          }
+        };
+
+        dragHandle.addEventListener('touchend', finishTouch);
+        dragHandle.addEventListener('touchcancel', finishTouch);
 
         // Dropdown for aktivitet
         const select = document.createElement('select');
@@ -392,6 +790,7 @@
           savePillsFromUI(container);
         });
 
+        row.appendChild(dragHandle);
         row.appendChild(select);
         row.appendChild(shortInput);
         row.appendChild(deleteBtn);
@@ -435,11 +834,11 @@
 
       function updateAddButtonState(addBtn, container) {
         const count = container.children.length;
-        if (count >= 6) {
+        if (count >= 8) {
           addBtn.disabled = true;
           addBtn.style.opacity = '0.5';
           addBtn.style.cursor = 'not-allowed';
-          addBtn.textContent = '+ Maks 6 aktiviteter';
+          addBtn.textContent = '+ Maks 8 aktiviteter';
         } else {
           addBtn.disabled = false;
           addBtn.style.opacity = '1';
@@ -602,6 +1001,7 @@
         localStorage.removeItem('ao_username');
         localStorage.removeItem('ao_password');
         localStorage.removeItem('ao_tokens');
+        localStorage.removeItem('ao_private_sites');
         aoUsernameInput.value = '';
         aoPasswordInput.value = '';
         loginStatus.style.cssText = `display:block;margin-top:8px;padding:10px;border-radius:8px;font-size:0.85em;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.3);color:${_sc('info')};`;
@@ -614,9 +1014,89 @@
       // Tving fram ny versjon: fjern service worker + cache, hent siden ferskt fra nett
       const forceUpdateBtn = document.getElementById('force-update-btn');
       const updateStatus = document.getElementById('update-status');
+      const offlineUpdateModal = document.getElementById('offline-update-modal');
+      const offlineUpdateCloseBtn = document.getElementById('offline-update-close-btn');
 
-      forceUpdateBtn.addEventListener('click', async () => {
+      function isAppOffline() {
+        const netMode = (localStorage.getItem('network_mode_v1') || '').trim().toLowerCase();
+        if (netMode === 'offline') return true;
+        if (localStorage.getItem('offline_mode_v1') === '1') return true;
+        if (typeof navigator !== 'undefined' && navigator.onLine === false) return true;
+        return false;
+      }
+
+      function openOfflineUpdateModal() {
+        if (!offlineUpdateModal) return;
+        offlineUpdateModal.style.display = 'flex';
+      }
+
+      function closeOfflineUpdateModal() {
+        if (!offlineUpdateModal) return;
+        offlineUpdateModal.style.display = 'none';
+      }
+
+      if (offlineUpdateCloseBtn) {
+        offlineUpdateCloseBtn.addEventListener('click', closeOfflineUpdateModal);
+      }
+      if (offlineUpdateModal) {
+        offlineUpdateModal.addEventListener('click', (e) => {
+          if (e.target === offlineUpdateModal) closeOfflineUpdateModal();
+        });
+      }
+      window.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && offlineUpdateModal && offlineUpdateModal.style.display === 'flex') {
+          closeOfflineUpdateModal();
+        }
+      });
+
+      function updateForceUpdateBtnState() {
+        if (!forceUpdateBtn) return;
+        const offline = isAppOffline();
+        if (offline) {
+          forceUpdateBtn.setAttribute('aria-disabled', 'true');
+          forceUpdateBtn.title = 'Du er offline! Kan ikke hente nyeste versjon.';
+          forceUpdateBtn.style.opacity = '0.5';
+          forceUpdateBtn.style.cursor = 'not-allowed';
+          forceUpdateBtn.style.background = '#64748b';
+        } else {
+          forceUpdateBtn.removeAttribute('aria-disabled');
+          forceUpdateBtn.title = '';
+          forceUpdateBtn.style.opacity = '';
+          forceUpdateBtn.style.cursor = 'pointer';
+          forceUpdateBtn.style.background = '#3b82f6';
+        }
+      }
+
+      window.addEventListener('online', updateForceUpdateBtnState);
+      window.addEventListener('offline', updateForceUpdateBtnState);
+      window.addEventListener('storage', updateForceUpdateBtnState);
+      window.addEventListener('network_mode_changed', updateForceUpdateBtnState);
+      window.addEventListener('offline_mode_changed', updateForceUpdateBtnState);
+      updateForceUpdateBtnState();
+
+      forceUpdateBtn.addEventListener('click', async (e) => {
+        if (isAppOffline()) {
+          e.preventDefault();
+          openOfflineUpdateModal();
+          return;
+        }
+
+        // Før vi sletter noe som helst: sjekk at vi faktisk har kontakt med serveren!
         forceUpdateBtn.disabled = true;
+        forceUpdateBtn.textContent = '⏳ Sjekker nettverk...';
+        try {
+          const ctrl = new AbortController();
+          const tid = setTimeout(() => ctrl.abort(), 3500);
+          const ping = await fetch('/health?_t=' + Date.now(), { cache: 'no-store', signal: ctrl.signal });
+          clearTimeout(tid);
+          if (!ping || !ping.ok) throw new Error('Ingen kontakt med server');
+        } catch (err) {
+          forceUpdateBtn.disabled = false;
+          updateForceUpdateBtnState();
+          openOfflineUpdateModal();
+          return;
+        }
+
         forceUpdateBtn.textContent = '⏳ Henter ny versjon...';
         updateStatus.style.cssText = `display:block;margin-top:8px;padding:10px;border-radius:8px;font-size:0.85em;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.3);color:${_sc('info')};`;
         updateStatus.textContent = '⏳ Rydder mellomlager og henter fersk versjon...';
@@ -626,9 +1106,15 @@
             const regs = await navigator.serviceWorker.getRegistrations();
             await Promise.all(regs.map((r) => r.unregister()));
           }
-          if ('caches' in window) {
+          if (typeof window.__clearAppCachesPreservingMapTiles === 'function') {
+            await window.__clearAppCachesPreservingMapTiles();
+          } else if ('caches' in window) {
             const keys = await caches.keys();
-            await Promise.all(keys.map((k) => caches.delete(k)));
+            await Promise.all(
+              keys
+                .filter((k) => k !== 'enkel-ao-kartverket-tiles-v1')
+                .map((k) => caches.delete(k)),
+            );
           }
         } catch (e) {
           // Fortsett uansett — cache-bustet reload henter fersk versjon selv om oppryddingen delvis feilet

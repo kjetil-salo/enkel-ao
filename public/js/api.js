@@ -36,11 +36,29 @@ const BBOX_CACHE_MAX_ENTRIES = 5;
 const BBOX_CACHE_MATCH_DISTANCE_M = 300;
 
 /**
+ * Sjekk om brukeren er innlogget på Artsobservasjoner (har gyldige sesjons-tokens
+ * eller lagret brukernavn og passord på enheten).
+ * @returns {boolean}
+ */
+export function hasActiveAoLogin() {
+  try {
+    const tokens = JSON.parse(localStorage.getItem('ao_tokens') || '{}');
+    if (tokens && tokens.loginToken && tokens.authCookie) return true;
+    const username = localStorage.getItem('ao_username');
+    const password = localStorage.getItem('ao_password');
+    return Boolean(username && password);
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Hent cachet liste over brukerens private lokasjoner
  * @returns {Array} - Liste med {id, name, lat, lon, acc}, eller tom liste
  */
 export function getCachedPrivateSites() {
   try {
+    if (!hasActiveAoLogin()) return [];
     const item = localStorage.getItem(PRIVATE_SITES_KEY);
     if (!item) return [];
     const { ts, sites } = JSON.parse(item);
@@ -290,6 +308,11 @@ export async function fetchAoSites(lat, lon, sizeMeters = 1000, isRetry = false)
       return fetchAoSites(lat, lon, sizeMeters, true);
     } else {
       console.log('[AO] Auto-relogin feilet - bruker må logge inn manuelt');
+      try {
+        localStorage.removeItem('ao_tokens');
+      } catch (e) {
+        // Ignorer feil ved fjerning
+      }
     }
   }
 
@@ -297,6 +320,91 @@ export async function fetchAoSites(lat, lon, sizeMeters = 1000, isRetry = false)
     return [];
   }
 
+  return data.sites.filter(s => s && typeof s.name === 'string' && s.name.trim());
+}
+
+/**
+ * Hent alle AO-lokaliteter (offentlige og private) innenfor en eksplisitt bounding box.
+ * Sender både senterpunkt/radius og eksakte north/south/east/west-koordinater til /api/ao-sites.
+ *
+ * @param {{ north: number, south: number, east: number, west: number }} bounds
+ * @param {boolean} [isRetry=false]
+ * @returns {Promise<Array>}
+ */
+export async function fetchAoSitesByBounds(bounds, isRetry = false) {
+  if (!bounds) return [];
+  const north = Number(bounds.north);
+  const south = Number(bounds.south);
+  const east = Number(bounds.east);
+  const west = Number(bounds.west);
+  if ([north, south, east, west].some(v => isNaN(v))) return [];
+
+  const centerLat = (north + south) / 2;
+  const centerLon = (east + west) / 2;
+  const heightM = haversine(south, centerLon, north, centerLon) || 2500;
+  const widthM = haversine(centerLat, west, centerLat, east) || 2500;
+  const sizeMeters = Math.ceil(Math.max(widthM, heightM) / 2);
+
+  const params = new URLSearchParams({
+    lat: String(centerLat),
+    lon: String(centerLon),
+    size: String(sizeMeters),
+    north: String(north),
+    south: String(south),
+    east: String(east),
+    west: String(west),
+  });
+  const url = `/api/ao-sites?${params.toString()}`;
+
+  const headers = {};
+  let hadTokens = false;
+  try {
+    const savedTokens = JSON.parse(localStorage.getItem('ao_tokens') || '{}');
+    if (savedTokens.userId) headers['X-AO-User-Id'] = savedTokens.userId;
+    if (savedTokens.loginToken) {
+      headers['X-AO-Login-Token'] = savedTokens.loginToken;
+      hadTokens = true;
+    }
+    if (savedTokens.authCookie) headers['X-AO-Auth-Cookie'] = savedTokens.authCookie;
+    const savedUsername = localStorage.getItem('ao_username');
+    if (savedUsername) headers['X-AO-Username'] = savedUsername;
+  } catch (e) {
+    // Ignorer feil ved parsing
+  }
+
+  const resp = await fetch(url, { headers });
+  if (!resp.ok) return [];
+
+  const data = await resp.json();
+  if (!data) return [];
+
+  if (data.refreshedAuthCookie) {
+    try {
+      const savedTokens = JSON.parse(localStorage.getItem('ao_tokens') || '{}');
+      savedTokens.authCookie = data.refreshedAuthCookie;
+      localStorage.setItem('ao_tokens', JSON.stringify(savedTokens));
+      window.dispatchEvent(new CustomEvent('ao_tokens_updated', {
+        detail: { source: 'ao-sites-bbox', tokens: savedTokens }
+      }));
+    } catch (e) {
+      console.warn('[AO] Kunne ikke lagre refreshed auth cookie:', e);
+    }
+  }
+
+  if (!isRetry && data.authRequired && !data.refreshedAuthCookie && hadTokens) {
+    const reloginOk = await tryAutoRelogin();
+    if (reloginOk) {
+      return fetchAoSitesByBounds(bounds, true);
+    } else {
+      try {
+        localStorage.removeItem('ao_tokens');
+      } catch (e) {
+        // Ignorer feil ved fjerning
+      }
+    }
+  }
+
+  if (!data || !Array.isArray(data.sites)) return [];
   return data.sites.filter(s => s && typeof s.name === 'string' && s.name.trim());
 }
 

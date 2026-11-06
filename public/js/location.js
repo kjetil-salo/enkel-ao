@@ -5,6 +5,18 @@
 
 import { fetchAoSites, createAoSite, getCachedPrivateSites, ensureAoTokens } from './api.js';
 import { setLocationStatus, haversine } from './ui.js';
+import { isOfflineMode, getAllOfflineLocations, fetchLocationsWithNetworkMode } from './offline-db.js';
+import { saveLastKnownPosition, loadLastKnownPosition } from './storage.js';
+
+/**
+ * Standard kartsenter (Svortland, Bømlo) som brukes når brukerens GPS-posisjon
+ * ikke er tilgjengelig, er ukjent eller tillatelse er avslått.
+ */
+export const DEFAULT_MAP_CENTER = {
+  lat: 59.7928,
+  lon: 5.1723,
+  isFallback: true,
+};
 
 
 /**
@@ -372,8 +384,30 @@ export function initLocation(elements, onPositionUpdate, aoSizeMeters = 1000) {
     setLocationStatus(locDot, locText, 'idle', 'Trykk «Hent lokasjoner» før registrering.');
   }
 
+  const TARGET_GPS_ACCURACY_M = 15;
+  let activeWatchId = null;
+  let activeRefineTimeoutId = null;
+
+  function stopActiveWatch() {
+    if (activeWatchId !== null && navigator.geolocation && typeof navigator.geolocation.clearWatch === 'function') {
+      navigator.geolocation.clearWatch(activeWatchId);
+      activeWatchId = null;
+    }
+    if (activeRefineTimeoutId !== null) {
+      clearTimeout(activeRefineTimeoutId);
+      activeRefineTimeoutId = null;
+    }
+  }
+
   locBtn.addEventListener('click', () => {
     console.log('[loc-btn] Klikk registrert, starter geolokasjon');
+    if (!navigator.geolocation) {
+      setLocationStatus(locDot, locText, 'error', 'Geolokasjon støttes ikke i denne nettleseren.');
+      return;
+    }
+
+    stopActiveWatch();
+
     setLocationStatus(locDot, locText, 'pending', 'Henter lokasjon …');
     locBtn.disabled = true;
 
@@ -389,60 +423,65 @@ export function initLocation(elements, onPositionUpdate, aoSizeMeters = 1000) {
 
     let bestPosition = null;
     let finished = false;
-    let watchId = null;
+    let lastFetchedPosition = null;
 
-    async function finish() {
-      if (finished) return;
-      finished = true;
-      if (watchId !== null) navigator.geolocation.clearWatch(watchId);
-      clearTimeout(timeoutId);
-
-      if (!bestPosition) {
-        console.warn('Ingen GPS-fix mottatt innen tidsfrist');
-        setLocationStatus(locDot, locText, 'error', 'Kunne ikke hente lokasjon. Sjekk tillatelser og prøv igjen.');
-        onPositionUpdate(null, [], effectiveAoSize);
-        if (locMapBtn) {
-          locMapBtn.style.display = 'none';
-        }
-        if (typeof updateMapBtnVisibility === 'function') updateMapBtnVisibility();
-        locBtn.disabled = false;
-        return;
-      }
-
-      const { lat, lon, accuracy } = bestPosition;
+    async function fetchAndApplySites(posToUse) {
+      const { lat, lon, accuracy } = posToUse;
       const latStr = lat.toFixed(5);
       const lonStr = lon.toFixed(5);
       const accStr = Math.round(accuracy);
-
-      // Fortsatt «henter» (pulserende prikk) til lokalitetene også er hentet —
-      // dette er nå det som representerer HELE bakgrunnsoppdateringen ved
-      // «Bytt lokasjon» (se expandLocation() i main.js), ikke bare selve
-      // GPS-fiksen. Stoppet pulsen her allerede ved GPS-fiks, så den før
-      // AO-kallet under var ferdig — brukeren så «ferdig» mens lista fortsatt
-      // kunne endre seg stille et øyeblikk senere, uten noe visuelt tegn.
-      setLocationStatus(locDot, locText, 'pending', `Lokasjon hentet (±${accStr} m), henter lokaliteter …`);
 
       if (locText) {
         locText.title = `${latStr}, ${lonStr} (±${accStr} m)`;
       }
 
       try {
-        // Sikre at ao_tokens er satt før stedssøket, ikke bare lagrede credentials —
-        // ellers sender fetchAoSites() ingen auth-headere, og AO returnerer kun
-        // offentlige lokaliteter selv om brukeren har logget inn i innstillingene.
-        // No-op umiddelbart hvis ingen credentials er lagret.
-        await ensureAoTokens();
-        const sites = await fetchAoSites(lat, lon, effectiveAoSize);
-        onPositionUpdate(bestPosition, sites, effectiveAoSize);
+        const { sites } = await fetchLocationsWithNetworkMode(lat, lon, effectiveAoSize, {
+          ensureTokens: ensureAoTokens,
+          fetchOnline: fetchAoSites,
+          persistOpportunistic: true,
+        });
+        lastFetchedPosition = posToUse;
+        onPositionUpdate(posToUse, sites, effectiveAoSize);
       } catch (err) {
         console.warn('Feil ved henting av AO-lokaliteter', err);
-        onPositionUpdate(bestPosition, [], effectiveAoSize);
+        onPositionUpdate(posToUse, [], effectiveAoSize);
       } finally {
-        // GPS-delen lyktes uansett utfall på AO-kallet over — en feilet/tom
-        // AO-henting håndteres av mottakeren (handlePositionUpdate i main.js
-        // beholder en allerede god liste i stedet for å tømme den).
-        setLocationStatus(locDot, locText, 'ok', `Lokasjon hentet (±${accStr} m)`);
+        const currentAccStr = Math.round((bestPosition || posToUse).accuracy);
+        setLocationStatus(locDot, locText, 'ok', `Lokasjon hentet (±${currentAccStr} m)`);
       }
+    }
+
+    async function finish() {
+      if (finished) return;
+      finished = true;
+      clearTimeout(timeoutId);
+
+      // Stopp GPS-watch kun hvis vi allerede har nådd høy presisjon (<= 15m) eller ikke fikk noen posisjon.
+      // Hvis vi kun har grov nettverksposisjon (f.eks. ±100m), lar vi watchPosition fortsette i bakgrunnen
+      // i opptil 25 sekunder til slik at fysisk GPS-chip rekker å låse satellitter (±5m).
+      if (!bestPosition || bestPosition.accuracy <= TARGET_GPS_ACCURACY_M) {
+        stopActiveWatch();
+      } else {
+        activeRefineTimeoutId = setTimeout(() => {
+          stopActiveWatch();
+        }, 25000);
+      }
+
+      if (!bestPosition) {
+        console.warn('Ingen GPS-fix mottatt innen tidsfrist');
+        setLocationStatus(locDot, locText, 'error', 'Kunne ikke hente lokasjon. Sjekk tillatelser og prøv igjen.');
+        const fallbackSites = isOfflineMode() ? await getAllOfflineLocations().catch(() => []) : [];
+        onPositionUpdate(null, fallbackSites, effectiveAoSize);
+        if (typeof updateMapBtnVisibility === 'function') updateMapBtnVisibility();
+        locBtn.disabled = false;
+        return;
+      }
+
+      const accStr = Math.round(bestPosition.accuracy);
+      setLocationStatus(locDot, locText, 'pending', `Lokasjon hentet (±${accStr} m), henter lokaliteter …`);
+
+      await fetchAndApplySites(bestPosition);
 
       if (locMapBtn) {
         locMapBtn.style.display = 'block';
@@ -451,40 +490,67 @@ export function initLocation(elements, onPositionUpdate, aoSizeMeters = 1000) {
       locBtn.disabled = false;
     }
 
+    function handleIncomingFix(pos) {
+      const accuracy = pos.coords.accuracy;
+      const candidate = {
+        lat: pos.coords.latitude,
+        lon: pos.coords.longitude,
+        accuracy: accuracy,
+      };
+
+      const isBetter = !bestPosition || accuracy < bestPosition.accuracy;
+      if (isBetter) {
+        bestPosition = candidate;
+        saveLastKnownPosition(candidate);
+        console.log(`[loc] GPS-fix: ±${Math.round(accuracy)}m`);
+      }
+
+      if (!finished) {
+        setLocationStatus(locDot, locText, 'pending', `Henter lokasjon … ±${Math.round(accuracy)}m`);
+        if (accuracy <= TARGET_GPS_ACCURACY_M) {
+          finish();
+        }
+      } else if (isBetter) {
+        // Bakgrunnsraffinering etter at grov posisjon (f.eks. ±100m) allerede er vist:
+        // oppdater statustekst umiddelbart og hent lokaliteter på nytt ved bedre GPS-fix
+        const accStr = Math.round(accuracy);
+        const latStr = candidate.lat.toFixed(5);
+        const lonStr = candidate.lon.toFixed(5);
+        if (locText) {
+          locText.title = `${latStr}, ${lonStr} (±${accStr} m)`;
+        }
+        setLocationStatus(locDot, locText, 'ok', `Lokasjon hentet (±${accStr} m)`);
+
+        const movedMeters = lastFetchedPosition
+          ? haversine(lastFetchedPosition.lat, lastFetchedPosition.lon, candidate.lat, candidate.lon)
+          : Infinity;
+        if (movedMeters > 20 || accuracy <= TARGET_GPS_ACCURACY_M) {
+          fetchAndApplySites(candidate);
+        }
+        if (accuracy <= TARGET_GPS_ACCURACY_M) {
+          stopActiveWatch();
+        }
+      }
+    }
+
     function startHighAccuracyWatch() {
-      watchId = navigator.geolocation.watchPosition(
+      if (activeWatchId !== null) return;
+      activeWatchId = navigator.geolocation.watchPosition(
         (pos) => {
-          const accuracy = pos.coords.accuracy;
-          const candidate = {
-            lat: pos.coords.latitude,
-            lon: pos.coords.longitude,
-            accuracy: accuracy,
-          };
-
-          if (!bestPosition || accuracy < bestPosition.accuracy) {
-            bestPosition = candidate;
-            console.log(`[loc] Nytt GPS-fix: ±${Math.round(accuracy)}m`);
-          }
-
-          setLocationStatus(locDot, locText, 'pending', `Henter lokasjon … ±${Math.round(accuracy)}m`);
-
-          if (accuracy <= 50) {
-            finish();
-          }
+          handleIncomingFix(pos);
         },
-        (err) => {
+        async (err) => {
           console.warn('Feil ved geolokasjon (watchPosition)', err);
-          if (!bestPosition) {
+          if (!bestPosition && !finished) {
+            stopActiveWatch();
             setLocationStatus(locDot, locText, 'error', 'Kunne ikke hente lokasjon. Sjekk tillatelser og prøv igjen.');
-            onPositionUpdate(null, [], effectiveAoSize);
-            if (locMapBtn) {
-              locMapBtn.style.display = 'none';
-            }
+            const fallbackSites = isOfflineMode() ? await getAllOfflineLocations().catch(() => []) : [];
+            onPositionUpdate(null, fallbackSites, effectiveAoSize);
             if (typeof updateMapBtnVisibility === 'function') updateMapBtnVisibility();
             locBtn.disabled = false;
             finished = true;
             clearTimeout(timeoutId);
-          } else {
+          } else if (!finished) {
             finish();
           }
         },
@@ -496,45 +562,31 @@ export function initLocation(elements, onPositionUpdate, aoSizeMeters = 1000) {
       );
     }
 
-    // Steg 1: Vekk opp GPS-hardware med et raskt nettverksbasert kall (cell/WiFi).
-    // Dette fikser et kjent problem på Samsung/Android Chrome der watchPosition
-    // med maximumAge: 0 henger fordi GPS ikke er aktiv ennå — brukeren måtte
-    // tidligere innom Google Maps for å "varme opp" GPS.
-    // maximumAge: 0 sikrer at vi IKKE får gammel cachet posisjon (f.eks. hjemsted).
+    // Start både getCurrentPosition og watchPosition med enableHighAccuracy: true og maximumAge: 0
+    // slik at fysisk GPS-chip vekkes opp umiddelbart og fortsetter å strømme satellitt-fikser
+    // helt til vi når <= 15m nøyaktighet (i stedet for å stoppe på et grovt ±100m nettverks-fix).
+    startHighAccuracyWatch();
+
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        if (finished) return;
-        const accuracy = pos.coords.accuracy;
-        const candidate = {
-          lat: pos.coords.latitude,
-          lon: pos.coords.longitude,
-          accuracy: accuracy,
-        };
-        // Kun bruk nettverksposisjonen som midlertidig visning, ikke som endelig svar.
-        // GPS-watch nedenfor vil overstyre med ekte GPS-posisjon.
-        bestPosition = candidate;
-        console.log(`[loc] Nettverksposisjon (oppvarming): ±${Math.round(accuracy)}m — starter GPS-raffinering`);
-        setLocationStatus(locDot, locText, 'pending', `Henter lokasjon … ±${Math.round(accuracy)}m`);
-        // Steg 2: GPS-hardware er nå aktiv, start høy-nøyaktighets-watch
-        startHighAccuracyWatch();
+        handleIncomingFix(pos);
       },
       (err) => {
         if (finished) return;
-        console.warn('[loc] Nettverksposisjon feilet, prøver direkte GPS-watch', err);
-        // Fallback: prøv watchPosition direkte
+        console.warn('[loc] Initialt GPS-kall feilet, fortsetter GPS-watch', err);
         startHighAccuracyWatch();
       },
       {
-        enableHighAccuracy: false,
+        enableHighAccuracy: true,
         maximumAge: 0,
-        timeout: 5000,
+        timeout: 10000,
       }
     );
 
     const timeoutId = setTimeout(() => {
-      console.log(`[loc] Timeout etter 10s, bruker beste posisjon (±${bestPosition ? Math.round(bestPosition.accuracy) + 'm' : 'ingen'})`);
+      console.log(`[loc] Primær tidsfrist etter 8s, bruker foreløpig beste posisjon (±${bestPosition ? Math.round(bestPosition.accuracy) + 'm' : 'ingen'})`);
       finish();
-    }, 10000);
+    }, 8000);
   });
 }
 
@@ -577,18 +629,42 @@ export function openMap(position) {
  *   uendret når det henter nye lokaliteter ved panorering
  */
 export function openMapPage(userPosition, sites, sizeMeters) {
-  if (!userPosition || !userPosition.lat || !userPosition.lon) {
-    console.warn('openMapPage: Mangler brukerposisjon');
-    return;
+  const hasValidCoords = userPosition
+    && typeof userPosition.lat === 'number' && !isNaN(userPosition.lat)
+    && typeof userPosition.lon === 'number' && !isNaN(userPosition.lon)
+    && !userPosition.isFallback;
+
+  if (hasValidCoords) {
+    saveLastKnownPosition(userPosition);
+  }
+
+  let effectivePosition;
+  if (hasValidCoords) {
+    effectivePosition = {
+      lat: userPosition.lat,
+      lon: userPosition.lon,
+      accuracy: userPosition.accuracy,
+    };
+  } else {
+    // Dersom lokasjon er ukjent, skal kartet sentreres på siste kjente posisjon.
+    // Dersom siste kjente posisjon ikke eksisterer, skal default være Svortland, Bømlo.
+    const lastKnown = loadLastKnownPosition();
+    if (lastKnown && typeof lastKnown.lat === 'number' && typeof lastKnown.lon === 'number') {
+      effectivePosition = {
+        lat: lastKnown.lat,
+        lon: lastKnown.lon,
+        accuracy: lastKnown.accuracy,
+        isFallback: true,
+        isLastKnown: true,
+      };
+    } else {
+      effectivePosition = { ...DEFAULT_MAP_CENTER };
+    }
   }
 
   // Lagre data i localStorage
   const mapData = {
-    userPosition: {
-      lat: userPosition.lat,
-      lon: userPosition.lon,
-      accuracy: userPosition.accuracy
-    },
+    userPosition: effectivePosition,
     sites: sites || [],
     sizeMeters: (typeof sizeMeters === 'number' && sizeMeters > 0) ? sizeMeters : 1000
   };
@@ -654,9 +730,9 @@ export function initCreateSite(getPosition, getPlaceName, onSiteCreated) {
     statusEl.style.display = 'none';
     submitBtn.disabled = false;
 
-    // Vis kartbilde fra OSM tile
+    // Vis kartbilde fra OSM tile (kun når ikke i streng Offline-modus)
     const pos = getPosition();
-    if (pos && mapImg) {
+    if (pos && mapImg && !isOfflineMode()) {
       const z = 15;
       const latRad = pos.lat * Math.PI / 180;
       const tileX = Math.floor((pos.lon + 180) / 360 * Math.pow(2, z));

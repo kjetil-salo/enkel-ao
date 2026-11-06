@@ -10,18 +10,18 @@
 // og en manglende navngitt eksport gir SyntaxError som stopper HELE main.js,
 // ikke bare den ene funksjonen. Bump ved hver nye eksport vi blir avhengige
 // av. Samme fallgruve som storage.js-importen under og map.js sin api.js-import.
-import { logPageView, loadActivities, fetchAoSites, fetchAndCachePrivateSites, hasFreshPrivateSitesCache, ensureAoTokens } from './api.js?v=v1.53.38';
+import { logPageView, loadActivities, fetchAoSites, fetchAndCachePrivateSites, hasFreshPrivateSitesCache, ensureAoTokens } from './api.js?v=v1.60.3';
 // Versjonert import: denne linjen har en HARD avhengighet til to navngitte
 // eksporter (loadAoDirectAutoClear/saveAoDirectAutoClear) som ikke fantes i
-// tidligere versjoner av storage.js. Uten ?v= her kan Cloudflare servere en
+// tiderligere versjoner av storage.js. Uten ?v= her kan Cloudflare servere en
 // cachet, gammel storage.js (aldri hentet med noen versjonert URL noe annet
 // sted) og gi en SyntaxError ved modul-lasting som stopper HELE main.js —
 // altså hele appen, se samme fallgruve for map.js/location.js (v1.53.15) og
 // sjekklisten i CLAUDE.md. Bump SAMTIDIG som index.html sin egen ?v=-tag for
 // main.js, hver gang storage.js får en ny eksport main.js begynner å bruke.
-import { loadObservations, saveObservations, loadAoSearchRadius, saveAoSearchRadius, loadLocationSortMode, saveLocationSortMode, loadAoDirectAutoClear, saveAoDirectAutoClear } from './storage.js?v=v1.59.9';
-import { setStatus, setLocationStatus, showToast, haversine } from './ui.js';
-import { setAoSiteSuggestions, initLocation, openMap, openMapPage, updateCreateSiteBtnVisibility, initCreateSite } from './location.js';
+import { loadObservations, saveObservations, loadAoSearchRadius, saveAoSearchRadius, loadLocationSortMode, saveLocationSortMode, loadAoDirectAutoClear, saveAoDirectAutoClear, saveLastKnownPosition, loadLastKnownPosition } from './storage.js?v=v1.60.3';
+import { setStatus, setLocationStatus, showToast, showOfflineNotAvailableDialog, haversine, MODE_SPLASH_DURATION_MS } from './ui.js?v=v1.60.3';
+import { DEFAULT_MAP_CENTER, setAoSiteSuggestions, initLocation, openMap, openMapPage, updateCreateSiteBtnVisibility, initCreateSite } from './location.js?v=v1.60.3';
 // Versjonert import: observations.js sitt eget innhold (ikke bare hvilke
 // eksporter den har) endret seg vesentlig i dag (speciesDisplayName-bruk i
 // ③-lista og slett-toasten). En stale cachet kopi av selve FILEN - ikke bare
@@ -31,7 +31,7 @@ import { setAoSiteSuggestions, initLocation, openMap, openMapPage, updateCreateS
 // timer, uten noen SyntaxError som varsler om det (funksjonene fantes jo
 // allerede - bare med gammel logikk). Se species-search.js/
 // observation-commit.js under for samme fiks, og docs/CLAUDE.md.
-import { renderObservations } from './observations.js?v=v1.59.9';
+import { renderObservations } from './observations.js?v=v1.60.3';
 import { getVisitTimeSpan, isVisitLocked, visitExists } from './visits.js';
 
 // Nye moduler
@@ -42,16 +42,26 @@ import { updateSectionStates, pulseSearchFieldAndFocus } from './form-state.js';
 // gang har vært versjonert. Dette var den faktiske årsaken til at Kjetil
 // testet v1.53.25 og fortsatt bare så gammel oppførsel i vanlig søk -
 // nettleseren hans hadde en cachet species-search.js fra v1.53.24.
-import { fetchResults, renderResults, chooseItem, updateSubtaxaCheckboxState } from './species-search.js?v=v1.59.9';
-import { commitObservation, renderActivityPills } from './observation-commit.js?v=v1.59.9';
+import { fetchResults, renderResults, chooseItem, updateSubtaxaCheckboxState } from './species-search.js?v=v1.60.3';
+import { commitObservation, renderActivityPills } from './observation-commit.js?v=v1.60.3';
 import { handleExport, handleCopy, handleCopyAndOpen, handleClear, handleDirectSend, oppdaterAoKoHint }
-  from './export-operations.js?v=v1.59.9';
+  from './export-operations.js?v=v1.60.3';
 import { openShareDialog } from './share.js';
 import { initAutocomplete } from './autocomplete.js';
-import { initNewsSplash } from './news-splash.js?v=v1.59.10';
-import { initFirstRunHint, shouldShowHint } from './first-run-hint.js';
+import { initNewsSplash } from './news-splash.js?v=v1.60.3';
+import { initFirstRunHint, shouldShowHint } from './first-run-hint.js?v=v1.60.3';
 import { hentAktivFellestur, forlatFellestur } from './fellestur-client.js';
 import { oppdaterSpeilFraServer, hentSpeilVersjon } from './fellestur-sync.js';
+import {
+  getNetworkMode,
+  cycleNetworkMode,
+  isOfflineMode,
+  isHybridMode,
+  getAllOfflineLocations,
+  fetchLocationsWithNetworkMode,
+  saveOpportunisticOfflineLocations,
+  syncNetworkModeToServiceWorker,
+} from './offline-db.js?v=v1.60.3';
 
 // ============================================================
 // Applikasjonstilstand
@@ -236,10 +246,45 @@ function oppdaterListeTeller() {
   el.textContent = n ? ` (${n})` : '';
 }
 
+/**
+ * Tegn innloggingsbadgen i headeren. Skal ALDRI ende som en tom sirkel:
+ * innlogget → initialer, ellers (også ved ukjent/ugyldig tilstand) → «Logg inn».
+ */
+function renderAoStatusBadge(statusDot, username, hasCredentials) {
+  if (!statusDot) return;
+  // Array.from (ikke .slice) for å dele opp i Unicode-tegn, ikke UTF-16-enheter —
+  // kutter aldri et surrogatpar i to.
+  const initials = hasCredentials
+    ? Array.from(username).slice(0, 2).join('').trim().toUpperCase()
+    : '';
+  const loggedIn = Boolean(initials);
+  statusDot.classList.toggle('online', loggedIn);
+  if (loggedIn) {
+    statusDot.textContent = initials;
+    statusDot.title = `Innlogget som ${username} mot Artsobservasjoner`;
+    statusDot.setAttribute('aria-label', `Innlogget som ${username}. Trykk for å endre innlogging.`);
+  } else {
+    // Rødt leses som «noe er galt» — men å ikke være innlogget er appens
+    // helt normale starttilstand. Tekst i stedet for farge fjerner tvetydigheten.
+    statusDot.textContent = 'Logg inn';
+    statusDot.title = 'Ikke innlogget mot Artsobservasjoner – trykk for å logge inn';
+    statusDot.setAttribute('aria-label', 'Ikke innlogget mot Artsobservasjoner. Trykk for å logge inn.');
+  }
+}
+
 function updateAoDirectVisibility() {
+  // Badgen oppdateres FØR noen tidlige returer, slik at den aldri blir stående tom
+  // selv om resten av innloggingsraden ikke finnes på siden.
+  let username = '';
+  let hasCredentials = false;
+  try {
+    username = (localStorage.getItem('ao_username') || '').trim();
+    hasCredentials = Boolean(username && localStorage.getItem('ao_password'));
+  } catch {
+    // localStorage utilgjengelig → behandles som ikke innlogget
+  }
+  renderAoStatusBadge(document.getElementById('ao-status-dot'), username, hasCredentials);
   if (!dom.aoDirectRow) return;
-  const username = localStorage.getItem('ao_username');
-  const hasCredentials = username && localStorage.getItem('ao_password');
   dom.aoDirectRow.style.display = hasCredentials ? 'block' : 'none';
   // Ligger det funn til gjennomgang hos AO fra før, skal brukeren vite det FØR sending
   // (scoped publisering lar dem stå). Best-effort og cachet — se oppdaterAoKoHint().
@@ -251,25 +296,6 @@ function updateAoDirectVisibility() {
   // Uten innlogging: vis CTA så nye brukere ser at direkte publisering finnes
   const loginCta = document.getElementById('ao-login-cta');
   if (loginCta) loginCta.style.display = hasCredentials ? 'none' : 'flex';
-  const statusDot = document.getElementById('ao-status-dot');
-  if (statusDot) {
-    statusDot.classList.toggle('online', !!hasCredentials);
-    if (hasCredentials) {
-      // Initialer i stedet for en tom grønn prikk — viser i tillegg hvilken
-      // konto som er logget inn (nyttig på delte/felles enheter).
-      // Array.from (ikke .slice) for å dele opp i Unicode-tegn, ikke UTF-16-
-      // enheter — kutter aldri et surrogatpar i to.
-      statusDot.textContent = Array.from(username.trim()).slice(0, 2).join('').toUpperCase();
-      statusDot.title = `Innlogget som ${username} mot Artsobservasjoner`;
-      statusDot.setAttribute('aria-label', `Innlogget som ${username}. Trykk for å endre innlogging.`);
-    } else {
-      // Rødt leses som «noe er galt» — men å ikke være innlogget er appens
-      // helt normale starttilstand. Tekst i stedet for farge fjerner tvetydigheten.
-      statusDot.textContent = 'logg inn';
-      statusDot.title = 'Ikke innlogget mot Artsobservasjoner – trykk for å logge inn';
-      statusDot.setAttribute('aria-label', 'Ikke innlogget mot Artsobservasjoner. Trykk for å logge inn.');
-    }
-  }
 }
 
 function commitFromActivity() {
@@ -487,7 +513,7 @@ function formatRadius(meters) {
 }
 
 // ============================================================
-// Kollaps/utvid ① Lokasjon (festet kompakt linje når plass er valgt)
+// Kollaps/utvid ① Lokasjon (kompakt linje når plass er valgt, ikke sticky)
 // ============================================================
 function collapseLocation() {
   const name = (dom.placeInput && dom.placeInput.value.trim()) || (appState.currentPlaceName || '').trim();
@@ -496,7 +522,11 @@ function collapseLocation() {
   const locPinnedName = document.getElementById('loc-pinned-name');
   const sectionLokasjon = document.querySelector('.section-lokasjon');
   if (locPinnedName) locPinnedName.textContent = name;
-  if (locPinned) locPinned.style.display = 'flex';
+  if (locPinned) {
+    locPinned.style.display = 'flex';
+    // Alltid 'is-released' slik at lokasjonslinja aldri henger sticky over toppen
+    locPinned.classList.add('is-released');
+  }
   if (sectionLokasjon) sectionLokasjon.style.display = 'none';
 }
 
@@ -618,6 +648,31 @@ function expandLocation() {
 // ============================================================
 // Posisjonshåndtering
 // ============================================================
+/**
+ * Etter at brukeren har valgt en lokalitet: scroll ned til raden med «Art» og «Antall»
+ * slik at den står øverst på skjermen. Utløses av 'lokalitet:valgt'-eventet.
+ */
+function scrollToArtAntallRow() {
+  const row = document.getElementById('art-antall-row');
+  if (!row) return;
+  // Vent til ① er kollapset og layouten har satt seg, ellers scroller vi til gammel posisjon.
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      row.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  });
+}
+
+function varsleLokalitetValgt() {
+  const locPinned = document.getElementById('loc-pinned');
+  if (locPinned) {
+    locPinned.classList.add('is-released');
+  }
+  document.dispatchEvent(new CustomEvent('lokalitet:valgt'));
+}
+
+document.addEventListener('lokalitet:valgt', scrollToArtAntallRow);
+
 function makeSetCurrentPlaceAndUpdate() {
   return (name, siteId = null) => {
     avsluttEtterregistrering();
@@ -630,6 +685,7 @@ function makeSetCurrentPlaceAndUpdate() {
     updateSectionStates(appState, dom);
     collapseLocation();
     pulseSearchFieldAndFocus(appState, dom);
+    varsleLokalitetValgt();
   };
 }
 
@@ -655,6 +711,9 @@ function handlePositionUpdate(position, sites, radiusUsed = appState.currentAoSi
   // gammelt sted bare fordi et samtidig AO-kall feilet/degraderte til tom liste.
   if (position) {
     appState.currentPosition = position;
+    if (!position.isFallback) {
+      saveLastKnownPosition(position);
+    }
   }
 
   // Merge-steget (setAoSiteSuggestions → mergeAoSitesWithPrivateCache) kjøres
@@ -737,6 +796,9 @@ function handlePositionUpdate(position, sites, radiusUsed = appState.currentAoSi
     radiusForMerge,
     appState.locationSortMode
   );
+  if (!isOfflineMode() && appState.currentAoSites && appState.currentAoSites.length > 0) {
+    saveOpportunisticOfflineLocations(appState.currentAoSites).catch(() => {});
+  }
   updateSectionStates(appState, dom);
   updateMapBtnVisibility();
   updateCreateSiteBtnVisibility(appState.currentPosition);
@@ -746,9 +808,17 @@ function handlePositionUpdate(position, sites, radiusUsed = appState.currentAoSi
 
   if (apneKartEtterGps) {
     apneKartEtterGps = false;
-    if (position && typeof position.lat === 'number') {
-      openMapPage(appState.currentPosition, appState.currentAoSites, appState.currentAoSizeMeters);
+    const hasCurrentPos = (position && typeof position.lat === 'number' && typeof position.lon === 'number' && !position.isFallback);
+    let mapCenter;
+    if (hasCurrentPos) {
+      mapCenter = appState.currentPosition;
+    } else {
+      const lastKnown = loadLastKnownPosition();
+      mapCenter = (lastKnown && typeof lastKnown.lat === 'number' && typeof lastKnown.lon === 'number')
+        ? { ...lastKnown, isFallback: true, isLastKnown: true }
+        : DEFAULT_MAP_CENTER;
     }
+    openMapPage(mapCenter, appState.currentAoSites, appState.currentAoSizeMeters);
   }
 }
 
@@ -956,58 +1026,66 @@ function setupEventListeners() {
     // Pills (hurtigvalg) lagrer fortsatt umiddelbart
   }
 
-  if (dom.locMapBtn) {
-    // Alltid synlig — trenger ikke posisjon fra før. Har vi ikke GPS-fix
-    // ennå, henter vi det først (som ved «Hent lokasjoner»-knappen) og åpner
-    // kartet automatisk når posisjonen er klar. Gjelder BEGGE modi: i
-    // etterregistrering er «Hent lokasjoner»-knappen skjult, men den gjenbrukes
-    // her programmatisk slik at kartflyten er én og samme kode.
-    dom.locMapBtn.style.display = '';
-    dom.locMapBtn.addEventListener('click', () => {
-      if (appState.currentPosition && typeof appState.currentPosition.lat === 'number') {
-        openMapPage(appState.currentPosition, appState.currentAoSites, appState.currentAoSizeMeters);
-        return;
+  function handleOpenMapImmediately() {
+    const hasCurrentPos = (
+      appState.currentPosition &&
+      typeof appState.currentPosition.lat === 'number' &&
+      typeof appState.currentPosition.lon === 'number' &&
+      !appState.currentPosition.isFallback
+    );
+
+    let userPos;
+    if (hasCurrentPos) {
+      userPos = appState.currentPosition;
+    } else {
+      const lastKnown = loadLastKnownPosition();
+      if (lastKnown && typeof lastKnown.lat === 'number' && typeof lastKnown.lon === 'number') {
+        userPos = { ...lastKnown, isFallback: true, isLastKnown: true };
+      } else {
+        userPos = { ...DEFAULT_MAP_CENTER, isFallback: true };
       }
-      apneKartEtterGps = true;
-      // Statuslinja er skjult i etterregistrering. Uten å vise den her ville
-      // trykket se ut som om ingenting skjedde i de sekundene GPS-fiksen tar
-      // — knappen som trigger hentingen er jo skjult i denne modusen.
-      if (erEtterregistreringsmodus()) {
-        const locStatusRow = document.getElementById('loc-status-row');
-        if (locStatusRow) locStatusRow.style.display = 'flex';
-      }
-      if (dom.locBtn) dom.locBtn.click();
-    });
+    }
+
+    openMapPage(userPos, appState.currentAoSites || [], appState.currentAoSizeMeters || 1000);
   }
 
+  if (dom.locMapBtn) {
+    dom.locMapBtn.style.display = '';
+    dom.locMapBtn.addEventListener('click', handleOpenMapImmediately);
+  }
 
-
+  const locPinnedMapBtn = document.getElementById('loc-pinned-map-btn');
+  if (locPinnedMapBtn) {
+    locPinnedMapBtn.addEventListener('click', handleOpenMapImmediately);
+  }
 
 // Oppdater stil på kart-ikonet basert på posisjon. Knappen er alltid synlig
-// (se setup over) — her styres kun den «aktive» glødende stilen som viser om
-// vi faktisk har et GPS-fix å vise i kartet.
+// og åpner kartet umiddelbart. Her styres den «aktive» glødende stilen som viser om
+// vi har en GPS-posisjon klar.
 function updateMapBtnVisibility() {
-  if (!dom.locMapBtn) return;
-  dom.locMapBtn.style.display = '';
-  if (appState.currentPosition && typeof appState.currentPosition.lat === 'number' && typeof appState.currentPosition.lon === 'number') {
-    dom.locMapBtn.style.background = 'var(--accent)';
-    dom.locMapBtn.style.color = 'white';
-    dom.locMapBtn.style.borderColor = 'var(--accent)';
-    dom.locMapBtn.style.boxShadow = '0 0 0 3px #22c55e55, 0 2px 8px rgba(59,130,246,0.18)';
-    dom.locMapBtn.style.fontWeight = 'bold';
-    dom.locMapBtn.style.fontSize = '1.7em';
-    dom.locMapBtn.title = 'Vis posisjon og AO-lokaliteter i kart';
-    dom.locMapBtn.classList.add('map-btn-active');
-  } else {
-    dom.locMapBtn.style.background = '';
-    dom.locMapBtn.style.color = '';
-    dom.locMapBtn.style.borderColor = '';
-    dom.locMapBtn.style.boxShadow = '';
-    dom.locMapBtn.style.fontWeight = '';
-    dom.locMapBtn.style.fontSize = '';
-    dom.locMapBtn.title = 'Åpne kart (henter posisjon først)';
-    dom.locMapBtn.classList.remove('map-btn-active');
-  }
+  const mapButtons = [dom.locMapBtn, document.getElementById('loc-pinned-map-btn')].filter(Boolean);
+  const hasPos = appState.currentPosition && typeof appState.currentPosition.lat === 'number' && typeof appState.currentPosition.lon === 'number';
+
+  mapButtons.forEach((btn) => {
+    btn.style.display = '';
+    if (hasPos) {
+      btn.style.background = 'var(--accent)';
+      btn.style.color = 'white';
+      btn.style.borderColor = 'var(--accent)';
+      btn.style.boxShadow = '0 0 0 3px #22c55e55, 0 2px 8px rgba(59,130,246,0.18)';
+      btn.style.fontWeight = 'bold';
+      btn.title = 'Vis posisjon og AO-lokaliteter i kart';
+      btn.classList.add('map-btn-active');
+    } else {
+      btn.style.background = '';
+      btn.style.color = '';
+      btn.style.borderColor = '';
+      btn.style.boxShadow = '';
+      btn.style.fontWeight = '';
+      btn.title = 'Åpne kart';
+      btn.classList.remove('map-btn-active');
+    }
+  });
 }
 
 // Gjør funksjonen globalt tilgjengelig for andre moduler (f.eks. location.js)
@@ -1105,6 +1183,7 @@ async function init() {
         dom.placeInput.dataset.autofilled = 'true';
         updateSectionStates(appState, dom);
         collapseLocation();
+        varsleLokalitetValgt();
       },
       () => appState.currentPosition
     );
@@ -1120,6 +1199,7 @@ async function init() {
   // Hvis lokalitet ble valgt fra kart, sett fokus på art-feltet
   if (selectedLocation) {
     pulseSearchFieldAndFocus(appState, dom);
+    varsleLokalitetValgt();
   }
 
   initLocation(
@@ -1201,11 +1281,12 @@ async function hentLokaliteterForRadius(radiusMeters) {
 
   let sites = [];
   try {
-    // Som i location.js: uten ferske tokens sender fetchAoSites ingen
-    // auth-headere, og AO svarer kun med offentlige lokaliteter selv for en
-    // innlogget bruker. No-op med én gang hvis ingen credentials er lagret.
-    await ensureAoTokens();
-    sites = await fetchAoSites(pos.lat, pos.lon, radiusMeters);
+    const res = await fetchLocationsWithNetworkMode(pos.lat, pos.lon, radiusMeters, {
+      ensureTokens: ensureAoTokens,
+      fetchOnline: fetchAoSites,
+      persistOpportunistic: true,
+    });
+    sites = res.sites;
   } catch (e) {
     // Eksterne AO-feil degraderes stille, som ellers i appen.
     // handlePositionUpdate beholder en allerede god liste ved tomt svar.
@@ -1357,20 +1438,204 @@ function setupModeToggle() {
   });
 }
 
+/**
+ * Oppdater UI for 3-veis nettverksvelger (Online / Hybrid / Offline) øverst i hovedgrensesnittet
+ * samt deaktivering av funksjoner som krever nettverk (Fellestur, Tidligere sendt, Mine delinger).
+ */
+export function updateOfflineModeUI() {
+  const toggleBtn = document.getElementById('offline-mode-toggle');
+  const toggleText = document.getElementById('offline-mode-toggle-text');
+
+  const mode = getNetworkMode();
+  const offline = mode === 'offline';
+
+  if (toggleBtn) {
+    toggleBtn.dataset.networkMode = mode;
+
+    if (offline) {
+      if (toggleText) toggleText.textContent = '📴 Offline';
+      toggleBtn.className = 'pill offline-toggle-pill is-offline';
+      toggleBtn.setAttribute('aria-pressed', 'true');
+      toggleBtn.setAttribute('aria-label', 'Nettverksmodus: Offline. Trykk for å bytte til Online.');
+      toggleBtn.title = 'Nettverksmodus: Offline (kun lokalt mellomlager). Trykk for å bytte til Online.';
+    } else if (mode === 'hybrid') {
+      if (toggleText) toggleText.textContent = '🔄 Hybrid';
+      toggleBtn.className = 'pill offline-toggle-pill is-hybrid';
+      toggleBtn.setAttribute('aria-pressed', 'mixed');
+      toggleBtn.setAttribute('aria-label', 'Nettverksmodus: Hybrid. Trykk for å bytte til Offline.');
+      toggleBtn.title = 'Nettverksmodus: Hybrid (lokalt mellomlager først, nettverk ved behov). Trykk for å bytte til Offline.';
+    } else {
+      if (toggleText) toggleText.textContent = '🌐 Online';
+      toggleBtn.className = 'pill offline-toggle-pill is-online';
+      toggleBtn.setAttribute('aria-pressed', 'false');
+      toggleBtn.setAttribute('aria-label', 'Nettverksmodus: Online. Trykk for å bytte til Hybrid.');
+      toggleBtn.title = 'Nettverksmodus: Online (henter alltid ferskeste data). Trykk for å bytte til Hybrid.';
+    }
+  }
+
+  // Deaktiver "Fellestur", "Tidligere sendt" og "Mine delinger" i offline-modus
+  const fellesturBtn = document.getElementById('fellestur-header-btn');
+  const sendtBtn = document.getElementById('tidligere-sendt-link');
+  const delingerBtn = document.getElementById('mine-delinger-link');
+
+  [
+    { el: fellesturBtn, navn: 'Fellestur' },
+    { el: sendtBtn, navn: 'Tidligere sendt' },
+    { el: delingerBtn, navn: 'Mine delinger' },
+  ].forEach(({ el, navn }) => {
+    if (!el) return;
+    el.classList.toggle('is-offline-disabled', offline);
+    el.setAttribute('aria-disabled', offline ? 'true' : 'false');
+    if (offline) {
+      el.title = `${navn}: Ikke tilgjengelig i offline-modus!`;
+    } else {
+      el.removeAttribute('title');
+    }
+  });
+}
+
+/**
+ * Avskjær klikk på nettverksavhengige knapper/lenker mens appen er i offline-modus
+ * og vis dialogen "Ikke tilgjengelig i offline-modus!".
+ */
+function setupOfflineDisabledInterceptors() {
+  const intercept = (el, navn) => {
+    if (!el) return;
+    el.addEventListener('click', (e) => {
+      if (isOfflineMode()) {
+        e.preventDefault();
+        e.stopPropagation();
+        showOfflineNotAvailableDialog(
+          'Ikke tilgjengelig i offline-modus!',
+          `${navn} krever nettverkstilkobling og kan ikke åpnes mens du er i offline-modus.`
+        );
+      }
+    });
+  };
+
+  intercept(document.getElementById('fellestur-header-btn'), 'Fellestur');
+  intercept(document.getElementById('tidligere-sendt-link'), 'Tidligere sendt');
+  intercept(document.getElementById('mine-delinger-link'), 'Mine delinger');
+}
+
+/**
+ * Setup 3-veis nettverksvelger (Online -> Hybrid -> Offline -> Online)
+ */
+function setupOfflineModeToggle() {
+  const toggleBtn = document.getElementById('offline-mode-toggle');
+  if (!toggleBtn) return;
+
+  toggleBtn.addEventListener('click', async () => {
+    const nextMode = cycleNetworkMode();
+    updateOfflineModeUI();
+
+    if (nextMode === 'offline') {
+      try {
+        const offlineSites = await getAllOfflineLocations();
+        if (offlineSites.length > 0) {
+          appState.currentAoSites = setAoSiteSuggestions(
+            offlineSites,
+            appState.currentPosition,
+            erEtterregistreringsmodus() ? null : dom.aoSitesDropdown,
+            dom.aoSitesEl,
+            dom.placeInput,
+            makeSetCurrentPlaceAndUpdate(),
+            appState.currentAoSizeMeters,
+            appState.locationSortMode,
+          );
+          updateLocationTuningVisibility();
+        }
+        showToast(`📴 Offline-modus aktivert (${offlineSites.length} lagrede lokaliteter)`, {
+          raw: true,
+          duration: MODE_SPLASH_DURATION_MS,
+        });
+      } catch (e) {
+        console.warn('Kunne ikke laste offline-lokaliteter:', e);
+        showToast('📴 Offline-modus aktivert', {
+          raw: true,
+          duration: MODE_SPLASH_DURATION_MS,
+        });
+      }
+    } else if (nextMode === 'hybrid') {
+      try {
+        const offlineSites = await getAllOfflineLocations();
+        if ((!appState.currentAoSites || !appState.currentAoSites.length) && offlineSites.length > 0) {
+          appState.currentAoSites = setAoSiteSuggestions(
+            offlineSites,
+            appState.currentPosition,
+            erEtterregistreringsmodus() ? null : dom.aoSitesDropdown,
+            dom.aoSitesEl,
+            dom.placeInput,
+            makeSetCurrentPlaceAndUpdate(),
+            appState.currentAoSizeMeters,
+            appState.locationSortMode,
+          );
+          updateLocationTuningVisibility();
+        }
+      } catch (_) {
+        // Ignorer
+      }
+      showToast('🔄 Hybrid-modus aktivert (lokalt mellomlager først)', {
+        raw: true,
+        duration: MODE_SPLASH_DURATION_MS,
+      });
+    } else {
+      showToast('🌐 Online-modus aktivert', {
+        raw: true,
+        duration: MODE_SPLASH_DURATION_MS,
+      });
+    }
+  });
+}
+
+// Synkroniser knappen umiddelbart ved modul-evaluering (før DOMContentLoaded)
+updateOfflineModeUI();
+
+// Gjenopprettet fra bfcache (tilbake-knappen) eller vanlig navigasjon —
+// les innlogging og nettverksmodus på nytt så badge og modusvelger aldri er utdatert.
+window.addEventListener('pageshow', () => {
+  updateAoDirectVisibility();
+  updateOfflineModeUI();
+  syncNetworkModeToServiceWorker(getNetworkMode()).catch(() => {});
+});
+
+window.addEventListener('network_mode_changed', () => {
+  updateOfflineModeUI();
+});
+
+window.addEventListener('storage', (e) => {
+  if (!e || !e.key || e.key === 'network_mode_v1' || e.key === 'offline_mode_v1') {
+    updateOfflineModeUI();
+  }
+});
+
 window.addEventListener('DOMContentLoaded', () => {
+  // Service Worker registreres og synkroniseres av offline-db.js (samme URL på alle sider)
+  syncNetworkModeToServiceWorker(getNetworkMode()).catch(() => {});
+
   updateSubtaxaCheckboxState();
   init();
   updateMapBtnVisibility();
   updateModeUI();
   setupModeToggle();
+  updateOfflineModeUI();
+  setupOfflineModeToggle();
+  setupOfflineDisabledInterceptors();
   updateAoDirectVisibility();
   setupFellesturBanner();
 
-  // Hent private lokasjoner i bakgrunnen hvis cache mangler eller er utdatert.
-  // hasFreshPrivateSitesCache() — ikke .length === 0 — for at en bruker med
-  // faktisk null private lokasjoner ikke skal hente på nytt ved HVER
-  // sideinnlasting for alltid (se api.js sin ensureAoTokens() for samme fiks).
-  if (!hasFreshPrivateSitesCache()) {
+  // Hvis appen starter i Offline- eller Hybrid-modus, forhåndslast lagrede lokaliteter fra IndexedDB
+  if (isOfflineMode() || isHybridMode()) {
+    getAllOfflineLocations()
+      .then((offlineSites) => {
+        if (offlineSites && offlineSites.length > 0) {
+          appState.currentAoSites = offlineSites;
+        }
+      })
+      .catch(() => {});
+  }
+  if (!isOfflineMode() && !hasFreshPrivateSitesCache()) {
+    // Hent private lokasjoner i bakgrunnen hvis cache mangler eller er utdatert (kun når ikke i streng Offline-modus).
     const tokens = JSON.parse(localStorage.getItem('ao_tokens') || '{}');
     if (tokens.authCookie) {
       fetchAndCachePrivateSites();

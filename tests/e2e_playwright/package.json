@@ -5,6 +5,7 @@
   "scripts": {
     "test": "playwright test",
     "test:mock": "MOCK_PORT=3333 BASE_URL=http://localhost:3333 playwright test",
+    "test:offline": "OFFLINE_MOCK=1 MOCK_PORT=3333 BASE_URL=http://localhost:3333 playwright test tests/offline-pwa.spec.ts --project=chromium",
     "mock": "npx ts-node mock-server.ts",
     "test:with-mock": "npm run mock & sleep 2 && npm run test:mock; kill %1 2>/dev/null || true"
   },

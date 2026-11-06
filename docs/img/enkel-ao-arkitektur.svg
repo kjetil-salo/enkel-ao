@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1100" viewBox="0 0 1600 1100" role="img" aria-labelledby="title description" lang="nb">
+<title id="title">Enkel-AO — arkitektur og dataflyt</title>
+<desc id="description">Fire horisontale lag viser PWA-klienten, Python-serverens endepunkter, ni moduler og SQLite samt eksterne tjenester. Heltrukne piler går via serveren. Stiplede piler viser lokal offlinebruk og karttiles som hentes direkte fra nettleseren.</desc>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M1 1 L9 5 L1 9 Z" fill="#74817d"/></marker><marker id="direct" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#486578" stroke-width="1.5"/></marker></defs>
+<rect x="0" y="0" width="1600" height="1100" rx="0" fill="#faf8f4" stroke="none" stroke-width="1"/>
+<text x="32" y="43" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="700" text-anchor="start" fill="#293738">Enkel-AO — arkitektur og dataflyt</text>
+<text x="33" y="69" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" text-anchor="start" fill="#596665">v1.59.9 · Python 3.12 + vanilla ES6 · Docker på Raspberry Pi</text>
+<text x="1536" y="43" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" text-anchor="end" fill="#596665">FUGLEOBSERVASJONER I FELT → AO</text>
+<rect x="32" y="90" width="1504" height="223" rx="12" fill="#e6edf2" stroke="#8ca3b3" stroke-width="1"/>
+<text x="51" y="115" font-family="Menlo, Consolas, monospace" font-size="12" font-weight="400" text-anchor="start" fill="#486578">01</text>
+<text x="83" y="115" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" text-anchor="start" fill="#486578">KLIENT (PWA i nettleser)</text>
+<rect x="64" y="143" width="351" height="47" rx="7" fill="#f9fbfc" stroke="#8ca3b3" stroke-width="1"/>
+<text x="77" y="163" font-family="Menlo, Consolas, monospace" font-size="15" font-weight="400" text-anchor="start" fill="#293738">index.html</text>
+<text x="77" y="180" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="start" fill="#596665">registrering i felt</text>
+<rect x="427" y="143" width="351" height="47" rx="7" fill="#f9fbfc" stroke="#8ca3b3" stroke-width="1"/>
+<text x="440" y="163" font-family="Menlo, Consolas, monospace" font-size="15" font-weight="400" text-anchor="start" fill="#293738">map.html</text>
+<text x="440" y="180" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="start" fill="#596665">kart (Leaflet)</text>
+<rect x="790" y="143" width="351" height="47" rx="7" fill="#f9fbfc" stroke="#8ca3b3" stroke-width="1"/>
+<text x="803" y="163" font-family="Menlo, Consolas, monospace" font-size="15" font-weight="400" text-anchor="start" fill="#293738">sendt.html</text>
+<text x="803" y="180" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="start" fill="#596665">tidligere sendt, legg på bilde</text>
+<rect x="1153" y="143" width="351" height="47" rx="7" fill="#f9fbfc" stroke="#8ca3b3" stroke-width="1"/>
+<text x="1166" y="163" font-family="Menlo, Consolas, monospace" font-size="15" font-weight="400" text-anchor="start" fill="#293738">fellestur.html</text>
+<text x="1166" y="180" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="start" fill="#596665">delt loggbok for en gruppe</text>
+<rect x="64" y="201" width="351" height="47" rx="7" fill="#f9fbfc" stroke="#8ca3b3" stroke-width="1"/>
+<text x="77" y="221" font-family="Menlo, Consolas, monospace" font-size="15" font-weight="400" text-anchor="start" fill="#293738">settings.html</text>
+<text x="77" y="238" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="start" fill="#596665">innstillinger</text>
+<rect x="427" y="201" width="351" height="47" rx="7" fill="#f9fbfc" stroke="#8ca3b3" stroke-width="1"/>
+<text x="440" y="221" font-family="Menlo, Consolas, monospace" font-size="15" font-weight="400" text-anchor="start" fill="#293738">share / mine-delinger.html</text>
+<text x="440" y="238" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="start" fill="#596665">deling</text>
+<rect x="790" y="201" width="351" height="47" rx="7" fill="#f9fbfc" stroke="#8ca3b3" stroke-width="1"/>
+<text x="803" y="221" font-family="Menlo, Consolas, monospace" font-size="15" font-weight="400" text-anchor="start" fill="#293738">feedback.html</text>
+<text x="803" y="238" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="start" fill="#596665">tilbakemelding</text>
+<rect x="1153" y="201" width="351" height="47" rx="7" fill="#f9fbfc" stroke="#8ca3b3" stroke-width="1"/>
+<text x="1166" y="221" font-family="Menlo, Consolas, monospace" font-size="15" font-weight="400" text-anchor="start" fill="#293738">sw.js</text>
+<text x="1166" y="238" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="start" fill="#596665">service worker (offline)</text>
+<rect x="64" y="266" width="560" height="40" rx="7" fill="#f4f7f9" stroke="#8ca3b3" stroke-width="1"/>
+<text x="78" y="282" font-family="Menlo, Consolas, monospace" font-size="13.5" font-weight="400" text-anchor="start" fill="#293738">localStorage</text>
+<text x="78" y="300" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="400" text-anchor="start" fill="#596665">observasjoner · innstillinger · cache for lokaliteter</text>
+<rect x="640" y="266" width="864" height="40" rx="7" fill="#f4f7f9" stroke="#8ca3b3" stroke-width="1"/>
+<text x="654" y="282" font-family="Menlo, Consolas, monospace" font-size="13.5" font-weight="400" text-anchor="start" fill="#293738">ES6-moduler (public/js/)</text>
+<text x="654" y="300" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="400" text-anchor="start" fill="#596665">observations · location · map · api · storage · bilde-editor · rarity</text>
+<path d="M120 266 V257 H48 V166 H64" fill="none" stroke="#486578" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="6 5" marker-end="url(#direct)"/>
+<text x="134" y="261" font-family="Arial, Helvetica, sans-serif" font-size="11.5" font-weight="400" text-anchor="start" fill="#486578">virker offline</text>
+<path d="M460 313 V351" fill="none" stroke="#74817d" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)"/>
+<path d="M1130 313 V351" fill="none" stroke="#74817d" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)"/>
+<text x="784" y="339" font-family="Menlo, Consolas, monospace" font-size="14" font-weight="400" text-anchor="middle" fill="#566a4c">fetch / JSON</text>
+<rect x="32" y="351" width="1504" height="271" rx="12" fill="#e8ede3" stroke="#95a28a" stroke-width="1"/>
+<text x="51" y="376" font-family="Menlo, Consolas, monospace" font-size="12" font-weight="400" text-anchor="start" fill="#566a4c">02</text>
+<text x="83" y="376" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" text-anchor="start" fill="#566a4c">SERVER (server.py — Handler)</text>
+<rect x="48" y="388" width="1472" height="220" rx="8" fill="#f9fbf7" stroke="#95a28a" stroke-width="1"/>
+<text x="65" y="410" font-family="Menlo, Consolas, monospace" font-size="16" font-weight="400" text-anchor="start" fill="#293738">server.py · ThreadingHTTPServer · port 3000</text>
+<text x="1502" y="410" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="400" text-anchor="end" fill="#596665">Python 3.12 · uten rammeverk</text>
+<path d="M65 420 H1503" fill="none" stroke="#95a28a" stroke-width="0.8" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M774 432 V596" fill="none" stroke="#95a28a" stroke-width="0.8" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="65" y="439" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="700" text-anchor="start" fill="#566a4c">Oppslag</text>
+<text x="795" y="439" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="700" text-anchor="start" fill="#566a4c">Skriving</text>
+<text x="65" y="459.0" font-family="Menlo, Consolas, monospace" font-size="13.5" font-weight="400" text-anchor="start" fill="#293738">/api/species</text>
+<text x="310" y="459.0" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="start" fill="#293738">artssøk</text>
+<text x="65" y="478.7" font-family="Menlo, Consolas, monospace" font-size="13.5" font-weight="400" text-anchor="start" fill="#293738">/api/reverse</text>
+<text x="310" y="478.7" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="start" fill="#293738">stedsnavn (reverse geocoding)</text>
+<text x="65" y="498.4" font-family="Menlo, Consolas, monospace" font-size="13.5" font-weight="400" text-anchor="start" fill="#293738">/api/ao-sites</text>
+<text x="310" y="498.4" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="start" fill="#293738">lokaliteter i nærheten (bbox)</text>
+<text x="65" y="518.1" font-family="Menlo, Consolas, monospace" font-size="13.5" font-weight="400" text-anchor="start" fill="#293738">/api/ao-autocomplete</text>
+<text x="310" y="518.1" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="start" fill="#293738">tekstsøk på lokalitet</text>
+<text x="65" y="537.8" font-family="Menlo, Consolas, monospace" font-size="13.5" font-weight="400" text-anchor="start" fill="#293738">/api/ao-rarity</text>
+<text x="310" y="537.8" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="start" fill="#293738">sjeldenhetsvarsel</text>
+<text x="795" y="459.0" font-family="Menlo, Consolas, monospace" font-size="13.5" font-weight="400" text-anchor="start" fill="#293738">/api/ao-login</text>
+<text x="1045" y="459.0" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="start" fill="#293738">innlogging på AO</text>
+<text x="795" y="478.7" font-family="Menlo, Consolas, monospace" font-size="13.5" font-weight="400" text-anchor="start" fill="#293738">/api/ao-import</text>
+<text x="1045" y="478.7" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="start" fill="#293738">publiser observasjoner</text>
+<text x="795" y="498.4" font-family="Menlo, Consolas, monospace" font-size="13.5" font-weight="400" text-anchor="start" fill="#293738">/api/ao-import-stream</text>
+<text x="1045" y="498.4" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="start" fill="#293738">samme, med fremdrift (SSE)</text>
+<text x="795" y="518.1" font-family="Menlo, Consolas, monospace" font-size="13.5" font-weight="400" text-anchor="start" fill="#293738">/api/ao-my-sightings</text>
+<text x="1045" y="518.1" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="start" fill="#293738">mine publiserte funn</text>
+<text x="795" y="537.8" font-family="Menlo, Consolas, monospace" font-size="13.5" font-weight="400" text-anchor="start" fill="#293738">/api/ao-upload-image</text>
+<text x="1045" y="537.8" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="start" fill="#293738">legg bilde på publisert funn</text>
+<text x="795" y="557.5" font-family="Menlo, Consolas, monospace" font-size="13.5" font-weight="400" text-anchor="start" fill="#293738">/api/share</text>
+<text x="1045" y="557.5" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="start" fill="#293738">lag delbar lenke</text>
+<text x="795" y="577.2" font-family="Menlo, Consolas, monospace" font-size="13.5" font-weight="400" text-anchor="start" fill="#293738">/api/fellestur</text>
+<text x="1045" y="577.2" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="start" fill="#293738">delt loggbok</text>
+<text x="795" y="596.9" font-family="Menlo, Consolas, monospace" font-size="13.5" font-weight="400" text-anchor="start" fill="#293738">/api/feedback</text>
+<text x="1045" y="596.9" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="start" fill="#293738">tilbakemelding</text>
+<path d="M460 622 V663" fill="none" stroke="#74817d" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)"/>
+<path d="M1130 622 V663" fill="none" stroke="#74817d" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)"/>
+<rect x="32" y="663" width="1504" height="140" rx="12" fill="#f3ead9" stroke="#b6a17a" stroke-width="1"/>
+<text x="51" y="688" font-family="Menlo, Consolas, monospace" font-size="12" font-weight="400" text-anchor="start" fill="#856c3d">03</text>
+<text x="83" y="688" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" text-anchor="start" fill="#856c3d">MODULER (src/)</text>
+<rect x="48.0" y="701" width="156.44444444444446" height="88" rx="7" fill="#fdfbf7" stroke="#b6a17a" stroke-width="1"/>
+<text x="57.0" y="722" font-family="Menlo, Consolas, monospace" font-size="12.2" font-weight="400" text-anchor="start" fill="#293738">api_handlers.py</text>
+<text x="57.0" y="744" font-family="Arial, Helvetica, sans-serif" font-size="13.2" font-weight="400" text-anchor="start" fill="#596665">alle eksterne oppslag</text>
+<rect x="212.44444444444446" y="701" width="156.44444444444446" height="88" rx="7" fill="#fdfbf7" stroke="#b6a17a" stroke-width="1"/>
+<text x="221.44444444444446" y="722" font-family="Menlo, Consolas, monospace" font-size="12.2" font-weight="400" text-anchor="start" fill="#293738">ao_import_httpx.py</text>
+<text x="221.44444444444446" y="744" font-family="Arial, Helvetica, sans-serif" font-size="13.2" font-weight="400" text-anchor="start" fill="#596665">CSV-import og</text>
+<text x="221.44444444444446" y="760" font-family="Arial, Helvetica, sans-serif" font-size="13.2" font-weight="400" text-anchor="start" fill="#596665">publisering til AO</text>
+<rect x="376.8888888888889" y="701" width="156.44444444444446" height="88" rx="7" fill="#fdfbf7" stroke="#b6a17a" stroke-width="1"/>
+<text x="385.8888888888889" y="722" font-family="Menlo, Consolas, monospace" font-size="12.2" font-weight="400" text-anchor="start" fill="#293738">ao_sightings.py</text>
+<text x="385.8888888888889" y="744" font-family="Arial, Helvetica, sans-serif" font-size="13.2" font-weight="400" text-anchor="start" fill="#596665">henter brukerens egne</text>
+<text x="385.8888888888889" y="760" font-family="Arial, Helvetica, sans-serif" font-size="13.2" font-weight="400" text-anchor="start" fill="#596665">funn fra AO</text>
+<rect x="541.3333333333334" y="701" width="156.44444444444446" height="88" rx="7" fill="#fdfbf7" stroke="#b6a17a" stroke-width="1"/>
+<text x="550.3333333333334" y="722" font-family="Menlo, Consolas, monospace" font-size="12.2" font-weight="400" text-anchor="start" fill="#293738">location_db.py</text>
+<text x="550.3333333333334" y="744" font-family="Arial, Helvetica, sans-serif" font-size="13.2" font-weight="400" text-anchor="start" fill="#596665">oppslag i</text>
+<text x="550.3333333333334" y="760" font-family="Arial, Helvetica, sans-serif" font-size="13.2" font-weight="400" text-anchor="start" fill="#596665">lokasjonsdatabasen</text>
+<rect x="705.7777777777778" y="701" width="156.44444444444446" height="88" rx="7" fill="#fdfbf7" stroke="#b6a17a" stroke-width="1"/>
+<text x="714.7777777777778" y="722" font-family="Menlo, Consolas, monospace" font-size="12.2" font-weight="400" text-anchor="start" fill="#293738">share_store.py</text>
+<text x="714.7777777777778" y="744" font-family="Arial, Helvetica, sans-serif" font-size="13.2" font-weight="400" text-anchor="start" fill="#596665">delte lister</text>
+<rect x="870.2222222222223" y="701" width="156.44444444444446" height="88" rx="7" fill="#fdfbf7" stroke="#b6a17a" stroke-width="1"/>
+<text x="879.2222222222223" y="722" font-family="Menlo, Consolas, monospace" font-size="12.2" font-weight="400" text-anchor="start" fill="#293738">fellestur_store.py</text>
+<text x="879.2222222222223" y="744" font-family="Arial, Helvetica, sans-serif" font-size="13.2" font-weight="400" text-anchor="start" fill="#596665">delt loggbok</text>
+<rect x="1034.6666666666667" y="701" width="156.44444444444446" height="88" rx="7" fill="#fdfbf7" stroke="#b6a17a" stroke-width="1"/>
+<text x="1043.6666666666667" y="722" font-family="Menlo, Consolas, monospace" font-size="12.2" font-weight="400" text-anchor="start" fill="#293738">fellestur_peer.py</text>
+<text x="1043.6666666666667" y="744" font-family="Arial, Helvetica, sans-serif" font-size="13.2" font-weight="400" text-anchor="start" fill="#596665">føderasjon mot andre</text>
+<text x="1043.6666666666667" y="760" font-family="Arial, Helvetica, sans-serif" font-size="13.2" font-weight="400" text-anchor="start" fill="#596665">apper</text>
+<rect x="1199.1111111111113" y="701" width="156.44444444444446" height="88" rx="7" fill="#fdfbf7" stroke="#b6a17a" stroke-width="1"/>
+<text x="1208.1111111111113" y="722" font-family="Menlo, Consolas, monospace" font-size="12.2" font-weight="400" text-anchor="start" fill="#293738">feedback_store.py</text>
+<text x="1208.1111111111113" y="744" font-family="Arial, Helvetica, sans-serif" font-size="13.2" font-weight="400" text-anchor="start" fill="#596665">tilbakemeldinger</text>
+<rect x="1363.5555555555557" y="701" width="156.44444444444446" height="88" rx="7" fill="#fdfbf7" stroke="#b6a17a" stroke-width="1"/>
+<text x="1372.5555555555557" y="722" font-family="Menlo, Consolas, monospace" font-size="12.2" font-weight="400" text-anchor="start" fill="#293738">stats_store.py</text>
+<text x="1372.5555555555557" y="744" font-family="Arial, Helvetica, sans-serif" font-size="13.2" font-weight="400" text-anchor="start" fill="#596665">statistikk og</text>
+<text x="1372.5555555555557" y="760" font-family="Arial, Helvetica, sans-serif" font-size="13.2" font-weight="400" text-anchor="start" fill="#596665">hendelseslogg</text>
+<path d="M342 803 V849" fill="none" stroke="#74817d" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)"/>
+<path d="M1104 803 V849" fill="none" stroke="#74817d" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)"/>
+<text x="356" y="831" font-family="Arial, Helvetica, sans-serif" font-size="12.5" font-weight="400" text-anchor="start" fill="#596665">lagring / oppslag</text>
+<text x="1118" y="831" font-family="Arial, Helvetica, sans-serif" font-size="12.5" font-weight="400" text-anchor="start" fill="#596665">HTTP / e-post / føderasjon</text>
+<rect x="32" y="849" width="620" height="143" rx="12" fill="#f3e6e0" stroke="#bc9587" stroke-width="1"/>
+<rect x="672" y="849" width="864" height="143" rx="12" fill="#f3e6e0" stroke="#bc9587" stroke-width="1"/>
+<text x="51" y="874" font-family="Menlo, Consolas, monospace" font-size="12" font-weight="400" text-anchor="start" fill="#925f50">04</text>
+<text x="83" y="874" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" text-anchor="start" fill="#925f50">SQLite (Docker-volum)</text>
+<text x="691" y="874" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" text-anchor="start" fill="#925f50">EKSTERNE TJENESTER</text>
+<rect x="48" y="889" width="588" height="40" rx="6" fill="#fdf9f6" stroke="#bc9587" stroke-width="1"/>
+<text x="60" y="906" font-family="Menlo, Consolas, monospace" font-size="14" font-weight="400" text-anchor="start" fill="#293738">stats.db</text>
+<text x="60" y="922" font-family="Arial, Helvetica, sans-serif" font-size="13.5" font-weight="400" text-anchor="start" fill="#596665">deling · fellestur · tilbakemelding · statistikk</text>
+<rect x="48" y="936" width="588" height="40" rx="6" fill="#fdf9f6" stroke="#bc9587" stroke-width="1"/>
+<text x="60" y="953" font-family="Menlo, Consolas, monospace" font-size="14" font-weight="400" text-anchor="start" fill="#293738">locations.db</text>
+<text x="60" y="969" font-family="Arial, Helvetica, sans-serif" font-size="13.5" font-weight="400" text-anchor="start" fill="#596665">487 000 norske AO-lokaliteter, 78 MB</text>
+<rect x="688" y="889" width="410" height="32" rx="5" fill="#fdf9f6" stroke="#bc9587" stroke-width="0.8"/>
+<text x="698" y="903.5" font-family="Menlo, Consolas, monospace" font-size="12.2" font-weight="400" text-anchor="start" fill="#293738">artsobservasjoner.no</text>
+<text x="698" y="916" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="400" text-anchor="start" fill="#596665">artssøk, innlogging, publisering</text>
+<rect x="688" y="922" width="410" height="32" rx="5" fill="#fdf9f6" stroke="#bc9587" stroke-width="0.8"/>
+<text x="698" y="936.5" font-family="Menlo, Consolas, monospace" font-size="12.2" font-weight="400" text-anchor="start" fill="#293738">mobil.artsobservasjoner.no</text>
+<text x="698" y="949" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="400" text-anchor="start" fill="#596665">lokaliteter</text>
+<rect x="688" y="955" width="410" height="32" rx="5" fill="#fdf9f6" stroke="#bc9587" stroke-width="0.8"/>
+<text x="698" y="969.5" font-family="Menlo, Consolas, monospace" font-size="12.2" font-weight="400" text-anchor="start" fill="#293738">Nominatim (OpenStreetMap)</text>
+<text x="698" y="982" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="400" text-anchor="start" fill="#596665">stedsnavn</text>
+<rect x="1110" y="889" width="410" height="32" rx="5" fill="#fdf9f6" stroke="#bc9587" stroke-width="0.8"/>
+<text x="1120" y="903.5" font-family="Menlo, Consolas, monospace" font-size="12.2" font-weight="400" text-anchor="start" fill="#293738">Kartverket WMTS / OSM</text>
+<text x="1120" y="916" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="400" text-anchor="start" fill="#596665">karttiles · direkte fra map.html</text>
+<rect x="1110" y="922" width="410" height="32" rx="5" fill="#fdf9f6" stroke="#bc9587" stroke-width="0.8"/>
+<text x="1120" y="936.5" font-family="Menlo, Consolas, monospace" font-size="12.2" font-weight="400" text-anchor="start" fill="#293738">SMTP2GO</text>
+<text x="1120" y="949" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="400" text-anchor="start" fill="#596665">e-postvarsel</text>
+<rect x="1110" y="955" width="410" height="32" rx="5" fill="#fdf9f6" stroke="#bc9587" stroke-width="0.8"/>
+<text x="1120" y="969.5" font-family="Menlo, Consolas, monospace" font-size="12.2" font-weight="400" text-anchor="start" fill="#293738">Feltlogg (peer)</text>
+<text x="1120" y="982" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="400" text-anchor="start" fill="#596665">fellestur-føderasjon</text>
+<path d="M602 143 V134 H1572 V904 H1520" fill="none" stroke="#486578" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="6 5" marker-end="url(#direct)"/>
+<g transform="translate(1563 595) rotate(-90)">
+<rect x="-62" y="-13" width="124" height="22" rx="4" fill="#faf8f4" stroke="none" stroke-width="1"/>
+<text x="0" y="3" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="400" text-anchor="middle" fill="#486578">tiles, direkte</text>
+</g>
+<path d="M255 1006 V992" fill="none" stroke="#bc9587" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M650 1006 H662 V904 H688" fill="none" stroke="#bc9587" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M1472 1006 V999 H1547 V974 H1536" fill="none" stroke="#bc9587" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+<rect x="32" y="1006" width="430" height="63" rx="7" fill="#faf6f1" stroke="#d9c9bd" stroke-width="0.8"/>
+<text x="44" y="1028" font-family="Menlo, Consolas, monospace" font-size="12" font-weight="400" text-anchor="start" fill="#925f50">2</text>
+<text x="66" y="1026" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="400" text-anchor="start" fill="#596665">Koordinater lagres aldri i delinger eller fellestur.</text>
+<rect x="478" y="1006" width="508" height="63" rx="7" fill="#faf6f1" stroke="#d9c9bd" stroke-width="0.8"/>
+<text x="490" y="1028" font-family="Menlo, Consolas, monospace" font-size="12" font-weight="400" text-anchor="start" fill="#925f50">3</text>
+<text x="512" y="1026" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="400" text-anchor="start" fill="#596665">Appen har ingen offisiell API-avtale — den bruker AOs egne skjemaer og</text>
+<text x="512" y="1042" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="400" text-anchor="start" fill="#596665">endepunkter.</text>
+<rect x="1002" y="1006" width="534" height="63" rx="7" fill="#faf6f1" stroke="#d9c9bd" stroke-width="0.8"/>
+<text x="1014" y="1028" font-family="Menlo, Consolas, monospace" font-size="12" font-weight="400" text-anchor="start" fill="#925f50">1</text>
+<text x="1036" y="1026" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="400" text-anchor="start" fill="#596665">Feil mot eksterne API-er svarer tomt og status 200 — aldri 500. Appen skal</text>
+<text x="1036" y="1042" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="400" text-anchor="start" fill="#596665">degradere, ikke kræsje.</text>
+<text x="32" y="1090" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="400" text-anchor="start" fill="#596665">AO = Artsobservasjoner.no</text>
+<path d="M802 1086 H834" fill="none" stroke="#74817d" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)"/>
+<text x="844" y="1090" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="400" text-anchor="start" fill="#596665">Heltrukken pil = går via vår server</text>
+<path d="M1200 1086 H1232" fill="none" stroke="#486578" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="6 5" marker-end="url(#direct)"/>
+<text x="1242" y="1090" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="400" text-anchor="start" fill="#596665">Stiplet pil = går direkte / lokalt</text>
+</svg>

@@ -477,14 +477,13 @@ def _full_relogin(user_id: str, login_token: str = None, username: str = None) -
         Ny .ASPXAUTHNO hvis vellykket, ellers None.
     """
     # Denne funksjonen kalles KUN når sliding expiration feilet (cookie utløpt).
-    # Logger som ERROR for å gi statistikk på hvor ofte dette skjer.
-    logger.error(f'[AUTH-RELOGIN-REQUIRED] Sliding expiration feilet for user_id={user_id}, må logge inn på nytt')
+    logger.info(f'[AUTH-RELOGIN-REQUIRED] Sliding expiration feilet for user_id={user_id}, må logge inn på nytt')
 
     # Steg 1: Prøv logintoken-refresh (ingen credentials nødvendig)
     if login_token:
         new_cookie = _refresh_with_logintoken(login_token, user_id)
         if new_cookie:
-            logger.error(f'[AUTH-RELOGIN-RESULT] Logintoken-refresh vellykket for user_id={user_id}')
+            logger.info(f'[AUTH-RELOGIN-RESULT] Logintoken-refresh vellykket for user_id={user_id}')
             return new_cookie
     else:
         # Uten token er revival umulig — skiller «AO nektet» fra «token kom aldri fram»
@@ -492,21 +491,21 @@ def _full_relogin(user_id: str, login_token: str = None, username: str = None) -
 
     # Steg 2: Full relogin med lagrede credentials (fra disk, nøkkel = brukernavn)
     if not username:
-        logger.error(f'[AUTH-RELOGIN-RESULT] Intet brukernavn oppgitt for user_id={user_id} — kan ikke slå opp lagrede credentials')
+        logger.warning(f'[AUTH-RELOGIN-RESULT] Intet brukernavn oppgitt for user_id={user_id} — kan ikke slå opp lagrede credentials')
         return None
 
     creds = _load_credentials(username)
     if not creds:
-        logger.error(f'[AUTH-RELOGIN-RESULT] Ingen lagrede credentials for bruker={username} (user_id={user_id}) — bruker må logge inn manuelt')
+        logger.warning(f'[AUTH-RELOGIN-RESULT] Ingen lagrede credentials for bruker={username} (user_id={user_id}) — bruker må logge inn manuelt')
         return None
 
     saved_username, password = creds
     try:
         result = login_to_ao(saved_username, password)
-        logger.error(f'[AUTH-RELOGIN-RESULT] Credentials-relogin vellykket for bruker={saved_username} (user_id={user_id})')
+        logger.info(f'[AUTH-RELOGIN-RESULT] Credentials-relogin vellykket for bruker={saved_username} (user_id={user_id})')
         return result['authCookie']
     except Exception as e:
-        logger.error(f'[AUTH-RELOGIN-RESULT] Credentials-relogin feilet for bruker={username} (user_id={user_id}): {e}')
+        logger.warning(f'[AUTH-RELOGIN-RESULT] Credentials-relogin feilet for bruker={username} (user_id={user_id}): {e}')
         return None
 
 
@@ -669,7 +668,15 @@ def handle_ao_private_sites(auth_cookie: str, ao_base_url: str = 'https://www.ar
             timeout=15,
         )
         response.raise_for_status()
-        data = response.json()
+        resp_url = str(getattr(response, 'url', '') or '')
+        if '/LogOn' in resp_url:
+            logger.warning('[AO-PRIVATE-SITES] Ble sendt til /LogOn — sesjon er utløpt')
+            return [], refreshed_auth_cookie
+        try:
+            data = response.json()
+        except ValueError:
+            logger.warning('[AO-PRIVATE-SITES] Fikk ikke-JSON svar fra AO — sesjon er trolig utløpt')
+            return [], refreshed_auth_cookie
 
     sites = []
     for item in data.get('data', []):
@@ -857,14 +864,64 @@ def _fetch_private_site_ids(lat, lon, size_m, ao_login, ao_auth, ao_user_id, ref
     return my_site_ids, refreshed_auth_cookie, auth_failed
 
 
-def _fetch_public_sites(bbox, ao_mobile_base_url):
+_PUBLIC_SITES_MAX = 1000          # AOs tak per ByBoundingBox-kall
+_PUBLIC_SITES_MAX_SPLIT_DEPTH = 3  # opptil 4^3 = 64 delkall i verste fall
+
+
+def _site_raw_id(item):
+    if not isinstance(item, dict):
+        return None
+    return item.get('id') or item.get('Id') or item.get('siteId')
+
+
+def _fetch_public_sites(bbox, ao_mobile_base_url, _depth=0):
     """Hent offentlige lokasjoner via ByBoundingBox API.
+
+    AO returnerer maks 1000 lokasjoner per kall og kutter resten stille. Når taket nås
+    deles boksen i fire og hver del hentes for seg (dedupliseres på id), slik at tette
+    områder ikke mister lokaliteter — viktig ved nedlasting av hele offline-rektangler.
 
     Returns:
         list: Rå site-dicts fra API-et
     """
+    raw = _fetch_public_sites_once(bbox, ao_mobile_base_url)
+    if len(raw) < _PUBLIC_SITES_MAX or _depth >= _PUBLIC_SITES_MAX_SPLIT_DEPTH:
+        return raw
+
+    mid_x = (bbox['min_x'] + bbox['max_x']) / 2.0
+    mid_y = (bbox['min_y'] + bbox['max_y']) / 2.0
+    quadrants = [
+        {'min_x': bbox['min_x'], 'max_x': mid_x, 'min_y': bbox['min_y'], 'max_y': mid_y},
+        {'min_x': mid_x, 'max_x': bbox['max_x'], 'min_y': bbox['min_y'], 'max_y': mid_y},
+        {'min_x': bbox['min_x'], 'max_x': mid_x, 'min_y': mid_y, 'max_y': bbox['max_y']},
+        {'min_x': mid_x, 'max_x': bbox['max_x'], 'min_y': mid_y, 'max_y': bbox['max_y']},
+    ]
+    merged = {}
+    extra = []
+    for quad in quadrants:
+        try:
+            part = _fetch_public_sites(quad, ao_mobile_base_url, _depth + 1)
+        except Exception as e:
+            logger.warning(f'AO-sites: delkall feilet ({e}), bruker det som er hentet')
+            continue
+        for item in part:
+            sid = _site_raw_id(item)
+            if sid is None:
+                extra.append(item)
+            else:
+                merged[sid] = item
+    # Behold det første kallet som reserve dersom alle delkall feilet
+    for item in raw:
+        sid = _site_raw_id(item)
+        if sid is not None:
+            merged.setdefault(sid, item)
+    return list(merged.values()) + extra
+
+
+def _fetch_public_sites_once(bbox, ao_mobile_base_url):
+    """Ett enkelt ByBoundingBox-kall (maks 1000 lokasjoner)."""
     query_params = {
-        'maxSites': '1000',
+        'maxSites': str(_PUBLIC_SITES_MAX),
         'minX': f'{bbox["min_x"]:.6f}', 'minY': f'{bbox["min_y"]:.6f}',
         'maxX': f'{bbox["max_x"]:.6f}', 'maxY': f'{bbox["max_y"]:.6f}',
         'includePublicSites': 'true',
@@ -985,7 +1042,7 @@ def _mark_env_owned_sites(sites):
         pass
 
 
-def handle_ao_sites_search(lat, lon, size_m=600.0, ao_mobile_base_url='https://mobil.artsobservasjoner.no', user_id=None, login_token=None, auth_cookie=None, location_db=None, username=None):
+def handle_ao_sites_search(lat=None, lon=None, size_m=600.0, ao_mobile_base_url='https://mobil.artsobservasjoner.no', user_id=None, login_token=None, auth_cookie=None, location_db=None, username=None, north=None, south=None, east=None, west=None):
     """Håndter søk etter AO-lokaliteter.
 
     Hvis location_db er satt, søkes det parallelt i lokal DB og AO.
@@ -994,11 +1051,37 @@ def handle_ao_sites_search(lat, lon, size_m=600.0, ao_mobile_base_url='https://m
     Returns:
         tuple: (sites_list, refreshed_auth_cookie_or_None, auth_failed_bool)
     """
+    explicit_bbox = None
+    if north is not None and south is not None and east is not None and west is not None and str(north) != '' and str(south) != '' and str(east) != '' and str(west) != '':
+        try:
+            n_val = float(north)
+            s_val = float(south)
+            e_val = float(east)
+            w_val = float(west)
+            explicit_bbox = {
+                'min_x': min(w_val, e_val),
+                'max_x': max(w_val, e_val),
+                'min_y': min(s_val, n_val),
+                'max_y': max(s_val, n_val),
+            }
+        except ValueError:
+            raise ValueError('Ugyldig bounding box (north/south/east/west)')
+
     try:
-        lat = float(lat)
-        lon = float(lon)
-        size_m = float(size_m) if size_m else 600.0
-    except ValueError:
+        if explicit_bbox and (lat is None or str(lat) == '' or lon is None or str(lon) == ''):
+            lat = (explicit_bbox['min_y'] + explicit_bbox['max_y']) / 2.0
+            lon = (explicit_bbox['min_x'] + explicit_bbox['max_x']) / 2.0
+        else:
+            lat = float(lat)
+            lon = float(lon)
+
+        if explicit_bbox:
+            lat_span_m = (explicit_bbox['max_y'] - explicit_bbox['min_y']) * 111_320.0
+            lon_span_m = (explicit_bbox['max_x'] - explicit_bbox['min_x']) * 111_320.0 * max(0.05, math.cos(math.radians(lat)))
+            size_m = max(lat_span_m, lon_span_m) / 2.0
+        else:
+            size_m = float(size_m) if size_m else 600.0
+    except (ValueError, TypeError):
         raise ValueError('Ugyldig lat/lon/size')
 
     ao_user_id = user_id or (login_token.split(':')[0] if login_token and ':' in login_token else None)
@@ -1008,7 +1091,7 @@ def handle_ao_sites_search(lat, lon, size_m=600.0, ao_mobile_base_url='https://m
     ao_auth, refreshed_auth_cookie = _ensure_auth(ao_auth, ao_user_id, login_token, username=username)
 
     # Beregn bounding box
-    bbox = _compute_bbox(lat, lon, size_m)
+    bbox = explicit_bbox if explicit_bbox else _compute_bbox(lat, lon, size_m)
     logger.debug(f'AO-sites: lat={lat:.6f}, lon={lon:.6f}, size_m={size_m:.1f}')
 
     ao_login = login_token or os.getenv('AO_LOGIN_TOKEN')
@@ -1022,7 +1105,15 @@ def handle_ao_sites_search(lat, lon, size_m=600.0, ao_mobile_base_url='https://m
     local_sites = []
     if location_db:
         try:
-            local_sites = location_db.search_nearby(lat, lon, radius_m=int(size_m))
+            if explicit_bbox and hasattr(location_db, 'search_in_bbox'):
+                local_sites = location_db.search_in_bbox(
+                    explicit_bbox['min_y'],
+                    explicit_bbox['max_y'],
+                    explicit_bbox['min_x'],
+                    explicit_bbox['max_x'],
+                )
+            else:
+                local_sites = location_db.search_nearby(lat, lon, radius_m=int(size_m))
             logger.debug(f'Lokal DB: {len(local_sites)} treff')
         except Exception as e:
             logger.warning(f'Lokal DB-søk feilet: {e}')
@@ -1223,4 +1314,6 @@ def get_ao_rarity(taxon_id, site_id, date_str: str, user_id: str = None, login_t
         return None, refreshed_auth_cookie
 
     result = check_taxon_rarity(taxon_id, areas_csv, date_str, auth_cookie, login_token)
+    if result is not None:
+        result['areas'] = areas_csv
     return result, refreshed_auth_cookie
