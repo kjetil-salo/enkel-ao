@@ -3,9 +3,9 @@
  */
 
 // Versjonert import
-import { createAoSite, ensureAoTokens, fetchAoSitesCached, fetchAoSitesByBounds, getCachedPrivateSites, hasActiveAoLogin } from './api.js?v=v1.60.5';
-import { mergeAoSitesWithPrivateCache, isPrivateSite, shouldShowOthersPrivateSites, DEFAULT_MAP_CENTER } from './location.js?v=v1.60.5';
-import { saveLastKnownPosition, loadLastKnownPosition } from './storage.js?v=v1.60.5';
+import { createAoSite, ensureAoTokens, fetchAoSitesCached, fetchAoSitesByBounds, getCachedPrivateSites, hasActiveAoLogin } from './api.js?v=v1.60.6';
+import { mergeAoSitesWithPrivateCache, isPrivateSite, shouldShowOthersPrivateSites, DEFAULT_MAP_CENTER } from './location.js?v=v1.60.6';
+import { saveLastKnownPosition, loadLastKnownPosition } from './storage.js?v=v1.60.6';
 import { haversine } from './utils.js';
 // Versjonert import: HARD avhengighet til navngitte eksporter i en modul som
 // er ny her. Samme begrunnelse som location.js-importen over.
@@ -17,7 +17,7 @@ import {
   tilLagretVerdi,
   visLokaliteter,
   visNavn,
-} from './kart-visning.js?v=v1.60.5';
+} from './kart-visning.js?v=v1.60.6';
 import {
   DEFAULT_OFFLINE_AREA_SIDE_M,
   KARTVERKET_TOPO_URL_TEMPLATE,
@@ -25,6 +25,9 @@ import {
   MAX_TILE_BATCH_SIZE,
   OFFLINE_ZOOM_LEVELS,
   calculateTilesForBounds,
+  boundsAreaKm2,
+  MAX_OFFLINE_AREA_KM2,
+  KB_PER_FLIS,
   computeDynamicFetchBounds,
   createCenteredBounds,
   downloadTilesInBatches,
@@ -35,7 +38,7 @@ import {
   getBoundsDimensionsMeters,
   moveBoundsToCenter,
   resizeBoundsFromCorner,
-} from './offline-area.js?v=v1.60.5';
+} from './offline-area.js?v=v1.60.6';
 import {
   getNetworkMode,
   setNetworkMode,
@@ -52,7 +55,7 @@ import {
   syncOfflineAreas,
   clearAllOfflineData,
   syncNetworkModeToServiceWorker,
-} from './offline-db.js?v=v1.60.5';
+} from './offline-db.js?v=v1.60.6';
 
 // Hent data fra localStorage — fall tilbake til Svortland, Bømlo dersom mapData mangler
 let data = {};
@@ -1525,10 +1528,28 @@ function updateOfflineUI(clamped = false) {
   }
 
   const { widthM, heightM } = getBoundsDimensionsMeters(currentOfflineBounds);
-  if (offlineDimsEl) offlineDimsEl.textContent = `${formatKm(widthM)} × ${formatKm(heightM)} km`;
+  // Arealet er det som koster, så det vises sammen med målene — og et anslag
+  // på nedlastingen, siden 250 km² er rundt 34 MB. Det skal man ikke oppdage
+  // etterpå, på mobildata i felt.
+  const arealKm2 = boundsAreaKm2(currentOfflineBounds);
+  const antallFliser = calculateTilesForBounds(currentOfflineBounds, OFFLINE_ZOOM_LEVELS).length;
+  const anslagMb = (antallFliser * KB_PER_FLIS) / 1024;
+  const anslag = anslagMb >= 1
+    ? `~${anslagMb.toFixed(anslagMb >= 10 ? 0 : 1).replace('.', ',')} MB`
+    : `~${Math.round(antallFliser * KB_PER_FLIS)} KB`;
+  if (offlineDimsEl) {
+    offlineDimsEl.textContent =
+      `${formatKm(widthM)} × ${formatKm(heightM)} km · ${Math.round(arealKm2)} km² · ${anslag}`;
+  }
   if (offlineLimitMsgEl) {
-    if (clamped) { offlineLimitMsgEl.textContent = 'Maksimal størrelse nådd (10x10 km).'; offlineLimitMsgEl.classList.add('limit-reached'); }
-    else { offlineLimitMsgEl.textContent = 'Dra midtpunktet (✥) for å flytte, eller hjørnene for å endre størrelse (maks 10x10 km).'; offlineLimitMsgEl.classList.remove('limit-reached'); }
+    if (clamped) {
+      offlineLimitMsgEl.textContent = `Maksimalt areal nådd (${MAX_OFFLINE_AREA_KM2} km²).`;
+      offlineLimitMsgEl.classList.add('limit-reached');
+    } else {
+      offlineLimitMsgEl.textContent =
+        `Dra midtpunktet (✥) for å flytte, eller hjørnene for å endre størrelse (maks ${MAX_OFFLINE_AREA_KM2} km² — formen er fri).`;
+      offlineLimitMsgEl.classList.remove('limit-reached');
+    }
   }
 }
 

@@ -6,8 +6,47 @@
 
 import { haversine } from './utils.js';
 
-export const MAX_OFFLINE_AREA_SIDE_M = 10000;
+// Nedlastingskostnaden følger AREALET, ikke sidelengden: antall fliser er
+// (bredde i fliser) × (høyde i fliser). Et 20 × 5 km-område koster derfor
+// omtrent det samme som 10 × 10 km — målt 316 mot 298 fliser — men var før
+// forbudt fordi hver side ble clampet for seg. Det rammet nettopp de formene
+// felt-bruk trenger: en kystlinje øst-vest, en dal, en fjord.
+//
+// Taket er derfor et AREAL. 250 km² er 2,5 ganger det gamle (10 × 10 = 100),
+// og gir rom for 25 × 10 km eller 50 × 5 km.
+export const MAX_OFFLINE_AREA_KM2 = 250;
+
+// Sidetaket står igjen som en ren fornuftssperre mot absurde strimler
+// (100 × 2,5 km er 250 km², men strekker seg over et halvt fylke og er nesten
+// bare kantsløsing mot flisgridet). Det er bevisst romslig — arealet er det
+// som styrer.
+export const MAX_OFFLINE_AREA_SIDE_M = 50000;
 export const MIN_OFFLINE_AREA_SIDE_M = 250;
+
+// Målt mot Kartverket Topo 2026-11-06. Brukes til å anslå nedlastingen FØR
+// den starter — 250 km² er ~750 fliser, altså rundt 34 MB, og det skal man
+// ikke oppdage etterpå på mobildata i felt.
+export const KB_PER_FLIS = 46;
+
+/**
+ * Arealet av en boks i km².
+ */
+export function boundsAreaKm2(bounds) {
+  const { widthM, heightM } = getBoundsDimensionsMeters(bounds || {});
+  return (widthM / 1000) * (heightM / 1000);
+}
+
+/**
+ * Skalerer bredde og høyde ned proporsjonalt til arealet er innenfor taket,
+ * slik at formen brukeren har dratt opp beholdes. Å clampe sidene hver for seg
+ * ville gjort et langt område kvadratisk i stedet for mindre.
+ */
+export function clampTilAreal(widthM, heightM, maksKm2 = MAX_OFFLINE_AREA_KM2) {
+  const arealKm2 = (widthM / 1000) * (heightM / 1000);
+  if (arealKm2 <= maksKm2 || arealKm2 <= 0) return { widthM, heightM, clamped: false };
+  const faktor = Math.sqrt(maksKm2 / arealKm2);
+  return { widthM: widthM * faktor, heightM: heightM * faktor, clamped: true };
+}
 export const DEFAULT_OFFLINE_AREA_SIDE_M = 2500;
 export const MAX_MAP_EXTENT_SIDE_M = 10000;
 export const MAX_VIEWPORT_FETCH_SIDE_M = 20000;
@@ -256,7 +295,10 @@ export function getBoundsDimensionsMeters(bounds) {
 
 /**
  * Opprett en bounding box sentrert på (centerLat, centerLon) med gitt bredde og høyde i meter.
- * Bredde og høyde clampes automatisk til [MIN_OFFLINE_AREA_SIDE_M, MAX_OFFLINE_AREA_SIDE_M].
+ *
+ * Sidene holdes innenfor [MIN_OFFLINE_AREA_SIDE_M, MAX_OFFLINE_AREA_SIDE_M], og arealet
+ * innenfor MAX_OFFLINE_AREA_KM2. Overskrides arealet, skaleres bredde og høyde ned
+ * PROPORSJONALT, så formen brukeren ba om beholdes.
  *
  * @param {number} centerLat
  * @param {number} centerLon
@@ -270,8 +312,11 @@ export function createCenteredBounds(
   widthM = DEFAULT_OFFLINE_AREA_SIDE_M,
   heightM = DEFAULT_OFFLINE_AREA_SIDE_M,
 ) {
-  const clampedW = Math.min(MAX_OFFLINE_AREA_SIDE_M, Math.max(MIN_OFFLINE_AREA_SIDE_M, widthM));
-  const clampedH = Math.min(MAX_OFFLINE_AREA_SIDE_M, Math.max(MIN_OFFLINE_AREA_SIDE_M, heightM));
+  const sideW = Math.min(MAX_OFFLINE_AREA_SIDE_M, Math.max(MIN_OFFLINE_AREA_SIDE_M, widthM));
+  const sideH = Math.min(MAX_OFFLINE_AREA_SIDE_M, Math.max(MIN_OFFLINE_AREA_SIDE_M, heightM));
+  const skalert = clampTilAreal(sideW, sideH);
+  const clampedW = Math.max(MIN_OFFLINE_AREA_SIDE_M, skalert.widthM);
+  const clampedH = Math.max(MIN_OFFLINE_AREA_SIDE_M, skalert.heightM);
 
   const halfLat = metersToLatDegrees(clampedH / 2);
   const halfLon = metersToLonDegrees(clampedW / 2, centerLat);
@@ -370,11 +415,38 @@ export function resizeBoundsFromCorner(currentBounds, corner, targetLatLng) {
   }
   newLon = movesEast ? anchorLon + rawDeltaLon : anchorLon - rawDeltaLon;
 
-  const east = movesEast ? newLon : anchorLon;
-  const west = movesEast ? anchorLon : newLon;
+  let east = movesEast ? newLon : anchorLon;
+  let west = movesEast ? anchorLon : newLon;
 
-  const bounds = { north, south, east, west };
-  const { widthM, heightM } = getBoundsDimensionsMeters(bounds);
+  let bounds = { north, south, east, west };
+  let { widthM, heightM } = getBoundsDimensionsMeters(bounds);
+
+  // Arealtaket håndheves til slutt, etter at begge sidene er kjent. Begge
+  // skaleres ned proporsjonalt fra ANKERET (hjørnet som står stille), så
+  // formen brukeren drar opp beholdes og bare blir mindre. Clampet vi sidene
+  // hver for seg, ville et langt område blitt kvadratisk i stedet.
+  // Skaleringen itereres. Krymper vi boksen, flytter midtbreddegraden seg, og
+  // meter per lengdegrad avhenger av den — så én runde bommer med en halv
+  // prosent på store områder. To-tre runder konvergerer.
+  for (let runde = 0; runde < 4; runde += 1) {
+    const skalert = clampTilAreal(widthM, heightM);
+    if (!skalert.clamped) break;
+    clamped = true;
+    rawDeltaLat *= heightM > 0 ? skalert.heightM / heightM : 1;
+    rawDeltaLon *= widthM > 0 ? skalert.widthM / widthM : 1;
+
+    const nyLat = movesNorth ? anchorLat + rawDeltaLat : anchorLat - rawDeltaLat;
+    const nyLon = movesEast ? anchorLon + rawDeltaLon : anchorLon - rawDeltaLon;
+    east = movesEast ? nyLon : anchorLon;
+    west = movesEast ? anchorLon : nyLon;
+    bounds = {
+      north: movesNorth ? nyLat : anchorLat,
+      south: movesNorth ? anchorLat : nyLat,
+      east,
+      west,
+    };
+    ({ widthM, heightM } = getBoundsDimensionsMeters(bounds));
+  }
 
   return {
     bounds,

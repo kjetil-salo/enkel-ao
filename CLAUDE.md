@@ -396,12 +396,24 @@ Pure ES6 modules with no framework:
   - Offline deaktiverer Fellestur, «Tidligere sendt» og «Mine delinger». **Sending til AO
     er ikke sperret**, men krever en bekreftelse og sendes da med `X-Allow-Offline-Network`
     — en usendt observasjon er verdt mer enn null trafikk
-  - Områder: 250 m–10 km (standard 2 500 m), kartfliser fra Kartverket Topo i Cache API,
-    lokaliteter i IndexedDB. Bare zoom 12 og 15 lastes ned, så `map.js` dekker hullene med
-    over-/underzoom og faller tilbake på andre kartlag før den viser en tom flis
+  - Områder: **arealbasert tak på 250 km² med fri form** (`MAX_OFFLINE_AREA_KM2`, v1.60.6),
+    ikke 10 km per side som før. Nedlastingskostnaden er antall fliser, og det følger
+    arealet: 10×10, 20×5 og 40×2,5 km er alle ~100 km² og koster 298/316/344 fliser. Den
+    gamle per-side-clampingen forbød derfor former som koster det samme, men som felt-bruk
+    trenger — en kystlinje øst-vest, en dal. Overskrides arealet, skaleres sidene ned
+    PROPORSJONALT (formen beholdes), og skaleringen itereres fordi midtbreddegraden flytter
+    seg når boksen krymper. `MAX_OFFLINE_AREA_SIDE_M` (50 km) står igjen som ren
+    fornuftssperre mot strimler
+  - **Kostnaden vises mens man drar** (`bredde × høyde · areal · ~MB`): en flis veier ~46 KB,
+    så 250 km² er ~750 fliser ≈ 34 MB. Det skal ikke oppdages etterpå på mobildata i felt
+  - **Ikke forveksle med `MAX_DYNAMIC_FETCH_BOX_SIDE_M`** (10 km), som gjelder henting av
+    lokaliteter fra AOs API ved panorering — en helt annen grense, uendret
+  - Kartfliser fra Kartverket Topo i Cache API, lokaliteter i IndexedDB. Bare zoom 12 og 15
+    lastes ned, så `map.js` dekker hullene med over-/underzoom og faller tilbake på andre
+    kartlag før den viser en tom flis
   - **Full funksjonell beskrivelse:** `docs/offline-kart-og-nettverksmodus.md`. Fire
-    designvalg er merket uavklart der (zoom-nivåene, 10 km-grensen, hva opportunistisk
-    lagring er ment å være, og om noe er halvferdig) — de bør fylles ut av den som tok dem
+    designvalg er merket uavklart der (zoom-nivåene, hva opportunistisk lagring er ment å
+    være, og om noe er halvferdig) — de bør fylles ut av den som tok dem
 - `header-plass.js` — trinnvis komprimering av toppraden når den ikke får plass
   - CSS kan ikke svare på «får dette plass?». Container queries måler containerens bredde,
     ikke hva innholdet trenger, så et fast breakpoint må gjette — og gjettet feil: på en

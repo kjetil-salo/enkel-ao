@@ -5,9 +5,13 @@ Funksjonell beskrivelse av offline-laget som kom i v1.60.0. Koden ligger i
 (områder og kartfliser) og `public/js/map.js` (flis-henting i kartet).
 
 > **Om dette dokumentet:** oppførselen under er lest ut av koden og verifisert
-> ved måling. Fire designvalg er merket **(uavklart)** — der beskriver
+> ved måling. Tre designvalg er merket **(uavklart)** — der beskriver
 > dokumentet hva koden gjør, men begrunnelsen er ikke kjent for den som skrev
 > dette. De bør fylles ut av den som tok valgene.
+>
+> **Oppdatert 06.11.2026:** 10 km-grensen var ett av dem. Den er nå erstattet
+> av et arealtak på 250 km² med fri form — se «Hvorfor areal og ikke side ×
+> side» under.
 
 ## Tre nettverksmodi
 
@@ -55,11 +59,49 @@ endre størrelse på.
 
 | Grense | Verdi |
 |---|---|
-| Minste område | 250 m |
-| Standard | 2 500 m |
-| Største område | 10 000 m **(uavklart hvorfor)** |
+| Minste side | 250 m |
+| Standard | 2 500 × 2 500 m |
+| **Største areal** | **250 km²** |
+| Største side | 50 km (ren fornuftssperre) |
 | Zoom-nivåer som lastes | 12 og 15 **(uavklart hvorfor nettopp disse)** |
 | Fliser per batch | 10 |
+
+### Hvorfor areal og ikke side × side
+
+Fram til v1.60.6 var taket 10 km på **hver side**, clampet hver for seg. Det
+forbød former som koster nøyaktig det samme, men som felt-bruk trenger: en
+kystlinje øst–vest, en dal, en fjord.
+
+Nedlastingskostnaden er antall fliser, og det følger arealet. Målt mot
+Kartverket Topo på 60° nord, zoom 12 + 15:
+
+| Form | Areal | Fliser |
+|---|---|---|
+| 10 × 10 km | 100 km² | 298 |
+| 20 × 5 km | 100 km² | 316 |
+| 40 × 2,5 km | 100 km² | 344 |
+
+Variasjonen er kantsløsing mot flisgridet — lange tynne områder spiser litt
+mer kant. Arealet er altså den riktige størrelsen å begrense, og formen kan
+være fri.
+
+Taket er satt til **250 km²**, 2,5 ganger det gamle. Det gir rom for
+25 × 10 km eller 50 × 5 km. Sidetaket på 50 km står igjen som en sperre mot
+absurde strimler (100 × 2,5 km er 250 km², men strekker seg over et halvt
+fylke og er nesten bare kantsløsing).
+
+Overskrides arealet, skaleres bredde og høyde ned **proporsjonalt**, så formen
+brukeren dro opp beholdes og bare blir mindre. Clampet vi sidene hver for seg,
+ville et langt område blitt kvadratisk i stedet. Skaleringen itereres: krymper
+boksen, flytter midtbreddegraden seg, og meter per lengdegrad avhenger av den
+— én runde bommer med en halv prosent på store områder.
+
+### Kostnaden vises før nedlasting
+
+En kartflis fra Kartverket Topo veier rundt 46 KB (målt 06.11.2026), så
+250 km² er ~750 fliser, altså rundt 34 MB. Områdevelgeren viser derfor
+`bredde × høyde · areal · ~MB` mens du drar, og ikke bare målene. Det skal
+ikke oppdages etterpå, på mobildata i felt.
 
 Kartflisene hentes fra **Kartverket Topo** (gratis WMTS uten nøkkel) og lagres
 i Cache API under `enkel-ao-kartverket-tiles-v1`. Lokalitetene lagres i

@@ -24,6 +24,8 @@ import {
   moveBoundsToCenter,
   resizeBoundsFromCorner,
   determineAreaName,
+  boundsAreaKm2,
+  MAX_OFFLINE_AREA_KM2,
 } from '../../public/js/offline-area.js';
 
 describe('offline-area bounding box helpers', () => {
@@ -47,14 +49,34 @@ describe('offline-area bounding box helpers', () => {
     expect(Math.round(heightM)).toBeCloseTo(DEFAULT_OFFLINE_AREA_SIDE_M, -1);
   });
 
-  it('begrenser (clamper) størrelse ved opprettelse til maks 10 × 10 km', () => {
-    const bounds = createCenteredBounds(60.393, 5.323, 15000, 14000);
-    const { widthM, heightM } = getBoundsDimensionsMeters(bounds);
+  it('begrenser arealet ved opprettelse, ikke hver side for seg', () => {
+    // 15 × 14 km er 210 km² og er innenfor taket, sjølv om begge sidene er
+    // over dei gamle 10 km. Nedlastingskostnaden følgjer arealet.
+    const innanfor = createCenteredBounds(60.393, 5.323, 15000, 14000);
+    expect(boundsAreaKm2(innanfor)).toBeLessThanOrEqual(MAX_OFFLINE_AREA_KM2 + 1);
+    const dims = getBoundsDimensionsMeters(innanfor);
+    expect(Math.round(dims.widthM)).toBeCloseTo(15000, -2);
+    expect(Math.round(dims.heightM)).toBeCloseTo(14000, -2);
+  });
 
-    expect(widthM).toBeLessThanOrEqual(MAX_OFFLINE_AREA_SIDE_M + 10);
-    expect(heightM).toBeLessThanOrEqual(MAX_OFFLINE_AREA_SIDE_M + 10);
-    expect(Math.round(widthM)).toBeCloseTo(MAX_OFFLINE_AREA_SIDE_M, -1);
-    expect(Math.round(heightM)).toBeCloseTo(MAX_OFFLINE_AREA_SIDE_M, -1);
+  it('skalerer ned PROPORSJONALT når arealet er for stort, så forma held seg', () => {
+    // 40 × 20 km er 800 km². Clampa vi sidene kvar for seg, ville resultatet
+    // blitt kvadratisk; her skal det halde fram med å vere dobbelt så breitt
+    // som høgt, berre mindre.
+    const bounds = createCenteredBounds(60.393, 5.323, 40000, 20000);
+    const { widthM, heightM } = getBoundsDimensionsMeters(bounds);
+    expect(boundsAreaKm2(bounds)).toBeLessThanOrEqual(MAX_OFFLINE_AREA_KM2 + 1);
+    expect(widthM / heightM).toBeCloseTo(2, 1);
+  });
+
+  it('tillèt den lange flate forma felt-bruk treng', () => {
+    // Ei kystlinje aust-vest: 50 × 5 km er 250 km² — same kostnad som
+    // 10 × 10, men var forbode før fordi kvar side vart clampa for seg.
+    const bounds = createCenteredBounds(60.393, 5.323, 50000, 5000);
+    const { widthM, heightM } = getBoundsDimensionsMeters(bounds);
+    expect(Math.round(widthM)).toBeCloseTo(50000, -3);
+    expect(Math.round(heightM)).toBeCloseTo(5000, -2);
+    expect(boundsAreaKm2(bounds)).toBeLessThanOrEqual(MAX_OFFLINE_AREA_KM2 + 1);
   });
 
   it('flytter utvalgsboksen til nytt senter uten å endre dimensjoner i meter', () => {
@@ -86,22 +108,11 @@ describe('offline-area bounding box helpers', () => {
     expect(res.heightM).toBeLessThanOrEqual(MAX_OFFLINE_AREA_SIDE_M);
   });
 
-  it('låser (clamper) hjørnet ved forsøk på å skalere utover 10 × 10 km', () => {
-    const initial = createCenteredBounds(60.0, 10.0, 2500, 2500);
-    // Forsøk å dra nordvest-hjørnet ~25 km nord og vest fra sørøst-ankeret
-    const target = {
-      lat: initial.south + 0.25,
-      lon: initial.east - 0.5,
-    };
-    const res = resizeBoundsFromCorner(initial, 'nw', target);
-
-    expect(res.clamped).toBe(true);
-    // Sørøst-ankeret skal stå fast
-    expect(res.bounds.south).toBeCloseTo(initial.south, 6);
-    expect(res.bounds.east).toBeCloseTo(initial.east, 6);
-    // Bredde og høyde skal være låst til 10000 m (10 × 10 km)
-    expect(Math.round(res.widthM)).toBeCloseTo(MAX_OFFLINE_AREA_SIDE_M, -1);
-    expect(Math.round(res.heightM)).toBeCloseTo(MAX_OFFLINE_AREA_SIDE_M, -1);
+  it('låser hjørnet når AREALET er nådd, ikkje når ei side er det', () => {
+    const start = createCenteredBounds(60.393, 5.323, 2000, 2000);
+    const resultat = resizeBoundsFromCorner(start, 'ne', { lat: 61.5, lon: 7.0 });
+    expect(resultat.clamped).toBe(true);
+    expect(boundsAreaKm2(resultat.bounds)).toBeLessThanOrEqual(MAX_OFFLINE_AREA_KM2 + 1);
   });
 
   it('hindrer at boksen vrenges eller blir mindre enn minimumsstørrelsen', () => {
