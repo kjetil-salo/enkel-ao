@@ -16,6 +16,7 @@ Oversikt over all dokumentasjon for Fugleobservasjoner-appen.
 
 ### Teknisk dokumentasjon
 - **[artssok-rangering.md](artssok-rangering.md)** - Hvordan artssøket rangerer treff, og gruppe-takson («ub. …», familier)
+- **[offline-kart-og-nettverksmodus.md](offline-kart-og-nettverksmodus.md)** - Nettverksmodi, nedlasting av kartområder og hva offline sperrer
 - **[besok-og-tilbake-til-besok.md](besok-og-tilbake-til-besok.md)** - Besøksgruppering, ↩-knappen og tidsregelen
 - **[mobil-artsobservasjoner-api.md](mobil-artsobservasjoner-api.md)** - Dokumentasjon av AO mobil-API
 - **[supabase_statistikk.sql.md](supabase_statistikk.sql.md)** - SQL-oppsett for Supabase

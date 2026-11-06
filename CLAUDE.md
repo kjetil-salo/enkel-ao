@@ -388,6 +388,20 @@ Pure ES6 modules with no framework:
   - Bilder: `nedskalerMedFallback()` prøver `downscaleForShare()` trinnvis (800px/q0.55 →
     640/0.4 → 480/0.32 → 400/0.28) til resultatet er under ~50 KB, fra `obs.photo` — atskilt
     fra den større AO-kvalitets-thumbnailen `edit.html` lager
+- `offline-db.js` / `offline-area.js` — offline-kart og nettverksmodus (v1.60.0)
+  - Tre modi i toppraden, standard **Hybrid**: Online (alltid nett), Hybrid (nett først,
+    cache når det feiler), Offline (kun cache, **null nettverkskall** — målt 0 mot 12
+    flis-forespørsler i de to andre). Valget ligger i `network_mode_v1` og deles med
+    service workeren via `NETWORK_MODE_CACHE_URL`
+  - Offline deaktiverer Fellestur, «Tidligere sendt» og «Mine delinger». **Sending til AO
+    er ikke sperret**, men krever en bekreftelse og sendes da med `X-Allow-Offline-Network`
+    — en usendt observasjon er verdt mer enn null trafikk
+  - Områder: 250 m–10 km (standard 2 500 m), kartfliser fra Kartverket Topo i Cache API,
+    lokaliteter i IndexedDB. Bare zoom 12 og 15 lastes ned, så `map.js` dekker hullene med
+    over-/underzoom og faller tilbake på andre kartlag før den viser en tom flis
+  - **Full funksjonell beskrivelse:** `docs/offline-kart-og-nettverksmodus.md`. Fire
+    designvalg er merket uavklart der (zoom-nivåene, 10 km-grensen, hva opportunistisk
+    lagring er ment å være, og om noe er halvferdig) — de bør fylles ut av den som tok dem
 - `header-plass.js` — trinnvis komprimering av toppraden når den ikke får plass
   - CSS kan ikke svare på «får dette plass?». Container queries måler containerens bredde,
     ikke hva innholdet trenger, så et fast breakpoint må gjette — og gjettet feil: på en
