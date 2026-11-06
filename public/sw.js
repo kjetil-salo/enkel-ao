@@ -2,7 +2,7 @@
  * Service Worker for Enkel-AO (PWA app-shell og kartflis-cache).
  */
 
-const CACHE_NAME = 'fugleobs-v202';
+const CACHE_NAME = 'fugleobs-v203';
 const MAP_TILE_CACHE_NAME = 'enkel-ao-kartverket-tiles-v1';
 const NETWORK_MODE_CACHE_URL = 'https://enkel-ao.local/__network_mode__';
 
@@ -34,6 +34,7 @@ const STATIC_ASSETS = [
 '/js/theme.js',
 '/js/main.js',
 '/js/header-plass.js',
+'/img/nyhet-offline-kart.jpg',
 '/js/api.js',
 '/js/ui.js',
 '/js/storage.js',

@@ -21,40 +21,45 @@ const MAX_VISIBLE = 4;
 
 export const CURRENT_NEWS_SPLASH = {
   enabled: true,
-  id: 'oktober-2026-raskere-artssok-v1',
+  id: 'november-2026-offline-kart-v1',
   items: [
     {
-      title: '🔝 De vanligste artene øverst',
-      body: 'Før lå treffene alfabetisk. Søkte du på «grå», fikk du gråflankefluesnapper og '
-        + 'gråhodealbatross — to arter med tre norske funn til sammen — over gråmåke og '
-        + 'gråtrost. Nå kommer de vanligste artene først, og de aller sjeldneste havner '
-        + 'nederst, der de er vanskeligere å treffe ved et uhell.',
+      title: '🗺️ Kartet virker nå uten dekning',
+      body: 'Last ned kartet og lokalitetene for området du skal til mens du har nett — '
+        + 'så har du dem med deg når dekningen forsvinner. Du finner det under '
+        + '«📦 Offline-område» på kartsiden: dra opp området du skal gå i, og trykk last ned. '
+        + 'Velgeren viser hvor mange megabyte det blir før du starter. Øverst i appen har du '
+        + 'fått en bryter med tre stillinger — Online, Hybrid og Offline — der Hybrid henter '
+        + 'fra nett når det går og fra det nedlastede når det ikke gjør det.',
+      image: {
+        src: '/img/nyhet-offline-kart.jpg',
+        alt: 'Illustrasjon: fuglekikker med kikkert på en knaus over en kystlinje, '
+          + 'med høydekurver tegnet i himmelen.',
+      },
     },
     {
-      title: '⚡ Artssøket svarer med en gang',
-      body: 'Søket går nå i artslista som allerede ligger på telefonen din, i stedet for å '
-        + 'spørre Artsobservasjoner for hvert tastetrykk. Det svarer momentant — og det '
-        + 'virker i tunnelen, på fjellet og andre steder uten dekning. Finner vi ikke '
-        + 'arten lokalt, spør vi Artsobservasjoner som før.',
+      title: '🙌 Dette er i all hovedsak Espen sin versjon',
+      body: 'Espen Bore Hollund har bygget hele offline-delen, og det stopper ikke der: '
+        + 'kartet åpner seg nå med en gang i stedet for å vente på GPS, du har fått en knapp '
+        + 'for å sentrere på deg selv, appen hopper rett ned til artsfeltet når du har valgt '
+        + 'sted, og du kan ha åtte aktivitetsknapper i stedet for seks — og dra dem i den '
+        + 'rekkefølgen du vil under Innstillinger. I tillegg kommer en rekke mindre ting vi '
+        + 'ikke lister opp her. Det er uvanlig å få hjelp av dette slaget til en gratis '
+        + 'fritidsapp, og den er blitt klart bedre av det.',
     },
     {
-      // Denne ene saken står på nynorsk med vilje - den handler om nynorsk.
-      // Resten av appen, og resten av disse punktene, er bokmål som før.
-      title: '🪶 Underartar på nynorsk',
-      body: 'Har du nynorske artsnamn påslått, viser appen no òg underartane på nynorsk — '
-        + 'ikkje berre hovudarten. Manglar underarten eit eige nynorsknamn, set vi det '
-        + 'saman sjølve: raudvengtrast, underarten iliacus. Og søkjer du på raudvengtrast, '
-        + 'får du endeleg underartane med på kjøpet. Det som blir sendt til '
-        + 'Artsobservasjoner er framleis bokmål, som før.',
+      title: '👁️ Ryddigere kart der lokalitetene står tett',
+      body: 'På steder som Lista lå markørene så tett at de dekket hele kartet. Nå samles de '
+        + 'i bobler med et tall i, som deler seg etter hvert som du zoomer inn — kartet er '
+        + 'lesbart med en gang du åpner det. Lokaliteter som er tegnet som områder vises '
+        + 'dessuten uten nål, så du ser selve flaten.',
     },
     {
-      title: '🤝 Flere på laget',
-      body: 'Denne versjonen ble til sammen med Espen Bore Hollund, som sendte inn både '
-        + 'nynorsk-arbeidet og ideen om at de vanligste artene skal ligge øverst i søket. '
-        + 'Han oppdaget også at «Tøm liste» ikke så ut til å virke. Takk! Appen blir bedre '
-        + 'av at andre enn meg ser på den — så si gjerne fra hva du synes, stort og smått. '
-        + 'Bruk «Gi tilbakemelding» nederst i appen, eller send en e-post:',
-      link: { href: 'mailto:k@vikebo.com', text: 'k@vikebo.com' },
+      title: '🪶 Fikk du den ikke artsbestemt?',
+      body: 'Søker du «måke» får du gråmåke og fiskemåke øverst som før — men nederst i lista '
+        + 'ligger nå også «ub. grå-/sildemåke» og «måkefamilien». Dem kan du sende inn når '
+        + 'fuglen ikke lot seg bestemme sikkert. Det gjelder de fleste artsgruppene: ender, '
+        + 'meiser, troster, ugler.',
     },
   ],
 };
