@@ -11870,7 +11870,8 @@
     "nameNob": "andefamilien",
     "nameNno": "andefamilien",
     "latinName": "Anatidae",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "familie"
   },
   {
     "norwegian": "andefugler",
@@ -11881,7 +11882,8 @@
     "nameNob": "andefugler",
     "nameNno": "andefugler",
     "latinName": "Anseriformes",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "familie"
   },
   {
     "norwegian": "duefamilien",
@@ -11892,7 +11894,8 @@
     "nameNob": "duefamilien",
     "nameNno": "duefamilien",
     "latinName": "Columbidae",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "familie"
   },
   {
     "norwegian": "duefugler",
@@ -11903,7 +11906,8 @@
     "nameNob": "duefugler",
     "nameNno": "duefugler",
     "latinName": "Columbiformes",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "familie"
   },
   {
     "norwegian": "dykkerfamilien",
@@ -11914,7 +11918,8 @@
     "nameNob": "dykkerfamilien",
     "nameNno": "dykkerfamilien",
     "latinName": "Podicipedidae",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "familie"
   },
   {
     "norwegian": "falkefamilien",
@@ -11925,7 +11930,8 @@
     "nameNob": "falkefamilien",
     "nameNno": "falkefamilien",
     "latinName": "Falconidae",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "familie"
   },
   {
     "norwegian": "falkefugler",
@@ -11936,7 +11942,8 @@
     "nameNob": "falkefugler",
     "nameNno": "falkefugler",
     "latinName": "Falconiformes",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "familie"
   },
   {
     "norwegian": "finkefamilien",
@@ -11947,7 +11954,8 @@
     "nameNob": "finkefamilien",
     "nameNno": "finkefamilien",
     "latinName": "Fringillidae",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "familie"
   },
   {
     "norwegian": "haukefamilien",
@@ -11958,7 +11966,8 @@
     "nameNob": "haukefamilien",
     "nameNno": "haukefamilien",
     "latinName": "Accipitridae",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "familie"
   },
   {
     "norwegian": "haukefugler",
@@ -11969,7 +11978,8 @@
     "nameNob": "haukefugler",
     "nameNno": "haukefugler",
     "latinName": "Accipitriformes",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "familie"
   },
   {
     "norwegian": "hegrefamilien",
@@ -11980,7 +11990,8 @@
     "nameNob": "hegrefamilien",
     "nameNno": "hegrefamilien",
     "latinName": "Ardeidae",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "familie"
   },
   {
     "norwegian": "lerkefamilien",
@@ -11991,7 +12002,8 @@
     "nameNob": "lerkefamilien",
     "nameNno": "lerkefamilien",
     "latinName": "Alaudidae",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "familie"
   },
   {
     "norwegian": "lomfamilien",
@@ -12002,7 +12014,8 @@
     "nameNob": "lomfamilien",
     "nameNno": "lomfamilien",
     "latinName": "Gaviidae",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "familie"
   },
   {
     "norwegian": "lomfugler",
@@ -12013,7 +12026,8 @@
     "nameNob": "lomfugler",
     "nameNno": "lomfugler",
     "latinName": "Gaviiformes",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "familie"
   },
   {
     "norwegian": "meisefamilien",
@@ -12024,7 +12038,8 @@
     "nameNob": "meisefamilien",
     "nameNno": "meisefamilien",
     "latinName": "Paridae",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "familie"
   },
   {
     "norwegian": "måkefamilien",
@@ -12035,7 +12050,8 @@
     "nameNob": "måkefamilien",
     "nameNno": "måkefamilien",
     "latinName": "Laridae",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "familie"
   },
   {
     "norwegian": "pelikan- og hegrefugler",
@@ -12046,7 +12062,8 @@
     "nameNob": "pelikan- og hegrefugler",
     "nameNno": "pelikan- og hegrefugler",
     "latinName": "Pelecaniformes",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "familie"
   },
   {
     "norwegian": "sangerfamilien",
@@ -12057,7 +12074,8 @@
     "nameNob": "sangerfamilien",
     "nameNno": "sangerfamilien",
     "latinName": "Sylviidae",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "familie"
   },
   {
     "norwegian": "snipefamilien",
@@ -12068,7 +12086,8 @@
     "nameNob": "snipefamilien",
     "nameNno": "snipefamilien",
     "latinName": "Scolopacidae",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "familie"
   },
   {
     "norwegian": "spurvefamilien",
@@ -12079,7 +12098,8 @@
     "nameNob": "spurvefamilien",
     "nameNno": "spurvefamilien",
     "latinName": "Passeridae",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "familie"
   },
   {
     "norwegian": "spurvefugler",
@@ -12090,7 +12110,8 @@
     "nameNob": "spurvefugler",
     "nameNno": "spurvefugler",
     "latinName": "Passeriformes",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "familie"
   },
   {
     "norwegian": "svalefamilien",
@@ -12101,7 +12122,8 @@
     "nameNob": "svalefamilien",
     "nameNno": "svalefamilien",
     "latinName": "Hirundinidae",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "familie"
   },
   {
     "norwegian": "trostefamilien",
@@ -12112,7 +12134,8 @@
     "nameNob": "trostefamilien",
     "nameNno": "trostefamilien",
     "latinName": "Turdidae",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "familie"
   },
   {
     "norwegian": "ub. Anser-gås",
@@ -12123,7 +12146,8 @@
     "nameNob": "ub. Anser-gås",
     "nameNno": "ub. Anser-gås",
     "latinName": "Anser",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. Branta-gås",
@@ -12134,7 +12158,8 @@
     "nameNob": "ub. Branta-gås",
     "nameNno": "ub. Branta-gås",
     "latinName": "Branta",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. amerika-/sibirsjøorre",
@@ -12145,7 +12170,8 @@
     "nameNob": "ub. amerika-/sibirsjøorre",
     "nameNno": "ub. amerika-/sibirsjøorre",
     "latinName": "Melanitta deglandi/stejnegeri",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. amur-/kanadapiplerke",
@@ -12156,7 +12182,8 @@
     "nameNob": "ub. amur-/kanadapiplerke",
     "nameNno": "ub. amur-/kanadapiplerke",
     "latinName": "Anthus japonicus/rubescens",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. bekkasin",
@@ -12167,7 +12194,8 @@
     "nameNob": "ub. bekkasin",
     "nameNno": "ub. bekkasin",
     "latinName": "Lymnocryptes/Gallinago",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. bekkasinsnipe",
@@ -12178,7 +12206,8 @@
     "nameNob": "ub. bekkasinsnipe",
     "nameNno": "ub. bekkasinsnipe",
     "latinName": "Limnodromus",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. bieter",
@@ -12189,7 +12218,8 @@
     "nameNob": "ub. bieter",
     "nameNno": "ub. bieter",
     "latinName": "Merops",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. blekbryn-/gulbrynsanger",
@@ -12200,7 +12230,8 @@
     "nameNob": "ub. blekbryn-/gulbrynsanger",
     "nameNno": "ub. blekbryn-/gulbrynsanger",
     "latinName": "Phylloscopus humei/inornatus",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. bok-/bjørkefink",
@@ -12211,7 +12242,8 @@
     "nameNob": "ub. bok-/bjørkefink",
     "nameNno": "ub. bok-/bjørkefink",
     "latinName": "Fringilla",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. brakksvale",
@@ -12222,7 +12254,8 @@
     "nameNob": "ub. brakksvale",
     "nameNno": "ub. brakksvale",
     "latinName": "Glareola",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. bro-/tempelsvale",
@@ -12233,7 +12266,8 @@
     "nameNob": "ub. bro-/tempelsvale",
     "nameNno": "ub. bro-/tempelsvale",
     "latinName": "Cecropis rufula/daurica",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. brude-/mandarinand",
@@ -12244,7 +12278,8 @@
     "nameNob": "ub. brude-/mandarinand",
     "nameNno": "ub. brude-/mandarinand",
     "latinName": "Aix",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. dverg-/sangsvane",
@@ -12255,7 +12290,8 @@
     "nameNob": "ub. dverg-/sangsvane",
     "nameNno": "ub. dverg-/sangsvane",
     "latinName": "Cygnus columbianus/cygnus",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. dverg-/sumprikse",
@@ -12266,7 +12302,8 @@
     "nameNob": "ub. dverg-/sumprikse",
     "nameNno": "ub. dverg-/sumprikse",
     "latinName": "Zapornia pusilla/parva",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. dverg-/vierspurv",
@@ -12277,7 +12314,8 @@
     "nameNob": "ub. dverg-/vierspurv",
     "nameNno": "ub. dverg-/vierspurv",
     "latinName": "Emberiza pusilla/rustica",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. dykker",
@@ -12288,7 +12326,8 @@
     "nameNob": "ub. dykker",
     "nameNno": "ub. dykker",
     "latinName": "Podiceps",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. eike-/furusanger",
@@ -12299,7 +12338,8 @@
     "nameNob": "ub. eike-/furusanger",
     "nameNno": "ub. eike-/furusanger",
     "latinName": "Phylloscopus bonelli/orientalis",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. erle",
@@ -12310,7 +12350,8 @@
     "nameNob": "ub. erle",
     "nameNno": "ub. erle",
     "latinName": "Motacilla",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. falk",
@@ -12321,7 +12362,8 @@
     "nameNob": "ub. falk",
     "nameNno": "ub. falk",
     "latinName": "Falco",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. fiskand",
@@ -12332,7 +12374,8 @@
     "nameNob": "ub. fiskand",
     "nameNno": "ub. fiskand",
     "latinName": "Mergus",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. flamingo",
@@ -12343,7 +12386,8 @@
     "nameNob": "ub. flamingo",
     "nameNno": "ub. flamingo",
     "latinName": "Phoenicopterus",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. fregattfugl",
@@ -12354,7 +12398,8 @@
     "nameNob": "ub. fregattfugl",
     "nameNno": "ub. fregattfugl",
     "latinName": "Fregata sp.",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. fuglekonge",
@@ -12365,7 +12410,8 @@
     "nameNob": "ub. fuglekonge",
     "nameNno": "ub. fuglekonge",
     "latinName": "Regulus",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. glente/svartglente",
@@ -12376,7 +12422,8 @@
     "nameNob": "ub. glente/svartglente",
     "nameNno": "ub. glente/svartglente",
     "latinName": "Milvus",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. grå-/sildemåke",
@@ -12387,7 +12434,8 @@
     "nameNob": "ub. grå-/sildemåke",
     "nameNno": "ub. grå-/sildemåke",
     "latinName": "Larus argentatus/fuscus",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. grønn-/gråspett",
@@ -12398,7 +12446,8 @@
     "nameNob": "ub. grønn-/gråspett",
     "nameNno": "ub. grønn-/gråspett",
     "latinName": "Picus",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. gul-/hvithodespurv",
@@ -12409,7 +12458,8 @@
     "nameNob": "ub. gul-/hvithodespurv",
     "nameNno": "ub. gul-/hvithodespurv",
     "latinName": "Emberiza citrinella/leucocephalos",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. gul-/sitronerle",
@@ -12420,7 +12470,8 @@
     "nameNob": "ub. gul-/sitronerle",
     "nameNno": "ub. gul-/sitronerle",
     "latinName": "Motacilla flava/citreola",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. gul-/østgulerle",
@@ -12431,7 +12482,8 @@
     "nameNob": "ub. gul-/østgulerle",
     "nameNno": "ub. gul-/østgulerle",
     "latinName": "Motacilla flava/tschutschensis",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. gulbryn-/fuglekongesanger",
@@ -12442,7 +12494,8 @@
     "nameNob": "ub. gulbryn-/fuglekongesanger",
     "nameNno": "ub. gulbryn-/fuglekongesanger",
     "latinName": "Phylloscopus inornatus/proregulus",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. hauk",
@@ -12453,7 +12506,8 @@
     "nameNob": "ub. hauk",
     "nameNno": "ub. hauk",
     "latinName": "Accipiter",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. havterne",
@@ -12464,7 +12518,8 @@
     "nameNob": "ub. havterne",
     "nameNno": "ub. havterne",
     "latinName": "Sterna",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. havørn",
@@ -12475,7 +12530,8 @@
     "nameNob": "ub. havørn",
     "nameNno": "ub. havørn",
     "latinName": "Haliaeetus",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. horn-/jordugle",
@@ -12486,7 +12542,8 @@
     "nameNob": "ub. horn-/jordugle",
     "nameNno": "ub. horn-/jordugle",
     "latinName": "Asio",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. hvit hegre",
@@ -12497,7 +12554,8 @@
     "nameNob": "ub. hvit hegre",
     "nameNno": "ub. hvit hegre",
     "latinName": "Egretta",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. is-/gulnebblom",
@@ -12508,7 +12566,8 @@
     "nameNob": "ub. is-/gulnebblom",
     "nameNno": "ub. is-/gulnebblom",
     "latinName": "Gavia immer/adamsii",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. isabella-/rødhalevarsler",
@@ -12519,7 +12578,8 @@
     "nameNob": "ub. isabella-/rødhalevarsler",
     "nameNno": "ub. isabella-/rødhalevarsler",
     "latinName": "Lanius isabellinus/phoenicuroides",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. jakt-/vandrefalk",
@@ -12530,7 +12590,8 @@
     "nameNob": "ub. jakt-/vandrefalk",
     "nameNno": "ub. jakt-/vandrefalk",
     "latinName": "Falco rusticolus/peregrinus",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. jernspurv",
@@ -12541,7 +12602,8 @@
     "nameNob": "ub. jernspurv",
     "nameNno": "ub. jernspurv",
     "latinName": "Prunella",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. kjerrhauk",
@@ -12552,7 +12614,8 @@
     "nameNob": "ub. kjerrhauk",
     "nameNno": "ub. kjerrhauk",
     "latinName": "Circus",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. konge-/høvdingterne",
@@ -12563,7 +12626,8 @@
     "nameNob": "ub. konge-/høvdingterne",
     "nameNno": "ub. konge-/høvdingterne",
     "latinName": "Thalasseus maximus/albididorsalis",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. korsnebb",
@@ -12574,7 +12638,8 @@
     "nameNob": "ub. korsnebb",
     "nameNno": "ub. korsnebb",
     "latinName": "Loxia",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. krykkje/dvergmåke",
@@ -12585,7 +12650,8 @@
     "nameNob": "ub. krykkje/dvergmåke",
     "nameNno": "ub. krykkje/dvergmåke",
     "latinName": "Rissa tridactyla/Hydrocoloeus minutus",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. krykkje/sabinemåke",
@@ -12596,7 +12662,8 @@
     "nameNob": "ub. krykkje/sabinemåke",
     "nameNno": "ub. krykkje/sabinemåke",
     "latinName": "Rissa tridactyla/Xema sabini",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. kvinand",
@@ -12607,7 +12674,8 @@
     "nameNob": "ub. kvinand",
     "nameNno": "ub. kvinand",
     "latinName": "Bucephala",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. lappspove/polarsnipe",
@@ -12618,7 +12686,8 @@
     "nameNob": "ub. lappspove/polarsnipe",
     "nameNno": "ub. lappspove/polarsnipe",
     "latinName": "Limosa lapponica/Calidris canutus",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. lire",
@@ -12629,7 +12698,8 @@
     "nameNob": "ub. lire",
     "nameNno": "ub. lire",
     "latinName": "Calonectris/Ardenna/Puffinus",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. lomvi/alke",
@@ -12640,7 +12710,8 @@
     "nameNob": "ub. lomvi/alke",
     "nameNno": "ub. lomvi/alke",
     "latinName": "Uria aalge/Alca torda",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. madeira-/kappverde-/desertaspetrell",
@@ -12651,7 +12722,8 @@
     "nameNob": "ub. madeira-/kappverde-/desertaspetrell",
     "nameNno": "ub. madeira-/kappverde-/desertaspetrell",
     "latinName": "Pterodroma madeira/feae/deserta",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. makrell-/rødnebbterne",
@@ -12662,7 +12734,8 @@
     "nameNob": "ub. makrell-/rødnebbterne",
     "nameNno": "ub. makrell-/rødnebbterne",
     "latinName": "Sterna hirundo/paradisaea",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. mongol-/ørkenlo",
@@ -12673,7 +12746,8 @@
     "nameNob": "ub. mongol-/ørkenlo",
     "nameNno": "ub. mongol-/ørkenlo",
     "latinName": "Charadrius mongolus/leschenaultii",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. myr-/steppehauk",
@@ -12684,7 +12758,8 @@
     "nameNob": "ub. myr-/steppehauk",
     "nameNno": "ub. myr-/steppehauk",
     "latinName": "Circus cyaneus/macrourus",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. nattergal",
@@ -12695,7 +12770,8 @@
     "nameNob": "ub. nattergal",
     "nameNno": "ub. nattergal",
     "latinName": "Luscinia",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. nattravn",
@@ -12706,7 +12782,8 @@
     "nameNob": "ub. nattravn",
     "nameNno": "ub. nattravn",
     "latinName": "Caprimulgus",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. nøtteskrike/nøttekråke",
@@ -12717,7 +12794,8 @@
     "nameNob": "ub. nøtteskrike/nøttekråke",
     "nameNno": "ub. nøtteskrike/nøttekråke",
     "latinName": "Garrulus glandarius/Nucifraga caryocatactes",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. pelikan",
@@ -12728,7 +12806,8 @@
     "nameNob": "ub. pelikan",
     "nameNno": "ub. pelikan",
     "latinName": "Pelecanus",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. piplerke",
@@ -12739,7 +12818,8 @@
     "nameNob": "ub. piplerke",
     "nameNno": "ub. piplerke",
     "latinName": "Anthus",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. polar-/grønlandsmåke",
@@ -12750,7 +12830,8 @@
     "nameNob": "ub. polar-/grønlandsmåke",
     "nameNno": "ub. polar-/grønlandsmåke",
     "latinName": "Larus hyperboreus/glaucoides",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. polar-/tyvjo",
@@ -12761,7 +12842,8 @@
     "nameNob": "ub. polar-/tyvjo",
     "nameNno": "ub. polar-/tyvjo",
     "latinName": "Stercorarius pomarinus/parasiticus",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. polarlomvi/lomvi",
@@ -12772,7 +12854,8 @@
     "nameNob": "ub. polarlomvi/lomvi",
     "nameNno": "ub. polarlomvi/lomvi",
     "latinName": "Uria",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. poseidon-/portugiserlire",
@@ -12783,7 +12866,8 @@
     "nameNob": "ub. poseidon-/portugiserlire",
     "nameNno": "ub. poseidon-/portugiserlire",
     "latinName": "Calonectris diomedea/borealis",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. puner-/tyrkersteinskvett",
@@ -12794,7 +12878,8 @@
     "nameNob": "ub. puner-/tyrkersteinskvett",
     "nameNno": "ub. puner-/tyrkersteinskvett",
     "latinName": "Oenanthe hispanica/melanoleuca",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. russe-/taigasvartstrupe",
@@ -12805,7 +12890,8 @@
     "nameNob": "ub. russe-/taigasvartstrupe",
     "nameNno": "ub. russe-/taigasvartstrupe",
     "latinName": "Saxicola maurus/stejnegeri",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. rype",
@@ -12816,7 +12902,8 @@
     "nameNob": "ub. rype",
     "nameNno": "ub. rype",
     "latinName": "Lagopus",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. rødbryst-/rosen-/rødsmekkesanger",
@@ -12827,7 +12914,8 @@
     "nameNob": "ub. rødbryst-/rosen-/rødsmekkesanger",
     "nameNno": "ub. rødbryst-/rosen-/rødsmekkesanger",
     "latinName": "Curruca iberiae/subalpina/cantillans",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. rødbryst-/rødsmekkesanger",
@@ -12838,7 +12926,8 @@
     "nameNob": "ub. rødbryst-/rødsmekkesanger",
     "nameNno": "ub. rødbryst-/rødsmekkesanger",
     "latinName": "Curruca iberiae/cantillans",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. rødflekk-/svartflekktrost",
@@ -12849,7 +12938,8 @@
     "nameNob": "ub. rødflekk-/svartflekktrost",
     "nameNno": "ub. rødflekk-/svartflekktrost",
     "latinName": "Turdus naumanni/eunomus",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. rødstjert",
@@ -12860,7 +12950,8 @@
     "nameNob": "ub. rødstjert",
     "nameNno": "ub. rødstjert",
     "latinName": "Phoenicurus",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. salt-/flekk-/turkestandverglerke",
@@ -12871,7 +12962,8 @@
     "nameNob": "ub. salt-/flekk-/turkestandverglerke",
     "nameNno": "ub. salt-/flekk-/turkestandverglerke",
     "latinName": "Alaudala cheleensis/rufescens/heinei",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. sibir-/kanadalo",
@@ -12882,7 +12974,8 @@
     "nameNob": "ub. sibir-/kanadalo",
     "nameNno": "ub. sibir-/kanadalo",
     "latinName": "Pluvialis fulva/dominica",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. sidensvans",
@@ -12893,7 +12986,8 @@
     "nameNob": "ub. sidensvans",
     "nameNno": "ub. sidensvans",
     "latinName": "Bombycilla",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. sjøorre/svartand",
@@ -12904,7 +12998,8 @@
     "nameNob": "ub. sjøorre/svartand",
     "nameNno": "ub. sjøorre/svartand",
     "latinName": "Melanitta fusca/nigra",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. skarv",
@@ -12915,7 +13010,8 @@
     "nameNob": "ub. skarv",
     "nameNno": "ub. skarv",
     "latinName": "Phalacrocorax",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. skog-/ringdue",
@@ -12926,7 +13022,8 @@
     "nameNob": "ub. skog-/ringdue",
     "nameNno": "ub. skog-/ringdue",
     "latinName": "Columba oenas/palumbus",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. skogtrost",
@@ -12937,7 +13034,8 @@
     "nameNob": "ub. skogtrost",
     "nameNno": "ub. skogtrost",
     "latinName": "Catharus",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. skrikørn",
@@ -12948,7 +13046,8 @@
     "nameNob": "ub. skrikørn",
     "nameNno": "ub. skrikørn",
     "latinName": "Clanga pomarina/clanga",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. slag-/lappugle",
@@ -12959,7 +13058,8 @@
     "nameNob": "ub. slag-/lappugle",
     "nameNno": "ub. slag-/lappugle",
     "latinName": "Strix uralensis/nebulosa",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. små-/storlom",
@@ -12970,7 +13070,8 @@
     "nameNob": "ub. små-/storlom",
     "nameNno": "ub. små-/storlom",
     "latinName": "Gavia stellata/arctica",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. små-/storspove",
@@ -12981,7 +13082,8 @@
     "nameNob": "ub. små-/storspove",
     "nameNno": "ub. små-/storspove",
     "latinName": "Numenius",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. steinskvett",
@@ -12992,7 +13094,8 @@
     "nameNob": "ub. steinskvett",
     "nameNno": "ub. steinskvett",
     "latinName": "Oenanthe",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. steppe-/enghauk",
@@ -13003,7 +13106,8 @@
     "nameNob": "ub. steppe-/enghauk",
     "nameNno": "ub. steppe-/enghauk",
     "latinName": "Circus macrourus/pygargus",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. stor-/polarjo",
@@ -13014,7 +13118,8 @@
     "nameNob": "ub. stor-/polarjo",
     "nameNno": "ub. stor-/polarjo",
     "latinName": "Stercorarius skua/pomarinus",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. storfalk",
@@ -13025,7 +13130,8 @@
     "nameNob": "ub. storfalk",
     "nameNno": "ub. storfalk",
     "latinName": "Falco sp.",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. stork",
@@ -13036,7 +13142,8 @@
     "nameNob": "ub. stork",
     "nameNno": "ub. stork",
     "latinName": "Ciconia",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. strand-/flekksnipe",
@@ -13047,7 +13154,8 @@
     "nameNob": "ub. strand-/flekksnipe",
     "nameNno": "ub. strand-/flekksnipe",
     "latinName": "Actitis",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. svane",
@@ -13058,7 +13166,8 @@
     "nameNob": "ub. svane",
     "nameNno": "ub. svane",
     "latinName": "Cygnus",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. svart-/brunhodespurv",
@@ -13069,7 +13178,8 @@
     "nameNob": "ub. svart-/brunhodespurv",
     "nameNno": "ub. svart-/brunhodespurv",
     "latinName": "Emberiza melanocephala/bruniceps",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. svartbak/sildemåke",
@@ -13080,7 +13190,8 @@
     "nameNob": "ub. svartbak/sildemåke",
     "nameNno": "ub. svartbak/sildemåke",
     "latinName": "Larus marinus/fuscus",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. svarthale-/lappspove",
@@ -13091,7 +13202,8 @@
     "nameNob": "ub. svarthale-/lappspove",
     "nameNno": "ub. svarthale-/lappspove",
     "latinName": "Limosa",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. svarthvit/halsbåndfluesnapper",
@@ -13102,7 +13214,8 @@
     "nameNob": "ub. svarthvit/halsbåndfluesnapper",
     "nameNno": "ub. svarthvit/halsbåndfluesnapper",
     "latinName": "Ficedula hypoleuca/albicollis",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. svartstrupe-/rødstrupetrost",
@@ -13113,7 +13226,8 @@
     "nameNob": "ub. svartstrupe-/rødstrupetrost",
     "nameNno": "ub. svartstrupe-/rødstrupetrost",
     "latinName": "Turdus atrogularis/ruficollis",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. svømmesnipe",
@@ -13124,7 +13238,8 @@
     "nameNob": "ub. svømmesnipe",
     "nameNno": "ub. svømmesnipe",
     "latinName": "Phalaropus",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. taiga-/tundrasædgås",
@@ -13135,7 +13250,8 @@
     "nameNob": "ub. taiga-/tundrasædgås",
     "nameNno": "ub. taiga-/tundrasædgås",
     "latinName": "Anser fabalis/serrirostris",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. tartar-/mongolpiplerke",
@@ -13146,7 +13262,8 @@
     "nameNob": "ub. tartar-/mongolpiplerke",
     "nameNno": "ub. tartar-/mongolpiplerke",
     "latinName": "Anthus richardi/godlewski",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. tartar-/ramasanger",
@@ -13157,7 +13274,8 @@
     "nameNob": "ub. tartar-/ramasanger",
     "nameNno": "ub. tartar-/ramasanger",
     "latinName": "Iduna caligata/rama",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. temminck-/dvergsnipe",
@@ -13168,7 +13286,8 @@
     "nameNob": "ub. temminck-/dvergsnipe",
     "nameNno": "ub. temminck-/dvergsnipe",
     "latinName": "Calidris temminckii/minuta",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. topp-/bergand",
@@ -13179,7 +13298,8 @@
     "nameNob": "ub. topp-/bergand",
     "nameNno": "ub. topp-/bergand",
     "latinName": "Aythya fuligula/marila",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. tre-/sibirpiplerke",
@@ -13190,7 +13310,8 @@
     "nameNob": "ub. tre-/sibirpiplerke",
     "nameNno": "ub. tre-/sibirpiplerke",
     "latinName": "Anthus trivialis/hodgsoni",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. trekryper",
@@ -13201,7 +13322,8 @@
     "nameNob": "ub. trekryper",
     "nameNno": "ub. trekryper",
     "latinName": "Certhia",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. tundra-/dverggås",
@@ -13212,7 +13334,8 @@
     "nameNob": "ub. tundra-/dverggås",
     "nameNno": "ub. tundra-/dverggås",
     "latinName": "Anser albifrons/erythropus",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. tyrker-/turteldue",
@@ -13223,7 +13346,8 @@
     "nameNob": "ub. tyrker-/turteldue",
     "nameNno": "ub. tyrker-/turteldue",
     "latinName": "Streptopelia turtur/decaocto",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. tyv-/fjelljo",
@@ -13234,7 +13358,8 @@
     "nameNob": "ub. tyv-/fjelljo",
     "nameNno": "ub. tyv-/fjelljo",
     "latinName": "Stercorarius parasiticus/longicaudus",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. tårn-/gråseiler",
@@ -13245,7 +13370,8 @@
     "nameNob": "ub. tårn-/gråseiler",
     "nameNno": "ub. tårn-/gråseiler",
     "latinName": "Apus apus/pallidus",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. vann-/skjærpiplerke",
@@ -13256,7 +13382,8 @@
     "nameNob": "ub. vann-/skjærpiplerke",
     "nameNno": "ub. vann-/skjærpiplerke",
     "latinName": "Anthus spinoletta/petrosus",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. vepse-/musvåk",
@@ -13267,7 +13394,8 @@
     "nameNob": "ub. vepse-/musvåk",
     "nameNno": "ub. vepse-/musvåk",
     "latinName": "Pernis apivorus/Buteo buteo",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. vipe",
@@ -13278,7 +13406,8 @@
     "nameNob": "ub. vipe",
     "nameNno": "ub. vipe",
     "latinName": "Vanellus",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "ub. våk",
@@ -13289,7 +13418,8 @@
     "nameNob": "ub. våk",
     "nameNno": "ub. våk",
     "latinName": "Buteo",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "ubestemt"
   },
   {
     "norwegian": "uglefamilien",
@@ -13300,7 +13430,8 @@
     "nameNob": "uglefamilien",
     "nameNno": "uglefamilien",
     "latinName": "Strigidae",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "familie"
   },
   {
     "norwegian": "vade-, måke- og alkefugler",
@@ -13311,6 +13442,7 @@
     "nameNob": "vade-, måke- og alkefugler",
     "nameNno": "vade-, måke- og alkefugler",
     "latinName": "Charadriiformes",
-    "erGruppe": true
+    "erGruppe": true,
+    "gruppeType": "familie"
   }
 ]

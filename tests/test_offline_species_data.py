@@ -62,6 +62,16 @@ def test_group_taxa_are_well_formed():
         assert g.get('taxonId'), f'Gruppe uten taxonId (kan ikke sendes til AO): {g}'
         assert g.get('nameNob') == g.get('norwegian'), f'nameNob samsvarer ikke: {g}'
         assert 'antallFunn' not in g, f'Gruppe skal ikke ha antallFunn: {g}'
+        # Typen styrer hvilken plass gruppa får i hala nederst i søket:
+        # «ub. ...» og familien dekker hvert sitt behov og får én plass hver.
+        assert g.get('gruppeType') in ('ubestemt', 'familie'), f'Ukjent gruppeType: {g}'
+        navn = g['norwegian'].lower()
+        forventet = 'ubestemt' if navn.startswith('ub.') else 'familie'
+        assert g['gruppeType'] == forventet, f'gruppeType stemmer ikke med navnet: {g}'
+
+    # Begge typene må finnes - faller den ene bort, har høstingen sviktet.
+    typer = {g['gruppeType'] for g in grupper}
+    assert typer == {'ubestemt', 'familie'}, f'Mangler gruppetype: {typer}'
 
 
 def test_nynorsk_field_present_and_reasonable_coverage():

@@ -13,7 +13,7 @@ import {
   isGenericSubspeciesName,
   translateDedicatedSubspeciesToNynorsk,
   isHybridItem,
-} from './species-matcher.js?v=v1.60.4';
+} from './species-matcher.js?v=v1.60.5';
 
 export {
   searchSpecies,
@@ -97,6 +97,13 @@ function buildCandidateEntry(item, fallbackNorwegian, isSub, parentArt = null) {
     isSub,
   };
 
+  // Gruppe-takson (familiar, ordenar, «ub. ...») skal sorterast nedst. Utan at
+  // flagget blir med hit, ser rangeringa dei som heilt vanlege artar.
+  if (item.erGruppe) {
+    entry.erGruppe = true;
+    entry.gruppeType = item.gruppeType;
+  }
+
   if (item.id !== undefined || item.taxonId !== undefined) {
     entry.id = item.id ?? item.taxonId;
     entry.taxonId = item.taxonId ?? item.id;
@@ -140,6 +147,17 @@ function buildCandidateEntry(item, fallbackNorwegian, isSub, parentArt = null) {
  * @param {string|boolean} [userLanguage]
  * @returns {Promise<Array<{taxonName:string,nynorsk:string|null,scientificName:string,source:string,isSub:boolean,parentId?:number|string,nameNno?:string|null,nameNob?:string,antallFunn?:number}>>}
  */
+// Artane fyller lista; gruppene får ein kort hale nedst.
+//
+// Dei to gruppetypane dekker kvar sitt behov og får difor kvar sin plass:
+// «ub. grå-/sildemåke» er for den som veit det var ein av to artar, medan
+// «måkefamilien» er for den som ikkje anar. Utan delinga fylte ub.-taksona
+// alle plassane på eit søk som «måke», og familien - nettopp det ein treng
+// når ein ikkje fekk bestemt fuglen - fall ut.
+const MAX_ARTSTREFF = 15;
+const MAX_UBESTEMTE = 2;
+const MAX_FAMILIAR = 1;
+
 export async function searchOfflineSpecies(term, includeSubtaxa = false, userLanguage = undefined) {
   const list = await loadOfflineSpecies();
   const q = (term || '').trim().toLowerCase();
@@ -168,8 +186,16 @@ export async function searchOfflineSpecies(term, includeSubtaxa = false, userLan
   // Sorter, koble underartar via parentId og filtrer via felles poengmodell og tie-breaker
   const ranked = searchSpecies(q, candidates, activeLang);
 
-  // Begrens til 15 treff for å unngå lang, støyete liste
-  return ranked.slice(0, 15);
+  // Begrens til 15 artstreff for å unngå lang, støyete liste - men hald av
+  // plass til gruppene. Dei ligg nedst etter sortering, så ein rå slice(0, 15)
+  // kappa dei bort nettopp når lista er lang, og lang er ho når søket treffer
+  // ei heil artsgruppe («måke», «ugle») - altså akkurat då ein kan trenge
+  // «ub. grå-/sildemåke».
+  const artstreff = ranked.filter((x) => !x.erGruppe).slice(0, MAX_ARTSTREFF);
+  const grupper = ranked.filter((x) => x.erGruppe);
+  const ubestemte = grupper.filter((x) => x.gruppeType === 'ubestemt').slice(0, MAX_UBESTEMTE);
+  const familiar = grupper.filter((x) => x.gruppeType !== 'ubestemt').slice(0, MAX_FAMILIAR);
+  return [...artstreff, ...ubestemte, ...familiar];
 }
 
 async function buildLatinToNynorskIndex() {

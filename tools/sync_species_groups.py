@@ -193,7 +193,12 @@ def til_artslisteform(gruppe: dict) -> dict:
     og et tall her ville latt dem konkurrere med artene i sorteringen.
     """
     navn = gruppe['taxonName']
+    # «ub. grå-/sildemåke» og «måkefamilien» dekker to ulike behov: den som vet
+    # det var en av to arter, og den som ikke aner. Frontend gir dem hver sin
+    # plass i hala, så typen må være kjent uten å gjette fra navnet der.
+    gruppe_type = 'ubestemt' if navn.strip().lower().startswith('ub.') else 'familie'
     return {
+        'gruppeType': gruppe_type,
         'norwegian': navn,
         'latin': gruppe['latin'],
         'subspecies': [],
