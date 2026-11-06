@@ -15,6 +15,7 @@ Oversikt over all dokumentasjon for Fugleobservasjoner-appen.
 - **[deploy_strategy.md](deploy_strategy.md)** - Deploy-strategi (Fly.io)
 
 ### Teknisk dokumentasjon
+- **[artssok-rangering.md](artssok-rangering.md)** - Hvordan artssøket rangerer treff, og gruppe-takson («ub. …», familier)
 - **[besok-og-tilbake-til-besok.md](besok-og-tilbake-til-besok.md)** - Besøksgruppering, ↩-knappen og tidsregelen
 - **[mobil-artsobservasjoner-api.md](mobil-artsobservasjoner-api.md)** - Dokumentasjon av AO mobil-API
 - **[supabase_statistikk.sql.md](supabase_statistikk.sql.md)** - SQL-oppsett for Supabase

@@ -59,6 +59,26 @@ LOCATION_DB_PATH=/sti/til/locations.db python3 tools/import_ao_locations.py
 LOCATION_DB_PATH=/sti/til/locations.db python3 /tmp/enrich2.py
 ```
 
+### Artsdata (kjøres ved behov, ikke per bruker)
+```bash
+# Ferske registreringstall (antallFunn) fra AO — 3 kall. Kadens: månedlig/før release
+python3 tools/sync_species.py
+python3 tools/sync_species.py --dry-run        # vis hva som ville endret seg
+
+# Gruppe-takson (familier, ordener, «ub. …») — ~31 kall med 1 sek pause
+python3 tools/sync_species_groups.py --dry-run
+python3 tools/sync_species_groups.py
+```
+Begge skriver `public/data/norske_arter.json`, som følger med i docker-imaget og
+precaches av service workeren. Data som er like for ALLE brukere hentes her én gang,
+ikke ett AO-kall per bruker per tastetrykk — samme mønster som `import_ao_locations.py`.
+
+**Gruppe-takson** er merket `erGruppe: true` og `gruppeType: 'ubestemt' | 'familie'`,
+og har bevisst **ikke** `antallFunn`: de skal ligge nederst, ikke konkurrere med artene
+i sorteringen. `tests/test_offline_species_data.py` vokter begge delene — artskravene
+(ettordslatin, antallFunn) gjelder kun radene uten `erGruppe`.
+Se `docs/artssok-rangering.md`.
+
 ### Load Testing
 ```bash
 python3 tools/load_test.py --mode gentle --requests 100 --concurrency 10
@@ -368,6 +388,52 @@ Pure ES6 modules with no framework:
   - Bilder: `nedskalerMedFallback()` prøver `downscaleForShare()` trinnvis (800px/q0.55 →
     640/0.4 → 480/0.32 → 400/0.28) til resultatet er under ~50 KB, fra `obs.photo` — atskilt
     fra den større AO-kvalitets-thumbnailen `edit.html` lager
+- `header-plass.js` — trinnvis komprimering av toppraden når den ikke får plass
+  - CSS kan ikke svare på «får dette plass?». Container queries måler containerens bredde,
+    ikke hva innholdet trenger, så et fast breakpoint må gjette — og gjettet feil: på en
+    430 px skjerm med god plass ble både appnavnet og nettverksordet skjult helt unødvendig
+    (feltmelding 05.11.2026). `tilpassHeader()` måler faktisk overflyt og trapper ned bare
+    så langt den må
+  - Trinnene (`data-komprimering` på `.app-header`, leses av `css/3-layout.css`):
+    `0` alt → `1` «EAO» i stedet for «Enkel-AO» → `2` uten appnavn → `3` uten nettverksord
+  - **Rekkefølgen er en prioritering:** nettverksmodusen (Online/Hybrid/Offline) er driftsinfo
+    man må kunne lese i felt, appnavnet er bare identitet — og logoen bærer den alene. Derfor
+    ofres appnavnet i to steg FØR ordet røres. Målt gir det «Enkel-AO» fra 390 px, «EAO» fra
+    360 px, og nettverksordet helt ned til 320 px. Logoen står i alle trinn
+  - Flex-barna har `flex-shrink: 0` i mobil-media. Uten det krymper de til de «passer», og
+    overflyten målingen bygger på oppstår aldri
+  - Første måling kjøres **synkront** i `index.html`; en debounce der lot raden stå
+    ukomprimert i et synlig øyeblikk. Senere målinger går på `requestAnimationFrame` med et
+    flagg mot ping-pong — `main.js` skriver kontoteksten etter første måling, så resize alene
+    er ikke nok, og en MutationObserver fanger det uten å kjenne hver enkelt knapp
+  - De sjeldnere valgene (Fellestur, Hjelp, Innstillinger) ligger i en `<details>`-meny bak ⋯.
+    Native details gir tastaturstyring også i eldre Safari; et inline-script lukker ved trykk
+    utenfor og Escape
+  - Rene funksjoner (`finnTrinn`, `passer`, `tilpassHeader`) er dekket av
+    `tests/unit/header-plass.test.js`; oppførselen i nettleser av
+    `tests/e2e_playwright/tests/header.spec.ts`
+- `species-matcher.js` — poengmodell og rangering i artssøket
+  - **Et ferdigskrevet artsnavn vinner alltid. Ellers avgjør hvor vanlig arten er, FØR
+    poengsummen.** Poengsummen måler hvor godt bokstavene passer; den vet ingenting om
+    hvilken fugl man kan få se. Lå den øverst, ga søk på «me» mestersanger (prefiks,
+    800 poeng, 2 funn i Norge) over kjøttmeis (ordgrense, 400 poeng, 646 041 funn)
+  - Svakheten var skjult fordi sorteringen virket perfekt der alle treffene har samme
+    poengsum — altså når søkeordet står FØRST i navnet («grå», «snø», «hav»). Den sviktet
+    bare når ordet lå inne i navnet
+  - Treff i et norsk navn går foran treff som bare finnes i det latinske (ellers klatret
+    svarttrost opp på «me» via *Turdus merula*), og navn som SLUTTER på søkeordet går først
+    — etterleddet er artsgruppa, så «ugle» gir ugler og ikke fuglekonge
+  - **Full beskrivelse av alle elleve trinnene og avveiningene:** `docs/artssok-rangering.md`
+- `species_offline.js` — lokal artsliste som primærkilde i søket
+  - `searchOfflineSpecies()` teller arter og grupper HVER FOR SEG: 15 artstreff, så inntil
+    2 «ub.»-takson og 1 familie. En rå `slice(0, 15)` kappet gruppene bort nettopp når lista
+    er lang — og lang er den når søket treffer en hel artsgruppe, altså akkurat da man
+    trenger dem
+  - De to gruppetypene dekker hvert sitt behov og får derfor hver sin plass:
+    «ub. grå-/sildemåke» er for den som vet det var en av to arter, «måkefamilien» for den
+    som ikke aner. Uten delingen fylte «ub.» alle plassene på «måke»
+  - `buildCandidateEntry()` må kopiere `erGruppe`/`gruppeType` videre — uten det ser
+    rangeringen gruppene som helt vanlige arter
 - `autocomplete.js` — Lokalitet-autocomplete med avstand og ikoner (🏷️ super, 👤 privat, ⭐ mine)
   - Aktivt i **begge** modi (Felt og Etterregistrering)
   - `initAutocomplete(placeInput, onSelect, getPosition)` — getPosition gir GPS-posisjon for sortering
@@ -479,8 +545,18 @@ Pure ES6 modules with no framework:
     - Markører brukeren selv har laget med pin-drop i økten (`labelMarkers`) blir
       stående gjennom «skjul alt» — de er svaret på en handling han nettopp gjorde, og
       forsvant de ville en vellykket opprettelse sett ut som en feilet
-    - Info-boksen beholder antallet, men merkes «(skjult)» (`#site-hidden-note`) — et
-      tomt kart med «12 lokaliteter» ved siden av ville lest som en feil
+    - **`anvendVisning()` eier BEGGE laggruppene** (v1.60.3): markørene ligger i
+      `siteLayerGroup`, mens polygoner og radius-sirkler ble flyttet til `siteShapesGroup`
+      i offline-arbeidet. Tar man bare den første, blir flatene stående og «skjul alt»
+      dekker fortsatt kartet — nettopp det knappen finnes for. Zoom-logikken i
+      `updateShapeVisibility()` legger og fjerner ENKELTLAG inne i gruppa, så den er
+      uavhengig av om gruppa selv er på kartet
+    - **Offline-markørknappen må ikke legge lagene tilbake selv.** `updateOfflineMarkersVisibility()`
+      gjorde det direkte, og dro lokalitetene inn igjen når visningen sto på «skjul alt».
+      Den kaller nå `anvendVisning()`, som eier avgjørelsen — ellers kjemper de to
+      knappene om samme laggruppe
+    - Info-boksen nede til høyre er **fjernet** i offline-arbeidet, og «(skjult)»-merkingen
+      falt bort med den. Knappeteksten bærer tilstanden alene
     - **`anvendVisning()` løfter polygonene over radius-sirklene PÅ NYTT** hver gang
       gruppa legges tilbake (`sistePolygonLag`), ikke bare i `renderSites()`:
       `map.removeLayer()` river SVG-elementene ut av DOM-en, og `addTo(map)` legger dem
@@ -496,6 +572,25 @@ Pure ES6 modules with no framework:
       risikoen for en knapp man står i kort
     - `public/js/kart-visning.js` ligger bevisst IKKE i `STATIC_ASSETS` i `sw.js`:
       `map.js` og `map.html` er ikke precachet der fra før, og kartsiden krever nett uansett
+  - **Varsel når kartet ikke får en eneste flis** (`#tomt-kart-varsel`, v1.60.1):
+    i offline-modus settes manglende fliser til en gjennomsiktig 1×1-PNG
+    (`BLANK_TILE_DATA_URL`). Resultatet er et helt blankt kart der lokalitetspinnene
+    likevel står — de kommer fra den lokale databasen — og uten en forklaring leser det
+    som at kartet er ødelagt, ikke som at området aldri ble lastet ned (feltmelding
+    05.11.2026)
+    - **Teller fliser i stedet for å gjette på modus:** hybrid uten dekning ender i samme
+      tomme kart, og over-/underzoom-fallbacken kan redde et utsnitt selv i offline. Bare
+      «null ekte fliser» er et sikkert tegn
+    - **Bokfører UTFALLET, ikke intensjonen.** `settFlisKilde()` kobler seg på flisens
+      `load`/`error`: i hybrid settes nettverks-URL-en først og feiler etterpå når
+      dekningen mangler, så en bokføring i det `src` settes ville regnet den tomme flisen
+      som en ekte — og varselet uteblitt nettopp der det trengs mest (målt)
+    - To ulike tekster: offline-modus får «området er ikke lastet ned» med ett trykk
+      tilbake til Online; manglende dekning får en dekningsmelding uten den knappen (man
+      ER jo online). Lukkes det, kommer det ikke tilbake ved hver panorering
+    - Panelet har `pointer-events: none` utenom knappene, så kartet kan fortsatt panoreres
+      og zoomes under. Varselet forklarer noe — det skal ikke ta kartet fra brukeren
+    - Dekket av `tests/e2e_playwright/tests/kart-tomt-varsel.spec.ts`
   - **Panorer-og-oppdater** (v1.53.15, radius+cache v1.53.19, fast radius v1.53.22):
     `map.on('moveend', ...)` henter nye lokaliteter for kartets NYE senter når brukeren panorerer.
     Radius er `AUTO_FETCH_RADIUS_M = max(3000, sizeMeters)` — en FAST verdi uansett zoom-nivå, ikke
@@ -652,10 +747,18 @@ AO_URL=http://localhost:8080 AO_MOBILE_URL=http://localhost:8080 python3 server.
 ### Versjonering
 Ved ny versjon, gjør alltid følgende:
 1. Oppdater `VERSION` i `public/js/version.js` (brukes av `help.html`/`feedback.html` footers via import)
-2. **`public/index.html` har TRE EGNE inline `VERSION`-konstanter** (main.js-cache-bust, SW-registrering,
-   footer-tekst) — importerer bevisst IKKE fra `version.js` (unngår at en cachet gammel `version.js`
-   forteller usant om seg selv). Kjør `grep -n "v[0-9]*\.[0-9]*\.[0-9]*" public/index.html` og bump
-   ALLE treff, ikke bare `version.js`.
+2. **`public/index.html` har flere egne versjonsreferanser** — to inline `VERSION`-konstanter
+   (SW-registrering og footer-tekst) pluss `?v=`-tagger på `style.css`, `main.js`,
+   `header-plass.js` og `photo-picker.js`. De importerer bevisst IKKE fra `version.js`
+   (unngår at en cachet gammel `version.js` forteller usant om seg selv). Kjør
+   `grep -n "v[0-9]*\.[0-9]*\.[0-9]*" public/index.html` og bump ALLE treff, ikke bare
+   `version.js`.
+   - **`public/js/offline-db.js` har `SERVICE_WORKER_URL = '/sw.js?v=…'`** — en versjonsreferanse
+     som ikke ligger i en HTML-fil og derfor er lett å gå glipp av. Står den igjen på gammel
+     versjon, registreres service workeren på en URL Cloudflare allerede har cachet.
+   - I praksis er det enkleste å bumpe ALLE `?v=`-referanser i `public/` i én operasjon
+     (`grep -rln '?v=vX.Y.Z' public/`) framfor å plukke dem enkeltvis. Det ble gjort for
+     v1.60.1–v1.60.5, ~42 referanser i 12 filer per bump.
 3. **Bump `CACHE_NAME` i `public/sw.js`** (`fugleobs-vNN` → `vNN+1`). **Uten dette henter
    installerte PWA-er aldri ny JS** — sw.js må endres for at nettleseren skal trigge
    install/activate. Nye JS-moduler må også legges til i `STATIC_ASSETS`.

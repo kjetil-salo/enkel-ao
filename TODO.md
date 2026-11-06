@@ -91,6 +91,20 @@ størrelse, uansett hvilken. Ikke konverter eksisterende dokumentasjon.
 - Avgjør etterpå: ga forslags- og arkiveringsstegene noe `docs/*-plan.md` +
   TODO ikke alt gir? Hvis nei — fjern `openspec/` igjen
 
+**Status 06.11.2026:** piloten er fortsatt ikke startet — `openspec/` finnes ikke i
+repoet. Spørsmålet kom opp igjen etter en runde med fire endringer (kompakt topprad,
+kartvarsel, artssøk-rangering, gruppe-takson), med spørsmål om å fylle inn specs
+retroaktivt for dem. Konklusjonen ble å holde på beslutningen over, men av en litt
+annen grunn enn den opprinnelige: verdien i OpenSpec ligger i REKKEFØLGEN — spec før
+kode, godkjenning, så implementering. For kode som alt står i prod gir det
+dokumentasjon, ikke arbeidsflyt, og da er det en andre kopi ved siden av `docs/`.
+
+Å fylle `specs/` retroaktivt er riktignok en normal måte å adoptere OpenSpec på et
+eksisterende repo, så motargumentet er reelt. Det som avgjør er om neste feature er
+stor nok til å være verdt en forslagssyklus — er den det, startes piloten DER, med
+ferskt materiale og riktig rekkefølge. Da trengs ikke retroaktive specs for å komme i
+gang; bare for de capabilities den endringen faktisk berører.
+
 **Relatert sidefunn fra samme vurdering:** ingen av de fire
 `docs/*-plan.md` er endret etter at de ble skrevet, så de sier ikke om de er
 gjennomført, delvis bygget eller døde (deling ER bygget, server-lagring er
