@@ -44,8 +44,9 @@ export const CURRENT_NEWS_SPLASH = {
         + 'for å sentrere på deg selv, appen hopper rett ned til artsfeltet når du har valgt '
         + 'sted, og du kan ha åtte aktivitetsknapper i stedet for seks — og dra dem i den '
         + 'rekkefølgen du vil under Innstillinger. I tillegg kommer en rekke mindre ting vi '
-        + 'ikke lister opp her. Det er uvanlig å få hjelp av dette slaget til en gratis '
-        + 'fritidsapp, og den er blitt klart bedre av det.',
+        + 'ikke lister opp her. Enkel-AO er åpen kildekode, og dette er akkurat slik det '
+        + 'er ment å virke: koden ligger ute, og den som savner noe kan bygge det og sende '
+        + 'det tilbake.',
       avatar: {
         src: '/img/espen.jpg',
         alt: 'Portrett av Espen Bore Hollund',
