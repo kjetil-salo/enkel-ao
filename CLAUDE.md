@@ -812,5 +812,12 @@ Ved ny versjon, gjør alltid følgende:
      fanget FØR deploy, ikke etterpå. Kjør
      `grep -rn "from '\./.*\.js?v=" public/js/*.js` for å finne slike bevisst
      versjonerte interne imports og bump dem sammen med resten.
-5. Oppdater `public/changelog.html` med kort beskrivelse av hva som er nytt
+5. Oppdater `public/changelog.html` med kort beskrivelse av hva som er nytt.
+   **Testen er: kan leseren gjøre noe annerledes etter å ha lest linja?** Er svaret
+   nei, hører den ikke hjemme der. En versjon som bare inneholder en nyhetssplash,
+   en ren versjonsbump eller cache-busting skal IKKE ha en egen oppføring — hopp
+   over den. Changelogen har ikke noe krav om å dekke hvert versjonsnummer, men
+   hver linje skal være verdt å lese. «Nyhetsvindu om offline-kartet» var en slik
+   verdiløs linje (v1.60.7, fjernet): at vi har laget et nyhetsvindu er måten vi
+   forteller om endringene på, ikke en endring i seg selv
 6. Oppdater relevant dokumentasjon i `docs/` hvis funksjonalitet er endret
