@@ -46,6 +46,10 @@ export const CURRENT_NEWS_SPLASH = {
         + 'rekkefølgen du vil under Innstillinger. I tillegg kommer en rekke mindre ting vi '
         + 'ikke lister opp her. Det er uvanlig å få hjelp av dette slaget til en gratis '
         + 'fritidsapp, og den er blitt klart bedre av det.',
+      avatar: {
+        src: '/img/espen.jpg',
+        alt: 'Portrett av Espen Bore Hollund',
+      },
     },
     {
       title: '👁️ Ryddigere kart der lokalitetene står tett',
@@ -167,7 +171,40 @@ function createNewsSplash(items) {
     const body = document.createElement('p');
     body.textContent = item.body;
 
-    row.appendChild(itemTitle);
+    // Et lite, rundt portrett ved siden av tittelen — for et punkt som handler
+    // om en person. Bevisst atskilt fra `image`, som er full bredde: en
+    // bidragsyter skal krediteres diskret, ikke fylle panelet.
+    //
+    // Stilene settes INLINE av samme grunn som for `image` over: stilarkene har
+    // ingen `?v=`, så Cloudflare kan servere en gammel kopi i fire timer etter
+    // deploy, og uten reglene ville portrettet rendret i full naturlig bredde.
+    if (item.avatar && item.avatar.src) {
+      const rad = document.createElement('div');
+      rad.style.display = 'flex';
+      rad.style.alignItems = 'center';
+      rad.style.gap = '10px';
+      rad.style.marginBottom = '6px';
+
+      const portrett = document.createElement('img');
+      portrett.className = 'news-splash-item-avatar';
+      portrett.src = item.avatar.src;
+      portrett.alt = item.avatar.alt || '';
+      portrett.style.width = '44px';
+      portrett.style.height = '44px';
+      portrett.style.flexShrink = '0';
+      portrett.style.borderRadius = '50%';
+      portrett.style.objectFit = 'cover';
+      portrett.style.display = 'block';
+      // Et manglende portrett skal ikke etterlate et tomt hull ved siden av
+      // tittelen — da rykker tittelen bare på plass der den ellers ville stått.
+      portrett.addEventListener('error', () => portrett.remove());
+
+      rad.appendChild(portrett);
+      rad.appendChild(itemTitle);
+      row.appendChild(rad);
+    } else {
+      row.appendChild(itemTitle);
+    }
     row.appendChild(body);
 
     // Valgfri lenke per punkt. body settes bevisst med textContent (aldri
