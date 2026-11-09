@@ -138,6 +138,52 @@ _fellestur_peer_hits = {}
 FELLESTUR_PEER_MAX_PER_WINDOW = 200
 FELLESTUR_PEER_WINDOW_SEC = 600
 
+# Fellestur-koden er kun 5 sifre (100 000 mulige, src/fellestur_store.py), og
+# GET (polling) var tidligere HELT uten kvote — en gjettbar kode uten brems på
+# oppslag er ingen reell hemmelighet. Egen bøtte, ikke delt med skrive-kvoten
+# over: polling skjer kontinuerlig (hvert 12. sek per deltaker, se
+# public/js/fellestur.js POLL_MS) og skal ikke spise skrivekvoten til de som
+# faktisk registrerer. Samme størrelsesorden som skrive-kvoten (romslig nok
+# for flere deltakere på samme IP, se begrunnelsen over), men likevel et tak.
+_fellestur_poll_hits = {}
+FELLESTUR_POLL_MAX_PER_WINDOW = 600
+FELLESTUR_POLL_WINDOW_SEC = 600
+
+# AO-login er en innloggingsproxy mot et ekte AO-brukernavn/passord — uten
+# kvote kan serveren brukes til å brute force/credential-stuffe AO-kontoer
+# gratis for angriperen, bak vår IP. Strammere enn tilbakemelding: en ekte
+# bruker som har tastet feil passord trenger noen få nye forsøk, ikke hundre.
+_ao_login_hits = {}
+AO_LOGIN_MAX_PER_WINDOW = 10
+AO_LOGIN_WINDOW_SEC = 600
+
+# Samme proxy-resonnement for søk i AOs brukerregister (FindUsersByName) —
+# romsligere enn login siden det er debouncet fritekstsøk (400 ms) under
+# normal bruk, men fortsatt et tak mot skraping av AOs register via vår IP.
+_ao_search_observers_hits = {}
+AO_SEARCH_OBSERVERS_MAX_PER_WINDOW = 100
+AO_SEARCH_OBSERVERS_WINDOW_SEC = 600
+
+# Rent opplysende statistikk-endepunkter, men fortsatt anonyme og ubeskyttet —
+# uten tak kan de spammes for å forurense /stats og eksport-tellerne.
+_logview_hits = {}
+LOGVIEW_MAX_PER_WINDOW = 120
+LOGVIEW_WINDOW_SEC = 600
+
+_log_export_hits = {}
+LOG_EXPORT_MAX_PER_WINDOW = 120
+LOG_EXPORT_WINDOW_SEC = 600
+
+# Alle rate-limit-bøttene over, kun for den periodiske oppryddingen i _rate_ok:
+# uten den vokser hver dict med én nøkkel per unike IP noen gang sett, for alltid.
+_ALLE_RATE_HITS = (
+    _feedback_hits, _share_hits, _fellestur_hits, _fellestur_peer_hits,
+    _fellestur_poll_hits, _ao_login_hits, _ao_search_observers_hits,
+    _logview_hits, _log_export_hits,
+)
+_siste_rate_opprydding = [0.0]
+_RATE_OPPRYDDING_INTERVALL_SEC = 3600
+
 # Tak for ett enkelt bilde som lastes opp til et publisert AO-funn, målt i tegn i
 # data-URL-en. Klienten skalerer til maks 1600 px (samme grense AO selv bruker), så
 # et reelt bilde lander typisk under 1 MB. Taket er en ren minnebeskyttelse mot en
@@ -179,11 +225,26 @@ def _max_body_bytes(path):
     return _MAX_BODY_PER_PATH.get(path, _MAX_BODY_DEFAULT)
 
 
+def _rydd_stale_rate_entries(now):
+    """Fjern IP-nøkler uten noen tidsstempel innenfor den siste timen.
+
+    Ingen av vindusbreddene vi bruker er over FELLESTUR_WINDOW_SEC (600s), så
+    en nøkkel uten treff de siste 3600s er garantert utløpt i ALLE bøttene —
+    trygt å fjerne uansett hvilket vindu den opprinnelig ble satt med.
+    """
+    for hits in _ALLE_RATE_HITS:
+        for ip in [ip for ip, ts in hits.items() if not ts or now - ts[-1] > _RATE_OPPRYDDING_INTERVALL_SEC]:
+            del hits[ip]
+
+
 def _rate_ok(hits, ip, max_per_window, window_sec):
     """Vindusbasert throttling for anonyme skrive-endepunkter."""
     import time
     now = time.time()
     with _feedback_lock:
+        if now - _siste_rate_opprydding[0] > _RATE_OPPRYDDING_INTERVALL_SEC:
+            _siste_rate_opprydding[0] = now
+            _rydd_stale_rate_entries(now)
         nylige = [t for t in hits.get(ip, []) if now - t < window_sec]
         if len(nylige) >= max_per_window:
             hits[ip] = nylige
@@ -343,6 +404,9 @@ class Handler(SimpleHTTPRequestHandler):
     
     def _handle_log_export_post(self):
         """Håndter logging av eksport-hendelse."""
+        if not _rate_ok(_log_export_hits, self._client_ip(), LOG_EXPORT_MAX_PER_WINDOW, LOG_EXPORT_WINDOW_SEC):
+            self._send_json({'ok': False}, status=429)
+            return
         try:
             content_length = int(self.headers.get('Content-Length', 0))
             body = json.loads(self.rfile.read(content_length)) if content_length else {}
@@ -357,6 +421,11 @@ class Handler(SimpleHTTPRequestHandler):
     def _handle_ao_search_observers_post(self):
         """Proxy for å søke etter medobservatører på AO."""
         import httpx
+
+        if not _rate_ok(_ao_search_observers_hits, self._client_ip(),
+                         AO_SEARCH_OBSERVERS_MAX_PER_WINDOW, AO_SEARCH_OBSERVERS_WINDOW_SEC):
+            self._send_json([], status=429)
+            return
 
         try:
             content_length = int(self.headers.get('Content-Length', 0))
@@ -431,6 +500,11 @@ class Handler(SimpleHTTPRequestHandler):
         from http.cookies import SimpleCookie
 
         real_ip = self._client_ip()
+
+        if not _rate_ok(_logview_hits, real_ip, LOGVIEW_MAX_PER_WINDOW, LOGVIEW_WINDOW_SEC):
+            self._send_json({'ok': False}, status=429)
+            return
+
         user_agent = self.headers.get('User-Agent', '-')
 
         # Les eller generer device_id fra cookie
@@ -729,7 +803,15 @@ class Handler(SimpleHTTPRequestHandler):
             self._send_json({'error': 'Intern feil'}, status=500)
 
     def _handle_fellestur_get(self, parsed):
-        """Hent turnavn, medobservatører og alle oppføringer — brukes til polling."""
+        """Hent turnavn, medobservatører og alle oppføringer — brukes til polling.
+
+        Koden er bare 5 sifre (100 000 mulige) — uten kvote her er den ingen
+        reell hemmelighet, bare en forsinkelse på millisekunder for noen som
+        vil brute-force seg til en fremmed, aktiv fellestur.
+        """
+        if not _rate_ok(_fellestur_poll_hits, self._client_ip(), FELLESTUR_POLL_MAX_PER_WINDOW, FELLESTUR_POLL_WINDOW_SEC):
+            self._send_json({'error': 'For mange forespørsler — prøv igjen senere.'}, status=429)
+            return
         qs = parse_qs(parsed.query)
         kode = qs.get('kode', [''])[0].upper()
         tur = fellestur_store.get_fellestur(kode)
@@ -1257,6 +1339,9 @@ class Handler(SimpleHTTPRequestHandler):
 
     def _handle_ao_login_post(self):
         """Håndter innlogging til AO med brukernavn/passord."""
+        if not _rate_ok(_ao_login_hits, self._client_ip(), AO_LOGIN_MAX_PER_WINDOW, AO_LOGIN_WINDOW_SEC):
+            self._send_json({'error': 'For mange innloggingsforsøk — prøv igjen senere.'}, status=429)
+            return
         try:
             content_length = int(self.headers.get('Content-Length', 0))
             body = self.rfile.read(content_length).decode('utf-8')
