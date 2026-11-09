@@ -272,3 +272,22 @@ def test_for_stor_body_avvises_for_den_leses():
         assert r.status_code == 200
     finally:
         srv.shutdown()
+
+
+def test_admin_side_har_kjorbar_hemmelighet_i_script():
+    """Statusnedtrekket på admin-siden var dødt: `html.escape` gjorde fnuttene
+    rundt HEMMELIGHET om til `&#x27;`, og inne i et `<script>` dekodes ikke
+    tegnreferanser. JS-parseren fikk en SyntaxError, `setStatus` ble aldri
+    definert, og hvert statusvalg gjorde ingenting (kun en konsollfeil).
+    Funnet i gjennomgangen 09.11.2026."""
+    from src.html_templates import generate_feedback_admin_page
+
+    html = generate_feedback_admin_page([], {}, 'abc123XYZ', '')
+    linje = next(l.strip() for l in html.splitlines() if 'const HEMMELIGHET' in l)
+
+    assert linje == 'const HEMMELIGHET = "abc123XYZ";'
+    assert '&#x27;' not in linje and '&quot;' not in linje
+
+    # ...og en verdi kan ikke lukke script-elementet
+    farlig = generate_feedback_admin_page([], {}, '</script><img src=x>', '')
+    assert '</script><img' not in farlig

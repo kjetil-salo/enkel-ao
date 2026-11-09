@@ -5,7 +5,24 @@ Genererer HTML-sider for statistikk og login.
 """
 
 import html as _html
+import json as _json
 from urllib.parse import quote
+
+
+def _js_streng(verdi) -> str:
+    """Trygg JS-strengliteral for bruk inne i en `<script>`-blokk.
+
+    Inne i et script-element dekodes IKKE tegnreferanser: `html.escape` gjorde
+    fnuttene om til `&#x27;`, og JS-parseren fikk `const X = &#x27;abc&#x27;;`
+    → SyntaxError. Resultatet var at `setStatus` aldri ble definert, og
+    statusnedtrekket på tilbakemeldings-admin gjorde ingenting (kun en
+    konsollfeil). Funnet i gjennomgangen 09.11.2026.
+
+    `json.dumps` gir en korrekt literal; `</` brytes opp slik at verdien ikke
+    kan lukke script-elementet (`</script>` inne i en streng avslutter det
+    likevel, etter HTML-parserens regler).
+    """
+    return _json.dumps(str(verdi)).replace('</', '<\\/')
 
 
 def generate_stats_page(recent_ips, per_ua, total, per_device=None, per_os=None, per_browser=None, total_unique_ips=0, source="Supabase", total_unique_devices=0, exports=None, trend_30d=None, trend_7d=None, unique_devices_per_day=None, unique_users_per_week=None):
@@ -379,7 +396,7 @@ def generate_feedback_admin_page(items, counts, hemmelighet, status_filter=''):
         </table>
     </div>
     <script>
-        const HEMMELIGHET = {_html.escape(repr(hemmelighet))};
+        const HEMMELIGHET = {_js_streng(hemmelighet)};
         async function setStatus(caseNo, status) {{
             try {{
                 const r = await fetch('/api/feedback-status?s=' + encodeURIComponent(HEMMELIGHET), {{
