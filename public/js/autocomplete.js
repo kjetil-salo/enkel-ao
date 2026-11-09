@@ -4,6 +4,26 @@
 
 import { getNetworkMode, getAllOfflineLocations } from './offline-db.js';
 import { haversine } from './utils.js';
+// Versjonert import: hard avhengighet til en navngitt eksport.
+import { loggInnMedLagretLegitimasjon } from './api.js?v=v1.60.10';
+
+// Serveren kan ikke lenger fornye en sesjon på brukernavn alene — passordet er
+// bundet til logintokenet (v1.60.10), og rader lagret før bindingen er fjernet.
+// Sier serveren «utløpt», logger vi inn med den lagrede legitimasjonen: det
+// fornyer både sesjonen OG bindingen, så neste tastetrykk søker i alle
+// AO-lokaliteter igjen. Uten dette måtte brukeren selv finne innloggingssiden.
+let reinnloggingPagar = false;
+
+function fornyInnloggingEnGang() {
+  if (reinnloggingPagar) return;
+  reinnloggingPagar = true;
+  // Flagget nullstilles igjen uansett utfall. Et kort nettbrudd skal ikke låse
+  // resten av sidens levetid i utlogget tilstand — det var nettopp det
+  // fornyelsen finnes for å unngå.
+  loggInnMedLagretLegitimasjon()
+    .catch(() => false)
+    .finally(() => { reinnloggingPagar = false; });
+}
 
 function isMineResult(result) {
   return result?.isMine === true || result?.ColorString === '#ffff00';
@@ -190,12 +210,14 @@ export function initAutocomplete(placeInput, onSelect, getPosition = null) {
         renderResults(results);
         // Vis hint om innlogging kan gi flere resultater
         if (data.auth_expired || data.not_logged_in) {
+          if (data.auth_expired) fornyInnloggingEnGang();
           const hint = document.createElement('div');
           hint.style.cssText = 'padding: 8px 12px; font-size: 0.75em; color: var(--muted); border-top: 1px solid var(--border);';
           hint.innerHTML = '💡 <a href="/ao-direct.html" style="color: inherit; text-decoration: underline;">Logg inn</a> for flere lokaliteter';
           dropdown.appendChild(hint);
         }
       } else if (data.auth_expired || data.not_logged_in) {
+        if (data.auth_expired) fornyInnloggingEnGang();
         dropdown.innerHTML = `
           <div style="
             padding: 12px 16px;

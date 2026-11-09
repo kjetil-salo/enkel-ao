@@ -47,7 +47,7 @@ import { commitObservation, renderActivityPills } from './observation-commit.js?
 import { handleExport, handleCopy, handleCopyAndOpen, handleClear, handleDirectSend, oppdaterAoKoHint }
   from './export-operations.js?v=v1.60.9';
 import { openShareDialog } from './share.js';
-import { initAutocomplete } from './autocomplete.js';
+import { initAutocomplete } from './autocomplete.js?v=v1.60.10';
 import { initNewsSplash } from './news-splash.js?v=v1.60.9';
 import { initFirstRunHint, shouldShowHint } from './first-run-hint.js?v=v1.60.9';
 import { hentAktivFellestur, forlatFellestur } from './fellestur-client.js';
