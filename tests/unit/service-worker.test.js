@@ -125,3 +125,18 @@ it('kan fullføre en bekreftet innsending uten å oppheve offline-modus', async 
   expect(network).toHaveBeenCalledTimes(2);
   expect(localStorage.getItem('network_mode_v1')).toBe('offline');
 });
+
+it('forhåndslagrer hver markørfarge kartet bruker, så de vises offline', () => {
+  // Bare forhåndslagrede ressurser overlever en ny versjon: activate sletter alle
+  // andre cacher. Manglet en farge her, fikk private (grå) og superlokaliteter
+  // (oransje) et brutt ikon offline etter hver oppdatering.
+  const mapSource = readFileSync(resolve(__dirname, '../../public/js/map.js'), 'utf8');
+  const farger = new Set([
+    ...[...mapSource.matchAll(/markerColor = '(\w+)'/g)].map(m => m[1]),
+    ...[...mapSource.matchAll(/marker-icon-2x-(\w+)\.png/g)].map(m => m[1]),
+  ]);
+  expect(farger.size).toBeGreaterThanOrEqual(5);
+  for (const farge of farger) {
+    expect(source, `marker-icon-2x-${farge}.png mangler i STATIC_ASSETS`).toContain(`marker-icon-2x-${farge}.png'`);
+  }
+});
