@@ -2,7 +2,7 @@
  * Observations-modul for håndtering av observasjoner og CSV-eksport
  */
 
-import { defaultCoObservers, loadMedobs, speciesDisplayName } from './storage.js?v=v1.60.11';
+import { defaultCoObservers, loadMedobs, speciesDisplayName } from './storage.js?v=v1.60.12';
 import { showToast } from './ui.js';
 import { toLocalISOString } from './utils.js';
 import { getObservationVisitKey, setVisitLocked } from './visits.js';

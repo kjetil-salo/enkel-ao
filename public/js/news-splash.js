@@ -21,8 +21,25 @@ const MAX_VISIBLE = 4;
 
 export const CURRENT_NEWS_SPLASH = {
   enabled: true,
-  id: 'november-2026-offline-kart-v1',
+  // Ny id: nyheten fra 6. november skal vises på nytt sammen med
+  // sikkerhetspunktet, slik at ingen mister offline-nyheten fordi de rakk å
+  // lukke den. Punktene under er de samme, bortsett fra det første.
+  id: 'november-2026-sikkerhet-og-offline-v1',
   items: [
+    {
+      title: '🔐 Du må nok logge inn på Artsobservasjoner én gang til',
+      body: 'Vi har tettet noen sikkerhetshull i måten appen tar vare på '
+        + 'AO-innloggingen din. Derfor kan appen spørre om brukernavn og passord på nytt — '
+        + 'én gang på hver enhet du bruker den på. Har du lagret innloggingen under '
+        + 'Innstillinger, ordner appen det stort sett selv. '
+        + 'Observasjonene i lista di blir ikke berørt av dette. '
+        + 'Hullene ble funnet av Vegard Hanssen, som leste gjennom koden på eget initiativ '
+        + 'og sendte rettelsene — samme vei som Espens forbedringer kom inn.',
+      link: {
+        href: '/changelog.html',
+        text: 'Hva som ble rettet',
+      },
+    },
     {
       title: '🗺️ Kartet virker nå uten dekning',
       body: 'Last ned kartet og lokalitetene for området du skal til mens du har nett — '
@@ -53,18 +70,15 @@ export const CURRENT_NEWS_SPLASH = {
       },
     },
     {
-      title: '👁️ Ryddigere kart der lokalitetene står tett',
+      // Slått sammen fra to punkter: MAX_VISIBLE er 4, og sikkerhetspunktet
+      // måtte inn uten at noe av offline-nyheten forsvant i stillhet.
+      title: '👁️ Ryddigere kart, og artsgrupper i søket',
       body: 'På steder som Lista lå markørene så tett at de dekket hele kartet. Nå samles de '
-        + 'i bobler med et tall i, som deler seg etter hvert som du zoomer inn — kartet er '
-        + 'lesbart med en gang du åpner det. Lokaliteter som er tegnet som områder vises '
-        + 'dessuten uten nål, så du ser selve flaten.',
-    },
-    {
-      title: '🪶 Fikk du den ikke artsbestemt?',
-      body: 'Søker du «måke» får du gråmåke og fiskemåke øverst som før — men nederst i lista '
-        + 'ligger nå også «ub. grå-/sildemåke» og «måkefamilien». Dem kan du sende inn når '
-        + 'fuglen ikke lot seg bestemme sikkert. Det gjelder de fleste artsgruppene: ender, '
-        + 'meiser, troster, ugler.',
+        + 'i bobler med et tall i, som deler seg etter hvert som du zoomer inn. '
+        + 'Og søker du «måke» får du gråmåke og fiskemåke øverst som før — men nederst i '
+        + 'lista ligger nå også «ub. grå-/sildemåke» og «måkefamilien», som du kan sende inn '
+        + 'når fuglen ikke lot seg bestemme sikkert. Det gjelder de fleste artsgruppene: '
+        + 'ender, meiser, troster, ugler.',
     },
   ],
 };
