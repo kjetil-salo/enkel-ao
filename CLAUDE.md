@@ -602,8 +602,13 @@ Pure ES6 modules with no framework:
       tilstand, selv om ingen av dem kan vises. Bortkastet arbeid i noen sekunder, men en
       lat tegning ville krevd et eget mellomlager for siste hentede liste — ikke verdt
       risikoen for en knapp man står i kort
-    - `public/js/kart-visning.js` ligger bevisst IKKE i `STATIC_ASSETS` i `sw.js`:
-      `map.js` og `map.html` er ikke precachet der fra før, og kartsiden krever nett uansett
+    - `public/js/kart-visning.js` MÅ ligge i `STATIC_ASSETS` i `sw.js` — og gjør det
+      fra 09.11.2026. Begrunnelsen som sto her («`map.js` og `map.html` er ikke
+      precachet der fra før, og kartsiden krever nett uansett») var **faktisk feil på
+      begge punkter**: begge står i `STATIC_ASSETS`, og kartsiden er selve
+      offline-funksjonen. Følgen var at ES-modul-importen feilet uten nett, og da
+      evalueres ALDRI resten av `map.js` — blankt, dødt kart i offline-modus.
+      `tests/unit/service-worker.test.js` vokter nå hver modul `map.js` importerer
   - **Varsel når kartet ikke får en eneste flis** (`#tomt-kart-varsel`, v1.60.1):
     i offline-modus settes manglende fliser til en gjennomsiktig 1×1-PNG
     (`BLANK_TILE_DATA_URL`). Resultatet er et helt blankt kart der lokalitetspinnene

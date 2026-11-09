@@ -140,3 +140,16 @@ it('forhåndslagrer hver markørfarge kartet bruker, så de vises offline', () =
     expect(source, `marker-icon-2x-${farge}.png mangler i STATIC_ASSETS`).toContain(`marker-icon-2x-${farge}.png'`);
   }
 });
+
+it('forhåndslagrer hver modul map.js importerer, ellers dør kartet offline', () => {
+  // ES-modul-import er alt-eller-ingenting: feiler ÉN import, evalueres aldri
+  // resten av map.js, og kartet blir blankt — nettopp i offline-bruken.
+  // `activate` sletter alle cacher som ikke er CACHE_NAME, så en modul som bare
+  // ligger i en runtime-cache er borte etter neste versjonsbump.
+  const mapSource = readFileSync(resolve(__dirname, '../../public/js/map.js'), 'utf8');
+  const moduler = [...mapSource.matchAll(/from\s+'\.\/([\w-]+\.js)/g)].map(m => m[1]);
+  expect(moduler.length).toBeGreaterThan(3);
+  for (const modul of new Set(moduler)) {
+    expect(source, `/js/${modul} mangler i STATIC_ASSETS`).toContain(`'/js/${modul}'`);
+  }
+});

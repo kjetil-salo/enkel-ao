@@ -68,6 +68,10 @@ const STATIC_ASSETS = [
 '/js/migration-banner.js',
 '/js/offline-area.js',
 '/js/offline-db.js',
+// map.js importerer denne. Står den ikke her, blir den slettet ved neste
+// versjon (activate rydder alle andre cacher), og da feiler ES-modul-importen
+// offline — hele map.js evalueres aldri, og kartet blir blankt.
+'/js/kart-visning.js',
 '/js/rarity.js',
 '/js/utils.js',
 '/data/activities.json',
