@@ -1,0 +1,119 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1740" viewBox="0 0 1080 1740" role="img" aria-labelledby="title desc">
+  <title id="title">Facebook-plansje for Enkel-AO: offline-kart</title>
+  <desc id="desc">Plansje som viser nedlasting av kartomrade pa Hardangervidda i Enkel-AO, med skjermbilder av omradevelger, nedlasting og bekreftelse, samt kreditering av bidragsyter.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0f1b38"/>
+      <stop offset="52%" stop-color="#17406f"/>
+      <stop offset="100%" stop-color="#0c6b68"/>
+    </linearGradient>
+    <linearGradient id="card" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#eef7ff"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="20" stdDeviation="23" flood-color="#050c18" flood-opacity="0.28"/>
+    </filter>
+    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="10" stdDeviation="16" flood-color="#091120" flood-opacity="0.18"/>
+    </filter>
+    <clipPath id="logoKlipp">
+      <rect x="318" y="44" width="132" height="132" rx="30" ry="30"/>
+    </clipPath>
+    <clipPath id="hovedSkjerm">
+      <rect x="60" y="460" width="960" height="521" rx="26" ry="26"/>
+    </clipPath>
+    <clipPath id="ferdigSkjerm">
+      <rect x="60" y="1022" width="560" height="393" rx="22" ry="22"/>
+    </clipPath>
+    <clipPath id="lasterSkjerm">
+      <rect x="660" y="1333" width="360" height="82" rx="18" ry="18"/>
+    </clipPath>
+    <clipPath id="espenKlipp">
+      <circle cx="152" cy="1530" r="56"/>
+    </clipPath>
+  </defs>
+
+  <rect width="1080" height="1740" fill="url(#bg)"/>
+  <circle cx="110" cy="190" r="140" fill="#7dd3fc" opacity="0.12"/>
+  <circle cx="952" cy="160" r="150" fill="#fde68a" opacity="0.13"/>
+  <circle cx="930" cy="1550" r="226" fill="#86efac" opacity="0.10"/>
+  <circle cx="150" cy="1030" r="104" fill="#bfdbfe" opacity="0.07"/>
+
+  <!-- Logo: maaken er merkevaren. Staar paa linje med navnet, ikke som en
+       liten pille - og hentes fra screens/, fordi rsvg-convert bare leser
+       bildefiler som ligger i eller under SVG-ens egen mappe. -->
+  <image href="screens/enkel-ao-logo.png" x="318" y="44" width="132" height="132"
+         clip-path="url(#logoKlipp)" preserveAspectRatio="xMidYMid meet"/>
+  <text x="472" y="132" font-family="Helvetica, Arial, sans-serif"
+        font-size="58" font-weight="800" fill="#f8fbff" letter-spacing="1">ENKEL-AO</text>
+
+  <text x="540" y="300" text-anchor="middle" font-family="Helvetica, Arial, sans-serif"
+        font-size="54" font-weight="800" fill="#f8fbff">
+    <tspan x="540" dy="0">Hardangervidda. Ingen dekning.</tspan>
+    <tspan x="540" dy="64">Kartet virker likevel.</tspan>
+  </text>
+
+  <text x="540" y="398" text-anchor="middle" font-family="Helvetica, Arial, sans-serif"
+        font-size="28" fill="#dce8ff">
+    <tspan x="540" dy="0">Dra opp området du skal til mens du har nett.</tspan>
+    <tspan x="540" dy="38">Kart og lokaliteter blir med i lomma.</tspan>
+  </text>
+
+  <!-- Hovedskjermbilde: omradevelgeren pa Hardangervidda -->
+  <g filter="url(#shadow)">
+    <rect x="60" y="460" width="960" height="521" rx="26" ry="26" fill="#0b1324"/>
+    <image href="/Users/kjetil/git/enkel-ao/docs/facebook-reklame-assets/screens/offline-omradevelger.png"
+           x="60" y="460" width="960" height="521"
+           clip-path="url(#hovedSkjerm)" preserveAspectRatio="xMidYMin meet"/>
+    <rect x="60" y="460" width="960" height="521" rx="26" ry="26" fill="none" stroke="#facc15" stroke-width="5"/>
+  </g>
+
+  <!-- Stotteskjermbilder, bunnjustert mot hverandre pa y=1385 -->
+  <g filter="url(#softShadow)">
+    <rect x="60" y="1022" width="560" height="393" rx="22" ry="22" fill="#0b1324"/>
+    <image href="/Users/kjetil/git/enkel-ao/docs/facebook-reklame-assets/screens/offline-ferdig.png"
+           x="60" y="1022" width="560" height="393"
+           clip-path="url(#ferdigSkjerm)" preserveAspectRatio="xMidYMin meet"/>
+    <rect x="60" y="1022" width="560" height="393" rx="22" ry="22" fill="none" stroke="#facc15" stroke-width="4"/>
+  </g>
+
+  <text x="660" y="1086" font-family="Helvetica, Arial, sans-serif" font-size="30" font-weight="800" fill="#f8fbff">
+    <tspan x="660" dy="0">60 lokaliteter og</tspan>
+    <tspan x="660" dy="40">437 kartfliser</tspan>
+  </text>
+  <text x="660" y="1192" font-family="Helvetica, Arial, sans-serif" font-size="23" fill="#cfe0f7">
+    <tspan x="660" dy="0">lastet ned og lagret på</tspan>
+    <tspan x="660" dy="32">telefonen. Du ser hvor</tspan>
+    <tspan x="660" dy="32">mye det blir før du starter.</tspan>
+  </text>
+
+  <g filter="url(#softShadow)">
+    <rect x="660" y="1333" width="360" height="82" rx="18" ry="18" fill="#0b1324"/>
+    <image href="/Users/kjetil/git/enkel-ao/docs/facebook-reklame-assets/screens/offline-nedlasting.png"
+           x="660" y="1333" width="360" height="82"
+           clip-path="url(#lasterSkjerm)" preserveAspectRatio="xMidYMin meet"/>
+    <rect x="660" y="1333" width="360" height="82" rx="18" ry="18" fill="none" stroke="#facc15" stroke-width="4"/>
+  </g>
+
+  <!-- Bidragsyter -->
+  <g filter="url(#softShadow)">
+    <rect x="60" y="1458" width="960" height="144" rx="30" ry="30" fill="url(#card)"/>
+    <circle cx="152" cy="1530" r="58" fill="#cbd5e1"/>
+    <image href="/Users/kjetil/git/enkel-ao/docs/facebook-reklame-assets/screens/espen-portrett.jpg"
+           x="96" y="1474" width="112" height="112"
+           clip-path="url(#espenKlipp)" preserveAspectRatio="xMidYMid slice"/>
+    <text x="240" y="1517" font-family="Helvetica, Arial, sans-serif" font-size="26" font-weight="800" fill="#122844">Offline-delen er bygget av Espen Bore Hollund</text>
+    <text x="240" y="1556" font-family="Helvetica, Arial, sans-serif" font-size="21" fill="#52657a">
+      <tspan x="240" dy="0">Enkel-AO er åpen kildekode. Han hentet koden, laget</tspan>
+      <tspan x="240" dy="27">det han savnet i felt, og sendte det tilbake.</tspan>
+    </text>
+  </g>
+
+  <rect x="60" y="1630" width="960" height="78" rx="30" ry="30" fill="#facc15"/>
+  <text x="540" y="1680" text-anchor="middle" font-family="Helvetica, Arial, sans-serif"
+        font-size="34" font-weight="800" fill="#17304d">ao.efugl.no</text>
+
+  <text x="540" y="1728" text-anchor="middle" font-family="Helvetica, Arial, sans-serif"
+        font-size="18" fill="#9db6d4">Funn sendes til artsobservasjoner.no. Kartgrunnlag fra Kartverket.</text>
+</svg>

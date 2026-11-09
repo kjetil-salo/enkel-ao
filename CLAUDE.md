@@ -718,6 +718,26 @@ except Exception as e:
 - Use `docker-compose` mock or `--mode gentle` with low request counts
 - External API calls require explicit `User-Agent` headers (already configured)
 
+### Klient-IP og lagrede AO-passord (sikkerhetsrettelser 09.11.2026)
+- **`Handler._client_ip()` er den eneste riktige kilden til avsenderadressen.** Les aldri
+  `X-Forwarded-For` direkte: FØRSTE ledd er det klienten selv skrev, så per-IP-kvotene
+  (tilbakemelding, deling) kunne nullstilles med én header per forespørsel, og rå HTML
+  havnet i IP-lista på `/stats`. `CF-Connecting-IP` brukes når den finnes, ellers SISTE
+  ledd i `X-Forwarded-For`
+  - **En peer-/proxy-sjekk hjelper ikke på Pi-en**, og ble derfor bevisst ikke lagt inn:
+    `cloudflared` kjører på verten mot `localhost:3001`, og docker-proxy maskerer ALL
+    trafikk til bridge-gatewayen. Målt 09.11.2026 — både tunneltrafikk og et direkte kall
+    fra tailnettet ser ut som `172.20.0.1` inne i containeren. Tillitsmodellen er at bare
+    Cloudflare slipper inn fra internett; tailnet og hjemme-LAN regnes som betrodd
+- **Alt som vises på admin-sidene må escapes.** IP og User-Agent er klientstyrt, og `/stats`
+  åpnes av eieren — med hennes lagrede AO-passord i localStorage på samme origin. Inne i en
+  `<script>`-blokk må `_js_streng()` brukes, IKKE `html.escape`: tegnreferanser dekodes ikke
+  der, og `&#x27;` ga en SyntaxError som drepte hele scriptet
+- **Lagrede AO-passord er bundet til logintokenet** de ble lagret med (`tokens` per rad,
+  SHA-256). `_load_credentials` krever både brukernavn og et bundet token — brukernavn alene
+  ga før en innlogget AO-sesjon for en annen bruker. Se `docs/ao-token-autentisering.md`
+  korreksjon 4
+
 ### Environment Variables
 - `PORT` (default: 3000)
 - `APP_ENV` (default: tom = produksjon) — settes til `staging` i `docker-compose.staging.yml`.

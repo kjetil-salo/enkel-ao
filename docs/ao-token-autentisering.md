@@ -132,8 +132,12 @@ Vi har nå implementert innlogging via brukernavn/passord som gir oss:
 5. Hvis auth feiler, logger backend automatisk inn på nytt (auto-relogin)
 
 ### Sikkerhet
-- Credentials lagres kun i minnet på backend (ikke på disk)
-- Credentials fjernes ved server-restart
+> ⚠️ **FORELDET** — credentials lagres på disk (`/data/credentials.json`, docker-volum) og
+> overlever restart. Fra 09.11.2026 er hver rad bundet til logintokenet den ble lagret med,
+> se korreksjon 4 øverst i dette dokumentet.
+
+- ~~Credentials lagres kun i minnet på backend (ikke på disk)~~
+- ~~Credentials fjernes ved server-restart~~
 - For produksjon med flere brukere: bør vurdere kryptering av localStorage
 
 ---
