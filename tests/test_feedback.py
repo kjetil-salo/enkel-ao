@@ -241,3 +241,34 @@ def test_client_ip_foretrekker_cloudflare_og_siste_proxyledd():
     assert H({'X-Forwarded-For': 'forfalsket, 203.0.113.7'})._client_ip() == '203.0.113.7'
     assert H({'X-Forwarded-For': '203.0.113.7'})._client_ip() == '203.0.113.7'
     assert H({})._client_ip() == '127.0.0.1'
+
+
+def test_for_stor_body_avvises_for_den_leses():
+    """Uten tak leste serveren hele Content-Length inn i minnet."""
+    import socket
+    port = 38074
+    srv = start_server(port)
+    time.sleep(0.05)
+    try:
+        r = requests.post(f'http://127.0.0.1:{port}/api/feedback',
+                          json={'message': 'x' * (2 * 1024 * 1024)})
+        assert r.status_code == 413
+        assert r.json()['ok'] is False
+
+        # Oppgitt lengde alene skal avgjøre: serveren svarer uten å vente på bodyen
+        with socket.create_connection(('127.0.0.1', port), timeout=5) as sock:
+            sock.sendall(b'POST /api/feedback HTTP/1.1\r\nHost: x\r\n'
+                         b'Content-Type: application/json\r\nContent-Length: 999999999\r\n\r\n')
+            assert b' 413 ' in sock.recv(4096).split(b'\r\n')[0]
+
+        with socket.create_connection(('127.0.0.1', port), timeout=5) as sock:
+            sock.sendall(b'POST /api/feedback HTTP/1.1\r\nHost: x\r\nContent-Length: -1\r\n\r\n')
+            assert b' 413 ' in sock.recv(4096).split(b'\r\n')[0]
+
+        # Et vanlig kall går som før
+        r = requests.post(f'http://127.0.0.1:{port}/api/feedback',
+                          json={'message': 'vanlig melding'},
+                          headers={'CF-Connecting-IP': '192.0.2.50'})
+        assert r.status_code == 200
+    finally:
+        srv.shutdown()

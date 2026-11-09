@@ -149,6 +149,36 @@ MAX_UPLOAD_PHOTO_CHARS = 12 * 1024 * 1024
 MAX_UPLOAD_BODY_BYTES = 13 * 1024 * 1024
 
 
+# Største lovlige request-body per POST-endepunkt, håndhevet på Content-Length
+# FØR noe leses. Uten tak leste hvert endepunkt hele lengden klienten oppga rett
+# inn i minnet: ett kall på 300 MB mot /api/feedback tok serveren fra 60 til
+# 646 MB, og minnet ble ikke gitt tilbake. Pi-en har 4 GB.
+#
+# Tallene er satt etter det største en ekte klient sender, ikke stramt:
+# - import: mange funn med hvert sitt bilde på inntil 1600 px. Satt lik
+#   Cloudflares egen grense (100 MB), så ingen sending som kom fram før, stoppes nå
+# - deling: inntil 2,5 MB bilder (share_store) som base64, pluss tekst
+# - fellestur-sync: inntil 300 funn à 20 KB (fellestur_store)
+# - lagring av redigert funn: AOs skjema-HTML følger med
+_MAX_BODY_DEFAULT = 1 * 1024 * 1024
+_MAX_BODY_PER_PATH = {
+    '/api/ao-import': 100 * 1024 * 1024,
+    '/api/ao-import-stream': 100 * 1024 * 1024,
+    '/api/ao-upload-image': MAX_UPLOAD_BODY_BYTES,
+    '/api/share': 5 * 1024 * 1024,
+    '/api/share-update': 5 * 1024 * 1024,
+    '/api/ao-sighting-save': 5 * 1024 * 1024,
+    '/api/fellestur-sync': 8 * 1024 * 1024,
+}
+_MAX_BODY_FELLESTUR_PEER = 2 * 1024 * 1024  # inntil 50 events à 20 KB
+
+
+def _max_body_bytes(path):
+    if path.startswith('/api/fellestur-peer/'):
+        return _MAX_BODY_FELLESTUR_PEER
+    return _MAX_BODY_PER_PATH.get(path, _MAX_BODY_DEFAULT)
+
+
 def _rate_ok(hits, ip, max_per_window, window_sec):
     """Vindusbasert throttling for anonyme skrive-endepunkter."""
     import time
@@ -199,6 +229,16 @@ class Handler(SimpleHTTPRequestHandler):
     def do_POST(self):
         """Håndter POST-forespørsler."""
         parsed = urlparse(self.path)
+
+        # Negativ lengde ville gitt rfile.read(-1), som leser til forbindelsen lukkes.
+        try:
+            lengde = int(self.headers.get('Content-Length', 0) or 0)
+        except ValueError:
+            lengde = -1
+        if lengde < 0 or lengde > _max_body_bytes(parsed.path):
+            self.close_connection = True
+            self._send_json({'ok': False, 'error': 'Innholdet er for stort til å sendes'}, status=413)
+            return
 
         if parsed.path == '/api/logview':
             self._handle_logview_post()
@@ -1069,15 +1109,8 @@ class Handler(SimpleHTTPRequestHandler):
         til, ikke en serverfeil, og skal vises som tekst i grensesnittet.
         """
         try:
-            # Taket må håndheves på Content-Length, FØR bodyen leses. _read_json_body()
-            # leser hele lengden klienten oppgir rett inn i minnet, så en sjekk på
-            # len(photo) etterpå verner ikke mot noe — da ligger alt der allerede.
-            # Pi-en har 4 GB; noen samtidige forespørsler med oppblåst Content-Length
-            # ville holdt for å ta den ned.
-            if int(self.headers.get('Content-Length', 0)) > MAX_UPLOAD_BODY_BYTES:
-                self._send_json({'ok': False, 'error': 'Bildet er for stort'})
-                return
-
+            # Taket på hele bodyen (MAX_UPLOAD_BODY_BYTES) håndheves i do_POST før
+            # noe leses, se _MAX_BODY_PER_PATH.
             data = self._read_json_body()
             sighting_id = data.get('sightingId')
             photo = data.get('photo')

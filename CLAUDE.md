@@ -162,7 +162,8 @@ The `Handler` class routes requests:
   - Bildelista (`/Media/EditableImagesForSightingId/`) telles FØR og ETTER: uendret antall
     = AO tok ikke imot. Opplastingsresponsen alene er ikke til å stole på (kommer av og til
     som HTML, se `upload_image`). Stopper også på AOs grense på 10 bilder per funn
-  - Svarer alltid 200 med `{ok, imageId}` eller `{ok: false, error}`
+  - Svarer 200 med `{ok, imageId}` eller `{ok: false, error}`. Unntaket er en body over
+    `MAX_UPLOAD_BODY_BYTES`: 413 med samme `{ok: false, error}`, se «POST-bodyens størrelse» under
   - **Redigering av antall er IKKE bygget** (status 25.10.2026). `/Edit/<id>` gir et
     GET-skjema, men de redigerbare verdiene (`Quantity`, `StartDate`, `Activity`) rendres
     av JavaScript og finnes ikke i rå HTML — en serverside-parse ville tømt dem på et
@@ -238,6 +239,11 @@ The `Handler` class routes requests:
     En hemmelig sti er heller ikke sterkere enn en hemmelig nøkkel i en query-streng —
     begge havner i logger. Gevinsten er at det ikke finnes noen standardverdi å gjette
 - `/health` → health check endpoint
+- **POST-bodyens størrelse** håndheves i `do_POST` på `Content-Length` før noe leses
+  (`_MAX_BODY_PER_PATH`, 1 MB som standard). Uten tak leste hvert endepunkt hele lengden
+  rett inn i minnet: 300 MB mot `/api/feedback` tok prosessen fra 60 til 646 MB. Nye
+  endepunkter som tar imot bilder eller mye data, må inn i tabellen med en grense satt
+  etter det største en ekte klient sender. Over grensen: 413 med `{ok: false, error}`
 
 ### Backend Modules (src/)
 - `api_handlers.py` — External API calls (species search, geocoding, AO sites, autocomplete)

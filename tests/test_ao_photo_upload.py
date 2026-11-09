@@ -343,7 +343,9 @@ def test_endepunkt_avviser_for_stort_bilde():
                           json={'sightingId': 1, 'loginToken': 'L', 'authCookie': 'A',
                                 'photo': 'data:image/jpeg;base64,' + 'A' * (13 * 1024 * 1024)},
                           timeout=20)
-        assert r.status_code == 200
+        # Taket håndheves i do_POST før bodyen leses; svaret har samme form som
+        # endepunktets egne feil, så sendt.html viser meldingen uendret.
+        assert r.status_code == 413
         assert r.json()['ok'] is False
         assert 'stort' in r.json()['error']
     finally:
