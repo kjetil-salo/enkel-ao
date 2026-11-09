@@ -1071,7 +1071,10 @@ function renderSites(sitesToRender, { fitToBounds = false } = {}) {
       }
 
       const siteName = site.name || 'Ukjent lokalitet';
-      let displayName = isMine ? `★ ${siteName}` : siteName;
+      // Navnene velges av AO-brukerne selv, og Leaflet setter popup og tooltip
+      // som HTML. Uescapet ødela et «"» i navnet knappen under, og «<» ble tolket.
+      const navnHtml = escapeHtml(siteName);
+      const displayName = isMine ? `★ ${navnHtml}` : navnHtml;
 
       const distance = isUserPositionAvailable ? haversine(userPosition.lat, userPosition.lon, lat, lon) : null;
       let distStr = '';
@@ -1080,7 +1083,7 @@ function renderSites(sitesToRender, { fitToBounds = false } = {}) {
       const siteIdStr = site.id != null ? String(site.id) : '';
       let popupHtml = `<strong>${displayName}</strong>`;
       if (distStr) popupHtml += `<br>Avstand: ${distStr}`;
-      popupHtml += `<br><br><button onclick="selectLocation('${siteName.replace(/'/g, "\\'")}', '${siteIdStr}')">Velg denne lokaliteten</button>`;
+      popupHtml += `<br><br><button onclick="selectLocation(${escapeHtml(JSON.stringify(siteName))}, ${escapeHtml(JSON.stringify(siteIdStr))})">Velg denne lokaliteten</button>`;
 
       const siteShapeLayers = [];
       const hasPolygon = !!(site.raw && site.raw.isPolygon && site.raw.polygonCoordinates && site.raw.polygonCoordinates.length > 0);
@@ -1124,7 +1127,7 @@ function renderSites(sitesToRender, { fitToBounds = false } = {}) {
       if (site.id != null) markerBySiteId.set(String(site.id), marker);
       if (siteShapeLayers.length > 0) siteShapeLinks.push({ markers: [marker], layers: siteShapeLayers });
 
-      const tooltipText = distStr ? `${siteName} (${distStr})` : siteName;
+      const tooltipText = distStr ? `${navnHtml} (${distStr})` : navnHtml;
       const tooltipClasses = ['site-label'];
       if (isMine) tooltipClasses.push('mine-label');
       if (site.isSuper) tooltipClasses.push('super-label');
@@ -1364,11 +1367,11 @@ function showPanelStatus(msg, isError) {
 function addNewSiteMarker(name, lat, lon, siteId) {
   if (siteId != null) manuallyPlacedSiteIds.add(String(siteId));
   const marker = L.marker([lat, lon], { icon: L.icon({ iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-yellow.png', shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png', iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41] }) }).addTo(map);
-  marker.bindTooltip(`★ ${name}`, { permanent: true, direction: 'top', className: 'site-label mine-label', offset: [0, -35] });
+  marker.bindTooltip(`★ ${escapeHtml(name)}`, { permanent: true, direction: 'top', className: 'site-label mine-label', offset: [0, -35] });
   if (!visNavn(visning)) marker.closeTooltip();
   marker.on('add', () => { if (!visNavn(visning)) marker.closeTooltip(); });
   labelMarkers.push(marker);
-  marker.bindPopup(`<strong>★ ${name}</strong><br><em>Nettopp opprettet</em>`);
+  marker.bindPopup(`<strong>★ ${escapeHtml(name)}</strong><br><em>Nettopp opprettet</em>`);
 }
 
 if (fab) fab.addEventListener('click', enterPinDropMode);
