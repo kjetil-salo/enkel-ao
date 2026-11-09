@@ -5,6 +5,7 @@ Genererer HTML-sider for statistikk og login.
 """
 
 import html as _html
+from urllib.parse import quote
 
 
 def generate_stats_page(recent_ips, per_ua, total, per_device=None, per_os=None, per_browser=None, total_unique_ips=0, source="Supabase", total_unique_devices=0, exports=None, trend_30d=None, trend_7d=None, unique_devices_per_day=None, unique_users_per_week=None):
@@ -26,20 +27,24 @@ def generate_stats_page(recent_ips, per_ua, total, per_device=None, per_os=None,
     bilde_total = bilde_ved_sending + bilde_etterpa
 
     # recent_ips er liste av (ip, count) tuples, allerede sortert nyeste først
-    ip_rows = ''.join(f'<tr><td><a href="https://ipinfo.io/{ip}" target="_blank" rel="noopener">{ip}</a></td><td>{count}</td></tr>'
-                     for ip, count in recent_ips)
+    # IP og user agent kommer fra request-headere klienten kan skrive selv —
+    # alltid escapet, ellers kan hvem som helst legge skript inn på denne siden.
+    ip_rows = ''.join(
+        f'<tr><td><a href="https://ipinfo.io/{_html.escape(quote(str(ip), safe=":."))}" target="_blank" rel="noopener">'
+        f'{_html.escape(str(ip))}</a></td><td>{count}</td></tr>'
+        for ip, count in recent_ips)
 
     # Device, OS, Browser - kompakte tabeller
-    device_rows = ''.join(f'<tr><td>{d}</td><td>{c}</td></tr>'
+    device_rows = ''.join(f'<tr><td>{_html.escape(str(d))}</td><td>{c}</td></tr>'
                          for d, c in sorted(per_device.items(), key=lambda x: -x[1]))
-    os_rows = ''.join(f'<tr><td>{o}</td><td>{c}</td></tr>'
+    os_rows = ''.join(f'<tr><td>{_html.escape(str(o))}</td><td>{c}</td></tr>'
                      for o, c in sorted(per_os.items(), key=lambda x: -x[1]))
-    browser_rows = ''.join(f'<tr><td>{b}</td><td>{c}</td></tr>'
+    browser_rows = ''.join(f'<tr><td>{_html.escape(str(b))}</td><td>{c}</td></tr>'
                           for b, c in sorted(per_browser.items(), key=lambda x: -x[1]))
 
     # User-agent - vis bare topp 10
     ua_sorted = sorted(per_ua.items(), key=lambda x: -x[1])[:10]
-    ua_rows = ''.join(f'<tr><td style="word-break:break-all;max-width:400px">{ua}</td><td>{count}</td></tr>'
+    ua_rows = ''.join(f'<tr><td style="word-break:break-all;max-width:400px">{_html.escape(str(ua))}</td><td>{count}</td></tr>'
                      for ua, count in ua_sorted)
 
     # Bygg device/os/browser seksjon kun hvis data finnes

@@ -145,3 +145,17 @@ def test_unknown_api_endpoint():
     assert r.status_code in [200, 404]
 
     srv.shutdown()
+
+
+def test_statistikksiden_escaper_ip_og_user_agent():
+    """IP og user agent kommer fra headere klienten skriver selv. Rått inn i HTML
+    kjørte et skript i appens domene — med tilgang til lagret AO-passord i
+    localStorage — når eieren åpnet statistikksiden."""
+    from src.html_templates import generate_stats_page
+    ondsinnet = '<img src=x onerror=alert(1)>'
+    html = generate_stats_page(
+        [(ondsinnet, 1)], {ondsinnet: 1}, 1,
+        per_device={ondsinnet: 1}, per_os={ondsinnet: 1}, per_browser={ondsinnet: 1},
+    )
+    assert '<img' not in html
+    assert '&lt;img src=x onerror=alert(1)&gt;' in html

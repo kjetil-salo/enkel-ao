@@ -390,9 +390,7 @@ class Handler(SimpleHTTPRequestHandler):
         import uuid
         from http.cookies import SimpleCookie
 
-        # Hent ekte IP-adresse (støtt for proxies)
-        xff = self.headers.get('X-Forwarded-For')
-        real_ip = xff.split(',')[0].strip() if xff else self.client_address[0]
+        real_ip = self._client_ip()
         user_agent = self.headers.get('User-Agent', '-')
 
         # Les eller generer device_id fra cookie
@@ -435,9 +433,23 @@ class Handler(SimpleHTTPRequestHandler):
         return _rate_ok(_feedback_hits, ip, FEEDBACK_MAX_PER_WINDOW, FEEDBACK_WINDOW_SEC)
 
     def _client_ip(self):
-        """Klientens IP — bak Cloudflare ligger den i X-Forwarded-For."""
+        """Klientens IP, slik proxyen foran oss så den.
+
+        Bak Cloudflare er `CF-Connecting-IP` fasiten. Uten den brukes SISTE ledd i
+        `X-Forwarded-For`: det er det proxyen la til. Første ledd er det klienten
+        selv skrev i headeren — med det kunne hvem som helst velge sin egen IP,
+        komme rundt kvotene på tilbakemelding og deling, og legge HTML inn i
+        IP-lista på statistikksiden.
+        """
+        cf = (self.headers.get('CF-Connecting-IP') or '').strip()
+        if cf:
+            return cf
         xff = self.headers.get('X-Forwarded-For')
-        return xff.split(',')[0].strip() if xff else self.client_address[0]
+        if xff:
+            siste = xff.split(',')[-1].strip()
+            if siste:
+                return siste
+        return self.client_address[0]
 
     def _handle_share_post(self):
         """Lag en delbar lenke av observasjonene brukeren har valgt."""
@@ -711,8 +723,7 @@ class Handler(SimpleHTTPRequestHandler):
                 self._send_json({'ok': True, 'caseNo': feedback_store._generate_case_no()})
                 return
 
-            xff = self.headers.get('X-Forwarded-For')
-            real_ip = xff.split(',')[0].strip() if xff else self.client_address[0]
+            real_ip = self._client_ip()
 
             if not self._feedback_rate_ok(real_ip):
                 self._send_json({'error': 'For mange innsendinger — prøv igjen senere.'}, status=429)

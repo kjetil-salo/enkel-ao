@@ -204,3 +204,40 @@ def test_admin_side_ligger_bak_hemmelig_sti(monkeypatch):
         assert '?s=hemmelig' in r2.text
     finally:
         srv.shutdown()
+
+
+def test_kvoten_kan_ikke_omgas_med_egen_x_forwarded_for(monkeypatch):
+    """Første ledd i X-Forwarded-For skriver klienten selv. Var det det som ble
+    brukt, fikk hver forespørsel med ny verdi en ny kvote — og en ny e-post."""
+    import server
+    monkeypatch.setattr(server, '_feedback_hits', {})
+    port = 38073
+    srv = start_server(port)
+    time.sleep(0.05)
+    try:
+        koder = []
+        for i in range(server.FEEDBACK_MAX_PER_WINDOW + 2):
+            r = requests.post(
+                f'http://127.0.0.1:{port}/api/feedback',
+                json={'message': f'spam {i}'},
+                headers={'X-Forwarded-For': f'10.0.0.{i}, 203.0.113.7'},
+            )
+            koder.append(r.status_code)
+        assert koder[-1] == 429
+        assert koder.count(200) == server.FEEDBACK_MAX_PER_WINDOW
+    finally:
+        srv.shutdown()
+
+
+def test_client_ip_foretrekker_cloudflare_og_siste_proxyledd():
+    from server import Handler
+
+    class H(Handler):
+        def __init__(self, headers):
+            self.headers = headers
+            self.client_address = ('127.0.0.1', 0)
+
+    assert H({'CF-Connecting-IP': '198.51.100.4', 'X-Forwarded-For': '1.1.1.1'})._client_ip() == '198.51.100.4'
+    assert H({'X-Forwarded-For': 'forfalsket, 203.0.113.7'})._client_ip() == '203.0.113.7'
+    assert H({'X-Forwarded-For': '203.0.113.7'})._client_ip() == '203.0.113.7'
+    assert H({})._client_ip() == '127.0.0.1'
