@@ -462,7 +462,7 @@ def test_full_relogin_credentials_fallback(monkeypatch):
         )
         monkeypatch.setattr(
             'src.api_handlers.login_to_ao',
-            lambda username, password: {'authCookie': 'cred-cookie', 'loginToken': 'lt', 'userId': '99999'}
+            lambda username, password, bind_token=True: {'authCookie': 'cred-cookie', 'loginToken': 'lt', 'userId': '99999'}
         )
 
         _save_credentials('testuser', 'testpass', '12345:abc')
@@ -520,7 +520,7 @@ def test_ensure_auth_gir_ikke_sesjon_til_fremmed_med_bare_brukernavn(monkeypatch
         monkeypatch.setattr('src.api_handlers._is_cookie_expired', lambda *a: True)
         monkeypatch.setattr(
             'src.api_handlers.login_to_ao',
-            lambda u, p: forsok.append((u, p)) or {'authCookie': 'offerets-sesjon'},
+            lambda u, p, bind_token=True: forsok.append((u, p)) or {'authCookie': 'offerets-sesjon'},
         )
         _save_credentials('offer', 'hemmelig', '111:offerets-token')
 
@@ -530,5 +530,57 @@ def test_ensure_auth_gir_ikke_sesjon_til_fremmed_med_bare_brukernavn(monkeypatch
 
         # Den ekte klienten med sitt eget token får fortsatt fallbacket
         assert _ensure_auth(None, '111', '111:offerets-token', username='offer') == ('offerets-sesjon', 'offerets-sesjon')
+    finally:
+        os.unlink(tmp_path)
+
+
+def test_serverens_egen_relogin_spiser_ikke_en_tokenplass(monkeypatch):
+    """Når serveren relogger på brukerens vegne, får den et nytt logintoken
+    klienten aldri ser. Bindes det, presses brukerens egne avtrykk mot taket
+    uten at noen kan bruke det nye. Funnet i gjennomgang 09.11.2026."""
+    import json as json_module
+    from src.api_handlers import _full_relogin, _save_credentials, _token_hash
+
+    with tempfile.NamedTemporaryFile(suffix='.json', delete=False) as f:
+        tmp_path = f.name
+
+    try:
+        monkeypatch.setattr('src.api_handlers._CREDENTIALS_PATH', tmp_path)
+        monkeypatch.setattr('src.api_handlers._refresh_with_logintoken', lambda lt, uid: None)
+        bind = []
+
+        def fake_login(u, p, bind_token=True):
+            bind.append(bind_token)
+            return {'authCookie': 'ny-sesjon', 'loginToken': '9:serverens-token', 'userId': '9'}
+
+        monkeypatch.setattr('src.api_handlers.login_to_ao', fake_login)
+
+        _save_credentials('bruker', 'pass', '1:klientens-token')
+        assert _full_relogin('1', '1:klientens-token', username='bruker') == 'ny-sesjon'
+
+        assert bind == [False]
+        with open(tmp_path) as f:
+            assert json_module.load(f)['bruker']['tokens'] == [_token_hash('1:klientens-token')]
+    finally:
+        os.unlink(tmp_path)
+
+
+def test_samme_token_og_passord_skriver_ikke_filen_pa_nytt(monkeypatch):
+    """Appen logger inn på nytt ved hver sending til AO. Gir AO samme token,
+    skal ikke lista stokkes om — da slites ikke taket ned av ren gjentakelse."""
+    import json as json_module
+    from src.api_handlers import _save_credentials
+
+    with tempfile.NamedTemporaryFile(suffix='.json', delete=False) as f:
+        tmp_path = f.name
+
+    try:
+        monkeypatch.setattr('src.api_handlers._CREDENTIALS_PATH', tmp_path)
+        _save_credentials('bruker', 'pass', '1:token')
+        for _ in range(5):
+            _save_credentials('bruker', 'pass', '1:token')
+
+        with open(tmp_path) as f:
+            assert len(json_module.load(f)['bruker']['tokens']) == 1
     finally:
         os.unlink(tmp_path)

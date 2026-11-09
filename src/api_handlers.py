@@ -153,9 +153,19 @@ _cache_lock = threading.Lock()
 _CREDENTIALS_PATH = os.environ.get('CREDENTIALS_PATH', '/data/credentials.json')
 
 
-# Hvor mange enheter (logintokener) én bruker kan ha passordfallback på samtidig.
-# Hver innlogging fra en ny enhet gir et nytt logintoken; de eldste faller ut.
-_MAX_TOKENS_PER_USER = 10
+# Hvor mange logintokener én bruker kan ha passordfallback på samtidig.
+#
+# IKKE «én per enhet», selv om det var tanken: `handleDirectSend` i
+# public/js/export-operations.js logger inn på nytt ved HVER sending til AO, og
+# AO gir et nytt logintoken hver gang. Ti sendinger fra mobilen presset derfor
+# PC-ens token ut av lista, og PC-en mistet fallbacken sin uten noe synlig
+# varsel. Taket er hevet til 25 for å gi den slitasjen mye mer slingringsrom
+# (25 avtrykk er ~1,6 kB per bruker).
+#
+# Bites det likevel: riktig fiks er å kaste ut det SIST BRUKTE tokenet, ikke det
+# eldst lagrede — da beholder en enhet som faktisk er i bruk plassen sin. Det
+# krever en skriving ved hvert oppslag, og er ikke gjort nå.
+_MAX_TOKENS_PER_USER = 25
 
 
 def _token_hash(login_token: str) -> str:
@@ -211,6 +221,8 @@ def _save_credentials(username: str, password: str, login_token: str):
             tidligere = data.get(username.lower()) or {}
             tokens = [t for t in (tidligere.get('tokens') or []) if isinstance(t, str)]
             ny = _token_hash(login_token)
+            if tokens and tokens[-1] == ny and tidligere.get('password') == password:
+                return  # samme token og passord som sist — ingenting å skrive
             tokens = [t for t in tokens if t != ny] + [ny]
             data[username.lower()] = {
                 'username': username,
@@ -315,9 +327,14 @@ def _sliding_expiration(auth_cookie: str, user_id: str, login_token: str = None)
         return None
 
 
-def login_to_ao(username: str, password: str) -> dict:
+def login_to_ao(username: str, password: str, bind_token: bool = True) -> dict:
     """
     Logger inn på Artsobservasjoner med brukernavn/passord.
+
+    `bind_token=False` brukes når SERVEREN logger inn på brukerens vegne
+    (`_full_relogin`). Tokenet AO gir da, ser klienten aldri — å binde det ville
+    bare presset brukerens egne, gyldige avtrykk nærmere taket uten at noen kan
+    bruke det nye.
 
     Returnerer dict med:
     - authCookie: .ASPXAUTHNO cookie-verdi
@@ -419,8 +436,9 @@ def login_to_ao(username: str, password: str) -> dict:
 
         # Lagre credentials for auto-relogin (persistert til disk, nøkkel = brukernavn —
         # IKKE user_id, som er ustabilt per AO-konto, se _load_credentials-docstring)
-        _save_credentials(username, password, login_token)
-        logger.debug(f'[AO-LOGIN] Lagret credentials for auto-relogin (bruker={username})')
+        if bind_token:
+            _save_credentials(username, password, login_token)
+            logger.debug(f'[AO-LOGIN] Lagret credentials for auto-relogin (bruker={username})')
 
         logger.info(f'[AO-LOGIN] Innlogging vellykket! user_id={user_id}, auth_cookie={mask_token(auth_cookie)}')
 
@@ -533,7 +551,7 @@ def _full_relogin(user_id: str, login_token: str = None, username: str = None) -
 
     saved_username, password = creds
     try:
-        result = login_to_ao(saved_username, password)
+        result = login_to_ao(saved_username, password, bind_token=False)
         logger.info(f'[AUTH-RELOGIN-RESULT] Credentials-relogin vellykket for bruker={saved_username} (user_id={user_id})')
         return result['authCookie']
     except Exception as e:
