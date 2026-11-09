@@ -1,5 +1,41 @@
 # TODO
 
+## 38. Klartekst-passord på serveren — bør det lagres der i det hele tatt? (2026-11-09)
+
+Dette kom fram i sikkerhetsrunden 09.11.2026 og er en STANDALONE svakhet, atskilt
+fra hullet som ble rettet samme dag (det bandt passordet til et logintoken, men
+fjernet det ikke fra disk).
+
+**Faktum:** AO-passordet lagres i klartekst to steder:
+- klienten: `localStorage.ao_password` — brukerens egen enhet, akseptabelt
+- **serveren: `/data/credentials.json` i klartekst via `json.dump`** — ~95 reelle
+  brukere lå der ved utrullingen. Mange gjenbruker passord, så et AO-passord i
+  klartekst er en risiko også for andre tjenester
+
+**Hvorfor det havnet der:** en brukervennlighets-avveining som gikk for langt.
+Passord-fallbacket ble bygget for at brukeren aldri skulle møte «du er logget ut»
+i felt (AOs logintoken-revival var upålitelig), og for at det skulle overleve en
+restart ble passordet skrevet til disk. Se docs/ao-token-autentisering.md.
+
+**Nøkkelobservasjon:** klienten HAR passordet selv og sender det alt ved behov
+(`loggInnMedLagretLegitimasjon`). Serverkopien finnes i praksis bare for ett
+tilfelle — en forespørsel med token men uten passord (f.eks. kartpanorering) der
+sesjonen er død. Spørsmålet er om den bekvemmeligheten rettferdiggjør en
+klartekst-passordbase.
+
+Retninger, i økende grad av «riktig»:
+1. **Krypter på disk.** Hjelper mot lekket backup/disk, men nøkkelen bor på samme
+   maskin — begrenset reell gevinst
+2. **Ikke lagre på server i det hele tatt.** La klienten sende passordet når
+   relogin faktisk trengs (den gjør det alt for de store flytene). Prisen er at
+   token-only-forespørsler med død sesjon ikke kan reddes stille — brukeren må
+   da logge inn på nytt litt oftere. Gitt alvoret: trolig verdt det
+3. **Mellomting:** behold fallbacket, men bare i minnet (ikke på disk), så det
+   iallfall ikke overlever restart eller havner i backup
+
+Dette henger sammen med meldeplikt-vurderingen (se note under / norsk-jus): om
+passordene var i klartekst er en del av alvorsgraden.
+
 ## 37. Verifiser at sletting i AO faktisk virker (før testkontoen brukes, 2026-11-09)
 
 Regelsettet for testkontoen (se CLAUDE.md, «Testkonto på Artsobservasjoner»)
