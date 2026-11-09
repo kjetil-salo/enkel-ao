@@ -718,6 +718,42 @@ except Exception as e:
 - Use `docker-compose` mock or `--mode gentle` with low request counts
 - External API calls require explicit `User-Agent` headers (already configured)
 
+### Testkonto på Artsobservasjoner — regler (besluttet 09.11.2026)
+
+Testing mot AO skal IKKE skje med eierens egen konto. En egen testkonto brukes,
+og den eies og opprettes av Kjetil. Reglene under gjelder i ALLE samtaler.
+
+**Grunnregelen: artsobservasjoner.no er en nasjonal naturdatabase, ikke et
+testmiljø.** Rader derfra eksporteres videre (GBIF, fylkesrapporter) og leses av
+forskere og frivillige validatorer. En observasjon som ikke har skjedd er feil
+data uansett hvor vanlig arten er — sjeldenhet er IKKE risikodimensjonen.
+Det som avgjør skaden er om raden når det publiserte datasettet, om den slettes,
+om den setter en validator i arbeid, og om den ligger på en ekte lokalitet.
+
+1. **Legitimasjon i `.env`** (gitignorert). Aldri i en commit, aldri i en
+   loggfil, aldri skrevet ut i en samtale. NB: serveren lagrer AO-passord i
+   `/data/credentials.json` — én grunn mer til at det ikke skal være eierens egen
+2. **Standard: publiser ALDRI.** AO-importen er to steg — radene havner først i
+   gjennomgangskøen («Kontroller funn»), publisering er et eget steg. Test til
+   køen, verifiser, slett fra køen. `/api/ao-queue-count` skal vise samme tall
+   etterpå som før
+3. **Må publiseringsveien testes ende-til-ende** (det må den av og til — det er
+   kjernefunksjonen): ett funn, antall 1, **slett straks etter verifisering**, og
+   bekreft at det er borte med `/api/ao-my-sightings`. Ikke «antar det ble slettet»
+4. **Aldri noe som utløser sjeldenhetsvarsel.** Bruk appens egen `/api/ao-rarity`
+   som port: svarer AO `Warning`, avbryt. Et varsel gir en frivillig validator
+   arbeid, og det er en ekte kostnad for et ekte menneske
+5. **Egen privat testlokalitet**, ikke en ekte lokalitet. Et eventuelt etterlatt
+   punkt blir da lett å finne igjen
+6. **Aldri lastetesting mot AO** (gjelder uendret, se «External API Ethics»)
+7. **Spør eieren før hver publisering.** Ingen `publish` på eget initiativ,
+   uansett hvor rutinemessig den føles
+
+**Ikke verifisert ennå (se TODO 37):** at rader faktisk kan SLETTES fra
+gjennomgangskøen, og at et publisert funn kan slettes helt (ikke bare skjules).
+Hele regelsettet hviler på at sletting virker, så dette må måles på ett enkelt
+funn FØR testkontoen brukes til noe annet.
+
 ### Klient-IP og lagrede AO-passord (sikkerhetsrettelser 09.11.2026)
 - **`Handler._client_ip()` er den eneste riktige kilden til avsenderadressen.** Les aldri
   `X-Forwarded-For` direkte: FØRSTE ledd er det klienten selv skrev, så per-IP-kvotene

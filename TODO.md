@@ -1,5 +1,29 @@
 # TODO
 
+## 37. Verifiser at sletting i AO faktisk virker (før testkontoen brukes, 2026-11-09)
+
+Regelsettet for testkontoen (se CLAUDE.md, «Testkonto på Artsobservasjoner»)
+hviler helt på at vi kan fjerne det vi legger inn. Det er ikke målt. Rekkefølgen
+er derfor: opprett kontoen, mål dette på ETT funn, og først da bruk den til noe.
+
+To ting som må bevises, hver for seg:
+
+1. **Kan en rad slettes fra gjennomgangskøen?** Vi vet at rader kan LIGGE der
+   upublisert (hele den scopede publiseringen i `/api/ao-import` finnes for å
+   unngå å dra med andres ventende funn), men sletting har vi aldri sett.
+   Mål med `/api/ao-queue-count` før og etter: samme tall = borte
+2. **Kan et publisert funn slettes helt — ikke bare skjules?** AO har `hideUntil`,
+   som er noe annet: funnet finnes fortsatt. Bekreft med `/api/ao-my-sightings`
+   at raden er vekk, ikke bare usynlig
+
+Virker ikke sletting, må regel 2 i CLAUDE.md («publiser aldri») leses som
+absolutt, uten unntaket i regel 3 — og da kan publiseringsveien bare testes mot
+et ekte testmiljø, om AO har et.
+
+**Avklar parallelt:** har Artsdatabanken/AO-driften et testmiljø, eller kan de
+merke en konto som testkonto? Det er den rene veien, og den gjør hele
+diskusjonen over unødvendig. Kjetil har kanalene inn dit.
+
 ## 36. Admin-sidene: hemmelig sti er ikke innlogging (fra sikkerhetsrunden 2026-11-09)
 
 **Konfigurerbar URL er allerede på plass** — det var det opprinnelige ønsket her,
