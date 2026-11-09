@@ -1,5 +1,32 @@
 # TODO
 
+## 36. Admin-sidene: hemmelig sti er ikke innlogging (fra sikkerhetsrunden 2026-11-09)
+
+**Konfigurerbar URL er allerede på plass** — det var det opprinnelige ønsket her,
+og det ble gjort da `STATS_KEY` (standardverdi `'salo'` i klartekst i et offentlig
+repo) ble fjernet. I dag:
+
+- stien kommer fra `ADMIN_STI` i miljøet, ellers genereres den og lagres i
+  `ADMIN_STI_FIL` (`/data/admin_sti.txt`, docker-volum) — se `src/adminsti.py`
+- hemmeligheten finnes IKKE i repoet, og det er ingen standardverdi å gjette
+- feil sti gir **404**, ikke 403: en 403 ville bekreftet at det er noe der
+- sammenligningen bruker `secrets.compare_digest`
+
+Så den som leser GitHub, kommer ikke inn. Det som gjenstår er svakheten i selve
+modellen, og den bør skrives ned som en beslutning heller enn bli stående som en
+antakelse:
+
+- **En hemmelig sti er ikke autentisering.** Den som har lenka, er inne — for
+  alltid, og uten mulighet for å trekke tilgangen tilbake uten å bytte sti for
+  alle. Stien havner dessuten i nettleserhistorikk, i Cloudflares logger og i
+  enhver `Referer` en lenke fra siden sender videre
+- Alternativer, i økende rekkefølge etter innsats: (a) la det stå, og si det
+  eksplisitt i CLAUDE.md som et bevisst valg; (b) kun Tailscale-tilgang til
+  admin-rutene, slik `pi-dashboard` alt er; (c) ekte innlogging
+- Omfang: `/s/<hemmelighet>` (statistikk) og
+  `/s/<hemmelighet>/tilbakemeldinger`. Sistnevnte viser brukernes e-postadresser
+  og fritekst, altså personopplysninger — det er den som veier tyngst her
+
 ## 35. Nyhet i appen: bilder på sendte funn (fra v1.54.0–v1.54.4, 2026-10-25)
 
 Dette er den mest nyttige funksjonen på lenge, og den er usynlig for den som
