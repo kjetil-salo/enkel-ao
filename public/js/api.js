@@ -11,6 +11,18 @@ const SPECIES_CACHE_TTL = 365 * 24 * 60 * 60 * 1000; // 1 år
 // Cache for private lokasjoner
 const PRIVATE_SITES_KEY = 'ao_private_sites';
 const PRIVATE_SITES_TTL = 24 * 60 * 60 * 1000; // 24 timer
+// En TOM cache får mye kortere levetid enn en full. To grunner:
+//
+// 1. Den kan være resultatet av et degradert svar lagret av en eldre versjon
+//    (før `needsLogin`), og da er brukeren låst ut av sine egne lokaliteter i
+//    et helt døgn — også etter at hun har logget inn på nytt.
+// 2. «Null private lokaliteter» endrer seg i det brukeren oppretter sin første.
+//
+// 10 minutter er valgt for å slippe å gjeninnføre feilen fra v1.53.19: en
+// bruker som FAKTISK har null private lokaliteter skal ikke få et nytt
+// nettverkskall ved hver panorering på kartet. Ett kall per tiende minutt er
+// en helt annen sak enn ett per panorering.
+const PRIVATE_SITES_EMPTY_TTL = 10 * 60 * 1000; // 10 minutter
 
 // Cache for offentlige/bbox-lokaliteter hentet ved panorering på kartet
 // (map.js). Helt offentlige AO-lokaliteter opprettes svært sjelden (appen har
@@ -84,8 +96,10 @@ export function hasFreshPrivateSitesCache() {
   try {
     const item = localStorage.getItem(PRIVATE_SITES_KEY);
     if (!item) return false;
-    const { ts } = JSON.parse(item);
-    return Date.now() - ts <= PRIVATE_SITES_TTL;
+    const { ts, sites } = JSON.parse(item);
+    const tomCache = !Array.isArray(sites) || sites.length === 0;
+    const levetid = tomCache ? PRIVATE_SITES_EMPTY_TTL : PRIVATE_SITES_TTL;
+    return Date.now() - ts <= levetid;
   } catch {
     return false;
   }
@@ -113,6 +127,17 @@ export async function fetchAndCachePrivateSites() {
       localStorage.setItem('ao_tokens', JSON.stringify(tokens));
     }
     if (!Array.isArray(data.sites)) return;
+    // Et degradert svar skal ALDRI caches. Serveren svarer med en tom liste og
+    // status 200 når sesjonen er død (ekstern-API-konvensjonen), og uten
+    // `needsLogin` var det umulig å skille fra «brukeren har ingen private
+    // lokaliteter». Cachen varer 24 timer og `hasFreshPrivateSitesCache()`
+    // hindrer nye forsøk, så en død sesjon låste brukeren ut av sine EGNE
+    // lokaliteter i et helt døgn — også etter at hun hadde logget inn på nytt
+    // (funnet på staging 09.11.2026). Samme regel som bbox-cachen under.
+    if (data.needsLogin || data.degradert) {
+      console.warn('[AO] Private lokasjoner ikke cachet — sesjonen svarte degradert');
+      return;
+    }
     localStorage.setItem(PRIVATE_SITES_KEY, JSON.stringify({ ts: Date.now(), sites: data.sites }));
     console.log(`[AO] Cachet ${data.sites.length} private lokasjoner`);
   } catch (e) {
@@ -526,6 +551,15 @@ export async function loggInnMedLagretLegitimasjon() {
     saved.authCookie = result.authCookie;
     if (!saved.userId) saved.userId = result.userId;
     localStorage.setItem('ao_tokens', JSON.stringify(saved));
+    // Grunnen til at vi logger inn her, er som regel at forrige sesjon var død.
+    // Da er en cache hentet under den sesjonen ikke til å stole på — særlig en
+    // tom en. Fjern den, så neste ensureAoTokens() henter på nytt i stedet for
+    // å stole på et døgn gammelt, tomt svar.
+    try {
+      localStorage.removeItem(PRIVATE_SITES_KEY);
+    } catch {
+      // localStorage utilgjengelig — cachen hentes da ikke derfra likevel
+    }
     return true;
   } catch (e) {
     console.warn('Kunne ikke logge inn med lagret legitimasjon', e);

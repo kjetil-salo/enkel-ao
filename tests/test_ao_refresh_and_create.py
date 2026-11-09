@@ -289,7 +289,7 @@ def test_private_sites_revives_expired_session(monkeypatch):
     monkeypatch.setattr(api_handlers, '_ensure_auth', fake_ensure_auth)
     monkeypatch.setattr('httpx.Client', FakeClient)
 
-    sites, refreshed = api_handlers.handle_ao_private_sites(
+    sites, refreshed, auth_failed = api_handlers.handle_ao_private_sites(
         'utlopt-cookie', login_token='123:abc', user_id='123')
 
     # _ensure_auth ble kalt med den utløpte cookien
@@ -331,10 +331,13 @@ def test_private_sites_without_user_id_skips_ensure_auth(monkeypatch):
     monkeypatch.setattr(api_handlers, '_ensure_auth', fail_ensure_auth)
     monkeypatch.setattr('httpx.Client', FakeClient)
 
-    sites, refreshed = api_handlers.handle_ao_private_sites('cookie', login_token='123:abc')
+    sites, refreshed, auth_failed = api_handlers.handle_ao_private_sites('cookie', login_token='123:abc')
 
     assert sites == []
     assert refreshed is None
+    # Dette er den EKTE tomme lista: AO svarte fint, brukeren har ingen private
+    # lokaliteter. Den skal klienten gjerne cache i 24 timer.
+    assert auth_failed is False
 
 
 def test_login_to_ao_invalid_credentials_returns_clear_error(monkeypatch):
@@ -424,3 +427,42 @@ def test_login_to_ao_success(monkeypatch):
     assert res['loginToken'] == '45678:abcde'
     assert res['userId'] == '45678'
 
+
+
+def test_private_sites_skiller_dod_sesjon_fra_ekte_tom_liste(monkeypatch):
+    """En tom liste er tvetydig: «ingen private lokaliteter» eller «sesjonen er død».
+
+    Klienten cacher svaret i 24 timer, så uten skillet låste en død sesjon
+    brukeren ut av sine EGNE lokaliteter i et helt døgn — også etter at hun
+    hadde logget inn på nytt. Funnet på staging 09.11.2026.
+    """
+    from src import api_handlers
+
+    class FakeResponse:
+        url = 'https://www.artsobservasjoner.no/LogOn?ReturnUrl=%2fSite'
+
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            raise AssertionError('skal ikke parses når vi havnet på /LogOn')
+
+    class FakeClient:
+        def __init__(self, **kwargs):
+            pass
+
+        def post(self, url, **kwargs):
+            return FakeResponse()
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            pass
+
+    monkeypatch.setattr('httpx.Client', FakeClient)
+
+    sites, refreshed, auth_failed = api_handlers.handle_ao_private_sites('dod-cookie')
+
+    assert sites == []
+    assert auth_failed is True, 'død sesjon må kunne skilles fra en ekte tom liste'

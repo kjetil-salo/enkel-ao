@@ -1656,15 +1656,19 @@ class Handler(SimpleHTTPRequestHandler):
             return
         ao_base = os.environ.get('AO_URL', 'https://www.artsobservasjoner.no')
         try:
-            sites, refreshed_auth_cookie = handle_ao_private_sites(
+            sites, refreshed_auth_cookie, auth_failed = handle_ao_private_sites(
                 auth_cookie, ao_base, login_token=login_token, user_id=user_id, username=username)
             response_data = {'sites': sites}
             if refreshed_auth_cookie:
                 response_data['refreshedAuthCookie'] = refreshed_auth_cookie
+            # Skiller «ingen private lokaliteter» fra «sesjonen er død». Klienten
+            # cacher svaret i 24 timer, og skal ALDRI cache et degradert svar.
+            if auth_failed:
+                response_data['needsLogin'] = True
             self._send_json(response_data)
         except Exception as e:
             logger.warning(f'[AO-PRIVATE-SITES] Feil: {e}')
-            self._send_json({'sites': []})
+            self._send_json({'sites': [], 'degradert': True})
 
     def _handle_ao_areas_api(self, parsed):
         """Proxy for AO område-søk (politiske grenser). Åpent API med access-key."""

@@ -13,7 +13,7 @@ vi.stubGlobal('localStorage', localStorageMock);
 const fetchMock = vi.fn();
 vi.stubGlobal('fetch', fetchMock);
 
-const { searchSpecies, fetchAoSites, logPageView, loadActivities, createAoSite } = await import('../../public/js/api.js');
+const { searchSpecies, fetchAoSites, logPageView, loadActivities, createAoSite, fetchAndCachePrivateSites, hasFreshPrivateSitesCache, loggInnMedLagretLegitimasjon } = await import('../../public/js/api.js');
 
 beforeEach(() => {
   Object.keys(store).forEach(k => delete store[k]);
@@ -351,5 +351,96 @@ describe('createAoSite', () => {
     expect(result.success).toBe(false);
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(store.ao_private_sites).toBeUndefined();
+  });
+});
+
+// ─── Cache for private lokaliteter: degraderte svar ───────────
+//
+// En tom liste fra /api/ao-private-sites er tvetydig: «ingen private
+// lokaliteter» eller «sesjonen er død» (serveren svarer 200 med tom liste, jf.
+// ekstern-API-konvensjonen). Cachen varer 24 timer, og hasFreshPrivateSitesCache()
+// hindrer nye forsøk — så et degradert svar låste brukeren ut av sine EGNE
+// lokaliteter i et helt døgn, også etter at hun hadde logget inn på nytt.
+// Funnet på staging 09.11.2026.
+
+describe('fetchAndCachePrivateSites', () => {
+  beforeEach(() => {
+    store.ao_tokens = JSON.stringify({ authCookie: 'A', loginToken: '1:t', userId: '1' });
+    store.ao_username = 'kjetils';
+  });
+
+  it('cacher et ekte tomt svar', async () => {
+    fetchMock.mockResolvedValue({ ok: true, json: async () => ({ sites: [] }) });
+    await fetchAndCachePrivateSites();
+    expect(hasFreshPrivateSitesCache()).toBe(true);
+    expect(JSON.parse(store.ao_private_sites).sites).toEqual([]);
+  });
+
+  it('cacher IKKE når sesjonen er død', async () => {
+    fetchMock.mockResolvedValue({ ok: true, json: async () => ({ sites: [], needsLogin: true }) });
+    await fetchAndCachePrivateSites();
+    expect(store.ao_private_sites).toBeUndefined();
+    expect(hasFreshPrivateSitesCache()).toBe(false);
+  });
+
+  it('cacher IKKE et degradert svar etter serverfeil', async () => {
+    fetchMock.mockResolvedValue({ ok: true, json: async () => ({ sites: [], degradert: true }) });
+    await fetchAndCachePrivateSites();
+    expect(store.ao_private_sites).toBeUndefined();
+  });
+
+  it('overskriver ikke en god cache med et dødt svar', async () => {
+    store.ao_private_sites = JSON.stringify({ ts: Date.now(), sites: [{ id: 7, name: 'Myra' }] });
+    fetchMock.mockResolvedValue({ ok: true, json: async () => ({ sites: [], needsLogin: true }) });
+    await fetchAndCachePrivateSites();
+    expect(JSON.parse(store.ao_private_sites).sites).toHaveLength(1);
+  });
+});
+
+describe('loggInnMedLagretLegitimasjon', () => {
+  it('tømmer cachen med private lokaliteter ved ny innlogging', async () => {
+    // Grunnen til at vi logger inn er som regel at forrige sesjon var død, og
+    // da er en cache hentet under den sesjonen ikke til å stole på.
+    store.ao_username = 'kjetils';
+    store.ao_password = 'hemmelig';
+    store.ao_private_sites = JSON.stringify({ ts: Date.now(), sites: [] });
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: async () => ({ success: true, loginToken: '2:nytt', authCookie: 'B', userId: '2' }),
+    });
+
+    expect(await loggInnMedLagretLegitimasjon()).toBe(true);
+    expect(store.ao_private_sites).toBeUndefined();
+  });
+
+  it('gjør ingenting uten lagret legitimasjon', async () => {
+    expect(await loggInnMedLagretLegitimasjon()).toBe(false);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('hasFreshPrivateSitesCache', () => {
+  it('stoler på en full cache i et døgn', () => {
+    const femTimer = Date.now() - 5 * 60 * 60 * 1000;
+    store.ao_private_sites = JSON.stringify({ ts: femTimer, sites: [{ id: 1, name: 'Myra' }] });
+    expect(hasFreshPrivateSitesCache()).toBe(true);
+  });
+
+  it('gir en TOM cache kort levetid, så en poisonet cache heler seg selv', () => {
+    // En tom cache kan komme fra et degradert svar lagret av en eldre versjon.
+    // Varte den et døgn, satt brukeren uten sine egne lokaliteter hele dagen.
+    const enTime = Date.now() - 60 * 60 * 1000;
+    store.ao_private_sites = JSON.stringify({ ts: enTime, sites: [] });
+    expect(hasFreshPrivateSitesCache()).toBe(false);
+  });
+
+  it('men en helt fersk tom cache skal ikke gi et nytt kall per panorering', () => {
+    // Gjeninnfører ikke ytelsesfeilen fra v1.53.19.
+    store.ao_private_sites = JSON.stringify({ ts: Date.now(), sites: [] });
+    expect(hasFreshPrivateSitesCache()).toBe(true);
+  });
+
+  it('er usann uten cache', () => {
+    expect(hasFreshPrivateSitesCache()).toBe(false);
   });
 });

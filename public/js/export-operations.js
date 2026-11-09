@@ -385,6 +385,9 @@ export async function handleDirectSend(observations, dom, callbacks) {
     tokens.authCookie = loginResult.authCookie;
     tokens.userId = tokens.mapUserId || loginResult.userId;
     localStorage.setItem('ao_tokens', JSON.stringify(tokens));
+    // Fersk sesjon: en cache med private lokaliteter hentet under den forrige,
+    // eventuelt døde, sesjonen skal ikke overleve (se api.js, 09.11.2026).
+    localStorage.removeItem('ao_private_sites');
 
     _renderProgress(dom, 2, 3, `Sender ${total} observasjon${total !== 1 ? 'er' : ''} …`, 0);
 

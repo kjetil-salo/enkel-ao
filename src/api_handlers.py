@@ -681,10 +681,19 @@ def handle_ao_private_sites(auth_cookie: str, ao_base_url: str = 'https://www.ar
     """
     Hent alle brukerens private lokasjoner via BindUserSitesGrid.
 
-    Returnerer tuple: (sites, refreshed_auth_cookie)
-    hvor sites er liste med dicts: { id, name, lat, lon, acc }
-    og refreshed_auth_cookie er ny .ASPXAUTHNO hvis sesjonen ble fornyet (ellers None).
+    Returnerer tuple: (sites, refreshed_auth_cookie, auth_failed)
+    hvor sites er liste med dicts: { id, name, lat, lon, acc },
+    refreshed_auth_cookie er ny .ASPXAUTHNO hvis sesjonen ble fornyet (ellers None),
+    og auth_failed sier om den tomme lista skyldes en død sesjon.
     Koordinater er konvertert fra EPSG:3857 til WGS84.
+
+    **`auth_failed` finnes fordi en tom liste ellers er tvetydig**: den betyr
+    enten «brukeren har ingen private lokaliteter» eller «sesjonen er død».
+    Klienten cacher svaret i 24 timer, så uten skillet låste en død sesjon
+    brukeren ut av sine EGNE lokaliteter i et helt døgn — også etter at hun
+    hadde logget inn på nytt (feltfunn på staging 09.11.2026). Samme regel som
+    bbox-cachen i api.js har hatt hele tiden: degraderte svar caches aldri.
+    Samme form som søsterfunksjonen handle_ao_sites_search.
 
     BindUserSitesGrid er et Kendo-grid-endepunkt som krever X-Requested-With: XMLHttpRequest.
 
@@ -721,12 +730,12 @@ def handle_ao_private_sites(auth_cookie: str, ao_base_url: str = 'https://www.ar
         resp_url = str(getattr(response, 'url', '') or '')
         if '/LogOn' in resp_url:
             logger.warning('[AO-PRIVATE-SITES] Ble sendt til /LogOn — sesjon er utløpt')
-            return [], refreshed_auth_cookie
+            return [], refreshed_auth_cookie, True
         try:
             data = response.json()
         except ValueError:
             logger.warning('[AO-PRIVATE-SITES] Fikk ikke-JSON svar fra AO — sesjon er trolig utløpt')
-            return [], refreshed_auth_cookie
+            return [], refreshed_auth_cookie, True
 
     sites = []
     for item in data.get('data', []):
@@ -741,7 +750,7 @@ def handle_ao_private_sites(auth_cookie: str, ao_base_url: str = 'https://www.ar
         sites.append({'id': site_id, 'name': name, 'lat': lat, 'lon': lon, 'acc': acc})
 
     logger.info(f'[AO-PRIVATE-SITES] Hentet {len(sites)} private lokasjoner')
-    return sites, refreshed_auth_cookie
+    return sites, refreshed_auth_cookie, False
 
 
 def _wgs84_to_mercator(lat, lon):

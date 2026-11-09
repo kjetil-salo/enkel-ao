@@ -3,9 +3,9 @@
  */
 
 // Versjonert import
-import { createAoSite, ensureAoTokens, fetchAoSitesCached, fetchAoSitesByBounds, getCachedPrivateSites, hasActiveAoLogin } from './api.js?v=v1.60.10';
-import { mergeAoSitesWithPrivateCache, isPrivateSite, shouldShowOthersPrivateSites, DEFAULT_MAP_CENTER } from './location.js?v=v1.60.10';
-import { saveLastKnownPosition, loadLastKnownPosition } from './storage.js?v=v1.60.10';
+import { createAoSite, ensureAoTokens, fetchAoSitesCached, fetchAoSitesByBounds, getCachedPrivateSites, hasActiveAoLogin } from './api.js?v=v1.60.11';
+import { mergeAoSitesWithPrivateCache, isPrivateSite, shouldShowOthersPrivateSites, DEFAULT_MAP_CENTER } from './location.js?v=v1.60.11';
+import { saveLastKnownPosition, loadLastKnownPosition } from './storage.js?v=v1.60.11';
 import { haversine } from './utils.js';
 // Versjonert import: HARD avhengighet til navngitte eksporter i en modul som
 // er ny her. Samme begrunnelse som location.js-importen over.
@@ -17,7 +17,7 @@ import {
   tilLagretVerdi,
   visLokaliteter,
   visNavn,
-} from './kart-visning.js?v=v1.60.10';
+} from './kart-visning.js?v=v1.60.11';
 import {
   DEFAULT_OFFLINE_AREA_SIDE_M,
   KARTVERKET_TOPO_URL_TEMPLATE,
@@ -38,7 +38,7 @@ import {
   getBoundsDimensionsMeters,
   moveBoundsToCenter,
   resizeBoundsFromCorner,
-} from './offline-area.js?v=v1.60.10';
+} from './offline-area.js?v=v1.60.11';
 import {
   getNetworkMode,
   setNetworkMode,
@@ -55,7 +55,7 @@ import {
   syncOfflineAreas,
   clearAllOfflineData,
   syncNetworkModeToServiceWorker,
-} from './offline-db.js?v=v1.60.10';
+} from './offline-db.js?v=v1.60.11';
 
 // Hent data fra localStorage — fall tilbake til Svortland, Bømlo dersom mapData mangler
 let data = {};

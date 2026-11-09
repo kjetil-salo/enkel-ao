@@ -7,7 +7,7 @@
     <link rel="icon" href="/favicon.png" type="image/png" />
     <link rel="apple-touch-icon" href="/icon-192.png" />
     <link rel="manifest" href="/manifest.json">
-    <link rel="stylesheet" href="style.css?v=v1.60.10" />
+    <link rel="stylesheet" href="style.css?v=v1.60.11" />
       <style>
         .settings-card {
           background: var(--card-bg, #111827);
@@ -428,15 +428,15 @@
     </div>
 
     <script type="module">
-      import { loadActivityPills, saveActivityPills, ACTIVITY_SHORT_SUGGESTIONS, loadNynorskArtsnavn, saveNynorskArtsnavn } from './js/storage.js?v=v1.60.10';
-      import { loadActivities, fetchAoSitesByBounds, hasActiveAoLogin, ensureAoTokens, getCachedPrivateSites } from './js/api.js?v=v1.60.10';
-      import { shouldShowOthersPrivateSites } from './js/location.js?v=v1.60.10';
+      import { loadActivityPills, saveActivityPills, ACTIVITY_SHORT_SUGGESTIONS, loadNynorskArtsnavn, saveNynorskArtsnavn } from './js/storage.js?v=v1.60.11';
+      import { loadActivities, fetchAoSitesByBounds, hasActiveAoLogin, ensureAoTokens, getCachedPrivateSites } from './js/api.js?v=v1.60.11';
+      import { shouldShowOthersPrivateSites } from './js/location.js?v=v1.60.11';
       import {
         getOfflineStorageStats,
         syncOfflineAreas,
         clearAllOfflineData,
         clearAppCachesPreservingMapTiles,
-      } from './js/offline-db.js?v=v1.60.10';
+      } from './js/offline-db.js?v=v1.60.11';
 
       // Service Worker registreres og modus synkroniseres av offline-db.js (importert over).
 
@@ -968,6 +968,11 @@
             lagret.authCookie = result.authCookie;
             if (!lagret.userId) lagret.userId = result.userId;
             localStorage.setItem('ao_tokens', JSON.stringify(lagret));
+            // Cachen med private lokaliteter kan være hentet under den DØDE
+            // sesjonen, altså tom. Den varer 24 timer, og uten denne
+            // fjerningen ville brukeren fortsatt mangle sine egne lokaliteter
+            // etter en vellykket innlogging (funnet på staging 09.11.2026).
+            localStorage.removeItem('ao_private_sites');
 
             loginStatus.style.cssText = `display:block;margin-top:8px;padding:10px;border-radius:8px;font-size:0.85em;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);color:${_sc('success')};`;
             loginStatus.textContent = `✅ Innlogget! Bruker-ID: ${result.userId}`;
