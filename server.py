@@ -1627,7 +1627,7 @@ class Handler(SimpleHTTPRequestHandler):
                 }
             sites, refreshed_auth_cookie, auth_failed = handle_ao_sites_search(
                 lat_raw, lon_raw, size_raw, ao_mobile_base, user_id, login_token, auth_cookie,
-                location_db=_location_db, username=username, **bbox_kwargs
+                location_db=_location_db, username=username, client_ip=self._client_ip(), **bbox_kwargs
             )
             response_data = {'sites': sites}
             logger.debug(f'ao-sites refresh: refreshed={refreshed_auth_cookie is not None}, auth_failed={auth_failed}')
@@ -1657,7 +1657,8 @@ class Handler(SimpleHTTPRequestHandler):
         ao_base = os.environ.get('AO_URL', 'https://www.artsobservasjoner.no')
         try:
             sites, refreshed_auth_cookie, auth_failed = handle_ao_private_sites(
-                auth_cookie, ao_base, login_token=login_token, user_id=user_id, username=username)
+                auth_cookie, ao_base, login_token=login_token, user_id=user_id, username=username,
+                client_ip=self._client_ip())
             response_data = {'sites': sites}
             if refreshed_auth_cookie:
                 response_data['refreshedAuthCookie'] = refreshed_auth_cookie
@@ -1732,6 +1733,7 @@ class Handler(SimpleHTTPRequestHandler):
                 lat=lat,
                 lon=lon,
                 username=username if username else None,
+                client_ip=self._client_ip(),
             )
             # data er nå {'results': [...], 'refreshed_auth_cookie': ...}
             self._send_json(data)
@@ -1762,7 +1764,7 @@ class Handler(SimpleHTTPRequestHandler):
             result, refreshed_auth_cookie = get_ao_rarity(
                 taxon_id, site_id, date_str,
                 user_id=user_id, login_token=login_token, auth_cookie=auth_cookie,
-                location_db=_location_db, username=username,
+                location_db=_location_db, username=username, client_ip=self._client_ip(),
             )
             response_data = result or {}
             if refreshed_auth_cookie:

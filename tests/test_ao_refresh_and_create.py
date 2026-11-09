@@ -259,7 +259,7 @@ def test_private_sites_revives_expired_session(monkeypatch):
 
     calls = {}
 
-    def fake_ensure_auth(auth, user_id, login_token, username=None):
+    def fake_ensure_auth(auth, user_id, login_token, username=None, client_ip=None):
         calls['ensure_auth'] = (auth, user_id, login_token)
         return 'ny-gyldig-cookie', 'ny-gyldig-cookie'
 

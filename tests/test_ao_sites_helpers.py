@@ -275,7 +275,7 @@ def test_ensure_auth_full_relogin_fallback(monkeypatch):
     )
     monkeypatch.setattr(
         'src.api_handlers._full_relogin',
-        lambda user_id, login, username=None: 'relogin-cookie'
+        lambda user_id, login, username=None, client_ip=None: "relogin-cookie"
     )
     auth, refreshed = _ensure_auth('old-cookie', '12345', '12345:abc')
     assert auth == 'relogin-cookie'
@@ -584,3 +584,21 @@ def test_samme_token_og_passord_skriver_ikke_filen_pa_nytt(monkeypatch):
             assert len(json_module.load(f)['bruker']['tokens']) == 1
     finally:
         os.unlink(tmp_path)
+
+
+def test_full_relogin_logger_klient_ip(monkeypatch, caplog):
+    """IP-en må med i relogin-loggen. Det tydeligste tegnet på misbruk av
+    passord-fallbacket er ÉN IP som relogger mange brukernavn — uten IP i
+    linja er det mønsteret usynlig (se docs/ao-token-autentisering.md
+    korreksjon 4). Lovet Vegard i svaret 09.11.2026."""
+    import logging
+    from src.api_handlers import _full_relogin
+
+    monkeypatch.setattr('src.api_handlers._refresh_with_logintoken', lambda lt, uid: None)
+
+    with caplog.at_level(logging.INFO, logger='fugleobs'):
+        # Uten brukernavn stopper den tidlig, men IP-en skal allerede være logget
+        _full_relogin('12345', '12345:abc', username=None, client_ip='203.0.113.77')
+
+    assert any('ip=203.0.113.77' in r.message for r in caplog.records), \
+        'klient-IP mangler i relogin-loggen'
