@@ -1,5 +1,39 @@
 # TODO
 
+## 40. Kjør full pen-test av enkel-ao (2026-11-09)
+
+Sikkerhetsrunden 09.11.2026 (Vegards funn + oppfølgingene) var reaktiv — en
+ekstern leste koden og fant hull vi ikke lette etter. Vi bør kjøre en bevisst,
+systematisk gjennomgang selv, og gjøre det til en vane: appen er public og ble
+nevnt som open source på Facebook, så den leses nå av flere enn før.
+
+Minst dette, siden det alt er kjent terreng:
+- alle endepunkter som tar klientstyrte headere (X-AO-*, X-Forwarded-For,
+  CF-Connecting-IP) — kan noe av det nå utnyttes et annet sted?
+- alt som rendres som HTML fra klientdata (admin-sidene, delingssiden, kartet)
+- alle skrive-endepunkter uten innlogging (feedback, share, fellestur) — kvoter,
+  størrelsesgrenser, injeksjon
+- AO-sesjonshåndteringen på nytt, nå som bindingen er på plass
+
+Dette punktet ligger ØVERST med vilje: det er det som fanger neste runde FØR en
+ekstern gjør det.
+
+## 39. Rydd koden etter KISS, YAGNI og DRY (2026-11-09)
+
+Ikke en funksjonsendring — en opprydding. Etter en intens sikkerhetsrunde med
+mange raske tillegg er det verdt å gå gjennom med tre spørsmål:
+
+- **KISS:** er noe gjort mer innviklet enn oppgaven krevde? (f.eks. relogin-/
+  cache-logikken har vokst i lag — kan den leses rett igjennom nå?)
+- **YAGNI:** finnes det kode eller konfigurasjon for noe vi ikke faktisk bruker?
+  (f.eks. `_MAX_TOKENS_PER_USER` = 25 — er taket i det hele tatt nødvendig, eller
+  er det spekulativt?)
+- **DRY:** samme logikk på flere steder? (f.eks. `X-AO-*`-headerlesingen og
+  «tøm private-cache ved innlogging» er gjentatt i flere filer)
+
+Kjør gjerne via kode-review-skillen (Codex) for en uavhengig andre-mening, og
+hold diffen liten — rydding skal ikke dra med seg atferdsendringer.
+
 ## 38. Klartekst-passord på serveren — bør det lagres der i det hele tatt? (2026-11-09)
 
 Dette kom fram i sikkerhetsrunden 09.11.2026 og er en STANDALONE svakhet, atskilt
