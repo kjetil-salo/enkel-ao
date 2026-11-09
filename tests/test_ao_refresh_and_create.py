@@ -417,7 +417,7 @@ def test_login_to_ao_success(monkeypatch):
             pass
 
     monkeypatch.setattr('httpx.Client', FakeClient)
-    monkeypatch.setattr('src.api_handlers._save_credentials', lambda u, p: None)
+    monkeypatch.setattr('src.api_handlers._save_credentials', lambda u, p, lt: None)
 
     res = login_to_ao('gyldig_bruker', 'riktig_passord')
     assert res['authCookie'] == 'valid-auth-cookie'

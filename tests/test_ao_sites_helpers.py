@@ -301,10 +301,11 @@ def test_ensure_auth_no_refresh_needed(monkeypatch):
 #
 # Nøkkelen er brukernavn (case-insensitive), IKKE AOs "user_id" — det tallet
 # viste seg IKKE stabilt per AO-konto (samme konto fikk 309 forskjellige
-# user_id-verdier i prod). Se _load_credentials-docstring i src/api_handlers.py.
+# user_id-verdier i prod). Passordet utleveres bare mot et logintoken fra en
+# innlogging med det. Se _load_credentials-docstring i src/api_handlers.py.
 
 def test_credentials_roundtrip(monkeypatch):
-    """Test at credentials lagres og lastes fra disk, nøkkel = brukernavn."""
+    """Credentials lagres og lastes fra disk, nøkkel = brukernavn, bundet til logintoken."""
     from src.api_handlers import _save_credentials, _load_credentials
 
     with tempfile.NamedTemporaryFile(suffix='.json', delete=False) as f:
@@ -313,21 +314,67 @@ def test_credentials_roundtrip(monkeypatch):
     try:
         monkeypatch.setattr('src.api_handlers._CREDENTIALS_PATH', tmp_path)
 
-        # Lagre
-        _save_credentials('testuser', 'testpass')
+        _save_credentials('testuser', 'testpass', '111:token-a')
 
-        # Last (case-insensitive oppslag, original username-casing bevares i verdien)
-        assert _load_credentials('testuser') == ('testuser', 'testpass')
-        assert _load_credentials('TestUser') == ('testuser', 'testpass')
+        # Case-insensitive oppslag, original username-casing bevares i verdien
+        assert _load_credentials('testuser', '111:token-a') == ('testuser', 'testpass')
+        assert _load_credentials('TestUser', '111:token-a') == ('testuser', 'testpass')
 
-        # Ukjent bruker
-        assert _load_credentials('ukjentbruker') is None
+        assert _load_credentials('ukjentbruker', '111:token-a') is None
+    finally:
+        os.unlink(tmp_path)
+
+
+def test_credentials_krever_logintoken_fra_innloggingen(monkeypatch):
+    """Brukernavnet alene gir ikke passordet — det var et hull der hvem som helst
+    kunne få en AO-sesjon for en annen bruker ved å sende X-AO-Username."""
+    from src.api_handlers import _save_credentials, _load_credentials
+
+    with tempfile.NamedTemporaryFile(suffix='.json', delete=False) as f:
+        tmp_path = f.name
+
+    try:
+        monkeypatch.setattr('src.api_handlers._CREDENTIALS_PATH', tmp_path)
+        _save_credentials('offer', 'hemmelig', '111:offerets-token')
+
+        assert _load_credentials('offer') is None
+        assert _load_credentials('offer', None) is None
+        assert _load_credentials('offer', '') is None
+        assert _load_credentials('offer', '111:gjettet-token') is None
+
+        with open(tmp_path) as f:
+            lagret = f.read()
+        assert 'offerets-token' not in lagret  # bare hashen ligger på disk
+    finally:
+        os.unlink(tmp_path)
+
+
+def test_credentials_flere_enheter_per_bruker(monkeypatch):
+    """Hver enhet får sitt eget logintoken; alle skal kunne bruke fallbacket,
+    men bare de siste _MAX_TOKENS_PER_USER."""
+    from src import api_handlers
+    from src.api_handlers import _save_credentials, _load_credentials
+
+    with tempfile.NamedTemporaryFile(suffix='.json', delete=False) as f:
+        tmp_path = f.name
+
+    try:
+        monkeypatch.setattr('src.api_handlers._CREDENTIALS_PATH', tmp_path)
+        _save_credentials('bruker', 'pass', '1:mobil')
+        _save_credentials('bruker', 'pass', '2:pc')
+        assert _load_credentials('bruker', '1:mobil') == ('bruker', 'pass')
+        assert _load_credentials('bruker', '2:pc') == ('bruker', 'pass')
+
+        for i in range(api_handlers._MAX_TOKENS_PER_USER):
+            _save_credentials('bruker', 'pass', f'9:ny-{i}')
+        assert _load_credentials('bruker', '1:mobil') is None
+        assert _load_credentials('bruker', f'9:ny-{api_handlers._MAX_TOKENS_PER_USER - 1}') == ('bruker', 'pass')
     finally:
         os.unlink(tmp_path)
 
 
 def test_credentials_survives_overwrite(monkeypatch):
-    """Test at credentials for flere brukere lagres uavhengig."""
+    """Credentials for flere brukere lagres uavhengig."""
     from src.api_handlers import _save_credentials, _load_credentials
 
     with tempfile.NamedTemporaryFile(suffix='.json', delete=False) as f:
@@ -336,49 +383,52 @@ def test_credentials_survives_overwrite(monkeypatch):
     try:
         monkeypatch.setattr('src.api_handlers._CREDENTIALS_PATH', tmp_path)
 
-        _save_credentials('user1', 'pass1')
-        _save_credentials('user2', 'pass2')
+        _save_credentials('user1', 'pass1', '1:a')
+        _save_credentials('user2', 'pass2', '2:b')
 
-        assert _load_credentials('user1') == ('user1', 'pass1')
-        assert _load_credentials('user2') == ('user2', 'pass2')
+        assert _load_credentials('user1', '1:a') == ('user1', 'pass1')
+        assert _load_credentials('user2', '2:b') == ('user2', 'pass2')
+        assert _load_credentials('user2', '1:a') is None
     finally:
         os.unlink(tmp_path)
 
 
 def test_load_credentials_missing_file(monkeypatch):
-    """Test at manglende fil returnerer None."""
+    """Manglende fil returnerer None."""
     from src.api_handlers import _load_credentials
 
     monkeypatch.setattr('src.api_handlers._CREDENTIALS_PATH', '/tmp/nonexistent_creds_xyz.json')
-    assert _load_credentials('testuser') is None
+    assert _load_credentials('testuser', '1:a') is None
 
 
-def test_migrate_credentials_file_converts_legacy_user_id_keys(monkeypatch):
-    """Test at gammelt format (nøkkel=user_id) migreres til nytt (nøkkel=brukernavn),
-    og at duplikate rader for samme bruker slås sammen (samme konto, samme passord)."""
+def test_migrate_credentials_file_fjerner_rader_uten_tokenbinding(monkeypatch):
+    """Rader fra før tokenbindingen (begge de gamle formatene) kan aldri brukes
+    igjen, så passordene i dem skal ikke bli liggende på disk."""
     import json as json_module
-    from src.api_handlers import _migrate_credentials_file, _load_credentials
+    from src.api_handlers import _migrate_credentials_file, _save_credentials, _load_credentials
 
     with tempfile.NamedTemporaryFile(suffix='.json', mode='w', delete=False) as f:
         json_module.dump({
             '111111': {'username': 'kjetils', 'password': 'hunter2'},
-            '222222': {'username': 'kjetils', 'password': 'hunter2'},
-            '333333': {'username': 'annenbruker', 'password': 'annet-pass'},
+            'annenbruker': {'username': 'annenbruker', 'password': 'annet-pass'},
         }, f)
         tmp_path = f.name
 
     try:
         monkeypatch.setattr('src.api_handlers._CREDENTIALS_PATH', tmp_path)
+        _save_credentials('ny', 'ny-pass', '5:ny')
         _migrate_credentials_file()
 
         with open(tmp_path) as f:
-            migrated = json_module.load(f)
+            migrert = json_module.load(f)
 
-        # Ingen rene tall-nøkler igjen
-        assert not any(k.isdigit() for k in migrated.keys())
-        assert _load_credentials('kjetils') == ('kjetils', 'hunter2')
-        assert _load_credentials('annenbruker') == ('annenbruker', 'annet-pass')
-        assert len(migrated) == 2
+        assert list(migrert.keys()) == ['ny']
+        assert 'hunter2' not in json_module.dumps(migrert)
+        assert _load_credentials('ny', '5:ny') == ('ny', 'ny-pass')
+
+        _migrate_credentials_file()  # idempotent
+        with open(tmp_path) as f:
+            assert json_module.load(f) == migrert
     finally:
         os.unlink(tmp_path)
 
@@ -415,7 +465,7 @@ def test_full_relogin_credentials_fallback(monkeypatch):
             lambda username, password: {'authCookie': 'cred-cookie', 'loginToken': 'lt', 'userId': '99999'}
         )
 
-        _save_credentials('testuser', 'testpass')
+        _save_credentials('testuser', 'testpass', '12345:abc')
         # user_id her ('12345') er BEVISST forskjellig fra det som ble brukt ved lagring
         # (ustabilt tall) — poenget er at oppslaget skjer på username, ikke user_id.
         result = _full_relogin('12345', '12345:abc', username='testuser')
@@ -447,9 +497,38 @@ def test_full_relogin_no_username_skips_credentials_lookup(monkeypatch):
             'src.api_handlers._refresh_with_logintoken',
             lambda login_token, user_id: None
         )
-        _save_credentials('testuser', 'testpass')
+        _save_credentials('testuser', 'testpass', '12345:abc')
 
         result = _full_relogin('12345', '12345:abc', username=None)
         assert result is None
+    finally:
+        os.unlink(tmp_path)
+
+
+def test_ensure_auth_gir_ikke_sesjon_til_fremmed_med_bare_brukernavn(monkeypatch):
+    """Gjenskaper angrepet: GET /api/ao-sites med X-AO-User-Id og X-AO-Username,
+    uten offerets logintoken. Serveren skal ikke logge inn med lagret passord."""
+    from src.api_handlers import _ensure_auth, _save_credentials
+
+    with tempfile.NamedTemporaryFile(suffix='.json', delete=False) as f:
+        tmp_path = f.name
+
+    forsok = []
+    try:
+        monkeypatch.setattr('src.api_handlers._CREDENTIALS_PATH', tmp_path)
+        monkeypatch.setattr('src.api_handlers._refresh_with_logintoken', lambda lt, uid: None)
+        monkeypatch.setattr('src.api_handlers._is_cookie_expired', lambda *a: True)
+        monkeypatch.setattr(
+            'src.api_handlers.login_to_ao',
+            lambda u, p: forsok.append((u, p)) or {'authCookie': 'offerets-sesjon'},
+        )
+        _save_credentials('offer', 'hemmelig', '111:offerets-token')
+
+        assert _ensure_auth(None, '1', None, username='offer') == (None, None)
+        assert _ensure_auth(None, '1', '1:falsk', username='offer') == (None, None)
+        assert forsok == []
+
+        # Den ekte klienten med sitt eget token får fortsatt fallbacket
+        assert _ensure_auth(None, '111', '111:offerets-token', username='offer') == ('offerets-sesjon', 'offerets-sesjon')
     finally:
         os.unlink(tmp_path)

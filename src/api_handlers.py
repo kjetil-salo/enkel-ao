@@ -4,6 +4,8 @@ API handlers for fugleobservasjoner.
 Håndterer eksterne API-kall til Artsobservasjoner og Nominatim.
 """
 
+import hashlib
+import hmac
 import json
 import logging
 import math
@@ -151,30 +153,53 @@ _cache_lock = threading.Lock()
 _CREDENTIALS_PATH = os.environ.get('CREDENTIALS_PATH', '/data/credentials.json')
 
 
-def _load_credentials(username: str) -> tuple:
+# Hvor mange enheter (logintokener) én bruker kan ha passordfallback på samtidig.
+# Hver innlogging fra en ny enhet gir et nytt logintoken; de eldste faller ut.
+_MAX_TOKENS_PER_USER = 10
+
+
+def _token_hash(login_token: str) -> str:
+    return hashlib.sha256(login_token.encode('utf-8')).hexdigest()
+
+
+def _load_credentials(username: str, login_token: str = None) -> tuple:
     """Last credentials fra disk. Returnerer (username, password) eller None.
+
+    Passordet utleveres KUN til en klient som viser fram et logintoken den selv
+    fikk fra en innlogging med dette passordet (lagret som SHA-256 i
+    `tokens`). Uten den bindingen kunne hvem som helst som kjente et
+    brukernavn, få serveren til å logge inn med det lagrede passordet og sende
+    den ferske sesjonscookien tilbake — en AO-sesjon for en annen bruker.
+    Den som allerede har brukerens logintoken, får ikke noe nytt av dette:
+    tokenet gir sesjon gjennom husk-meg-revival uansett.
 
     Nøkkelen er brukernavn (case-insensitive), IKKE AOs "user_id" fra
     logintoken-prefikset — det tallet er IKKE stabilt per konto, se
-    docs/ao-token-autentisering.md (funnet 2026-09-16: samme AO-konto fikk
-    309 forskjellige "user_id"-verdier over tid, hver passord-relogin
-    skapte en ny foreldreløs rad i credentials.json).
+    docs/ao-token-autentisering.md.
     """
-    if not username:
+    if not username or not login_token:
         return None
     try:
         with open(_CREDENTIALS_PATH, 'r') as f:
             data = json.load(f)
         entry = data.get(username.lower())
-        if entry:
+        if not entry:
+            return None
+        oppgitt = _token_hash(login_token)
+        if any(hmac.compare_digest(oppgitt, t) for t in entry.get('tokens') or []):
             return (entry['username'], entry['password'])
-    except (FileNotFoundError, json.JSONDecodeError, KeyError):
+    except (FileNotFoundError, json.JSONDecodeError, KeyError, TypeError):
         pass
     return None
 
 
-def _save_credentials(username: str, password: str):
-    """Lagre credentials til disk (trådsikkert), nøkkel = brukernavn (lowercased)."""
+def _save_credentials(username: str, password: str, login_token: str):
+    """Lagre credentials til disk (trådsikkert), nøkkel = brukernavn (lowercased).
+
+    `login_token` er tokenet klienten får tilbake fra denne innloggingen. Bare
+    en klient som har det, kan senere bruke passordfallbacket (se
+    `_load_credentials`).
+    """
     try:
         os.makedirs(os.path.dirname(_CREDENTIALS_PATH), exist_ok=True)
         with _cache_lock:
@@ -183,7 +208,15 @@ def _save_credentials(username: str, password: str):
                     data = json.load(f)
             except (FileNotFoundError, json.JSONDecodeError):
                 data = {}
-            data[username.lower()] = {'username': username, 'password': password}
+            tidligere = data.get(username.lower()) or {}
+            tokens = [t for t in (tidligere.get('tokens') or []) if isinstance(t, str)]
+            ny = _token_hash(login_token)
+            tokens = [t for t in tokens if t != ny] + [ny]
+            data[username.lower()] = {
+                'username': username,
+                'password': password,
+                'tokens': tokens[-_MAX_TOKENS_PER_USER:],
+            }
             with open(_CREDENTIALS_PATH, 'w') as f:
                 json.dump(data, f)
     except Exception as e:
@@ -191,12 +224,12 @@ def _save_credentials(username: str, password: str):
 
 
 def _migrate_credentials_file():
-    """Engangsmigrering: konverter credentials.json fra gammelt format
-    (nøkkel = AOs ustabile "user_id") til nytt format (nøkkel = brukernavn).
+    """Fjern rader uten tokenbinding fra credentials.json.
 
-    Kjøres ved import. Idempotent — hopper over hvis filen allerede er i nytt
-    format (ingen rene tall-nøkler). Slår sammen duplikate rader per bruker
-    (passordet er identisk uansett, siden det er samme AO-konto).
+    Rader lagret før bindingen ble innført (inkludert det enda eldre
+    user_id-formatet) kan aldri brukes igjen av `_load_credentials`, så
+    passordene i dem er bare en risiko på disk. Brukeren får en ny rad med
+    binding ved neste innlogging. Kjøres ved import, idempotent.
     """
     try:
         with _cache_lock:
@@ -205,19 +238,17 @@ def _migrate_credentials_file():
                     data = json.load(f)
             except (FileNotFoundError, json.JSONDecodeError):
                 return
-            if not data or not any(k.isdigit() for k in data.keys()):
+            beholdt = {
+                k: v for k, v in data.items()
+                if isinstance(v, dict) and v.get('tokens') and not k.isdigit()
+            }
+            if len(beholdt) == len(data):
                 return
-            migrated = {}
-            for entry in data.values():
-                uname = entry.get('username')
-                pwd = entry.get('password')
-                if uname and pwd:
-                    migrated[uname.lower()] = {'username': uname, 'password': pwd}
             with open(_CREDENTIALS_PATH, 'w') as f:
-                json.dump(migrated, f)
+                json.dump(beholdt, f)
             logger.info(
-                f'[CREDENTIALS] Migrerte {len(data)} rader (gammelt user_id-format) til '
-                f'{len(migrated)} unike brukere (nytt username-format)'
+                f'[CREDENTIALS] Fjernet {len(data) - len(beholdt)} rader uten tokenbinding, '
+                f'{len(beholdt)} beholdt'
             )
     except Exception as e:
         logger.warning(f'[CREDENTIALS] Migrering feilet: {e}')
@@ -388,7 +419,7 @@ def login_to_ao(username: str, password: str) -> dict:
 
         # Lagre credentials for auto-relogin (persistert til disk, nøkkel = brukernavn —
         # IKKE user_id, som er ustabilt per AO-konto, se _load_credentials-docstring)
-        _save_credentials(username, password)
+        _save_credentials(username, password, login_token)
         logger.debug(f'[AO-LOGIN] Lagret credentials for auto-relogin (bruker={username})')
 
         logger.info(f'[AO-LOGIN] Innlogging vellykket! user_id={user_id}, auth_cookie={mask_token(auth_cookie)}')
@@ -489,14 +520,15 @@ def _full_relogin(user_id: str, login_token: str = None, username: str = None) -
         # Uten token er revival umulig — skiller «AO nektet» fra «token kom aldri fram»
         logger.warning(f'[LOGINTOKEN-REFRESH] Hoppet over for user_id={user_id} — klienten sendte ingen logintoken')
 
-    # Steg 2: Full relogin med lagrede credentials (fra disk, nøkkel = brukernavn)
+    # Steg 2: Full relogin med lagrede credentials (fra disk, nøkkel = brukernavn,
+    # utlevert kun mot et logintoken fra en innlogging med samme passord)
     if not username:
         logger.warning(f'[AUTH-RELOGIN-RESULT] Intet brukernavn oppgitt for user_id={user_id} — kan ikke slå opp lagrede credentials')
         return None
 
-    creds = _load_credentials(username)
+    creds = _load_credentials(username, login_token)
     if not creds:
-        logger.warning(f'[AUTH-RELOGIN-RESULT] Ingen lagrede credentials for bruker={username} (user_id={user_id}) — bruker må logge inn manuelt')
+        logger.warning(f'[AUTH-RELOGIN-RESULT] Ingen lagrede credentials for bruker={username} bundet til dette logintokenet (user_id={user_id}) — bruker må logge inn manuelt')
         return None
 
     saved_username, password = creds

@@ -1,3 +1,26 @@
+# ⚠️ KORREKSJON 4 (2026-11-09): passordfallbacket ga sesjon til hvem som helst med et brukernavn
+
+> `_full_relogin()` slo opp det lagrede passordet på brukernavnet klienten sendte i
+> `X-AO-Username`, uten å kreve noe mer. `GET /api/ao-sites?lat=59&lon=10` med
+> `X-AO-User-Id: 1` og `X-AO-Username: <offer>` fikk serveren til å logge inn som offeret og
+> sende den ferske `.ASPXAUTHNO` tilbake i `refreshedAuthCookie` — en AO-sesjon for en annen
+> bruker, bare ved å kjenne brukernavnet.
+>
+> **Kodefiks (2026-11-09):** hver rad i `credentials.json` har nå `tokens`, SHA-256 av
+> logintokenene klienten fikk fra innlogginger med passordet (maks 10, én per enhet).
+> `_load_credentials(username, login_token)` utleverer passordet bare når klienten viser fram et
+> av dem. Den som har brukerens logintoken, får ikke noe nytt: tokenet gir sesjon gjennom
+> husk-meg-revival uansett. Klienten lagrer aldri et rotert logintoken (kun det fra
+> `/api/ao-login`), så tokenet den sender, er det samme som ble bundet.
+>
+> **Ved oppstart fjernes rader uten `tokens`** (`_migrate_credentials_file()`); de kan aldri
+> brukes igjen, og passordene i dem var bare en risiko. Første gang revival feiler for en slik
+> bruker etter oppdateringen, må hen logge inn på nytt (klienten gjør det selv med lagret
+> passord der `loggInnMedLagretLegitimasjon()` brukes). Den nye innloggingen lager en bundet rad.
+>
+> Se etter misbruk i `/data/logs/fugleobs.log`: «klienten sendte ingen logintoken» rett før
+> «Credentials-relogin vellykket». Appen sender alltid logintoken.
+
 # ⚠️ KORREKSJON 3 (2026-09-16): passordfallback var nesten helt ødelagt (feil nøkkel)
 
 > **Uavhengig av korreksjon 2 rett under.** Mens vi gravde i hvorfor selve token-fornyelsen
