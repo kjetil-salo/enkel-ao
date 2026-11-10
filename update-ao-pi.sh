@@ -1,10 +1,12 @@
 #!/bin/bash
-# Deploy enkel-ao til Raspberry Pi (ao-pi.efugl.no)
+# Deploy enkel-ao til Raspberry Pi (ao.efugl.no)
 
 set -e
 
-PI_HOST="kjetil@100.76.35.106"
-PI_DIR="~/enkel-ao"
+SOURCE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SOURCE_DIR/deploy.env"
+: "${PI_HOST:?Sett PI_HOST i deploy.env}"
+: "${PI_DIR:?Sett PI_DIR i deploy.env}"
 
 echo "🔄 Deployer enkel-ao til Pi..."
 
@@ -16,6 +18,7 @@ rsync -av \
   --exclude '__pycache__' \
   --exclude '*.pyc' \
   --exclude '.env' \
+  --exclude '/deploy.env' \
   --exclude '.codex-tmp' \
   --exclude '.codex' \
   --exclude '.claude' \
@@ -29,7 +32,7 @@ rsync -av \
   --exclude 'fly.toml' \
   --exclude 'fly.staging.toml' \
   --exclude 'mock' \
-  /Users/kjetil/git/enkel-ao/ \
+  "$SOURCE_DIR/" \
   "$PI_HOST:$PI_DIR/"
 
 # Bygg og start container på Pi
@@ -42,4 +45,4 @@ ssh "$PI_HOST" "docker ps | grep enkel-ao || echo 'ADVARSEL: enkel-ao container 
 
 echo ""
 echo "✅ enkel-ao kjører på Pi port 3001"
-echo "🌐 Test: https://ao-pi.efugl.no (når DNS og tunnel er satt opp)"
+echo "🌐 Test: https://ao.efugl.no"

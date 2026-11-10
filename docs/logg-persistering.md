@@ -21,11 +21,8 @@ Implementert i `server.py` (logging-oppsett øverst) med `RotatingFileHandler`.
 
 ## Lese loggen på Pi
 ```bash
-# Live + historikk fra fila
-ssh kjetil@<pi> "cat ~/enkel-ao_data/logs/fugleobs.log"   # via volumet
-# eller inne i containeren:
+# Kjøres fra appmappen på serveren, leser det varige volumet:
 docker compose -f docker-compose.pi.yml exec enkel-ao cat /data/logs/fugleobs.log
 ```
 
-Volumet `ao-data` ligger på Pi under Docker sin volume-sti
-(`/var/lib/docker/volumes/enkel-ao_ao-data/_data/logs/` med mindre annet er konfigurert).
+Volumets fysiske plassering avhenger av Docker-oppsettet på serveren.

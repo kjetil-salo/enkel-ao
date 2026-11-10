@@ -1,4 +1,6 @@
 # .dockerignore - hold Docker-bygget rent
+.env
+/deploy.env
 __pycache__/
 *.pyc
 *.pyo

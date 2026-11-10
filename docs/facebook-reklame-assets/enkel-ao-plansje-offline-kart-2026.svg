@@ -63,7 +63,7 @@
   <!-- Hovedskjermbilde: omradevelgeren pa Hardangervidda -->
   <g filter="url(#shadow)">
     <rect x="60" y="460" width="960" height="521" rx="26" ry="26" fill="#0b1324"/>
-    <image href="/Users/kjetil/git/enkel-ao/docs/facebook-reklame-assets/screens/offline-omradevelger.png"
+    <image href="screens/offline-omradevelger.png"
            x="60" y="460" width="960" height="521"
            clip-path="url(#hovedSkjerm)" preserveAspectRatio="xMidYMin meet"/>
     <rect x="60" y="460" width="960" height="521" rx="26" ry="26" fill="none" stroke="#facc15" stroke-width="5"/>
@@ -72,7 +72,7 @@
   <!-- Stotteskjermbilder, bunnjustert mot hverandre pa y=1385 -->
   <g filter="url(#softShadow)">
     <rect x="60" y="1022" width="560" height="393" rx="22" ry="22" fill="#0b1324"/>
-    <image href="/Users/kjetil/git/enkel-ao/docs/facebook-reklame-assets/screens/offline-ferdig.png"
+    <image href="screens/offline-ferdig.png"
            x="60" y="1022" width="560" height="393"
            clip-path="url(#ferdigSkjerm)" preserveAspectRatio="xMidYMin meet"/>
     <rect x="60" y="1022" width="560" height="393" rx="22" ry="22" fill="none" stroke="#facc15" stroke-width="4"/>
@@ -90,7 +90,7 @@
 
   <g filter="url(#softShadow)">
     <rect x="660" y="1333" width="360" height="82" rx="18" ry="18" fill="#0b1324"/>
-    <image href="/Users/kjetil/git/enkel-ao/docs/facebook-reklame-assets/screens/offline-nedlasting.png"
+    <image href="screens/offline-nedlasting.png"
            x="660" y="1333" width="360" height="82"
            clip-path="url(#lasterSkjerm)" preserveAspectRatio="xMidYMin meet"/>
     <rect x="660" y="1333" width="360" height="82" rx="18" ry="18" fill="none" stroke="#facc15" stroke-width="4"/>
@@ -100,7 +100,7 @@
   <g filter="url(#softShadow)">
     <rect x="60" y="1458" width="960" height="144" rx="30" ry="30" fill="url(#card)"/>
     <circle cx="152" cy="1530" r="58" fill="#cbd5e1"/>
-    <image href="/Users/kjetil/git/enkel-ao/docs/facebook-reklame-assets/screens/espen-portrett.jpg"
+    <image href="screens/espen-portrett.jpg"
            x="96" y="1474" width="112" height="112"
            clip-path="url(#espenKlipp)" preserveAspectRatio="xMidYMid slice"/>
     <text x="240" y="1517" font-family="Helvetica, Arial, sans-serif" font-size="26" font-weight="800" fill="#122844">Offline-delen er bygget av Espen Bore Hollund</text>

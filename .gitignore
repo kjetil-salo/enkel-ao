@@ -1,5 +1,6 @@
 # Ignorer miljøvariabler og lokale hemmeligheter
 .env
+/deploy.env
 
 # Fellestur-føderasjon: eget inbound-secret og peer-config.
 # Prod/staging lagrer disse på /data (docker-volum) uansett, ikke i

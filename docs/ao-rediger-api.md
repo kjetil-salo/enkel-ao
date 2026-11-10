@@ -33,13 +33,14 @@ X-Requested-With: XMLHttpRequest
 Body: page=1&size=200
 ```
 
-Svarer med rent JSON — **ingen HTML-skraping nødvendig**:
+Svarer med rent JSON — **ingen HTML-skraping nødvendig**
+(stedsnavn og lokalitets-ID er anonymisert i eksempelet):
 
 ```json
 {"data":[{"SightingId":41252560,"TemporarySightingId":30004844,
           "TaxonName":"tårnseiler","ScientificTaxonName":"Apus apus",
           "SearchableStartDate":"26.07.2026","TimePresentation":"15:00",
-          "SiteName":"<div class=''>Hylkjesvingen 49, …</div>","SiteOrParentSiteId":362858,
+          "SiteName":"<div class=''>Herdla, …</div>","SiteOrParentSiteId":123456,
           "Observers":"Kjetil Salomonsen","PublicCommentLong":"…",
           "ErrorCount":0,"WarningCount":0,"InfoCount":0,
           "TriggeredValidationRulesText":""}],"total":1}

@@ -1,5 +1,8 @@
 # AO Lokalitets-API Dokumentasjon
 
+> Stedsnavn, lokalitets-ID-er og koordinater i eksemplene er anonymisert.
+> Herdla brukes som eksempelområde; dette er ikke nye registreringer hos AO.
+
 Reverse-engineered API-dokumentasjon for oppretting av lokaliteter på Artsobservasjoner.no.
 
 **Status:** Eksperimentell - ikke implementert i Enkel-AO ennå
@@ -25,9 +28,9 @@ Dette dokumentet beskriver API-flyten for å opprette nye lokaliteter på AO, sa
 
 **Payload:**
 ```
-siteCoordX=595007
-siteCoordY=8515048
-geometryWkt=POINT(595007.0409111626 8515047.79585106)
+siteCoordX=551031
+siteCoordY=8527750
+geometryWkt=POINT(551031 8527750)
 ```
 
 **Koordinatsystem:** UTM33 (CoordinateSystemId=19)
@@ -45,8 +48,8 @@ geometryWkt=POINT(595007.0409111626 8515047.79585106)
 **Payload:**
 ```json
 {
-  "XCoord": 595007,
-  "YCoord": 8515048,
+  "XCoord": 551031,
+  "YCoord": 8527750,
   "CoordinateSystemId": 19,
   "CoordinateSystemNotationId": 1,
   "currentSpeciesGroupId": "8",
@@ -111,12 +114,12 @@ geometryWkt=POINT(595007.0409111626 8515047.79585106)
 **Payload:**
 ```
 Id=-1
-Name=Hylkjesvingen 53
-XCoord=595007
-YCoord=8515048
+Name=Herdla, eksempelsted
+XCoord=551031
+YCoord=8527750
 Accuracy=25
-Geometry=POINT(595007.0409111626 8515047.79585106)
-ParentId=362858
+Geometry=POINT(551031 8527750)
+ParentId=123456
 comment=Test
 ```
 
@@ -153,7 +156,7 @@ AO støtter flere koordinatsystemer:
 
 **UTM33 (Norsk standard):**
 - CoordinateSystemId: 19
-- Format: X/Y (595007, 8515048)
+- Format: X/Y (551031, 8527750)
 - Dette brukes i AddSiteInfo payload
 
 **Konvertering:**
@@ -408,7 +411,7 @@ For å verifisere API-flyten, test følgende:
      -X POST \
      -H 'Content-Type: application/x-www-form-urlencoded' \
      -H 'Cookie: [dine cookies]' \
-     --data-raw 'Id=-1&Name=Test&XCoord=595007&YCoord=8515048&Accuracy=25&Geometry=POINT(595007 8515048)&ParentId=362858'
+     --data-raw 'Id=-1&Name=Test&XCoord=551031&YCoord=8527750&Accuracy=25&Geometry=POINT(551031 8527750)&ParentId=123456'
    ```
    - Sjekk response-struktur
    - Verifiser at lokasjon opprettes
