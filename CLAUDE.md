@@ -231,8 +231,7 @@ The `Handler` class routes requests:
   `docs/ANALYSIS_FELLESTUR_FODERASJON.md` for full kontrakt og designvalg
 - `/s/<hemmelighet>` → statistikk. Hemmeligheten genereres automatisk første gang og
   lagres i docker-volumet (`src/adminsti.py`), så den overlever rebuild. Den skal aldri
-  skrives inn for hånd — driftssiden på Pi-en (`pi-dashboard`, kun Tailscale) leser fila
-  og bygger ferdige lenker
+  skrives inn for hånd — lokale driftsverktøy kan lese fila og bygge ferdige lenker
   - Feil hemmelighet gir **404**, ikke en innloggingsside: en 403 ville bekreftet at det
     finnes noe der, og det er hele poenget med en hemmelig adresse
   - Dette er ikke autentisering, og er ikke ment å være det. Den som har lenka, er inne.
@@ -258,7 +257,7 @@ The `Handler` class routes requests:
 - `email_notify.py` — Eier-varsel ved ny tilbakemelding. Provider auto-detekteres, ren no-op hvis ukonfigurert
   - Prioritet: SMTP (`SMTP_HOST`+`SMTP_USER`+`SMTP_PASS` via smtplib/STARTTLS) → Resend → SMTP2GO HTTP
   - `Reply-To` settes til melderens epost → «Svar» går rett til brukeren. 1 retry ved forbigående feil
-  - **Prod bruker SMTP2GO** (gjenbruker drivstoff-appens creds): `mail-eu.smtp2go.com:2525`, From `noreply@drivstoffprisene.no`
+  - SMTP-tilgang og verifisert avsender konfigureres med miljøvariablene under
 - `share_store.py` — SQLite-lagring av delte observasjonslister (samme `stats.db`)
   - Schema: `slug, payload, display_name, delete_key, created_ts, expires_ts, views`
   - `sanitize_observations()` hviteliste-filtrerer felt — nye obs-felt lekker ikke ut ved uhell
@@ -763,8 +762,8 @@ funn FØR testkontoen brukes til noe annet.
   - **En peer-/proxy-sjekk hjelper ikke på Pi-en**, og ble derfor bevisst ikke lagt inn:
     `cloudflared` kjører på verten mot `localhost:3001`, og docker-proxy maskerer ALL
     trafikk til bridge-gatewayen. Målt 09.11.2026 — både tunneltrafikk og et direkte kall
-    fra tailnettet ser ut som `172.20.0.1` inne i containeren. Tillitsmodellen er at bare
-    Cloudflare slipper inn fra internett; tailnet og hjemme-LAN regnes som betrodd
+    fra tailnettet ser ut som Docker sin bridge-gateway inne i containeren. Tillitsmodellen
+    er at bare Cloudflare slipper inn fra internett; tailnet og hjemme-LAN regnes som betrodd
 - **Alt som vises på admin-sidene må escapes.** IP og User-Agent er klientstyrt, og `/stats`
   åpnes av eieren — med hennes lagrede AO-passord i localStorage på samme origin. Inne i en
   `<script>`-blokk må `_js_streng()` brukes, IKKE `html.escape`: tegnreferanser dekodes ikke
@@ -787,7 +786,7 @@ funn FØR testkontoen brukes til noe annet.
 - `AO_MOBILE_URL` (default: `https://mobil.artsobservasjoner.no`) — base-URL for AO-lokaliteter
 - `NOMINATIM_URL` (default: `https://nominatim.openstreetmap.org/reverse`) — reverse geokoding
 - `LOCATION_DB_PATH` (optional) — sti til SQLite-DB med AO-lokasjoner
-  - På Pi: `/mnt/ssd/docker/volumes/shared-locations/_data/locations.db`
+  - I Pi-containeren: `/shared/locations.db` (det eksterne `shared-locations`-volumet)
   - Aktiverer lokalt navnesøk og avstandssortering i autocomplete uten innlogging
   - Fylles med `tools/import_ao_locations.py` (~487k norske lokasjoner, 78 MB)
 - `SUPABASE_URL`, `SUPABASE_KEY` (optional logging)
@@ -827,6 +826,9 @@ AO_URL=http://localhost:8080 AO_MOBILE_URL=http://localhost:8080 python3 server.
 - **Aldri bruk Co-Authored-By** - commit uten co-author linje
 
 ### Deploy
+- Kopier `deploy.env.example` til gitignorert `deploy.env` og sett `PI_HOST`,
+  `PI_DIR` (produksjon) og `PI_STAGING_DIR`. Begge Pi-skriptene leser denne fila;
+  den ekskluderes fra rsync. SSH-tilgang og målmapper er lokal konfigurasjon.
 - **«Prod» = Raspberry Pi** (`update-ao-pi.sh`), ikke Fly.io. Fly kjøres kun som sjelden brukt backup.
 - **Pi-staging** (`deploy-staging-pi.sh`, `https://aos.efugl.no`) kjører pytest+vitest selv
   før deploy og er det reelle testmiljøet. Stedssøk bruker en separat SQLite-kopi i

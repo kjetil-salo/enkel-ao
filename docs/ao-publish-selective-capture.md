@@ -17,13 +17,13 @@ fra appen. Se `docs/rediger-sendte-obs-plan.md` for tidligere (ufullførte) vurd
 samme rotårsak.
 
 **Metode:** Utført direkte av Claude via nettleseren (claude-in-chrome), på ekte, innlogget
-AO-sesjon — ingen HAR-eksport av bruker nødvendig denne gangen. To ekte, trygge
-observasjoner (vanlige hagefugler på Hylkjesvingen 49, brukerens egen adresse) ble lagt inn
+AO-sesjon — ingen HAR-eksport av bruker nødvendig denne gangen. To ekte
+observasjoner av vanlige fuglearter (stedsnavnet er anonymisert til Herdla her) ble lagt inn
 direkte på AO sin egen rapporteringsside, publisert selektivt via «Publisere valgt», og
 AOs inline JavaScript ble lest rett fra siden (`document.scripts`) for å finne nøyaktig
 hvilke skjemafelt knappen faktisk setter før innsending.
 
-## Testdata (04.10.2026, Hylkjesvingen 49)
+## Testdata (04.10.2026, stedsnavn anonymisert til Herdla)
 
 1. Skjære + Gråspurv lagt inn direkte på artsobservasjoner.no (simulerer «noe i køen fra
    før, ikke fra appen» + «det som skal publiseres»)

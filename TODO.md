@@ -42,9 +42,8 @@ fjernet det ikke fra disk).
 
 **Faktum:** AO-passordet lagres i klartekst to steder:
 - klienten: `localStorage.ao_password` — brukerens egen enhet, akseptabelt
-- **serveren: `/data/credentials.json` i klartekst via `json.dump`** — ~95 reelle
-  brukere lå der ved utrullingen. Mange gjenbruker passord, så et AO-passord i
-  klartekst er en risiko også for andre tjenester
+- **serveren: `/data/credentials.json` i klartekst via `json.dump`**. Mange
+  gjenbruker passord, så et AO-passord i klartekst er en risiko også for andre tjenester
 
 **Hvorfor det havnet der:** en brukervennlighets-avveining som gikk for langt.
 Passord-fallbacket ble bygget for at brukeren aldri skulle møte «du er logget ut»
@@ -116,7 +115,7 @@ antakelse:
   enhver `Referer` en lenke fra siden sender videre
 - Alternativer, i økende rekkefølge etter innsats: (a) la det stå, og si det
   eksplisitt i CLAUDE.md som et bevisst valg; (b) kun Tailscale-tilgang til
-  admin-rutene, slik `pi-dashboard` alt er; (c) ekte innlogging
+  admin-rutene; (c) ekte innlogging
 - Omfang: `/s/<hemmelighet>` (statistikk) og
   `/s/<hemmelighet>/tilbakemeldinger`. Sistnevnte viser brukernes e-postadresser
   og fritekst, altså personopplysninger — det er den som veier tyngst her
@@ -151,38 +150,17 @@ Verdt å tenke gjennom før den skrives:
   som sender folk til repoet er en god grunn til å rydde ferdig der
 - Avklar hva som skal stå om lisens
 
-## 33. Flytt deploy-config ut av sporede skript (funnet 2026-10-22, skal fikses 2026-10-23)
+## 33. Flytt deploy-config ut av sporede skript — utført 2026-11-10
 
-Repoet er offentlig, og en kald salgshenvendelse 2026-10-21 (Agensi.io)
-viste at innholdet faktisk scrapes: de hadde lest repo-beskrivelsen,
-`.agents/skills/`, og hentet e-postadressen fra commit-metadata. Det er
-ikke et sikkerhetsbrudd, men det er en god grunn til å slutte å ha lokal
-maskin-config i sporede filer.
-
-**Ryddet samtidig (ingen oppfølging nødvendig):**
-- `.agents/skills/app-reklame-plansje/SKILL.md` — fjernet redundant
-  `hjemkopi: /Users/kjetil/...`-linje
-- de seks `docs/facebook-reklame-assets/*.svg` — 11 `<image href>` gjort
-  relative (`screens/x.png`). Ren forbedring: SVG-ene rendrer nå
-  skjermbildene for andre enn eieren av maskinen, noe absolutte stier
-  aldri kunne. Ferdige PNG-er er uberørt
-
-**Gjenstår — `update-ao-pi.sh` og `deploy-staging-pi.sh`:**
-- `PI_HOST` (brukernavn + Tailscale-IP) og `PI_DIR` ut i en gitignorert
-  `deploy.env` som skriptene `source`-er, med en sporet `deploy.env.example`
-  som mal. Tailscale-IP-en er i seg selv lite verdt for andre (CGNAT,
-  kun nåbar innenfor tailnettet), men brukernavn + vertsoppsett hører
-  ikke i et offentlig repo
-- rsync-kilden `/Users/kjetil/git/enkel-ao/` → `"$(cd "$(dirname "$0")" && pwd)/"`,
-  slik at skriptet virker uavhengig av hvor repoet står
-
-Ikke gjort umiddelbart fordi dette er deploy-maskineri: en feil på
-rsync-kilden synker feil mappe til Pi-en. Gjør begge skriptene i én
-endring, og test staging-deployen før produksjonsskriptet tas i bruk.
-
-Mønsteret og triageringen ligger nå i vault-skillen `offentlig-repo-hygiene`
-(`AIOS/skills/`), som også har `scan.sh` for å skanne alle de offentlige
-repoene. Bruk den når dette gjøres — da blir `kauth-go` tatt i samme runde.
+- Begge Pi-skriptene leser SSH-mål og målmapper fra gitignorert `deploy.env`.
+  `deploy.env.example` viser oppsettet uten private verdier; `deploy.env` er
+  ekskludert fra rsync i begge skriptene.
+- Produksjonsskriptets kildekatalog avledes fra skriptets egen plassering.
+- Absolutte lokale bildestier og konkrete driftsopplysninger i dokumentasjonen
+  er generalisert. Herdla brukes som anonymisert eksempelsted.
+- De to historiske AO-logintokenene i dokumentasjonen ble avvist ved lesetest
+  2026-11-10 og er merket som utdaterte eksempler.
+- Utrulling til staging og produksjon gjøres av eieren.
 
 ## 32. Pilotere OpenSpec på neste feature (vurdert 2026-10-12)
 
@@ -586,7 +564,7 @@ Implementert: alder og kjønn ligger nå som to kompakte dropdowns side om side 
 ## ~~11. Logging på Pi – loggvisning og rotasjon~~ ✅
 
 ~~- Når appen flyttes til Pi mister vi Fly.io sin innebygde logg-visning~~
-~~- **Vurder loggvisning:** [Dozzle](https://dozzle.dev/)~~ → Dozzle kjører på Pi (`logs.efugl.no`, container `enkel-ao-dozzle-1`)
+~~- **Vurder loggvisning:** [Dozzle](https://dozzle.dev/)~~ → Loggvisning med Dozzle er satt opp i driftsmiljøet
 ~~- **Loggrotasjon er obligatorisk**~~ → `json-file` med `max-size: 10m`, `max-file: 3` er satt i `docker-compose.pi.yml`
 - Gjenstår: avklar om Supabase-logging (logview) erstattes, suppleres eller droppes
 

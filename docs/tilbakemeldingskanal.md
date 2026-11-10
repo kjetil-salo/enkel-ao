@@ -78,11 +78,10 @@ konfigurert (skjemaet virker uansett). Prioritert rekkefølge:
 | `RESEND_API_KEY` / `SMTP2GO_API_KEY` | Alternativ HTTP-API-utsending |
 
 ### Oppsett i drift
-Både **prod (Pi)** og **staging (Fly)** bruker SMTP2GO over SMTP, ved å gjenbruke
-drivstoff-appens sende-credentials:
-- Host `mail-eu.smtp2go.com`, port `2525`, TLS
-- From `noreply@drivstoffprisene.no` (eneste verifiserte avsender i kontoen)
-- `FEEDBACK_NOTIFY_TO = kjetil@vikebo.com`
+Konfigurer SMTP-tilgang, verifisert avsender (`FEEDBACK_NOTIFY_FROM`) og mottaker
+(`FEEDBACK_NOTIFY_TO`) i miljøet for hver instans. Eksempel: `SMTP_HOST` fra
+leverandøren, `SMTP_PORT=2525`, `FEEDBACK_NOTIFY_FROM=noreply@eksempel.no` og
+`FEEDBACK_NOTIFY_TO=eier@eksempel.no`.
 
 Secrets ligger **utenfor repo**: på Fly som app-secrets (`flyctl secrets set … -a
 enkel-ao-staging`), på Pi i `~/enkel-ao/.env` (leses via `env_file` i

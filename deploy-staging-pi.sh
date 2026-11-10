@@ -11,8 +11,10 @@ set -e
 SOURCE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SOURCE_DIR"
 
-PI_HOST="kjetil@100.76.35.106"
-PI_DIR="~/enkel-ao-staging"
+source "$SOURCE_DIR/deploy.env"
+: "${PI_HOST:?Sett PI_HOST i deploy.env}"
+: "${PI_STAGING_DIR:?Sett PI_STAGING_DIR i deploy.env}"
+PI_DIR="$PI_STAGING_DIR"
 
 echo "🧪 Kjører tester..."
 python3 -m pytest --maxfail=3
@@ -25,6 +27,7 @@ rsync -av --delete \
   --exclude '__pycache__' \
   --exclude '*.pyc' \
   --exclude '.env' \
+  --exclude '/deploy.env' \
   --exclude '.codex-tmp' \
   --exclude '.codex' \
   --exclude '.claude' \

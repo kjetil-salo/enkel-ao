@@ -1,5 +1,8 @@
 # Opprett ny AO-lokasjon
 
+> Stedsnavn, lokalitets-ID-er og koordinater i eksemplene er anonymisert.
+> Herdla brukes som eksempelområde; dette er ikke nye registreringer hos AO.
+
 Funksjon for å opprette nye lokasjoner i Artsobservasjoner.no direkte fra appen.
 
 ## Oversikt
@@ -55,11 +58,11 @@ Oppretter ny lokasjon. Parametere funnet ved reverse-engineering av
 **Request** (form-encoded):
 ```
 Id=-1
-Name=Hylkjesvingen 51
-XCoord=595056
-YCoord=8515028
+Name=Herdla, eksempelsted
+XCoord=551031
+YCoord=8527750
 Accuracy=50
-Geometry=POINT(595056 8515028)
+Geometry=POINT(551031 8527750)
 comment=
 ```
 
@@ -71,13 +74,12 @@ comment=
     "type": "FeatureCollection",
     "features": [{
       "type": "Feature",
-      "id": 3273519,
+      "id": 1234567,
       "properties": {
-        "siteName": "Hylkjesvingen 51",
-        "siteId": 3273519,
-        "siteCoordinateStringPresentation": "Ø299398, N6714205 Sone 32",
+        "siteName": "Herdla, eksempelsted",
+        "siteId": 1234567,
         "isPrivate": true,
-        "parentName": "Hylkje"
+        "parentName": "Herdla"
       }
     }]
   }
@@ -97,12 +99,12 @@ Oppdaterer eksisterende lokasjon (brukes her kun for nøyaktighet).
 
 **Request** (form-encoded):
 ```
-Id=3273519
-Name=Hylkjesvingen 51
-XCoord=595056
-YCoord=8515028
+Id=1234567
+Name=Herdla, eksempelsted
+XCoord=551031
+YCoord=8527750
 Accuracy=50
-Geometry=POINT(595056 8515028)
+Geometry=POINT(551031 8527750)
 ParentId=0
 comment=
 ```
@@ -150,6 +152,6 @@ detaljer om selve panorer-og-oppdater-mekanismen.
 
 ## Verifisert
 
-- Hylkjesvingen 51 (60.5137953, 5.3454789) opprettet med siteId 3273519
-- EPSG:3857 koordinater: x=595056, y=8515028
+- To-stegs opprettelse verifisert mot AO 2026-02-16 (anonymiserte eksempeldata over)
+- EPSG:3857 koordinater: x=551031, y=8527750
 - Nøyaktighet settes via AddSiteInfo etter opprettelse

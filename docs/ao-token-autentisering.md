@@ -31,7 +31,7 @@
 > Årsak: `_load_credentials`/`_save_credentials` (`src/api_handlers.py`) brukte AOs "user_id"
 > (prefikset i `logintoken`-cookien, `<tall>:<hash>`) som lagrings-/oppslagsnøkkel. Vi antok
 > dette var en STABIL AO-kontoidentifikator. Verifisert i produksjonsdata (`/data/credentials.json`
-> på Pi-en, akkumulert siden mai 2026): brukernavnet `kjetils` hadde **309 forskjellige
+> på Pi-en, akkumulert siden mai 2026): én og samme konto hadde **309 forskjellige
 > "user_id"-nøkler**, alle med nøyaktig samme passord — AO gir et NYTT tall nesten hver gang man
 > logger inn med passord, selv for samme konto. Totalt i filen: 1760 rader, kun 40 unike
 > brukernavn. Siden klienten aldri overskriver en allerede satt `ao_tokens.userId`
@@ -501,6 +501,9 @@ Med brukernavn/passord auto-relogin har vi nå en robust løsning:
 4. **Fremtidig:** OIDC på mobil.artsobservasjoner.no kan vurderes (støtter refresh_token)
 
 ### logintoken-format (for referanse)
+
+Det historiske eksempeltokenet ble avvist av AO ved lesetest 2026-11-10
+(innloggingsskjema, ingen auth-cookie). Verdien beholdes for å vise formatet.
 
 ```
 <userId>:<hash>

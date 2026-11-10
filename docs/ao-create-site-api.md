@@ -3,7 +3,8 @@
 Dokumentasjon av det eksakte API-kallet til Artsobservasjoner.no for å opprette nye lokasjoner.
 Funnet ved reverse-engineering av AO sitt minifiserte JavaScript (`NewSiteAdded`-funksjonen i MasterJs-bundelen).
 
-Verifisert 2026-02-16 med opprettelse av "Hylkjesvingen 51" (siteId 3273519).
+API-flyten ble verifisert 2026-02-16. Stedsnavn, lokalitets-ID-er og koordinater
+under er erstattet med eksempeldata ved Herdla.
 
 ---
 
@@ -23,6 +24,8 @@ User-Agent: Mozilla/5.0 ...
 ```
 
 **Cookies (påkrevd for auth):**
+Det historiske logintokenet under ble avvist av AO ved lesetest 2026-11-10
+(innloggingsskjema, ingen auth-cookie). Det står kun som et eksempel på formatet.
 ```
 logintoken=291498:badb30983a8f6d2fef725773301684e7e2952f081571afc7440242caa208c8a4
 .ASPXAUTHNO=BB32A8E5...
@@ -32,11 +35,11 @@ AcceptCookies=1
 **Body (form-encoded):**
 ```
 Id=-1
-Name=Hylkjesvingen 51
-XCoord=595056
-YCoord=8515028
+Name=Herdla, eksempelsted
+XCoord=551031
+YCoord=8527750
 Accuracy=50
-Geometry=POINT(595056 8515028)
+Geometry=POINT(551031 8527750)
 comment=
 ```
 
@@ -45,11 +48,11 @@ comment=
 | Parameter | Verdi | Beskrivelse |
 |-----------|-------|-------------|
 | `Id` | `-1` | Alltid -1 for ny lokasjon |
-| `Name` | `Hylkjesvingen 51` | Lokalitetsnavn |
-| `XCoord` | `595056` | Easting i EPSG:3857 (Web Mercator) |
-| `YCoord` | `8515028` | Northing i EPSG:3857 (Web Mercator) |
+| `Name` | `Herdla, eksempelsted` | Lokalitetsnavn |
+| `XCoord` | `551031` | Easting i EPSG:3857 (Web Mercator) |
+| `YCoord` | `8527750` | Northing i EPSG:3857 (Web Mercator) |
 | `Accuracy` | `50` | Nøyaktighet i meter — **IGNORERES av SaveSite!** |
-| `Geometry` | `POINT(595056 8515028)` | WKT POINT i EPSG:3857. **PÅKREVD** — uten denne får du NullReferenceException |
+| `Geometry` | `POINT(551031 8527750)` | WKT POINT i EPSG:3857. **PÅKREVD** — uten denne får du NullReferenceException |
 | `comment` | *(tom)* | Valgfri kommentar |
 
 ### Koordinatkonvertering: WGS84 → EPSG:3857
@@ -61,10 +64,10 @@ x = lon × 20037508.34 / 180
 y = ln(tan((90 + lat) × π / 360)) / π × 20037508.34
 ```
 
-**Eksempel:** Hylkjesvingen 51 (60.5137953°N, 5.3454789°E)
+**Eksempel:** Herdla, eksempelsted (60.57°N, 4.95°E)
 ```
-x = 5.3454789 × 20037508.34 / 180 = 595056
-y = ln(tan((90 + 60.5137953) × π / 360)) / π × 20037508.34 = 8515028
+x = 4.95 × 20037508.34 / 180 = 551031
+y = ln(tan((90 + 60.57) × π / 360)) / π × 20037508.34 = 8527750
 ```
 
 ### Response (suksess)
@@ -77,17 +80,16 @@ y = ln(tan((90 + 60.5137953) × π / 360)) / π × 20037508.34 = 8515028
     "features": [
       {
         "type": "Feature",
-        "id": 3273519,
+        "id": 1234567,
         "geometry": {
           "type": "Point",
-          "coordinates": [595056, 8515028]
+          "coordinates": [551031, 8527750]
         },
         "properties": {
-          "siteName": "Hylkjesvingen 51",
-          "siteId": 3273519,
-          "siteCoordinateStringPresentation": "Ø299398, N6714205 Sone 32",
+          "siteName": "Herdla, eksempelsted",
+          "siteId": 1234567,
           "isPrivate": true,
-          "parentName": "Hylkje",
+          "parentName": "Herdla",
           "accuracy": 0
         }
       }
@@ -132,12 +134,12 @@ Dette er samme endepunkt som AO bruker ved redigering av eksisterende lokasjoner
 
 **Body (form-encoded):**
 ```
-Id=3273519
-Name=Hylkjesvingen 51
-XCoord=595056
-YCoord=8515028
+Id=1234567
+Name=Herdla, eksempelsted
+XCoord=551031
+YCoord=8527750
 Accuracy=50
-Geometry=POINT(595056 8515028)
+Geometry=POINT(551031 8527750)
 ParentId=0
 comment=
 ```
@@ -146,12 +148,12 @@ comment=
 
 | Parameter | Verdi | Beskrivelse |
 |-----------|-------|-------------|
-| `Id` | `3273519` | siteId fra SaveSite-responsen |
-| `Name` | `Hylkjesvingen 51` | Samme navn som ved opprettelse |
-| `XCoord` | `595056` | Samme koordinater som ved opprettelse |
-| `YCoord` | `8515028` | Samme koordinater som ved opprettelse |
+| `Id` | `1234567` | siteId fra SaveSite-responsen |
+| `Name` | `Herdla, eksempelsted` | Samme navn som ved opprettelse |
+| `XCoord` | `551031` | Samme koordinater som ved opprettelse |
+| `YCoord` | `8527750` | Samme koordinater som ved opprettelse |
 | `Accuracy` | `50` | Nøyaktighet i meter (25, 50, 100, 500) |
-| `Geometry` | `POINT(595056 8515028)` | Samme WKT POINT |
+| `Geometry` | `POINT(551031 8527750)` | Samme WKT POINT |
 | `ParentId` | `0` | 0 = behold eksisterende parent |
 | `comment` | *(tom)* | Valgfri kommentar |
 
@@ -184,13 +186,13 @@ comment=
 curl -X POST 'https://www.artsobservasjoner.no/Map/SaveSite' \
   -H 'X-Requested-With: XMLHttpRequest' \
   -b 'logintoken=DITT_TOKEN; .ASPXAUTHNO=DIN_COOKIE; AcceptCookies=1' \
-  -d 'Id=-1&Name=Min+lokasjon&XCoord=595056&YCoord=8515028&Accuracy=50&Geometry=POINT(595056+8515028)&comment='
+  -d 'Id=-1&Name=Min+lokasjon&XCoord=551031&YCoord=8527750&Accuracy=50&Geometry=POINT(551031+8527750)&comment='
 
 # Steg 2: Sett nøyaktighet (bruk siteId fra steg 1)
 curl -X POST 'https://www.artsobservasjoner.no/Map/AddSiteInfo' \
   -H 'X-Requested-With: XMLHttpRequest' \
   -b 'logintoken=DITT_TOKEN; .ASPXAUTHNO=DIN_COOKIE; AcceptCookies=1' \
-  -d 'Id=SITE_ID&Name=Min+lokasjon&XCoord=595056&YCoord=8515028&Accuracy=50&Geometry=POINT(595056+8515028)&ParentId=0&comment='
+  -d 'Id=SITE_ID&Name=Min+lokasjon&XCoord=551031&YCoord=8527750&Accuracy=50&Geometry=POINT(551031+8527750)&ParentId=0&comment='
 ```
 
 ## Python-eksempel
@@ -204,8 +206,8 @@ def wgs84_to_web_mercator(lat, lon):
     y = math.log(math.tan((90.0 + lat) * math.pi / 360.0)) / math.pi * 20037508.34
     return round(x), round(y)
 
-lat, lon = 60.5137953, 5.3454789
-x, y = wgs84_to_web_mercator(lat, lon)  # (595056, 8515028)
+lat, lon = 60.57, 4.95
+x, y = wgs84_to_web_mercator(lat, lon)  # (551031, 8527750)
 
 cookies = {
     'logintoken': 'DITT_TOKEN',
