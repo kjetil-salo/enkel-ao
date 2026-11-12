@@ -15,6 +15,44 @@ import { test, expect } from '../fixtures';
  */
 
 const BASE = process.env.BASE_URL || 'http://localhost:3000';
+const STARTLOKALITET = { id: 1, name: 'Lokalitet ved oppstart', lat: 60.393, lon: 5.323 };
+
+test('kartet vises og melder fra mens lokaliteter hentes med kjent posisjon', async ({ page }) => {
+  let sendSvar!: () => void;
+  const ventPåSvar = new Promise<void>((resolve) => { sendSvar = resolve; });
+
+  await page.route('**/api/ao-sites?*', async (route) => {
+    await ventPåSvar;
+    await route.fulfill({ json: { sites: [STARTLOKALITET] } });
+  });
+  await page.route('https://*.tile.openstreetmap.org/**', (route) => route.fulfill({
+    contentType: 'image/svg+xml',
+    body: '<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256"/>',
+  }));
+  await page.addInitScript(() => {
+    localStorage.setItem('mapData', JSON.stringify({
+      userPosition: { lat: 60.393, lon: 5.323, accuracy: 20 },
+      sites: [],
+    }));
+  });
+
+  const status = page.locator('#map-sites-status');
+  const lokalitet = page.locator('.site-label', { hasText: STARTLOKALITET.name });
+  try {
+    await page.goto(`${BASE}/map.html`, { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('.leaflet-tile-loaded').first()).toBeVisible();
+    await expect(status).toBeVisible();
+    await expect(status).toHaveText('Henter lokaliteter …');
+    expect(await status.evaluate((el) => getComputedStyle(el, '::before').animationName)).toBe('tile-spin');
+    await expect(lokalitet).toHaveCount(0);
+  } finally {
+    sendSvar();
+  }
+
+  await expect(lokalitet).toBeVisible();
+  await expect(status).toBeEmpty();
+  expect(await status.evaluate((el) => getComputedStyle(el, '::before').content)).toBe('none');
+});
 
 test.describe('Kart: fast hente-radius ved panorering, uavhengig av zoom', () => {
   test.skip(({ browserName }) => browserName !== 'chromium', 'Kun chromium nødvendig for denne geometri-testen');
@@ -32,16 +70,16 @@ test.describe('Kart: fast hente-radius ved panorering, uavhengig av zoom', () =>
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ sites: [] }) });
     });
 
-    await page.addInitScript(() => {
+    await page.addInitScript((startlokalitet) => {
       localStorage.setItem(
         'mapData',
         JSON.stringify({
           userPosition: { lat: 60.393, lon: 5.323, accuracy: 20 },
-          sites: [], // tomt: unngår fitBounds ved første last, som ellers selv kunne trigget en moveend
+          sites: [startlokalitet],
           sizeMeters: 500,
         }),
       );
-    });
+    }, STARTLOKALITET);
 
     await page.goto(`${BASE}/map.html`);
     await expect(page.locator('.leaflet-container')).toBeVisible();
@@ -121,16 +159,16 @@ test.describe('Kart: fast hente-radius ved panorering, uavhengig av zoom', () =>
       }
     });
 
-    await page.addInitScript(() => {
+    await page.addInitScript((startlokalitet) => {
       localStorage.setItem(
         'mapData',
         JSON.stringify({
           userPosition: { lat: 60.393, lon: 5.323, accuracy: 20 },
-          sites: [],
+          sites: [startlokalitet],
           sizeMeters: 500,
         }),
       );
-    });
+    }, STARTLOKALITET);
 
     await page.goto(`${BASE}/map.html`);
     await expect(page.locator('.leaflet-container')).toBeVisible();
@@ -187,16 +225,16 @@ test.describe('Kart: fast hente-radius ved panorering, uavhengig av zoom', () =>
       }
     });
 
-    await page.addInitScript(() => {
+    await page.addInitScript((startlokalitet) => {
       localStorage.setItem(
         'mapData',
         JSON.stringify({
           userPosition: { lat: 60.393, lon: 5.323, accuracy: 20 },
-          sites: [],
+          sites: [startlokalitet],
           sizeMeters: 500,
         }),
       );
-    });
+    }, STARTLOKALITET);
 
     await page.goto(`${BASE}/map.html`);
     await expect(page.locator('.leaflet-container')).toBeVisible();
@@ -216,6 +254,7 @@ test.describe('Kart: fast hente-radius ved panorering, uavhengig av zoom', () =>
     await page.waitForTimeout(900);
 
     expect(calls.length, 'Forventet at det feilede kallet faktisk ble forsøkt').toBeGreaterThanOrEqual(1);
+    await expect(page.locator('#map-sites-status')).toBeEmpty();
     expect(pageErrors, `AO-feil under panorering skal håndteres i try/catch, ikke krasje siden: ${pageErrors.map((e) => e.message).join('; ')}`).toHaveLength(0);
 
     // La AO "komme tilbake" og panorer TILBAKE til nøyaktig samme sted som

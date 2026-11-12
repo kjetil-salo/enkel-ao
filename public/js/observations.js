@@ -2,7 +2,7 @@
  * Observations-modul for håndtering av observasjoner og CSV-eksport
  */
 
-import { defaultCoObservers, loadMedobs, speciesDisplayName } from './storage.js?v=v1.60.12';
+import { defaultCoObservers, loadMedobs, speciesDisplayName } from './storage.js?v=v1.60.14-kartcache.2';
 import { showToast } from './ui.js';
 import { toLocalISOString } from './utils.js';
 import { getObservationVisitKey, setVisitLocked } from './visits.js';
@@ -871,9 +871,10 @@ export function toCsv(observations) {
     if (Array.isArray(obs.coObservers)) {
       for (let i = 0; i < 10; i++) {
         let v = obs.coObservers[i];
-        // Hvis objekt, hent .name, ellers bruk som streng
+        // Hvis objekt: alias er unikt hos AO og foretrekkes (navn kan kollidere,
+        // f.eks. flere kontoer med samme PresentationName). Ellers bruk som streng.
         if (v && typeof v === 'object') {
-          v = v.name || '';
+          v = v.alias || v.name || '';
         }
         if (!v || v === 'undefined' || v === null) v = '';
         cols[17 + i] = String(v).replace(/[;\t]/g, ',');

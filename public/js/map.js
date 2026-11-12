@@ -3,9 +3,9 @@
  */
 
 // Versjonert import
-import { createAoSite, ensureAoTokens, fetchAoSitesCached, fetchAoSitesByBounds, getCachedPrivateSites, hasActiveAoLogin } from './api.js?v=v1.60.12';
-import { mergeAoSitesWithPrivateCache, isPrivateSite, shouldShowOthersPrivateSites, DEFAULT_MAP_CENTER } from './location.js?v=v1.60.12';
-import { saveLastKnownPosition, loadLastKnownPosition } from './storage.js?v=v1.60.12';
+import { createAoSite, ensureAoTokens, fetchAoSitesCached, fetchAoSitesByBounds, getCachedPrivateSites, hasActiveAoLogin } from './api.js?v=v1.60.14-kartcache.2';
+import { mergeAoSitesWithPrivateCache, isPrivateSite, shouldShowOthersPrivateSites, DEFAULT_MAP_CENTER } from './location.js?v=v1.60.14-kartcache.2';
+import { saveLastKnownPosition, loadLastKnownPosition } from './storage.js?v=v1.60.14-kartcache.2';
 import { haversine } from './utils.js';
 // Versjonert import: HARD avhengighet til navngitte eksporter i en modul som
 // er ny her. Samme begrunnelse som location.js-importen over.
@@ -17,7 +17,7 @@ import {
   tilLagretVerdi,
   visLokaliteter,
   visNavn,
-} from './kart-visning.js?v=v1.60.12';
+} from './kart-visning.js?v=v1.60.14-kartcache.2';
 import {
   DEFAULT_OFFLINE_AREA_SIDE_M,
   KARTVERKET_TOPO_URL_TEMPLATE,
@@ -34,11 +34,12 @@ import {
   fetchDynamicViewportSites,
   filterSitesForOfflineDownload,
   filterSitesInBounds,
+  isOthersPrivateSite,
   mergeCachedSites,
   getBoundsDimensionsMeters,
   moveBoundsToCenter,
   resizeBoundsFromCorner,
-} from './offline-area.js?v=v1.60.12';
+} from './offline-area.js?v=v1.60.14-kartcache.2';
 import {
   getNetworkMode,
   setNetworkMode,
@@ -55,7 +56,7 @@ import {
   syncOfflineAreas,
   clearAllOfflineData,
   syncNetworkModeToServiceWorker,
-} from './offline-db.js?v=v1.60.12';
+} from './offline-db.js?v=v1.60.14-kartcache.2';
 
 // Hent data fra localStorage — fall tilbake til Svortland, Bømlo dersom mapData mangler
 let data = {};
@@ -1189,18 +1190,6 @@ if (isOfflineMode()) {
       renderSites(sites, { fitToBounds: false });
     }
   })();
-} else if (isHybridMode() && (!sites || sites.length === 0)) {
-  (async () => {
-    try {
-      const center = map.getCenter();
-      const viewportBounds = createCenteredBounds(center.lat, center.lng, sizeMeters * 2, sizeMeters * 2);
-      const cachedInViewport = await getOfflineLocationsInBounds(viewportBounds);
-      if (cachedInViewport.length > 0) renderSites(cachedInViewport, { fitToBounds: false });
-      else renderSites(sites, { fitToBounds: false });
-    } catch {
-      renderSites(sites, { fitToBounds: false });
-    }
-  })();
 } else {
   renderSites(sites, { fitToBounds: false });
 }
@@ -1212,25 +1201,44 @@ const MIN_REFETCH_DISTANCE_M = Math.max(150, AUTO_FETCH_RADIUS_M / 4);
 let lastFetchedCenter = { lat: map.getCenter().lat, lon: map.getCenter().lng };
 let moveendTimer = null;
 let fetchSeq = 0;
+const lokalitetsstatus = document.getElementById('map-sites-status');
 
 map.on('moveend', handleMapMoveEnd);
 
-if (!isOfflineMode() && !isUserPositionAvailable && (!sites || sites.length === 0)) {
-  (async () => {
-    const seq = ++fetchSeq;
-    try {
-      const center = map.getCenter();
-      const { sites: bboxSites } = await fetchLocationsWithNetworkMode(center.lat, center.lng, AUTO_FETCH_RADIUS_M, {
-        ensureTokens: ensureAoTokens, fetchOnline: fetchAoSitesCached, persistOpportunistic: true,
-      });
-      if (seq !== fetchSeq || bboxSites.length === 0) return;
+async function hentOgTegnLokaliteter(center, seq) {
+  const diameter = AUTO_FETCH_RADIUS_M * 2;
+  const bounds = createCenteredBounds(center.lat, center.lng, diameter, diameter);
+  const egneLokaliteter = () => filterSitesInBounds(getCachedPrivateSites(), bounds)
+    .map((site) => ({ ...site, isMine: true, isPrivate: true }));
+  lokalitetsstatus?.replaceChildren('Henter lokaliteter …');
+  try {
+    const { sites: bboxSites } = await fetchLocationsWithNetworkMode(center.lat, center.lng, AUTO_FETCH_RADIUS_M, {
+      ensureTokens: ensureAoTokens, fetchOnline: fetchAoSitesCached, persistOpportunistic: true,
+      onCachedSites(cachedSites) {
+        if (seq !== fetchSeq) return;
+        // Eiendomsmerking i offline-lageret kan være fra en tidligere konto.
+        const offentlige = cachedSites.filter((site) => !site.isMine && !isOthersPrivateSite(site));
+        const lokale = mergeCachedSites(offentlige, egneLokaliteter());
+        if (lokale.length === 0) return;
+        renderSites(lokale, { fitToBounds: false });
+        lokalitetsstatus?.replaceChildren();
+      },
+    });
+    if (seq !== fetchSeq || bboxSites.length === 0) return;
 
-      const merged = mergeAoSitesWithPrivateCache(bboxSites, { lat: center.lat, lon: center.lng }, sizeMeters);
-      renderSites(merged, { fitToBounds: false });
-    } catch (e) {
-      console.warn('Kunne ikke hente lokaliteter ved kartoppstart:', e);
-    }
-  })();
+    const merged = mergeAoSitesWithPrivateCache(
+      mergeCachedSites(egneLokaliteter(), bboxSites), { lat: center.lat, lon: center.lng }, sizeMeters,
+    );
+    renderSites(merged, { fitToBounds: false });
+  } finally {
+    if (seq === fetchSeq) lokalitetsstatus?.replaceChildren();
+  }
+}
+
+if (!isOfflineMode() && sites.length === 0) {
+  hentOgTegnLokaliteter(map.getCenter(), ++fetchSeq).catch((e) => {
+    console.warn('Kunne ikke hente lokaliteter ved kartoppstart:', e);
+  });
 }
 
 function handleMapMoveEnd() {
@@ -1255,6 +1263,7 @@ function handleMapMoveEnd() {
     const seq = ++fetchSeq;
 
     if (isOfflineMode()) {
+      lokalitetsstatus?.replaceChildren();
       try {
         const offlineSites = await getAllOfflineLocations();
         if (seq !== fetchSeq) return;
@@ -1267,15 +1276,7 @@ function handleMapMoveEnd() {
     }
 
     try {
-      const { sites: bboxSites } = await fetchLocationsWithNetworkMode(center.lat, center.lng, AUTO_FETCH_RADIUS_M, {
-        ensureTokens: ensureAoTokens, fetchOnline: fetchAoSitesCached, persistOpportunistic: true,
-      });
-      if (seq !== fetchSeq) return;
-      
-      if (bboxSites.length === 0) return;
-
-      const merged = mergeAoSitesWithPrivateCache(bboxSites, { lat: center.lat, lon: center.lng }, sizeMeters);
-      renderSites(merged, { fitToBounds: false });
+      await hentOgTegnLokaliteter(center, seq);
     } catch (e) {
       if (isHybridMode()) {
         try {

@@ -3,7 +3,7 @@
  */
 import { hentAktivFellestur } from './fellestur-client.js';
 import { lastSpeil, lagreSpeilOgSynk, hentTurMedobservatorer } from './fellestur-sync.js';
-import { translateDedicatedSubspeciesToNynorsk } from './species-matcher.js?v=v1.60.12';
+import { translateDedicatedSubspeciesToNynorsk } from './species-matcher.js?v=v1.60.14-kartcache.2';
 
 const STORAGE_KEY = 'fugleobservasjoner_v1';
 const MEDOBS_KEY = 'medobs_list_v1';
@@ -89,15 +89,20 @@ export function saveMedobs(list) {
  */
 export function defaultCoObservers() {
   const l = loadMedobs();
-  const active = (l || []).filter((it) => it && it.name && it.active).map((it) => it.name);
+  // Alias (unikt hos AO) sendes med når det finnes, ellers bare navnet — se
+  // ao-observer-autocomplete.js for hvor aliaset kommer fra.
+  const active = (l || [])
+    .filter((it) => it && it.name && it.active)
+    .map((it) => (it.alias ? { name: it.name, alias: it.alias } : it.name));
 
   // Aktiv fellestur: gruppa krediteres automatisk på hver nye observasjon,
   // uten at man må huke dem av som medobs hver gang. Lokale aktive medobs
   // (huket av manuelt) går foran, innenfor samme 10-plasser-tak.
   if (hentAktivFellestur()) {
     const turMedobs = hentTurMedobservatorer();
+    const activeNames = active.map((it) => (it && typeof it === 'object' ? it.name : it));
     (turMedobs || []).forEach((navn) => {
-      if (navn && !active.includes(navn)) active.push(navn);
+      if (navn && !activeNames.includes(navn)) { active.push(navn); activeNames.push(navn); }
     });
   }
 

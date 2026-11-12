@@ -18,7 +18,7 @@ import {
   OFFLINE_ZOOM_LEVELS,
   MAX_TILE_BATCH_SIZE,
   KARTVERKET_TOPO_URL_TEMPLATE,
-} from './offline-area.js?v=v1.60.12';
+} from './offline-area.js?v=v1.60.14-kartcache.2';
 import { haversine } from './utils.js';
 
 export const OFFLINE_DB_NAME = 'enkel_ao_offline_db';
@@ -34,7 +34,7 @@ export const DEFAULT_NETWORK_MODE = 'hybrid';
 // En avvikende URL får nettleseren til å bytte ut workeren ved sidebytte, og da mister
 // den modusen sin fra minnet. Versjonert URL omgår Cloudflares edge-cache av /sw.js,
 // og versjonen oppdateres sammen med de andre treffene ved release.
-export const SERVICE_WORKER_URL = '/sw.js?v=v1.60.12';
+export const SERVICE_WORKER_URL = '/sw.js?v=v1.60.14-kartcache.2';
 export const NETWORK_MODE_CACHE_URL = 'https://enkel-ao.local/__network_mode__';
 export const MAP_TILE_CACHE_NAME = 'enkel-ao-kartverket-tiles-v1';
 export const OPPORTUNISTIC_AREA_ID = 'opportunistic';
@@ -678,6 +678,7 @@ export async function getOfflineLocationsNear(lat, lon, radiusMeters = 1000) {
  * @param {Object} [deps={}]
  * @param {Function} [deps.fetchOnline] - async (lat, lon, radiusMeters) => Array
  * @param {Function} [deps.ensureTokens] - async () => boolean
+ * @param {Function} [deps.onCachedSites] - vis lokale treff før nettverkskallet
  * @param {'online'|'hybrid'|'offline'} [deps.mode] - overstyr nettverksmodus
  * @param {boolean} [deps.persistOpportunistic=false] - lagre nettverkstreff opportunistisk i IndexedDB
  * @returns {Promise<{ sites: Array<Object>, source: 'cache'|'network', mode: 'online'|'hybrid'|'offline' }>}
@@ -691,9 +692,10 @@ export async function fetchLocationsWithNetworkMode(lat, lon, radiusMeters = 100
   }
 
   // Enkeltlokaliteter beviser ikke at hele den nye radiusen er lastet ned.
-  const cachedNear = mode === 'hybrid'
+  const cachedNear = mode === 'hybrid' || deps.onCachedSites
     ? await getOfflineLocationsNear(lat, lon, radiusMeters).catch(() => [])
     : [];
+  deps.onCachedSites?.(cachedNear);
 
   // 'online' (Network-First)
   try {

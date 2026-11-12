@@ -142,10 +142,13 @@ def observations_to_csv(observations):
         co_obs = obs.get('coObservers', [])
         for i in range(10):
             if i < len(co_obs):
-                # Kan være objekt med .name eller bare string
+                # Kan være objekt med .alias/.name eller bare string. Alias er unikt hos
+                # AO og foretrekkes — PresentationName kan kollidere (f.eks. 4 kontoer med
+                # navnet «Terje Hansen», verifisert 10.11.2026), og uten alias ville AO
+                # måttet gjette blant dem ved import.
                 co = co_obs[i]
                 if isinstance(co, dict):
-                    row.append(co.get('name', ''))
+                    row.append(co.get('alias') or co.get('name', ''))
                 else:
                     row.append(str(co) if co else '')
             else:

@@ -5,10 +5,10 @@
 import { getNetworkMode, getAllOfflineLocations } from './offline-db.js';
 import { haversine } from './utils.js';
 // Versjonert import: hard avhengighet til en navngitt eksport.
-import { loggInnMedLagretLegitimasjon } from './api.js?v=v1.60.12';
+import { loggInnMedLagretLegitimasjon } from './api.js?v=v1.60.14-kartcache.2';
 
 // Serveren kan ikke lenger fornye en sesjon på brukernavn alene — passordet er
-// bundet til logintokenet (v1.60.12), og rader lagret før bindingen er fjernet.
+// bundet til logintokenet (v1.60.14), og rader lagret før bindingen er fjernet.
 // Sier serveren «utløpt», logger vi inn med den lagrede legitimasjonen: det
 // fornyer både sesjonen OG bindingen, så neste tastetrykk søker i alle
 // AO-lokaliteter igjen. Uten dette måtte brukeren selv finne innloggingssiden.

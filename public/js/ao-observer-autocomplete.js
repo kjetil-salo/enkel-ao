@@ -53,6 +53,9 @@ export function attachAoObserverAutocomplete(inp, onSelect) {
 
   let acDebounce = null;
   let acActiveIndex = -1;
+  // Søketreffene fra siste søk, til piltast-/Enter-valg — holdes utenfor DOM-en
+  // fordi klonet DOM-tekst (tidligere løsning) ikke har tilgang til alias.
+  let lastResults = [];
 
   function hideDropdown() {
     dropdown.classList.remove('show');
@@ -60,8 +63,8 @@ export function attachAoObserverAutocomplete(inp, onSelect) {
     acActiveIndex = -1;
   }
 
-  function selectItem(name) {
-    onSelect(name);
+  function selectItem(name, alias) {
+    onSelect(name, alias);
     inp.value = '';
     hideDropdown();
   }
@@ -83,6 +86,7 @@ export function attachAoObserverAutocomplete(inp, onSelect) {
         return;
       }
       results.sort((a, b) => (b.isCoObserver ? 1 : 0) - (a.isCoObserver ? 1 : 0));
+      lastResults = results;
       results.forEach((user) => {
         const item = document.createElement('div');
         item.className = 'medobs-ac-item';
@@ -91,7 +95,7 @@ export function attachAoObserverAutocomplete(inp, onSelect) {
         html += escapeHtml(user.name);
         if (user.city) html += `<span class="ac-city">${escapeHtml(user.city)}</span>`;
         item.innerHTML = html;
-        item.addEventListener('mousedown', (e) => { e.preventDefault(); selectItem(user.name); });
+        item.addEventListener('mousedown', (e) => { e.preventDefault(); selectItem(user.name, user.alias); });
         dropdown.appendChild(item);
       });
     }, 400);
@@ -119,10 +123,8 @@ export function attachAoObserverAutocomplete(inp, onSelect) {
       items[acActiveIndex]?.scrollIntoView({ block: 'nearest' });
     } else if (e.key === 'Enter' && acActiveIndex >= 0) {
       e.preventDefault();
-      const el = items[acActiveIndex].cloneNode(true);
-      el.querySelector('.ac-city')?.remove();
-      el.querySelector('.ac-fav')?.remove();
-      selectItem(el.textContent.trim());
+      const user = lastResults[acActiveIndex];
+      if (user) selectItem(user.name, user.alias);
     } else if (e.key === 'Escape') {
       hideDropdown();
     }

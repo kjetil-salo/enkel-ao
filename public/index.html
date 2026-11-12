@@ -24,7 +24,7 @@
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta name="twitter:card" content="summary_large_image" />
-    <link rel="stylesheet" href="style.css?v=v1.60.12" />
+    <link rel="stylesheet" href="style.css?v=v1.60.14-kartcache.2" />
   </head>
   <body>
     <script src="/js/theme.js"></script>
@@ -128,7 +128,7 @@
         <script type="module">
           // Toppraden trappes ned bare så mye som faktisk trengs. Se
           // header-plass.js for hvorfor dette ikke kan gjøres i ren CSS.
-          import { tilpassHeader } from '/js/header-plass.js?v=v1.60.12';
+          import { tilpassHeader } from '/js/header-plass.js?v=v1.60.14-kartcache.2';
 
           const appHeader = document.querySelector('.app-header');
 
@@ -521,20 +521,40 @@
 
     </div>
 
-    <script type="module" src="/js/main.js?v=v1.60.12"></script>
+    <script>
+      (() => {
+        const bredVisning = matchMedia('(min-width: 1000px) and (min-height: 600px) and (orientation: landscape)');
+        const registrering = document.querySelector('.tablet-input-column');
+        const sendInn = document.querySelector('.section-handlinger');
+        const liste = sendInn.previousElementSibling;
+
+        function plasserSendInn({ matches }) {
+          const fokus = document.activeElement;
+          if (matches) registrering.append(sendInn);
+          else liste.after(sendInn);
+          if (sendInn.contains(fokus)) fokus.focus();
+        }
+
+        // Flytt samme seksjon, slik at knappene og tilstanden følger med ved rotasjon.
+        if (bredVisning.matches) plasserSendInn(bredVisning);
+        if (bredVisning.addEventListener) bredVisning.addEventListener('change', plasserSendInn);
+        else bredVisning.addListener(plasserSendInn);
+      })();
+    </script>
+    <script type="module" src="/js/main.js?v=v1.60.14-kartcache.2"></script>
     <script type="module">
       // Registrer Service Worker for offline-støtte.
       // Versjonert URL: Cloudflare overstyrer origin sin max-age=300 med 4 timer, så
       // en endret /sw.js kan bli liggende i edge-cachen og aldri nå installerte apper.
       // Bruk inline versjon her: /js/version.js kan selv være cachet i gammel versjon.
-      const VERSION = 'v1.60.12';
+      const VERSION = 'v1.60.14-kartcache.2';
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register(`/sw.js?v=${VERSION}`).catch(() => {});
       }
     </script>
     <footer class="footer-credit">Versjon <span id="version"></span>  |  <a href="/changelog.html" style="color:var(--accent);text-decoration:none;">Endringslogg</a>  |  <a href="/feedback.html" style="color:var(--accent);text-decoration:none;">Gi tilbakemelding</a>  |  © 2026 Kjetil Salomonsen</footer>
     <script type="module">
-      const VERSION = 'v1.60.12';
+      const VERSION = 'v1.60.14-kartcache.2';
       document.getElementById('version').textContent = VERSION;
     </script>
 
@@ -594,7 +614,7 @@
       const addRowBtn = document.getElementById('medobs-add-row-btn');
 
       function load() {
-        return loadMedobs().map(it => ({ name: it.name || '', active: !!it.active }));
+        return loadMedobs().map(it => ({ name: it.name || '', alias: it.alias || '', active: !!it.active }));
       }
 
       function esc(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"})[c]); }
@@ -633,18 +653,24 @@
         dropdown.className = 'medobs-ac-list';
         wrap.appendChild(dropdown);
 
+        // Treffene fra siste søk, til piltast-/Enter-valg (DOM-tekst har ikke alias).
+        let lastResults = [];
+
         function hideDropdown() { dropdown.classList.remove('show'); dropdown.innerHTML = ''; acActiveIdx = -1; }
 
-        function selectItem(name) {
+        function selectItem(name, alias) {
           inp.value = name;
           const i = Number(inp.dataset.i);
-          const l = load(); l[i].name = name; saveMedobs(l);
+          const l = load(); l[i].name = name; l[i].alias = alias || ''; saveMedobs(l);
           hideDropdown();
         }
 
         inp.addEventListener('input', () => {
           const i = Number(inp.dataset.i);
-          const l = load(); l[i].name = inp.value; saveMedobs(l);
+          // Manuell skriving kan ikke garantere unikt treff — nullstill et evt. tidligere
+          // bekreftet alias for denne raden, så vi aldri sender et alias som ikke lenger
+          // matcher det som faktisk står i feltet.
+          const l = load(); l[i].name = inp.value; l[i].alias = ''; saveMedobs(l);
 
           const query = inp.value.trim();
           if (query.length < 3) { hideDropdown(); return; }
@@ -662,6 +688,7 @@
               return;
             }
             results.sort((a, b) => (b.isCoObserver ? 1 : 0) - (a.isCoObserver ? 1 : 0));
+            lastResults = results;
             results.forEach((user) => {
               const item = document.createElement('div');
               item.className = 'medobs-ac-item';
@@ -670,7 +697,7 @@
               html += esc(user.name);
               if (user.city) html += `<span class="ac-city">${esc(user.city)}</span>`;
               item.innerHTML = html;
-              item.addEventListener('mousedown', (e) => { e.preventDefault(); selectItem(user.name); });
+              item.addEventListener('mousedown', (e) => { e.preventDefault(); selectItem(user.name, user.alias); });
               dropdown.appendChild(item);
             });
           }, 400);
@@ -689,10 +716,8 @@
             items.forEach((it, i) => it.classList.toggle('active', i === acActiveIdx));
           } else if (e.key === 'Enter' && acActiveIdx >= 0) {
             e.preventDefault();
-            const el = items[acActiveIdx].cloneNode(true);
-            el.querySelector('.ac-city')?.remove();
-            el.querySelector('.ac-fav')?.remove();
-            selectItem(el.textContent.trim());
+            const user = lastResults[acActiveIdx];
+            if (user) selectItem(user.name, user.alias);
           } else if (e.key === 'Escape') {
             hideDropdown();
           }
@@ -754,7 +779,7 @@
 
       addRowBtn.addEventListener('click', () => {
         const l = load();
-        l.push({ name: '', active: false });
+        l.push({ name: '', alias: '', active: false });
         saveMedobs(l);
         renderModal(l.length - 1);
       });
@@ -889,7 +914,7 @@
       }
     </style>
     <script type="module">
-      import { initPhotoPicker } from './js/photo-picker.js?v=v1.60.12';
+      import { initPhotoPicker } from './js/photo-picker.js?v=v1.60.14-kartcache.2';
 
       const extraModal = document.getElementById('extra-fields-modal');
       const extraOpenBtn = document.getElementById('extra-fields-open-btn');

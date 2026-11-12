@@ -13,7 +13,7 @@
 
 // Versjonert: `settZoom`/`vedVisningsendring` er nye i v1.59.9, og en cachet
 // gammel bilde-editor.js ville gitt TypeError i det zoomknappen brukes.
-import { lagBildeEditor } from './bilde-editor.js?v=v1.60.12';
+import { lagBildeEditor } from './bilde-editor.js?v=v1.60.14-kartcache.2';
 
 // Samme kvalitet som photo-picker.js bruker på et nyvalgt bilde, så en tur innom
 // redigeringen ikke er et skjult kvalitetstap for den som bare ville beskjære.

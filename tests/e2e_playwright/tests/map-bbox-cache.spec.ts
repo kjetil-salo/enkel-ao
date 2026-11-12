@@ -11,9 +11,61 @@ import { test, expect } from '../fixtures';
  */
 
 const BASE = process.env.BASE_URL || 'http://localhost:3000';
+const STARTLOKALITET = { id: 1, name: 'Lokalitet ved oppstart', lat: 60.393, lon: 5.323 };
 
 test.describe('Kart: bbox-cache og tomt-svar-håndtering ved panorering', () => {
   test.skip(({ browserName }) => browserName !== 'chromium', 'Kun chromium nødvendig for denne nettverks-testen');
+
+  for (const modus of ['online', 'hybrid']) {
+    test(`gjenbesøk i ${modus} viser lagrede offentlige og egne lokaliteter før AO svarer`, async ({ page }) => {
+      const offentlig = { ...STARTLOKALITET, name: 'Offentlig lokalitet', lon: 5.319 };
+      const egen = { id: 2, name: 'Egen lokalitet', lat: 60.395, lon: 5.327 };
+      const privat = { id: 3, name: 'Annens private lokalitet', lat: 60.398, lon: 5.323, isPrivate: true };
+      let slippSvar!: () => void;
+      const ventPåSvar = new Promise<void>((resolve) => { slippSvar = resolve; });
+      let kall = 0;
+
+      await page.route('**/api/ao-sites?*', async (route) => {
+        if (++kall > 1) await ventPåSvar;
+        await route.fulfill({ json: { sites: [offentlig, privat] } });
+      });
+      await page.route('https://*.tile.openstreetmap.org/**', (route) => route.abort());
+      await page.addInitScript(({ modus, egen }) => {
+        localStorage.setItem('network_mode_v1', modus);
+        localStorage.setItem('showPrivateSitesOnMap', '1');
+        localStorage.setItem('ao_username', 'testbruker');
+        localStorage.setItem('ao_tokens', JSON.stringify({ loginToken: 'test', authCookie: 'test' }));
+        localStorage.setItem('ao_private_sites', JSON.stringify({ ts: Date.now(), sites: [egen] }));
+        if (!localStorage.getItem('mapData')) {
+          localStorage.setItem('mapData', JSON.stringify({ userPosition: { lat: 60.393, lon: 5.323 }, sites: [] }));
+        }
+      }, { modus, egen });
+
+      const navnelapp = (name: string) => page.locator('.site-label', { hasText: name });
+      await page.goto(`${BASE}/map.html`, { waitUntil: 'domcontentloaded' });
+      await expect(navnelapp(privat.name)).toBeVisible();
+      expect(kall).toBe(1);
+
+      // Litt lenger unna enn bbox-cachens 300 m-grense, i samme område.
+      await page.evaluate(() => {
+        localStorage.setItem('mapData', JSON.stringify({ userPosition: { lat: 60.397, lon: 5.323 }, sites: [] }));
+      });
+      try {
+        await page.reload({ waitUntil: 'domcontentloaded' });
+        await expect(navnelapp(offentlig.name)).toBeVisible();
+        await expect(navnelapp(egen.name)).toBeVisible();
+        await expect.poll(() => kall).toBe(2);
+        await expect(navnelapp(privat.name)).toHaveCount(0);
+      } finally {
+        slippSvar();
+      }
+
+      await expect(navnelapp(privat.name)).toBeVisible();
+      // Leaflet lar forrige navnelapp tones ut før den fjernes fra DOM-en.
+      await expect(navnelapp(egen.name)).toHaveCount(1);
+      await expect(navnelapp(egen.name)).toBeVisible();
+    });
+  }
 
   test('panorering til samme sted to ganger gir kun ETT nettverkskall til /api/ao-sites (cache-treff nr. 2)', async ({ page }) => {
     let callCount = 0;
@@ -28,16 +80,16 @@ test.describe('Kart: bbox-cache og tomt-svar-håndtering ved panorering', () => 
       });
     });
 
-    await page.addInitScript(() => {
+    await page.addInitScript((startlokalitet) => {
       localStorage.setItem(
         'mapData',
         JSON.stringify({
           userPosition: { lat: 60.393, lon: 5.323, accuracy: 20 },
-          sites: [], // tomt: unngår fitBounds ved første last, som ellers selv kunne trigget en moveend
+          sites: [startlokalitet],
           sizeMeters: 500,
         }),
       );
-    });
+    }, STARTLOKALITET);
 
     await page.goto(`${BASE}/map.html`);
     await expect(page.locator('.leaflet-container')).toBeVisible();
@@ -100,16 +152,16 @@ test.describe('Kart: bbox-cache og tomt-svar-håndtering ved panorering', () => 
       }
     });
 
-    await page.addInitScript(() => {
+    await page.addInitScript((startlokalitet) => {
       localStorage.setItem(
         'mapData',
         JSON.stringify({
           userPosition: { lat: 60.393, lon: 5.323, accuracy: 20 },
-          sites: [],
+          sites: [startlokalitet],
           sizeMeters: 500,
         }),
       );
-    });
+    }, STARTLOKALITET);
 
     await page.goto(`${BASE}/map.html`);
     await expect(page.locator('.leaflet-container')).toBeVisible();
@@ -140,6 +192,7 @@ test.describe('Kart: bbox-cache og tomt-svar-håndtering ved panorering', () => 
     await page.waitForTimeout(900);
 
     expect(callCount, 'Det tomme svaret skal faktisk ha blitt forsøkt hentet').toBeGreaterThanOrEqual(2);
+    await expect(page.locator('#map-sites-status')).toBeEmpty();
     await expect(
       originalLabel,
       'Et tomt (degradert) AO-svar skal IKKE tømme kartet for allerede synlige, gyldige lokaliteter',

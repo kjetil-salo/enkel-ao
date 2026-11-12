@@ -7,7 +7,7 @@
     <link rel="icon" href="/favicon.png" type="image/png" />
     <link rel="apple-touch-icon" href="/icon-192.png" />
     <link rel="manifest" href="/manifest.json">
-    <link rel="stylesheet" href="style.css?v=v1.60.12" />
+    <link rel="stylesheet" href="style.css?v=v1.60.14-kartcache.2" />
       <style>
         .settings-card {
           background: var(--card-bg, #111827);
@@ -428,15 +428,15 @@
     </div>
 
     <script type="module">
-      import { loadActivityPills, saveActivityPills, ACTIVITY_SHORT_SUGGESTIONS, loadNynorskArtsnavn, saveNynorskArtsnavn } from './js/storage.js?v=v1.60.12';
-      import { loadActivities, fetchAoSitesByBounds, hasActiveAoLogin, ensureAoTokens, getCachedPrivateSites } from './js/api.js?v=v1.60.12';
-      import { shouldShowOthersPrivateSites } from './js/location.js?v=v1.60.12';
+      import { loadActivityPills, saveActivityPills, ACTIVITY_SHORT_SUGGESTIONS, loadNynorskArtsnavn, saveNynorskArtsnavn } from './js/storage.js?v=v1.60.14-kartcache.2';
+      import { loadActivities, fetchAoSitesByBounds, hasActiveAoLogin, ensureAoTokens, getCachedPrivateSites } from './js/api.js?v=v1.60.14-kartcache.2';
+      import { shouldShowOthersPrivateSites } from './js/location.js?v=v1.60.14-kartcache.2';
       import {
         getOfflineStorageStats,
         syncOfflineAreas,
         clearAllOfflineData,
         clearAppCachesPreservingMapTiles,
-      } from './js/offline-db.js?v=v1.60.12';
+      } from './js/offline-db.js?v=v1.60.14-kartcache.2';
 
       // Service Worker registreres og modus synkroniseres av offline-db.js (importert over).
 

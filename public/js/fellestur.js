@@ -391,7 +391,7 @@ function renderMedobsListe() {
     return;
   }
   wrap.innerHTML = navn.map((n, i) =>
-    `<span class="medobs-chip">${tekst(n)} <button data-fjern="${i}" title="Fjern">✕</button></span>`
+    `<span class="medobs-chip">${tekst(n && typeof n === 'object' ? n.name : n)} <button data-fjern="${i}" title="Fjern">✕</button></span>`
   ).join('');
   wrap.querySelectorAll('[data-fjern]').forEach((btn) => {
     btn.addEventListener('click', async () => {
@@ -407,10 +407,13 @@ function renderMedobsListe() {
 function koblOppMedobs() {
   const input = document.getElementById('medobs-nytt-navn');
 
-  async function leggTilMedobs(navnOverride) {
+  async function leggTilMedobs(navnOverride, alias) {
     const navn = (navnOverride != null ? navnOverride : input.value).trim();
     if (!navn) return;
-    const ny = [...(state.tur.medobservatorer || []), navn];
+    // Alias (AOs unike UserAlias) følger med fra autocomplete-valget — se
+    // ao-observer-autocomplete.js. Uten den sendes bare navnet, som før.
+    const lagt = alias ? { name: navn, alias } : navn;
+    const ny = [...(state.tur.medobservatorer || []), lagt];
     state.tur.medobservatorer = ny;
     input.value = '';
     renderMedobsListe();

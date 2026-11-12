@@ -478,12 +478,16 @@ class Handler(SimpleHTTPRequestHandler):
                 resp.raise_for_status()
                 data = resp.json()
 
-            # Returner kun nødvendige felter
+            # alias (AOs UserAlias) er unik, i motsetning til PresentationName — flere
+            # kontoer kan hete nøyaktig det samme (verifisert: 4 "Terje Hansen" 10.11.2026).
+            # Frontend lagrer alias sammen med navnet slik at eksporten kan sende alias i
+            # Medobservatør-kolonnen og unngå å gjette blant likelydende navn.
             results = []
             for user in data:
                 results.append({
                     'id': user.get('Id'),
                     'name': user.get('PresentationName', '').strip(),
+                    'alias': user.get('UserAlias', ''),
                     'city': user.get('City', ''),
                     'isCoObserver': user.get('IsCoObserver', False),
                 })

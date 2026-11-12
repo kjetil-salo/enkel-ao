@@ -497,6 +497,27 @@
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
     }
 
+    .map-sites-status {
+      position: absolute;
+      top: 50px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1000;
+      pointer-events: none;
+    }
+    .map-sites-status:not(:empty) {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--card-bg);
+      color: var(--text);
+      border-radius: 20px;
+      padding: 4px 12px;
+      font-size: 13px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
     /* Topp-framdriftsindikator under nedlasting */
     .map-top-progress {
       position: absolute;
@@ -820,7 +841,12 @@
       font-weight: 600;
     }
 
-    .tile-download-spinner {
+    .map-sites-status:not(:empty)::before {
+      content: '';
+    }
+
+    .tile-download-spinner,
+    .map-sites-status:not(:empty)::before {
       width: 16px;
       height: 16px;
       border: 2px solid #93c5fd;
@@ -828,6 +854,12 @@
       border-radius: 50%;
       animation: tile-spin 0.8s linear infinite;
       flex-shrink: 0;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .map-sites-status:not(:empty)::before {
+        animation: none;
+      }
     }
 
     @keyframes tile-spin {
@@ -842,6 +874,7 @@
 
   <!-- Fallback-banner når brukerens GPS-posisjon ikke er tilgjengelig -->
   <div class="missing-location-banner" id="missing-location-banner" role="status" aria-live="polite">Din posisjon er ikke tilgjengelig</div>
+  <div class="map-sites-status" id="map-sites-status" role="status"></div>
 
   <!-- Sentrert modal-dialog med tilbakemelding på antall nedlastede lokaliteter -->
   <div class="offline-download-modal-backdrop" id="offline-download-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="offline-download-modal-text">
@@ -985,6 +1018,6 @@
        egen HTTP-cache holde fast på en utdatert map.js i opptil 4 timer etter deploy,
        selv om siden lastes på nytt — helt til noe endrer selve URL-en. Samme mønster
        som main.js i index.html. -->
-  <script type="module" src="/js/map.js?v=v1.60.12"></script>
+  <script type="module" src="/js/map.js?v=v1.60.14-kartcache.2"></script>
 </body>
 </html>

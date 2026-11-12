@@ -54,7 +54,7 @@ export function initCoObserverPicker(els) {
     });
   }
 
-  function addCoObserver(rawName) {
+  function addCoObserver(rawName, alias) {
     const name = rawName.trim();
     if (!name) return;
     if (!selected.has(name) && selected.size >= MEDOBS_MAX) {
@@ -62,10 +62,15 @@ export function initCoObserverPicker(els) {
       return;
     }
     selected.add(name);
-    // Legg navnet til i medobs-lista også, slik at det ligger klart neste gang
+    // Legg navnet til i medobs-lista også, slik at det ligger klart neste gang.
+    // Alias (fra AO-autocomplete) lagres med — unikt hos AO, i motsetning til navnet.
     const master = loadMedobs();
-    if (!master.some((it) => it.name === name)) {
-      master.push({ name, active: false });
+    const existing = master.find((it) => it.name === name);
+    if (!existing) {
+      master.push({ name, alias: alias || '', active: false });
+      saveMedobs(master);
+    } else if (alias && existing.alias !== alias) {
+      existing.alias = alias;
       saveMedobs(master);
     }
     render();
@@ -81,13 +86,37 @@ export function initCoObserverPicker(els) {
   attachAoObserverAutocomplete(newNameInput, addCoObserver);
 
   return {
-    setSelected(names) {
+    setSelected(items) {
       selected.clear();
-      (names || []).filter(Boolean).forEach((n) => selected.add(n));
+      // items kan være strenger eller {name, alias}-objekter (fra en tidligere lagret
+      // observasjon). Alias skrives tilbake til medobs-lista hvis den mangler der —
+      // uten det ville en redigering tapt aliaset ved neste lagring.
+      const master = loadMedobs();
+      let masterChanged = false;
+      (items || []).forEach((item) => {
+        const name = item && typeof item === 'object' ? item.name : item;
+        const alias = item && typeof item === 'object' ? item.alias : '';
+        if (!name) return;
+        selected.add(name);
+        if (alias) {
+          const existing = master.find((it) => it.name === name);
+          if (existing) {
+            if (existing.alias !== alias) { existing.alias = alias; masterChanged = true; }
+          } else {
+            master.push({ name, alias, active: false });
+            masterChanged = true;
+          }
+        }
+      });
+      if (masterChanged) saveMedobs(master);
       render();
     },
     getSelected() {
-      return Array.from(selected);
+      const master = loadMedobs();
+      return Array.from(selected).map((name) => {
+        const m = master.find((it) => it.name === name);
+        return m && m.alias ? { name, alias: m.alias } : name;
+      });
     },
   };
 }

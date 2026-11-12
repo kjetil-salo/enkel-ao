@@ -62,6 +62,7 @@ MAX_COMMENT_LEN = 1000
 MAX_REGISTRERT_AV_LEN = 40
 MAX_MEDOBSERVATORER = 10
 MAX_MEDOBSERVATOR_LEN = 40
+MAX_MEDOBSERVATOR_ALIAS_LEN = 40
 MAX_OBS_ID_LEN = 64
 
 
@@ -156,13 +157,24 @@ def _clean_text(value, limit=MAX_TEXT_LEN) -> str:
 
 
 def _clean_medobservatorer(raw) -> list:
+    """
+    Hvert element kan være et rent navn (streng) eller `{name, alias}` — alias
+    er AOs unike `UserAlias`, foretrukket ved eksport fordi navnet (PresentationName)
+    kan kollidere med andre AO-kontoer (se server.py sin /api/ao-search-observers).
+    Elementer uten alias forblir rene strenger — ingen migrering nødvendig.
+    """
     if not isinstance(raw, list):
         return []
     rene = []
-    for navn in raw[:MAX_MEDOBSERVATORER]:
-        navn = _clean_text(navn, MAX_MEDOBSERVATOR_LEN)
+    for item in raw[:MAX_MEDOBSERVATORER]:
+        if isinstance(item, dict):
+            navn = _clean_text(item.get('name'), MAX_MEDOBSERVATOR_LEN)
+            alias = _clean_text(item.get('alias'), MAX_MEDOBSERVATOR_ALIAS_LEN)
+        else:
+            navn = _clean_text(item, MAX_MEDOBSERVATOR_LEN)
+            alias = ''
         if navn:
-            rene.append(navn)
+            rene.append({'name': navn, 'alias': alias} if alias else navn)
     return rene
 
 

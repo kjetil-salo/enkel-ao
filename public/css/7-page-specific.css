@@ -1822,6 +1822,10 @@ body.theme-light #search:disabled::placeholder {
           gap: 6px;
         }
 
+        .tablet-input-column .section-handlinger {
+          margin-top: 4px;
+        }
+
         .tablet-list-column {
           position: sticky;
           top: 8px;
