@@ -23,4 +23,9 @@ describe('Settings offline mode protection for force-update-btn', () => {
     expect(settingsHtml).toContain('if (isAppOffline())');
     expect(settingsHtml).toContain('openOfflineUpdateModal()');
   });
+
+  it('har ikke utilsiktet script-oppsplitting som bryter modul-scope for fjernOverforingssesjon', () => {
+    expect(settingsHtml).toContain("import { fjernOverforingssesjon } from './js/arbeidsliste-sesjon.js';");
+    expect(settingsHtml).not.toMatch(/<\/script>\s*<script>\s*\/\/\s*Tema/);
+  });
 });

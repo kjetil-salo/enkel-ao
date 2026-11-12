@@ -973,12 +973,12 @@
       window.loadLanguage = loadLanguage;
       window.saveLanguage = saveLanguage;
       window.isNynorsk = isNynorsk;
+      window.fjernOverforingssesjon = fjernOverforingssesjon;
       applySettingsLanguage(loadLanguage());
 
       // Kjør init når siden lastes
       initActivityPillsConfig();
-    </script>
-    <script>
+
       // Tema (segmentert velger: mørkt / lyst / clean)
       const THEMES = ['dark', 'light', 'clean'];
       const themeSeg = document.getElementById('theme-seg');
