@@ -7,7 +7,7 @@
  * Skiller seg fra medobs-modalen i index.html (som styrer master-lista og hvem som
  * er «aktiv som standard») — denne velger bare hvem som gjelder for ÉN observasjon.
  */
-import { loadMedobs, saveMedobs } from './storage.js';
+import { loadMedobs, saveMedobs, isNynorsk } from './storage.js';
 import { attachAoObserverAutocomplete } from './ao-observer-autocomplete.js';
 
 const MEDOBS_MAX = 10;
@@ -30,7 +30,11 @@ export function initCoObserverPicker(els) {
     const allNames = Array.from(new Set([...master, ...selected]));
     container.innerHTML = '';
     if (allNames.length === 0) {
-      container.innerHTML = '<div style="color:var(--muted);font-size:0.9em;">Ingen medobservatører lagt til ennå — legg til under.</div>';
+      const nn = typeof isNynorsk === 'function' ? isNynorsk() : (typeof window !== 'undefined' && typeof window.__isNynorsk === 'function' && window.__isNynorsk());
+      const emptyText = nn
+        ? 'Ingen medobservatørar er lagde til – legg til under.'
+        : 'Ingen medobservatører lagt til ennå — legg til under.';
+      container.innerHTML = `<div style="color:var(--muted);font-size:0.9em;">${emptyText}</div>`;
       return;
     }
     allNames.forEach((name) => {
@@ -42,7 +46,8 @@ export function initCoObserverPicker(els) {
         if (cb.checked) {
           if (selected.size >= MEDOBS_MAX) {
             cb.checked = false;
-            alert(`Maks ${MEDOBS_MAX} medobservatører per observasjon.`);
+            const nn = typeof isNynorsk === 'function' ? isNynorsk() : (typeof window !== 'undefined' && typeof window.__isNynorsk === 'function' && window.__isNynorsk());
+            alert(nn ? `Maks ${MEDOBS_MAX} medobservatørar per observasjon.` : `Maks ${MEDOBS_MAX} medobservatører per observasjon.`);
             return;
           }
           selected.add(name);

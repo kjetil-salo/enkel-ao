@@ -82,7 +82,7 @@ export function showToast(msg, options = {}) {
   } else if (typeof msg === 'string' && msg.startsWith('Du må')) {
     textSpan.textContent = msg;
     toast.style.borderColor = '#ef4444';
-  } else if (typeof msg === 'string' && msg.startsWith('Slettet')) {
+  } else if (typeof msg === 'string' && (msg.startsWith('Slettet') || msg.startsWith('Sletta'))) {
     textSpan.textContent = msg;
     toast.style.borderColor = '#f59e0b';
   } else {
@@ -97,7 +97,17 @@ export function showToast(msg, options = {}) {
   let undoBtn = null;
   if (onUndo) {
     undoBtn = document.createElement('button');
-    undoBtn.textContent = 'Angre';
+    let nn = false;
+    if (typeof window !== 'undefined' && typeof window.__isNynorsk === 'function') {
+      nn = Boolean(window.__isNynorsk());
+    } else {
+      try {
+        const lang = localStorage.getItem('app_language_v1');
+        const ny = localStorage.getItem('nynorsk_artsnavn_v1');
+        nn = lang === 'nn' || ny === '1' || ny === 'true';
+      } catch (e) {}
+    }
+    undoBtn.textContent = nn ? 'Angra' : 'Angre';
     const undoBg = lysttema ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.2)';
     const undoBgAktiv = lysttema ? 'rgba(0,0,0,0.18)' : 'rgba(255,255,255,0.3)';
     undoBtn.style.cssText = `
@@ -200,7 +210,9 @@ export function setLocationStatus(locDot, locText, mode, text) {
     if (mode === 'ok' || mode === 'error') {
       const now = new Date();
       const timeStr = now.toLocaleTimeString('nb-NO', { hour: '2-digit', minute: '2-digit' });
-      displayText = `${text} (kl ${timeStr})`;
+      const nn = (typeof window !== 'undefined' && typeof window.__isNynorsk === 'function' && window.__isNynorsk())
+        || (typeof localStorage !== 'undefined' && typeof localStorage.getItem === 'function' && (localStorage.getItem('ao_language') === 'nn' || localStorage.getItem('ao_nynorsk_artsnavn') === '1'));
+      displayText = `${text} (${nn ? 'kl.' : 'kl'} ${timeStr})`;
     }
     locText.textContent = displayText;
     if (mode !== 'ok') {

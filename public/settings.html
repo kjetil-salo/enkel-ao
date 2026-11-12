@@ -173,36 +173,60 @@
     <script src="/js/theme.js"></script>
     <div class="settings-card" style="background:linear-gradient(145deg,rgba(15,23,42,0.96),rgba(15,23,42,0.92));border-radius:10px;border:1px solid rgba(148,163,184,0.12);box-shadow:0 12px 28px rgba(15,23,42,0.72),0 0 0 1px rgba(15,23,42,0.9);padding:24px 32px 24px 32px;overflow:visible;backdrop-filter:blur(14px);">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-        <h2 style="margin:0;">Innstillinger</h2>
-        <a href="/" style="color:#3b82f6;text-decoration:none;font-size:0.9rem;padding:6px 12px;border-radius:8px;">← Tilbake</a>
+        <h2 id="settings-title" style="margin:0;">Innstillinger</h2>
+        <a id="settings-back-top" href="/" style="color:#3b82f6;text-decoration:none;font-size:0.9rem;padding:6px 12px;border-radius:8px;">← Tilbake</a>
       </div>
 
       <div class="settings-row" style="flex-direction: column; align-items: flex-start; gap: 10px;">
-        <span class="settings-label">Tema</span>
+        <span class="settings-label" id="lang-label">Språk</span>
+        <div class="theme-seg" id="lang-seg" role="radiogroup" aria-label="Språk">
+          <button type="button" class="theme-seg-btn" data-lang-value="nb" role="radio">Bokmål</button>
+          <button type="button" class="theme-seg-btn" data-lang-value="nn" role="radio">Nynorsk</button>
+        </div>
+        <script>
+          (function() {
+            try {
+              var isNn = typeof window.__isNynorsk === 'function' ? window.__isNynorsk() : false;
+              var nbBtn = document.querySelector('#lang-seg [data-lang-value="nb"]');
+              var nnBtn = document.querySelector('#lang-seg [data-lang-value="nn"]');
+              if (nbBtn) nbBtn.setAttribute('aria-checked', isNn ? 'false' : 'true');
+              if (nnBtn) nnBtn.setAttribute('aria-checked', isNn ? 'true' : 'false');
+              if (isNn) {
+                document.title = 'Innstillingar – Fugleobservasjoner';
+                var st = document.getElementById('settings-title'); if (st) st.textContent = 'Innstillingar';
+                var sbt = document.getElementById('settings-back-top'); if (sbt) sbt.textContent = '← Attende';
+              }
+            } catch (e) {}
+          })();
+        </script>
+      </div>
+
+      <div class="settings-row" style="flex-direction: column; align-items: flex-start; gap: 10px;">
+        <span class="settings-label" id="theme-label">Tema</span>
         <div class="theme-seg" id="theme-seg" role="radiogroup" aria-label="Tema">
           <button type="button" class="theme-seg-btn" data-theme-value="dark" role="radio" aria-checked="false">🌙 Mørkt</button>
           <button type="button" class="theme-seg-btn" data-theme-value="light" role="radio" aria-checked="false">☀️ Lyst</button>
-          <button type="button" class="theme-seg-btn" data-theme-value="clean" role="radio" aria-checked="false">⬜ Clean</button>
+          <button type="button" class="theme-seg-btn" data-theme-value="clean" role="radio" aria-checked="false" id="theme-clean-btn">⬜ Clean</button>
         </div>
       </div>
-      <div style="font-size:0.92em;color:var(--muted,#aaa);margin-bottom:18px;">
+      <div id="theme-desc" style="font-size:0.92em;color:var(--muted,#aaa);margin-bottom:18px;">
         Lyst er standard. Clean er et rent, monokromt tema uten fargeaksenter – enklest å lese i sterkt sollys.
       </div>
 
       <div class="settings-row">
-        <span class="settings-label">Vis andres private lokasjoner</span>
+        <span class="settings-label" id="private-sites-label">Vis andres private lokasjoner</span>
         <label class="switch">
           <input type="checkbox" id="show-private-sites-on-map" />
           <span class="slider"></span>
         </label>
       </div>
-      <div style="font-size:0.92em;color:var(--muted,#aaa);margin-bottom:18px;">
+      <div id="private-sites-desc" style="font-size:0.92em;color:var(--muted,#aaa);margin-bottom:18px;">
         Viser andres private lokasjoner på kartet og i lokasjonsforslaget. Av som standard – i tettbygde strøk blir det ellers uoversiktlig. Dine egne lokaliteter vises alltid.
       </div>
 
       <div id="storage-management-section" style="margin-top:8px;margin-bottom:22px;padding:16px 0;border-top:1px solid rgba(148,163,184,0.12);border-bottom:1px solid rgba(148,163,184,0.12);">
-        <h3 style="margin:0 0 4px 0;font-size:1em;color:var(--text,#e5e7eb);">Lagring / Offline-data</h3>
-        <p style="font-size:0.82em;color:var(--muted,#aaa);margin:0 0 10px 0;">
+        <h3 id="storage-heading" style="margin:0 0 4px 0;font-size:1em;color:var(--text,#e5e7eb);">Lagring / Offline-data</h3>
+        <p id="storage-desc" style="font-size:0.82em;color:var(--muted,#aaa);margin:0 0 10px 0;">
           Oversikt over lagrede lokaliteter og kartfliser på denne enheten. Du kan oppdatere dine lagrede
           offline-områder med ferske lokaliteter og manglende kartfliser, eller tømme alt offline-innhold.
         </p>
@@ -227,8 +251,8 @@
       </div>
 
       <div class="settings-row" style="flex-direction: column; align-items: flex-start; gap: 12px;">
-        <span class="settings-label">Aktivitets-hurtigknapper (0-8)</span>
-        <div style="font-size:0.92em;color:var(--muted,#aaa);margin-bottom:8px;">
+        <span class="settings-label" id="pills-heading">Aktivitets-hurtigknapper (0-8)</span>
+        <div id="pills-desc" style="font-size:0.92em;color:var(--muted,#aaa);margin-bottom:8px;">
           Velg hvilke aktiviteter som vises som hurtigknapper. Maks 8. Dra i symbolet ⠿ for å endre rekkefølgen.
           Skriv eventuelt et kort navn (maks 5 tegn) i «Kort»-feltet for mer kompakte knapper – tomt felt viser fullt navn.
         </div>
@@ -258,50 +282,37 @@
       </div>
 
       <div class="settings-row">
-        <span class="settings-label">Tving offline arts-søk</span>
+        <span class="settings-label" id="force-offline-label">Tving offline arts-søk</span>
         <label class="switch">
           <input type="checkbox" id="force-offline-species" />
           <span class="slider"></span>
         </label>
       </div>
-      <div style="font-size:0.92em;color:var(--muted,#aaa);margin-bottom:18px;">
+      <div id="force-offline-desc" style="font-size:0.92em;color:var(--muted,#aaa);margin-bottom:18px;">
         Når denne er på, brukes kun den lokale artslisten (ingen søk mot Artsobservasjoner).
       </div>
 
-      <div class="settings-row">
-        <span class="settings-label">Nynorske artsnavn</span>
-        <label class="switch">
-          <input type="checkbox" id="show-nynorsk" />
-          <span class="slider"></span>
-        </label>
-      </div>
-      <div style="font-size:0.92em;color:var(--muted,#aaa);margin-bottom:18px;">
-        Viser nynorsk artsnavn i søkeresultater og i lista over registrerte observasjoner,
-        der det finnes. Selve registreringen som sendes til Artsobservasjoner er likevel
-        alltid bokmål, uansett denne innstillingen.
-      </div>
-
       <div style="margin-top:24px;padding-top:18px;border-top:1px solid rgba(148,163,184,0.12);">
-        <h3 style="margin:0 0 4px 0;font-size:1em;color:var(--text,#e5e7eb);">AO-innlogging</h3>
-        <p style="font-size:0.82em;color:var(--muted,#aaa);margin:0 0 14px 0;">
+        <h3 id="ao-login-heading" style="margin:0 0 4px 0;font-size:1em;color:var(--text,#e5e7eb);">AO-innlogging</h3>
+        <p id="ao-login-desc-1" style="font-size:0.82em;color:var(--muted,#aaa);margin:0 0 14px 0;">
           Logg inn med Artsobservasjoner-kontoen din for å publisere funn direkte fra appen.
           Brukernavn og passord sendes kun videre til Artsobservasjoner.no — de lagres <strong>aldri</strong> på serveren,
           bare lokalt i nettleseren din så du slipper å logge inn hver gang.
           Du velger selv: lagre passordet for direkte publisering, eller la det stå tomt og bruk «Kopier &amp; åpne AO-import» i stedet.
           Du kan tømme feltene når som helst.
         </p>
-        <p style="font-size:0.82em;color:var(--muted,#aaa);margin:0 0 14px 0;">
+        <p id="ao-login-desc-2" style="font-size:0.82em;color:var(--muted,#aaa);margin:0 0 14px 0;">
           Har du ikke AO-bruker?
           <a href="https://www.artsobservasjoner.no/UserAccount" target="_blank" rel="noopener"
             style="color:#3b82f6;text-decoration:underline;">Opprett gratis konto på Artsobservasjoner.no ↗</a>
         </p>
         <div style="margin-bottom:12px;">
-          <label for="ao-username" style="display:block;font-size:0.88em;color:var(--muted,#aaa);margin-bottom:4px;">Brukernavn</label>
+          <label id="ao-username-label" for="ao-username" style="display:block;font-size:0.88em;color:var(--muted,#aaa);margin-bottom:4px;">Brukernavn</label>
           <input type="text" id="ao-username" autocomplete="username" placeholder="ditt_brukernavn"
             style="width:100%;padding:10px 12px;border-radius:8px;border:1px solid rgba(148,163,184,0.3);background:rgba(15,23,42,0.8);color:var(--text,#e5e7eb);font-size:16px;box-sizing:border-box;" />
         </div>
         <div>
-          <label for="ao-password" style="display:block;font-size:0.88em;color:var(--muted,#aaa);margin-bottom:4px;">Passord</label>
+          <label id="ao-password-label" for="ao-password" style="display:block;font-size:0.88em;color:var(--muted,#aaa);margin-bottom:4px;">Passord</label>
           <div style="position:relative;">
             <input type="password" id="ao-password" autocomplete="current-password" placeholder="••••••••"
               style="width:100%;padding:10px 40px 10px 12px;border-radius:8px;border:1px solid rgba(148,163,184,0.3);background:rgba(15,23,42,0.8);color:var(--text,#e5e7eb);font-size:16px;box-sizing:border-box;" />
@@ -321,8 +332,8 @@
       </div>
 
       <div style="margin-top:24px;padding-top:18px;border-top:1px solid rgba(148,163,184,0.12);">
-        <h3 style="margin:0 0 4px 0;font-size:1em;color:var(--text,#e5e7eb);">Oppdatering</h3>
-        <p style="font-size:0.82em;color:var(--muted,#aaa);margin:0 0 14px 0;">
+        <h3 id="update-heading" style="margin:0 0 4px 0;font-size:1em;color:var(--text,#e5e7eb);">Oppdatering</h3>
+        <p id="update-desc" style="font-size:0.82em;color:var(--muted,#aaa);margin:0 0 14px 0;">
           Appen sjekker selv etter ny versjon, men det kan ta litt tid før den slår gjennom –
           spesielt hvis appen har stått åpen lenge. Trykk her for å tvinge fram nyeste versjon
           med en gang, i stedet for å lukke og åpne appen på nytt. Nedlastede offline-kartfliser bevares.
@@ -352,8 +363,8 @@
       </div>
 
       <div style="margin-top:24px;padding-top:18px;border-top:1px solid rgba(148,163,184,0.12);">
-        <h3 style="margin:0 0 4px 0;font-size:1em;color:var(--text,#e5e7eb);">Sikkerhetskopi</h3>
-        <p style="font-size:0.82em;color:var(--muted,#aaa);margin:0 0 14px 0;">
+        <h3 id="backup-heading" style="margin:0 0 4px 0;font-size:1em;color:var(--text,#e5e7eb);">Sikkerhetskopi</h3>
+        <p id="backup-desc" style="font-size:0.82em;color:var(--muted,#aaa);margin:0 0 14px 0;">
           Observasjonene dine lagres bare i denne nettleseren. Last ned en sikkerhetskopi (JSON-fil)
           før du tømmer nettleserdata eller bytter enhet – og gjenopprett den ved behov.
           Gjenoppretting <strong>erstatter</strong> lista som ligger i appen nå.
@@ -376,14 +387,14 @@
       </div>
 
       <div style="margin-top:24px;padding-top:20px;border-top:1px solid rgba(148,163,184,0.12);">
-        <h3 style="margin:0 0 4px 0;font-size:1em;color:var(--text,#e5e7eb);">Tilbakemelding</h3>
-        <p style="margin:0 0 10px 0;color:var(--muted,#9ca3af);font-size:0.85em;">Fant du en feil, eller har du et ønske? Vi vil gjerne høre fra deg.</p>
-        <a href="/feedback.html"
+        <h3 id="feedback-heading" style="margin:0 0 4px 0;font-size:1em;color:var(--text,#e5e7eb);">Tilbakemelding</h3>
+        <p id="feedback-desc" style="margin:0 0 10px 0;color:var(--muted,#9ca3af);font-size:0.85em;">Fant du en feil, eller har du et ønske? Vi vil gjerne høre fra deg.</p>
+        <a id="feedback-btn" href="/feedback.html"
           style="display:inline-block;padding:10px 16px;border-radius:8px;border:1px solid rgba(148,163,184,0.3);background:transparent;color:var(--text,#e5e7eb);font-size:0.95em;text-decoration:none;">💬 Gi tilbakemelding</a>
       </div>
 
       <div style="margin-top:32px;text-align:center;">
-        <a href="/" style="color:#3b82f6;text-decoration:none;font-size:1.05em;">← Tilbake</a>
+        <a id="settings-back-bottom" href="/" style="color:#3b82f6;text-decoration:none;font-size:1.05em;">← Tilbake</a>
       </div>
     </div>
 
@@ -433,7 +444,7 @@
     <script type="module">
       import { fjernOverforingssesjon } from './js/arbeidsliste-sesjon.js';
       import { apneInnhentetListe, lagreInnhentetKopi, lesInnhentetListe, lukkInnhentetListe } from './js/arbeidsliste-lokal.js';
-      import { loadActivityPills, saveActivityPills, ACTIVITY_SHORT_SUGGESTIONS, loadNynorskArtsnavn, saveNynorskArtsnavn } from './js/storage.js?v=v1.60.15';
+      import { loadActivityPills, saveActivityPills, ACTIVITY_SHORT_SUGGESTIONS, loadNynorskArtsnavn, saveNynorskArtsnavn, loadLanguage, saveLanguage, isNynorsk, activityDisplayName, activityBokmalName } from './js/storage.js?v=v1.60.15';
       import { loadActivities, fetchAoSitesByBounds, hasActiveAoLogin, ensureAoTokens, getCachedPrivateSites } from './js/api.js?v=v1.60.15';
       import { shouldShowOthersPrivateSites } from './js/location.js?v=v1.60.15';
       import {
@@ -444,12 +455,6 @@
       } from './js/offline-db.js?v=v1.60.15';
 
       // Service Worker registreres og modus synkroniseres av offline-db.js (importert over).
-
-      const nynorskCb = document.getElementById('show-nynorsk');
-      nynorskCb.checked = loadNynorskArtsnavn();
-      nynorskCb.addEventListener('change', () => {
-        saveNynorskArtsnavn(nynorskCb.checked);
-      });
 
       // --- Lagring / Offline-data ---
       const storageStatsEl = document.getElementById('offline-storage-stats');
@@ -473,15 +478,26 @@
 
       async function refreshOfflineStorageStats() {
         if (!storageStatsEl) return;
+        const nn = isNynorsk();
         try {
           const stats = await getOfflineStorageStats();
-          const areaPart =
-            stats.areasCount > 0
-              ? ` (${stats.areasCount} offline-område${stats.areasCount === 1 ? '' : 'r'})`
-              : '';
-          storageStatsEl.textContent = `Lagret lokalt: ca. ${stats.locationsCount} lokaliteter${areaPart} og ${stats.tilesCount} kartfliser.`;
+          if (nn) {
+            const areaPart =
+              stats.areasCount > 0
+                ? ` (${stats.areasCount} offline-område)`
+                : '';
+            storageStatsEl.textContent = `Lagra lokalt: ${stats.locationsCount} lokalitetar${areaPart} og ${stats.tilesCount} kartfliser.`;
+          } else {
+            const areaPart =
+              stats.areasCount > 0
+                ? ` (${stats.areasCount} offline-område${stats.areasCount === 1 ? '' : 'r'})`
+                : '';
+            storageStatsEl.textContent = `Lagret lokalt: ca. ${stats.locationsCount} lokaliteter${areaPart} og ${stats.tilesCount} kartfliser.`;
+          }
         } catch {
-          storageStatsEl.textContent = 'Lagret lokalt: 0 lokaliteter og 0 kartfliser.';
+          storageStatsEl.textContent = nn
+            ? 'Lagra lokalt: 0 lokalitetar og 0 kartfliser.'
+            : 'Lagret lokalt: 0 lokaliteter og 0 kartfliser.';
         }
       }
 
@@ -757,7 +773,8 @@
         availableActivities.forEach(activity => {
           const option = document.createElement('option');
           option.value = activity.value;
-          option.textContent = activity.label;
+          option.dataset.bokmalLabel = activity.label;
+          option.textContent = activityDisplayName(activity.label);
           if (pill && pill.value === activity.value) {
             option.selected = true;
           }
@@ -812,7 +829,7 @@
           const shortInput = row.querySelector('.pill-short-input');
           const selectedOption = select.options[select.selectedIndex];
           const pill = {
-            label: selectedOption.textContent,
+            label: activityBokmalName(selectedOption.dataset.bokmalLabel || selectedOption.textContent),
             value: selectedOption.value
           };
           const short = (shortInput.value || '').trim().slice(0, 5);
@@ -839,11 +856,12 @@
 
       function updateAddButtonState(addBtn, container) {
         const count = container.children.length;
+        const nn = isNynorsk();
         if (count >= 8) {
           addBtn.disabled = true;
           addBtn.style.opacity = '0.5';
           addBtn.style.cursor = 'not-allowed';
-          addBtn.textContent = '+ Maks 8 aktiviteter';
+          addBtn.textContent = nn ? '+ Maks 8 aktivitetar' : '+ Maks 8 aktiviteter';
         } else {
           addBtn.disabled = false;
           addBtn.style.opacity = '1';
@@ -851,6 +869,111 @@
           addBtn.textContent = '+ Legg til aktivitet';
         }
       }
+
+      const langSeg = document.getElementById('lang-seg');
+      const langBtns = langSeg ? langSeg.querySelectorAll('.theme-seg-btn') : [];
+
+      function setElText(id, text) {
+        const el = document.getElementById(id);
+        if (el) el.textContent = text;
+      }
+
+      function setElHtml(id, html) {
+        const el = document.getElementById(id);
+        if (el) el.innerHTML = html;
+      }
+
+      function applySettingsLanguage(lang) {
+        const nn = lang === 'nn';
+        document.title = nn ? 'Innstillingar – Fugleobservasjoner' : 'Innstillinger – Fugleobservasjoner';
+        langBtns.forEach(btn => {
+          btn.setAttribute('aria-checked', btn.dataset.langValue === (nn ? 'nn' : 'nb') ? 'true' : 'false');
+        });
+
+        setElText('settings-title', nn ? 'Innstillingar' : 'Innstillinger');
+        setElText('settings-back-top', nn ? '← Attende' : '← Tilbake');
+        setElText('settings-back-bottom', nn ? '← Attende' : '← Tilbake');
+        setElText('theme-clean-btn', nn ? '⬜ Reint' : '⬜ Clean');
+        setElText('theme-desc', nn
+          ? 'Lyst er standard. Reint er eit monokromt tema utan fargeaksentar – enklast å lesa i sterkt sollys.'
+          : 'Lyst er standard. Clean er et rent, monokromt tema uten fargeaksenter – enklest å lese i sterkt sollys.');
+        setElText('private-sites-label', nn ? 'Vis andre sine private lokalitetar' : 'Vis andres private lokasjoner');
+        setElText('private-sites-desc', nn
+          ? 'Viser andre sine private lokalitetar på kartet og i lokalitetsforslaget. Av som standard – i område med høg tettleik av lokalitetar vert det elles uoversiktleg. Dine eigne lokalitetar vert alltid viste.'
+          : 'Viser andres private lokasjoner på kartet og i lokasjonsforslaget. Av som standard – i tettbygde strøk blir det ellers uoversiktlig. Dine egne lokaliteter vises alltid.');
+        setElText('storage-heading', 'Lagring / Offline-data');
+        setElText('storage-desc', nn
+          ? 'Oversikt over lagra lokalitetar og kartfliser på denne eininga. Du kan oppdatera dei lagra offline-områda dine med ferske lokalitetar og manglande kartfliser, eller tøma alt offline-innhald.'
+          : 'Oversikt over lagrede lokaliteter og kartfliser på denne enheten. Du kan oppdatere dine lagrede offline-områder med ferske lokaliteter og manglende kartfliser, eller tømme alt offline-innhold.');
+        setElText('sync-offline-areas-btn', nn ? '🔄 Synkroniser offline-område' : '🔄 Synkroniser offline-områder');
+        setElText('clear-offline-data-btn', nn ? '🗑️ Slett alle offline-data' : '🗑️ Slett offline-data');
+        setElText('pills-heading', nn ? 'Aktivitets-snøggknappar (0-8)' : 'Aktivitets-hurtigknapper (0-8)');
+        setElText('pills-desc', nn
+          ? 'Vel kva aktivitetar som vert viste som snøggknappar. Maks 8. Dra i symbolet ⠿ for å endra rekkjefølgja. Skriv eventuelt eit kort namn (maks 5 teikn) i «Kort»-feltet for meir kompakte knappar – tomt felt viser fullt namn.'
+          : 'Velg hvilke aktiviteter som vises som hurtigknapper. Maks 8. Dra i symbolet ⠿ for å endre rekkefølgen. Skriv eventuelt et kort navn (maks 5 tegn) i «Kort»-feltet for mer kompakte knapper – tomt felt viser fullt navn.');
+        setElText('suggest-short-names', nn ? 'Føreslå forkortingar' : 'Foreslå forkortelser');
+        setElText('save-activity-pills', nn ? '💾 Lagra' : '💾 Lagre');
+        setElText('pills-saved-indicator', nn ? '✓ Lagra' : '✓ Lagret');
+        setElText('force-offline-label', 'Tving offline arts-søk');
+        setElText('force-offline-desc', nn
+          ? 'Når denne er på, vert berre den lokale artslista brukt (ingen søk mot Artsobservasjoner).'
+          : 'Når denne er på, brukes kun den lokale artslisten (ingen søk mot Artsobservasjoner).');
+        setElText('ao-login-heading', 'AO-innlogging');
+        setElHtml('ao-login-desc-1', nn
+          ? 'Logg inn med Artsobservasjoner-kontoen din for å publisera funn direkte frå appen. Brukarnamn og passord vert berre sende vidare til Artsobservasjoner.no — dei vert <strong>aldri</strong> lagra på serveren, berre lokalt i nettlesaren din så du slepp å logga inn kvar gong. Du vel sjølv: lagra passordet for direkte publisering, eller lat det stå tomt og bruk «Kopier &amp; opne AO-import» i staden. Du kan tøma felta kva tid som helst.'
+          : 'Logg inn med Artsobservasjoner-kontoen din for å publisere funn direkte fra appen. Brukernavn og passord sendes kun videre til Artsobservasjoner.no — de lagres <strong>aldri</strong> på serveren, bare lokalt i nettleseren din så du slipper å logge inn hver gang. Du velger selv: lagre passordet for direkte publisering, eller la det stå tomt og bruk «Kopier &amp; åpne AO-import» i stedet. Du kan tømme feltene når som helst.');
+        setElHtml('ao-login-desc-2', nn
+          ? 'Har du ikkje AO-brukar? <a href="https://www.artsobservasjoner.no/UserAccount" target="_blank" rel="noopener" style="color:#3b82f6;text-decoration:underline;">Opprett gratis konto på Artsobservasjoner.no ↗</a>'
+          : 'Har du ikke AO-bruker? <a href="https://www.artsobservasjoner.no/UserAccount" target="_blank" rel="noopener" style="color:#3b82f6;text-decoration:underline;">Opprett gratis konto på Artsobservasjoner.no ↗</a>');
+        setElText('ao-username-label', nn ? 'Brukarnamn' : 'Brukernavn');
+        const aoUserInp = document.getElementById('ao-username');
+        if (aoUserInp) aoUserInp.placeholder = nn ? 'ditt_brukarnamn' : 'ditt_brukernavn';
+        setElText('ao-password-label', 'Passord');
+        setElText('test-ao-login', '🔐 Logg inn');
+        setElText('clear-ao-login', nn ? '🚪 Fjern innlogging frå denne eininga' : '🚪 Fjern innlogging fra denne enheten');
+        setElText('update-heading', 'Oppdatering');
+        setElText('update-desc', nn
+          ? 'Appen sjekkar sjølv etter ny versjon, men det kan ta litt tid før han slår gjennom – særleg om appen har stått open lenge. Trykk her for å tvinga fram nyaste versjon med ein gong, i staden for å lukka og opna appen på nytt. Nedlasta offline-kartfliser vert bevarte.'
+          : 'Appen sjekker selv etter ny versjon, men det kan ta litt tid før den slår gjennom – spesielt hvis appen har stått åpen lenge. Trykk her for å tvinge fram nyeste versjon med en gang, i stedet for å lukke og åpne appen på nytt. Nedlastede offline-kartfliser bevares.');
+        setElText('force-update-btn', nn ? '🔄 Hent nyaste versjon' : '🔄 Hent nyeste versjon');
+        setElText('backup-heading', nn ? 'Tryggingskopi' : 'Sikkerhetskopi');
+        setElHtml('backup-desc', nn
+          ? 'Observasjonane dine vert berre lagra i denne nettlesaren. Last ned ein tryggingskopi (JSON-fil) før du tømer nettlesardata eller byter eining – og gjenopprett han ved behov. Gjenoppretting <strong>erstattar</strong> lista som ligg i appen no.'
+          : 'Observasjonene dine lagres bare i denne nettleseren. Last ned en sikkerhetskopi (JSON-fil) før du tømmer nettleserdata eller bytter enhet – og gjenopprett den ved behov. Gjenoppretting <strong>erstatter</strong> lista som ligger i appen nå.');
+        setElText('backup-download', nn ? '⬇️ Last ned tryggingskopi' : '⬇️ Last ned sikkerhetskopi');
+        setElText('backup-restore', nn ? '⬆️ Gjenopprett frå fil' : '⬆️ Gjenopprett fra fil');
+        setElText('backup-innhentet', nn ? 'Last ned innhenta liste' : 'Last ned innhentet liste');
+        setElText('feedback-heading', 'Tilbakemelding');
+        setElText('feedback-desc', nn
+          ? 'Fann du ein feil, eller har du eit ønskje? Me vil gjerne høyra frå deg!'
+          : 'Fant du en feil, eller har du et ønske? Vi vil gjerne høre fra deg.');
+        setElText('feedback-btn', '💬 Gi tilbakemelding');
+
+        const addBtn = document.getElementById('add-activity-pill');
+        const container = document.getElementById('activity-pills-config');
+        if (addBtn && container) updateAddButtonState(addBtn, container);
+        if (container) {
+          container.querySelectorAll('select option').forEach((opt) => {
+            const nbLabel = opt.dataset.bokmalLabel || opt.textContent;
+            opt.dataset.bokmalLabel = nbLabel;
+            opt.textContent = activityDisplayName(nbLabel, lang);
+          });
+        }
+        refreshOfflineStorageStats();
+      }
+
+      langBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const lang = btn.dataset.langValue === 'nn' ? 'nn' : 'nb';
+          saveLanguage(lang);
+          applySettingsLanguage(lang);
+        });
+      });
+
+      window.loadLanguage = loadLanguage;
+      window.saveLanguage = saveLanguage;
+      window.isNynorsk = isNynorsk;
+      applySettingsLanguage(loadLanguage());
 
       // Kjør init når siden lastes
       initActivityPillsConfig();
@@ -943,19 +1066,20 @@
       }
 
       testLoginBtn.addEventListener('click', async () => {
+        const nn = typeof loadLanguage === 'function' ? loadLanguage() === 'nn' : (typeof window.__isNynorsk === 'function' && window.__isNynorsk());
         const username = localStorage.getItem('ao_username');
         const password = localStorage.getItem('ao_password');
         if (!username || !password) {
           loginStatus.style.display = 'block';
           loginStatus.style.cssText = `display:block;margin-top:8px;padding:10px;border-radius:8px;font-size:0.85em;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);color:${_sc('error')};`;
-          loginStatus.textContent = '❌ Fyll inn brukernavn og passord først';
+          loginStatus.textContent = nn ? '❌ Fyll inn brukarnamn og passord fyrst' : '❌ Fyll inn brukernavn og passord først';
           return;
         }
 
         testLoginBtn.disabled = true;
-        testLoginBtn.textContent = '⏳ Logger inn...';
+        testLoginBtn.textContent = nn ? '⏳ Loggar inn...' : '⏳ Logger inn...';
         loginStatus.style.cssText = `display:block;margin-top:8px;padding:10px;border-radius:8px;font-size:0.85em;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.3);color:${_sc('info')};`;
-        loginStatus.textContent = '⏳ Kobler til Artsobservasjoner...';
+        loginStatus.textContent = nn ? '⏳ Koplar til Artsobservasjoner...' : '⏳ Kobler til Artsobservasjoner...';
 
         try {
           const resp = await fetch('/api/ao-login', {
@@ -982,9 +1106,9 @@
             localStorage.removeItem('ao_private_sites');
 
             loginStatus.style.cssText = `display:block;margin-top:8px;padding:10px;border-radius:8px;font-size:0.85em;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);color:${_sc('success')};`;
-            loginStatus.textContent = `✅ Innlogget! Bruker-ID: ${result.userId}`;
+            loginStatus.textContent = nn ? `✅ Innlogga! Brukar-ID: ${result.userId}` : `✅ Innlogget! Bruker-ID: ${result.userId}`;
           } else {
-            throw new Error(result.error || 'Innlogging feilet');
+            throw new Error(result.error || (nn ? 'Innlogging feila' : 'Innlogging feilet'));
           }
         } catch (e) {
           loginStatus.style.cssText = `display:block;margin-top:8px;padding:10px;border-radius:8px;font-size:0.85em;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);color:${_sc('error')};`;
@@ -1145,6 +1269,7 @@
       const backupRestoreBtn = document.getElementById('backup-restore');
       const backupFileInput = document.getElementById('backup-file');
       const backupStatus = document.getElementById('backup-status');
+      const tr = (nb, nnTxt) => (isNynorsk() ? nnTxt : nb);
 
       function showBackupStatus(msg, type) {
         const bg = { info: 'rgba(59,130,246,0.1)', success: 'rgba(34,197,94,0.1)', error: 'rgba(239,68,68,0.1)' }[type];
@@ -1179,7 +1304,7 @@
         a.remove();
         URL.revokeObjectURL(url);
         const n = payload.observations.length;
-        showBackupStatus(`✅ Lastet ned sikkerhetskopi med ${n} observasjon${n === 1 ? '' : 'er'}.`, 'success');
+        showBackupStatus(tr(`✅ Lastet ned sikkerhetskopi med ${n} observasjon${n === 1 ? '' : 'er'}.`, `✅ Lasta ned tryggingskopi med ${n} observasjon${n === 1 ? '' : 'ar'}.`), 'success');
       }
 
       backupDownloadBtn.addEventListener('click', () => {
@@ -1188,7 +1313,7 @@
           if (!Array.isArray(payload?.observations)) throw new Error();
           lastNedBackup(payload);
         } catch {
-          showBackupStatus('Kunne ikke lese den lokale lista.', 'error');
+          showBackupStatus(tr('Kunne ikke lese den lokale lista.', 'Kunne ikkje lesa den lokale lista.'), 'error');
         }
       });
 
@@ -1207,7 +1332,7 @@
           const { observations, ...overforing } = lesInnhentetListe();
           lastNedBackup({ version: 1, observations, overforing });
         } catch {
-          showBackupStatus('Kunne ikke lese den innhentede lista.', 'error');
+          showBackupStatus(tr('Kunne ikke lese den innhentede lista.', 'Kunne ikkje lesa den innhenta lista.'), 'error');
         }
       });
 
@@ -1225,7 +1350,7 @@
             if (parsed && parsed.type === 'observations-backup' && parsed.data) payload = parsed.data;
             else if (parsed && Array.isArray(parsed.observations)) payload = parsed;
             if (!payload || !Array.isArray(payload.observations)) {
-              showBackupStatus('❌ Ugyldig fil – fant ingen observasjoner.', 'error');
+              showBackupStatus(tr('❌ Ugyldig fil – fant ingen observasjoner.', '❌ Ugyldig fil – fann ingen observasjonar.'), 'error');
               return;
             }
             const count = payload.observations.length;
@@ -1233,28 +1358,28 @@
               const { eier, kopiId, lagretTs } = payload.overforing;
               if (!/^ao:[1-9][0-9]{0,19}$/.test(eier) || !/^[a-f0-9]{32}$/.test(kopiId)
                   || !Number.isFinite(lagretTs) || !count) {
-                showBackupStatus('Filen har ugyldig kontoinformasjon for den innhentede lista.', 'error');
+                showBackupStatus(tr('Filen har ugyldig kontoinformasjon for den innhentede lista.', 'Fila har ugyldig kontoinformasjon for den innhenta lista.'), 'error');
                 return;
               }
-              if (!confirm(`Gjenopprette ${count} observasjoner som innhentet liste? Den lokale lista bevares.`)) return;
+              if (!confirm(tr(`Gjenopprette ${count} observasjoner som innhentet liste? Den lokale lista bevares.`, `Gjenoppretta ${count} observasjonar som innhenta liste? Den lokale lista blir ståande.`))) return;
               try {
                 await apneInnhentetListe(() => lagreInnhentetKopi({ id: kopiId, lagretTs }, payload.observations, eier));
                 lukkInnhentetListe();
                 oppdaterBackupInnhentet();
-                showBackupStatus('Innhentet liste gjenopprettet. Åpne den fra ⋯-menyen.', 'success');
+                showBackupStatus(tr('Innhentet liste gjenopprettet. Åpne den fra ⋯-menyen.', 'Innhenta liste gjenoppretta. Opne ho frå ⋯-menyen.'), 'success');
               } catch (feil) {
                 showBackupStatus(feil.message, 'error');
               }
               return;
             }
             const existing = currentObsCount();
-            if (!confirm(`Gjenopprette ${count} observasjon${count === 1 ? '' : 'er'}? Dette erstatter de ${existing} som ligger i appen nå.`)) {
+            if (!confirm(tr(`Gjenopprette ${count} observasjon${count === 1 ? '' : 'er'}? Dette erstatter de ${existing} som ligger i appen nå.`, `Gjenoppretta ${count} observasjon${count === 1 ? '' : 'ar'}? Dette erstattar dei ${existing} som ligg i appen no.`))) {
               return;
             }
             localStorage.setItem(OBS_KEY, JSON.stringify({ version: 1, observations: payload.observations }));
-            showBackupStatus(`✅ Gjenopprettet ${count} observasjon${count === 1 ? '' : 'er'}. Gå tilbake til appen for å se dem.`, 'success');
+            showBackupStatus(tr(`✅ Gjenopprettet ${count} observasjon${count === 1 ? '' : 'er'}. Gå tilbake til appen for å se dem.`, `✅ Gjenoppretta ${count} observasjon${count === 1 ? '' : 'ar'}. Gå attende til appen for å sjå dei.`), 'success');
           } catch (e) {
-            showBackupStatus('❌ Kunne ikke lese fila. Er det en gyldig JSON-sikkerhetskopi?', 'error');
+            showBackupStatus(tr('❌ Kunne ikke lese fila. Er det en gyldig JSON-sikkerhetskopi?', '❌ Kunne ikkje lesa fila. Er det ein gyldig JSON-tryggingskopi?'), 'error');
           } finally {
             backupFileInput.value = ''; // tillat ny gjenoppretting av samme fil
           }

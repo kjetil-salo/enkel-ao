@@ -2,7 +2,7 @@
  * Observasjons-modul for validering, lagring og aktivitets-pills
  */
 
-import { defaultCoObservers, loadActivityPills, speciesDisplayName } from './storage.js?v=v1.60.15';
+import { defaultCoObservers, loadActivityPills, speciesDisplayName, activityDisplayName, activityBokmalName, loadNynorskArtsnavn } from './storage.js?v=v1.60.15';
 import { showToast } from './ui.js';
 import { toLocalISOString } from './utils.js';
 import { resolveVisitIdForNewObservation, getVisitTimeSpan, isVisitLocked, visitExists } from './visits.js';
@@ -73,21 +73,22 @@ function getActivePills() {
 }
 
 export function commitObservation(state, dom, callbacks) {
+  const nn = loadNynorskArtsnavn();
   const place = (dom.placeInput && dom.placeInput.value.trim()) || state.currentPlaceName.trim();
   if (!place) {
-    showToast('Du må fylle inn sted!');
+    showToast(nn ? 'Du må fylla inn stad!' : 'Du må fylle inn sted!');
     if (dom.placeInput) dom.placeInput.focus();
     return;
   }
   if (!state.selectedSpecies) {
-    showToast('Du må velge art!');
+    showToast(nn ? 'Du må velja art!' : 'Du må velge art!');
     dom.input.focus();
     return;
   }
   const raw = dom.countInput.value.trim();
   const num = parseInt(raw, 10);
   if (!raw || isNaN(num) || num <= 0) {
-    showToast('Du må fylle inn antall!');
+    showToast(nn ? 'Du må fylla inn antal!' : 'Du må fylle inn antall!');
     dom.countInput.focus();
     return;
   }
@@ -95,12 +96,15 @@ export function commitObservation(state, dom, callbacks) {
   let activity = 'Stasjonær';
   if (dom.activitySelect && !dom.activitySelect.disabled) {
     const opt = dom.activitySelect.options[dom.activitySelect.selectedIndex];
-    if (opt && opt.text && opt.text.trim()) {
-      activity = opt.text.trim();
+    if (opt) {
+      const rawAct = (opt.dataset && opt.dataset.bokmalLabel) || (opt.text ? opt.text.trim() : '');
+      if (rawAct) {
+        activity = activityBokmalName(rawAct);
+      }
     }
   }
   if (!activity || activity === '') {
-    showToast('Du må velge aktivitet!');
+    showToast(nn ? 'Du må velja aktivitet!' : 'Du må velge aktivitet!');
     dom.activitySelect.focus();
     return;
   }
@@ -349,13 +353,14 @@ export function renderActivityPills(dom, commitFn) {
 
   getActivePills().forEach(p => {
     const label = p.label;
+    const translatedLabel = activityDisplayName(label);
     const short = (p.short || '').trim();
-    const display = short || label;
+    const display = short || translatedLabel;
 
     const pill = document.createElement('div');
     pill.className = 'activity-pill';
     pill.textContent = display;
-    if (display !== label) pill.title = label; // fullt navn ved forkortelse
+    if (display !== translatedLabel) pill.title = translatedLabel; // fullt navn ved forkortelse
     pill.role = 'button';
     pill.addEventListener('click', () => {
       // Ignorer klikk dersom brukeren dro linjen for å scrolle
@@ -363,9 +368,15 @@ export function renderActivityPills(dom, commitFn) {
         return;
       }
       if (dom.activitySelect) {
-        // Match på fullt navn – kortnavnet er kun visning
+        // Match på fullt navn eller verdi – kortnavnet er kun visning
         for (let i = 0; i < dom.activitySelect.options.length; i++) {
-          if (dom.activitySelect.options[i].text === label) {
+          const opt = dom.activitySelect.options[i];
+          if (
+            (p.value && opt.value === p.value) ||
+            opt.text === label ||
+            opt.text === translatedLabel ||
+            (opt.dataset && opt.dataset.bokmalLabel === label)
+          ) {
             dom.activitySelect.selectedIndex = i;
             break;
           }

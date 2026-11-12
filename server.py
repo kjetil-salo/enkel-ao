@@ -1495,9 +1495,9 @@ class Handler(SimpleHTTPRequestHandler):
             data = json.loads(body)
 
             username = data.get('username', '').strip()
-            password = data.get('password', '').strip()
+            password = data.get('password', '')
 
-            if not username or not password:
+            if not username or not password.strip():
                 self._send_json({'error': 'Brukernavn og passord er påkrevd'}, status=400)
                 return
 
@@ -1528,7 +1528,7 @@ class Handler(SimpleHTTPRequestHandler):
             })
 
         except ValueError as e:
-            logger.error(f'[AO-LOGIN] Feil: {e}')
+            logger.warning(f'[AO-LOGIN] Avvist: {e}')
             self._send_json({'error': str(e)}, status=401)
         except Exception as e:
             logger.error(f'[AO-LOGIN] Uventet feil: {e}')

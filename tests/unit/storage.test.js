@@ -9,7 +9,7 @@ const localStorageMock = {
 };
 vi.stubGlobal('localStorage', localStorageMock);
 
-const { loadMedobs, saveMedobs, defaultCoObservers, saveObservations, loadObservations, saveAoDirectAutoClear, loadAoDirectAutoClear, saveNynorskArtsnavn, loadNynorskArtsnavn, speciesDisplayName, saveLastKnownPosition, loadLastKnownPosition } = await import('../../public/js/storage.js');
+const { loadMedobs, saveMedobs, defaultCoObservers, saveObservations, loadObservations, saveAoDirectAutoClear, loadAoDirectAutoClear, saveNynorskArtsnavn, loadNynorskArtsnavn, saveLanguage, loadLanguage, isNynorsk, speciesDisplayName, activityDisplayName, activityBokmalName, ACTIVITY_NYNORSK_MAP, saveLastKnownPosition, loadLastKnownPosition } = await import('../../public/js/storage.js');
 
 // Speiler todayStr() i storage.js — medobs lagres med dagens dato.
 function todayStr() {
@@ -187,20 +187,40 @@ describe('loadAoDirectAutoClear / saveAoDirectAutoClear', () => {
   });
 });
 
-describe('loadNynorskArtsnavn / saveNynorskArtsnavn', () => {
-  it('should default to false when nothing stored', () => {
+describe('loadNynorskArtsnavn / saveNynorskArtsnavn / saveLanguage / loadLanguage', () => {
+  it('should default to false and nb when nothing stored', () => {
     expect(loadNynorskArtsnavn()).toBe(false);
+    expect(loadLanguage()).toBe('nb');
+    expect(isNynorsk()).toBe(false);
   });
 
-  it('should round-trip true', () => {
+  it('should round-trip true and sync with loadLanguage', () => {
     saveNynorskArtsnavn(true);
     expect(loadNynorskArtsnavn()).toBe(true);
+    expect(loadLanguage()).toBe('nn');
+    expect(isNynorsk()).toBe(true);
   });
 
   it('should round-trip false after being true', () => {
     saveNynorskArtsnavn(true);
     saveNynorskArtsnavn(false);
     expect(loadNynorskArtsnavn()).toBe(false);
+    expect(loadLanguage()).toBe('nb');
+    expect(isNynorsk()).toBe(false);
+  });
+
+  it('saveLanguage should sync with loadNynorskArtsnavn and speciesDisplayName', () => {
+    saveLanguage('nn');
+    expect(loadLanguage()).toBe('nn');
+    expect(loadNynorskArtsnavn()).toBe(true);
+    expect(isNynorsk()).toBe(true);
+    expect(speciesDisplayName({ taxonName: 'fiskemåke', nynorsk: 'fiskemåse' })).toBe('fiskemåse');
+
+    saveLanguage('nb');
+    expect(loadLanguage()).toBe('nb');
+    expect(loadNynorskArtsnavn()).toBe(false);
+    expect(isNynorsk()).toBe(false);
+    expect(speciesDisplayName({ taxonName: 'fiskemåke', nynorsk: 'fiskemåse' })).toBe('fiskemåke');
   });
 });
 
@@ -315,3 +335,39 @@ describe('lastKnownPosition', () => {
     expect(saveLastKnownPosition({ lat: 60.0, lon: 'ugyldig' })).toBe(false);
   });
 });
+
+describe('activityDisplayName & activityBokmalName', () => {
+  it('viser bokmålsnavn når språk er bokmål', () => {
+    saveLanguage('nb');
+    expect(activityDisplayName('Næringssøkende')).toBe('Næringssøkende');
+    expect(activityDisplayName('Stationær')).toBe('Stationær');
+  });
+
+  it('oversetter aktivitetskoder til nynorsk når språk er nynorsk', () => {
+    saveLanguage('nn');
+    expect(activityDisplayName('Næringssøkende')).toBe('Næringssøkjande');
+    expect(activityDisplayName('Stationær')).toBe('Stasjonær');
+    expect(activityDisplayName('Overflyvende')).toBe('Overflygande');
+    expect(activityDisplayName('Reir med unger eller hørt unger')).toBe('Reir med ungar eller høyrt ungar');
+  });
+
+  it('normaliserer nynorsk aktivitetsnavn tilbake til kanonisk bokmål for AO-eksport', () => {
+    expect(activityBokmalName('Næringssøkjande')).toBe('Næringssøkende');
+    expect(activityBokmalName('Overflygande')).toBe('Overflygende');
+    expect(activityBokmalName('Næringssøkende')).toBe('Næringssøkende');
+  });
+
+  it('har oppføring i ACTIVITY_NYNORSK_MAP for alle 61 aktiviteter i activities.json', async () => {
+    const fs = await import('node:fs');
+    const path = await import('node:path');
+    const raw = fs.readFileSync(path.resolve(process.cwd(), 'public/data/activities.json'), 'utf8');
+    const activities = JSON.parse(raw);
+    expect(activities.length).toBeGreaterThanOrEqual(61);
+    for (const act of activities) {
+      expect(ACTIVITY_NYNORSK_MAP).toHaveProperty(act.label);
+      expect(typeof ACTIVITY_NYNORSK_MAP[act.label]).toBe('string');
+      expect(ACTIVITY_NYNORSK_MAP[act.label].length).toBeGreaterThan(0);
+    }
+  });
+});
+

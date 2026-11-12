@@ -19,7 +19,7 @@ import { logPageView, loadActivities, fetchAoSites, fetchAndCachePrivateSites, h
 // altså hele appen, se samme fallgruve for map.js/location.js (v1.53.15) og
 // sjekklisten i CLAUDE.md. Bump SAMTIDIG som index.html sin egen ?v=-tag for
 // main.js, hver gang storage.js får en ny eksport main.js begynner å bruke.
-import { loadObservations, saveObservations, loadAoSearchRadius, saveAoSearchRadius, loadLocationSortMode, saveLocationSortMode, loadAoDirectAutoClear, saveAoDirectAutoClear, saveLastKnownPosition, loadLastKnownPosition, lesArbeidslisteForOverforing } from './storage.js?v=v1.60.15';
+import { loadObservations, saveObservations, loadAoSearchRadius, saveAoSearchRadius, loadLocationSortMode, saveLocationSortMode, loadAoDirectAutoClear, saveAoDirectAutoClear, saveLastKnownPosition, loadLastKnownPosition, loadNynorskArtsnavn, activityDisplayName, isNynorsk, lesArbeidslisteForOverforing } from './storage.js?v=v1.60.15';
 import { setStatus, setLocationStatus, showToast, showOfflineNotAvailableDialog, haversine, MODE_SPLASH_DURATION_MS } from './ui.js?v=v1.60.15';
 import { DEFAULT_MAP_CENTER, setAoSiteSuggestions, initLocation, openMap, openMapPage, updateCreateSiteBtnVisibility, initCreateSite } from './location.js?v=v1.60.15';
 // Versjonert import: observations.js sitt eget innhold (ikke bare hvilke
@@ -184,7 +184,7 @@ let oppdaterOverforingsknapper;
 function saveState() {
   const innhentet = aktivInnhentetListe();
   const lagret = saveObservations(appState.observations);
-  if (innhentet && !lagret) showToast('Endringen kunne ikke lagres. Den vises fortsatt i denne fanen.');
+  if (innhentet && !lagret) showToast(loadNynorskArtsnavn() ? 'Endringa kunne ikkje lagrast. Ho blir framleis vist i denne fana.' : 'Endringen kunne ikke lagres. Den vises fortsatt i denne fanen.');
   if (innhentet && lagret && !aktivInnhentetListe()) {
     loadState();
     doRenderObservations();
@@ -266,6 +266,7 @@ function oppdaterListeTeller() {
  */
 function renderAoStatusBadge(statusDot, username, hasCredentials) {
   if (!statusDot) return;
+  const nn = loadNynorskArtsnavn();
   // Array.from (ikke .slice) for å dele opp i Unicode-tegn, ikke UTF-16-enheter —
   // kutter aldri et surrogatpar i to.
   const initials = hasCredentials
@@ -275,14 +276,21 @@ function renderAoStatusBadge(statusDot, username, hasCredentials) {
   statusDot.classList.toggle('online', loggedIn);
   if (loggedIn) {
     statusDot.textContent = initials;
-    statusDot.title = `Innlogget som ${username} mot Artsobservasjoner`;
-    statusDot.setAttribute('aria-label', `Innlogget som ${username}. Trykk for å endre innlogging.`);
+    statusDot.title = nn ? `Innlogga som ${username} mot Artsobservasjoner` : `Innlogget som ${username} mot Artsobservasjoner`;
+    statusDot.setAttribute('aria-label', nn ? `Innlogga som ${username}. Trykk for å endra innlogging.` : `Innlogget som ${username}. Trykk for å endre innlogging.`);
   } else {
     // Rødt leses som «noe er galt» — men å ikke være innlogget er appens
     // helt normale starttilstand. Tekst i stedet for farge fjerner tvetydigheten.
     statusDot.textContent = 'Logg inn';
-    statusDot.title = 'Ikke innlogget mot Artsobservasjoner – trykk for å logge inn';
-    statusDot.setAttribute('aria-label', 'Ikke innlogget mot Artsobservasjoner. Trykk for å logge inn.');
+    statusDot.title = nn
+      ? 'Ikkje innlogga mot Artsobservasjoner – trykk for å logga inn'
+      : 'Ikke innlogget mot Artsobservasjoner – trykk for å logge inn';
+    statusDot.setAttribute(
+      'aria-label',
+      nn
+        ? 'Ikkje innlogga mot Artsobservasjoner. Trykk for å logga inn.'
+        : 'Ikke innlogget mot Artsobservasjoner. Trykk for å logge inn.'
+    );
   }
 }
 
@@ -914,13 +922,21 @@ function setupEventListeners() {
     // Lett advarsel ved låst besøk: brukeren har selv sagt at besøket er
     // avsluttet, så det skal ikke være stille at nye arter havner der — og
     // enda mindre at klokka settes tilbake i tid. Ikke-blokkerende med vilje.
+    const nn = typeof isNynorsk === 'function' ? isNynorsk() : (typeof window !== 'undefined' && typeof window.__isNynorsk === 'function' && window.__isNynorsk());
     if (e.detail && e.detail.visitLocked) {
       showToast(
-        `↩ ${placeName} — avsluttet besøk. Nye arter får kl. ${tid}, tilbake i tid.`,
+        nn
+          ? `↩ ${placeName} — avslutta besøk. Nye artar får kl. ${tid}, attende i tid.`
+          : `↩ ${placeName} — avsluttet besøk. Nye arter får kl. ${tid}, tilbake i tid.`,
         { raw: true, borderColor: '#f59e0b', duration: 3500 }
       );
     } else {
-      showToast(`↩ ${placeName}${tid ? ` — nye arter får kl. ${tid}` : ''}`, { raw: true });
+      showToast(
+        nn
+          ? `↩ ${placeName}${tid ? ` — nye artar får kl. ${tid}` : ''}`
+          : `↩ ${placeName}${tid ? ` — nye arter får kl. ${tid}` : ''}`,
+        { raw: true }
+      );
     }
     pulseSearchFieldAndFocus(appState, dom);
   });
@@ -1082,6 +1098,7 @@ function setupEventListeners() {
 function updateMapBtnVisibility() {
   const mapButtons = [dom.locMapBtn, document.getElementById('loc-pinned-map-btn')].filter(Boolean);
   const hasPos = appState.currentPosition && typeof appState.currentPosition.lat === 'number' && typeof appState.currentPosition.lon === 'number';
+  const nn = loadNynorskArtsnavn();
 
   mapButtons.forEach((btn) => {
     btn.style.display = '';
@@ -1091,7 +1108,7 @@ function updateMapBtnVisibility() {
       btn.style.borderColor = 'var(--accent)';
       btn.style.boxShadow = '0 0 0 3px #22c55e55, 0 2px 8px rgba(59,130,246,0.18)';
       btn.style.fontWeight = 'bold';
-      btn.title = 'Vis posisjon og AO-lokaliteter i kart';
+      btn.title = nn ? 'Vis posisjon og AO-lokalitetar i kart' : 'Vis posisjon og AO-lokaliteter i kart';
       btn.classList.add('map-btn-active');
     } else {
       btn.style.background = '';
@@ -1099,7 +1116,7 @@ function updateMapBtnVisibility() {
       btn.style.borderColor = '';
       btn.style.boxShadow = '';
       btn.style.fontWeight = '';
-      btn.title = 'Åpne kart';
+      btn.title = nn ? 'Opne kart' : 'Åpne kart';
       btn.classList.remove('map-btn-active');
     }
   });
@@ -1263,7 +1280,8 @@ async function init() {
     activities.forEach(a => {
       const opt = document.createElement('option');
       opt.value = a.value;
-      opt.textContent = a.label;
+      opt.dataset.bokmalLabel = a.label;
+      opt.textContent = activityDisplayName(a.label);
       if (a.selected) opt.selected = true;
       dom.activitySelect.appendChild(opt);
     });
@@ -1304,7 +1322,13 @@ async function hentLokaliteterForRadius(radiusMeters) {
   if (!pos || typeof pos.lat !== 'number' || typeof pos.lon !== 'number') return;
 
   const seq = ++radiusHentSeq;
-  setLocationStatus(dom.locDot, dom.locText, 'pending', `Henter lokaliteter innenfor ${formatRadius(radiusMeters)} …`);
+  const nn = loadNynorskArtsnavn();
+  setLocationStatus(
+    dom.locDot,
+    dom.locText,
+    'pending',
+    nn ? `Hentar lokalitetar innanfor ${formatRadius(radiusMeters)} …` : `Henter lokaliteter innenfor ${formatRadius(radiusMeters)} …`
+  );
 
   let sites = [];
   try {
@@ -1331,7 +1355,12 @@ async function hentLokaliteterForRadius(radiusMeters) {
   // handlePositionUpdate rører ikke statuslinja (location.js eier den
   // ellers), så pulsen må stoppes her — uten dette ble «Henter lokaliteter
   // …» stående for alltid etter en radiusjustering.
-  setLocationStatus(dom.locDot, dom.locText, 'ok', `Lokaliteter innenfor ${formatRadius(radiusMeters)}`);
+  setLocationStatus(
+    dom.locDot,
+    dom.locText,
+    'ok',
+    nn ? `Lokalitetar innanfor ${formatRadius(radiusMeters)}` : `Lokaliteter innenfor ${formatRadius(radiusMeters)}`
+  );
 }
 
 /**
@@ -1384,11 +1413,13 @@ function updateModeUI() {
   if (!modePill || !datetimeFields) return;
 
   const isAfterMode = localStorage.getItem('afterRegistrationMode') === '1';
+  const nn = loadNynorskArtsnavn();
+  modePill.title = nn ? 'Klikk for å byta mellom Felt og Etterregistrering' : 'Klikk for å bytte mellom Felt og Etterregistrering';
 
   if (isAfterMode) {
     if (modePillText) modePillText.textContent = 'Etterregistrering';
     modePill.className = 'pill mode-pill after-mode';
-    modePill.setAttribute('aria-label', 'Modus: Etterregistrering. Trykk for å bytte til Felt.');
+    modePill.setAttribute('aria-label', nn ? 'Modus: Etterregistrering. Trykk for å byta til Felt.' : 'Modus: Etterregistrering. Trykk for å bytte til Felt.');
     datetimeFields.style.display = 'block';
 
     // Skjul GPS-relaterte rader. Knapperaden beholdes derimot SYNLIG for
@@ -1405,7 +1436,7 @@ function updateModeUI() {
     // lange, mest forklarende varianten.
     if (mapBtnLabel) {
       mapBtnLabel.style.display = 'inline-block';
-      mapBtnLabel.textContent = 'Velg fra kart';
+      mapBtnLabel.textContent = nn ? 'Vel frå kart' : 'Velg fra kart';
     }
     if (aoSitesDropdown) aoSitesDropdown.style.display = 'none';
 
@@ -1421,7 +1452,7 @@ function updateModeUI() {
   } else {
     if (modePillText) modePillText.textContent = 'Felt';
     modePill.className = 'pill mode-pill field-mode';
-    modePill.setAttribute('aria-label', 'Modus: Felt. Trykk for å bytte til Etterregistrering.');
+    modePill.setAttribute('aria-label', nn ? 'Modus: Felt. Trykk for å byta til Etterregistrering.' : 'Modus: Felt. Trykk for å bytte til Etterregistrering.');
     datetimeFields.style.display = 'none';
 
     // Vis GPS-relaterte rader
@@ -1475,6 +1506,7 @@ export function updateOfflineModeUI() {
 
   const mode = getNetworkMode();
   const offline = mode === 'offline';
+  const nn = loadNynorskArtsnavn();
 
   if (toggleBtn) {
     toggleBtn.dataset.networkMode = mode;
@@ -1483,20 +1515,26 @@ export function updateOfflineModeUI() {
       if (toggleText) toggleText.textContent = '📴 Offline';
       toggleBtn.className = 'pill offline-toggle-pill is-offline';
       toggleBtn.setAttribute('aria-pressed', 'true');
-      toggleBtn.setAttribute('aria-label', 'Nettverksmodus: Offline. Trykk for å bytte til Online.');
-      toggleBtn.title = 'Nettverksmodus: Offline (kun lokalt mellomlager). Trykk for å bytte til Online.';
+      toggleBtn.setAttribute('aria-label', nn ? 'Nettverksmodus: Offline. Trykk for å byta til Online.' : 'Nettverksmodus: Offline. Trykk for å bytte til Online.');
+      toggleBtn.title = nn
+        ? 'Nettverksmodus: Offline (berre lokalt mellomlager). Trykk for å byta til Online.'
+        : 'Nettverksmodus: Offline (kun lokalt mellomlager). Trykk for å bytte til Online.';
     } else if (mode === 'hybrid') {
       if (toggleText) toggleText.textContent = '🔄 Hybrid';
       toggleBtn.className = 'pill offline-toggle-pill is-hybrid';
       toggleBtn.setAttribute('aria-pressed', 'mixed');
-      toggleBtn.setAttribute('aria-label', 'Nettverksmodus: Hybrid. Trykk for å bytte til Offline.');
-      toggleBtn.title = 'Nettverksmodus: Hybrid (lokalt mellomlager først, nettverk ved behov). Trykk for å bytte til Offline.';
+      toggleBtn.setAttribute('aria-label', nn ? 'Nettverksmodus: Hybrid. Trykk for å byta til Offline.' : 'Nettverksmodus: Hybrid. Trykk for å bytte til Offline.');
+      toggleBtn.title = nn
+        ? 'Nettverksmodus: Hybrid (lokalt mellomlager fyrst, nettverk ved behov). Trykk for å byta til Offline.'
+        : 'Nettverksmodus: Hybrid (lokalt mellomlager først, nettverk ved behov). Trykk for å bytte til Offline.';
     } else {
       if (toggleText) toggleText.textContent = '🌐 Online';
       toggleBtn.className = 'pill offline-toggle-pill is-online';
       toggleBtn.setAttribute('aria-pressed', 'false');
-      toggleBtn.setAttribute('aria-label', 'Nettverksmodus: Online. Trykk for å bytte til Hybrid.');
-      toggleBtn.title = 'Nettverksmodus: Online (henter alltid ferskeste data). Trykk for å bytte til Hybrid.';
+      toggleBtn.setAttribute('aria-label', nn ? 'Nettverksmodus: Online. Trykk for å byta til Hybrid.' : 'Nettverksmodus: Online. Trykk for å bytte til Hybrid.');
+      toggleBtn.title = nn
+        ? 'Nettverksmodus: Online (hentar alltid ferskaste data). Trykk for å byta til Hybrid.'
+        : 'Nettverksmodus: Online (henter alltid ferskeste data). Trykk for å bytte til Hybrid.';
     }
   }
 
@@ -1507,14 +1545,14 @@ export function updateOfflineModeUI() {
 
   [
     { el: fellesturBtn, navn: 'Fellestur' },
-    { el: sendtBtn, navn: 'Tidligere sendt' },
-    { el: delingerBtn, navn: 'Mine delinger' },
+    { el: sendtBtn, navn: nn ? 'Tidlegare sendt' : 'Tidligere sendt' },
+    { el: delingerBtn, navn: nn ? 'Mine delingar' : 'Mine delinger' },
   ].forEach(({ el, navn }) => {
     if (!el) return;
     el.classList.toggle('is-offline-disabled', offline);
     el.setAttribute('aria-disabled', offline ? 'true' : 'false');
     if (offline) {
-      el.title = `${navn}: Ikke tilgjengelig i offline-modus!`;
+      el.title = nn ? `${navn}: Ikkje tilgjengeleg i offline-modus!` : `${navn}: Ikke tilgjengelig i offline-modus!`;
     } else {
       el.removeAttribute('title');
     }
@@ -1526,23 +1564,26 @@ export function updateOfflineModeUI() {
  * og vis dialogen "Ikke tilgjengelig i offline-modus!".
  */
 function setupOfflineDisabledInterceptors() {
-  const intercept = (el, navn) => {
+  const intercept = (el, navn, navnNn) => {
     if (!el) return;
     el.addEventListener('click', (e) => {
       if (isOfflineMode()) {
         e.preventDefault();
         e.stopPropagation();
+        const nn = loadNynorskArtsnavn();
         showOfflineNotAvailableDialog(
-          'Ikke tilgjengelig i offline-modus!',
-          `${navn} krever nettverkstilkobling og kan ikke åpnes mens du er i offline-modus.`
+          nn ? 'Ikkje tilgjengeleg i offline-modus!' : 'Ikke tilgjengelig i offline-modus!',
+          nn
+            ? `${navnNn || navn} krev nettverkstilkopling og kan ikkje opnast medan du er i offline-modus.`
+            : `${navn} krever nettverkstilkobling og kan ikke åpnes mens du er i offline-modus.`
         );
       }
     });
   };
 
-  intercept(document.getElementById('fellestur-header-btn'), 'Fellestur');
-  intercept(document.getElementById('tidligere-sendt-link'), 'Tidligere sendt');
-  intercept(document.getElementById('mine-delinger-link'), 'Mine delinger');
+  intercept(document.getElementById('fellestur-header-btn'), 'Fellestur', 'Fellestur');
+  intercept(document.getElementById('tidligere-sendt-link'), 'Tidligere sendt', 'Tidlegare sendt');
+  intercept(document.getElementById('mine-delinger-link'), 'Mine delinger', 'Mine delingar');
 }
 
 /**
@@ -1572,7 +1613,8 @@ function setupOfflineModeToggle() {
           );
           updateLocationTuningVisibility();
         }
-        showToast(`📴 Offline-modus aktivert (${offlineSites.length} lagrede lokaliteter)`, {
+        const lokText = loadNynorskArtsnavn() ? 'lagra lokalitetar' : 'lagrede lokaliteter';
+        showToast(`📴 Offline-modus aktivert (${offlineSites.length} ${lokText})`, {
           raw: true,
           duration: MODE_SPLASH_DURATION_MS,
         });
@@ -1602,10 +1644,15 @@ function setupOfflineModeToggle() {
       } catch (_) {
         // Ignorer
       }
-      showToast('🔄 Hybrid-modus aktivert (lokalt mellomlager først)', {
-        raw: true,
-        duration: MODE_SPLASH_DURATION_MS,
-      });
+      showToast(
+        loadNynorskArtsnavn()
+          ? '🔄 Hybrid-modus aktivert (lokalt mellomlager fyrst)'
+          : '🔄 Hybrid-modus aktivert (lokalt mellomlager først)',
+        {
+          raw: true,
+          duration: MODE_SPLASH_DURATION_MS,
+        }
+      );
     } else {
       showToast('🌐 Online-modus aktivert', {
         raw: true,

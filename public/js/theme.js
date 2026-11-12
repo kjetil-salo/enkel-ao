@@ -28,4 +28,23 @@
     b.classList.add('theme-light', 'theme-clean');
   }
   // 'dark' = ingen klasse (basetokens gjelder)
+
+  function checkIsNynorsk() {
+    try {
+      var lang = localStorage.getItem('app_language_v1');
+      if (lang === 'nn') return true;
+      if (lang === 'nb') return false;
+      var ny = localStorage.getItem('nynorsk_artsnavn_v1');
+      if (ny === '1' || ny === 'true') return true;
+      if (ny === '0' || ny === 'false') return false;
+      return false;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  window.__isNynorsk = checkIsNynorsk;
+  if (document.documentElement) {
+    document.documentElement.lang = checkIsNynorsk() ? 'nn' : 'nb';
+  }
 })();

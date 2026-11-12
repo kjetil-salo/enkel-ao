@@ -118,6 +118,17 @@
       <div id="app"></div>
     </div>
 
+    <script>
+      if (typeof window.__isNynorsk === 'function' && window.__isNynorsk()) {
+        var backLink = document.querySelector('.back-link');
+        if (backLink) backLink.textContent = '← Attende';
+        var ingress = document.querySelector('.ingress');
+        if (ingress) {
+          ingress.textContent = 'Ei delt kladdebok for turen. Start eller bli med her med ein kort kode – sjølve registreringa skjer på den vanlege hovudsida, med same skjema som elles. Her kan alle retta tal og sletta feilregistreringar. Når turen er over henter éin av dykk heile lista inn i arbeidslista og sender til AO.';
+        }
+      }
+    </script>
+
     <!-- Versjonert URL: uten denne kan Cloudflare (max-age=14400 på JS) og nettleserens
          egen HTTP-cache holde fast på en utdatert fellestur.js i opptil 4 timer etter
          deploy, selv om siden lastes på nytt. Samme mønster som main.js i index.html

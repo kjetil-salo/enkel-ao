@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { haversine, setLocationStatus, DEFAULT_TOAST_DURATION_MS, MODE_SPLASH_DURATION_MS } from '../../public/js/ui.js';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { haversine, setLocationStatus, showToast, DEFAULT_TOAST_DURATION_MS, MODE_SPLASH_DURATION_MS } from '../../public/js/ui.js';
 
 describe('splash / toast varighet ved modusendring', () => {
   it('viser splash-vindu ved endring av modus dobbelt så lenge som standard toast', () => {
@@ -90,6 +90,48 @@ describe('setLocationStatus', () => {
   it('should not throw when locDot is null', () => {
     const { locText } = makeDom();
     expect(() => setLocationStatus(null, locText, 'pending', 'Henter …')).not.toThrow();
+  });
+});
+
+describe('showToast slettemelding og nynorsk', () => {
+  afterEach(() => {
+    const toast = document.getElementById('registered-toast');
+    if (toast) toast.remove();
+    delete window.__isNynorsk;
+  });
+
+  it('gjenkjenner "Sletta <art>" som sletting og setter oransje/gul ramme uten "registrert"-suffix', () => {
+    showToast('Sletta Gråmåse');
+    const toast = document.getElementById('registered-toast');
+    expect(toast).not.toBeNull();
+    expect(toast.textContent).toBe('Sletta Gråmåse');
+    expect(toast.style.borderColor).toBe('rgb(245, 158, 11)'); // #f59e0b
+  });
+
+  it('gjenkjenner "Slettet <art>" som sletting og setter oransje/gul ramme', () => {
+    showToast('Slettet Gråmåke');
+    const toast = document.getElementById('registered-toast');
+    expect(toast).not.toBeNull();
+    expect(toast.textContent).toBe('Slettet Gråmåke');
+    expect(toast.style.borderColor).toBe('rgb(245, 158, 11)');
+  });
+
+  it('viser "Angra" på undo-knappen når nynorsk er aktivt', () => {
+    window.__isNynorsk = () => true;
+    showToast('Sletta Svartbak', { onUndo: () => {} });
+    const toast = document.getElementById('registered-toast');
+    const undoBtn = toast.querySelector('button');
+    expect(undoBtn).not.toBeNull();
+    expect(undoBtn.textContent).toBe('Angra');
+  });
+
+  it('viser "Angre" på undo-knappen på bokmål', () => {
+    window.__isNynorsk = () => false;
+    showToast('Slettet Svartbak', { onUndo: () => {} });
+    const toast = document.getElementById('registered-toast');
+    const undoBtn = toast.querySelector('button');
+    expect(undoBtn).not.toBeNull();
+    expect(undoBtn.textContent).toBe('Angre');
   });
 });
 

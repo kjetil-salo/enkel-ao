@@ -1014,6 +1014,48 @@
     }
   </script>
 
+  <script>
+    if (typeof window.__isNynorsk === 'function' && window.__isNynorsk()) {
+      var missingBanner = document.getElementById('missing-location-banner');
+      if (missingBanner) missingBanner.textContent = 'Din posisjon er ikkje tilgjengeleg';
+      var backLink = document.querySelector('a.back-btn[href="/"]');
+      if (backLink) backLink.textContent = '← Attende';
+      var topProgText = document.getElementById('map-top-progress-text');
+      if (topProgText) topProgText.textContent = 'Lastar ned…';
+      var toggleLabelsBtn = document.getElementById('toggle-labels-btn');
+      if (toggleLabelsBtn) {
+        toggleLabelsBtn.textContent = '🏷️ Skjul namn';
+        toggleLabelsBtn.title = 'Skjul namna på lokalitetane';
+      }
+      var offlineAreasListBtn = document.getElementById('offline-areas-list-btn');
+      if (offlineAreasListBtn) {
+        offlineAreasListBtn.title = 'Vis nedlasta område';
+        offlineAreasListBtn.setAttribute('aria-label', 'Vis nedlasta område');
+      }
+      var toggleOfflineAreaBtn = document.getElementById('toggle-offline-area-btn');
+      if (toggleOfflineAreaBtn) {
+        toggleOfflineAreaBtn.title = 'Vel område på kartet for offline-bruk';
+      }
+      var toggleOfflineMarkersBtn = document.getElementById('toggle-offline-markers-btn');
+      if (toggleOfflineMarkersBtn) {
+        toggleOfflineMarkersBtn.textContent = '📍 Skjul lokalitetar';
+        toggleOfflineMarkersBtn.title = 'Skjul eller vis lokalitetsmarkørar i offline-modus';
+      }
+      var downloadedAreasTitle = document.getElementById('downloaded-areas-title');
+      if (downloadedAreasTitle) downloadedAreasTitle.textContent = '📦 Nedlasta område';
+      var addSiteFab = document.getElementById('add-site-fab');
+      if (addSiteFab) addSiteFab.title = 'Opprett ny lokalitet';
+      var pinDropHint = document.getElementById('pin-drop-hint');
+      if (pinDropHint) pinDropHint.textContent = 'Trykk på kartet for å plassera lokalitet';
+      var createSiteH3 = document.querySelector('#create-site-panel h3');
+      if (createSiteH3) createSiteH3.textContent = 'Opprett ny lokalitet';
+      var newSiteNameLbl = document.querySelector('label[for="new-site-name"]');
+      if (newSiteNameLbl) newSiteNameLbl.textContent = 'Namn';
+      var newSiteNameInp = document.getElementById('new-site-name');
+      if (newSiteNameInp) newSiteNameInp.placeholder = 'Namn på lokalitet';
+    }
+  </script>
+
   <!-- Versjonert URL: uten denne kan Cloudflare (max-age=14400 på JS) og nettleserens
        egen HTTP-cache holde fast på en utdatert map.js i opptil 4 timer etter deploy,
        selv om siden lastes på nytt — helt til noe endrer selve URL-en. Samme mønster

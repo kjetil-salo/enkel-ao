@@ -3,8 +3,8 @@
  */
 
 import { toCsv } from './observations.js';
-import { flashButton } from './ui.js';
-import { appendSentBatch, loadAoDirectAutoClear } from './storage.js';
+import { flashButton, showToast } from './ui.js';
+import { appendSentBatch, loadAoDirectAutoClear, isNynorsk } from './storage.js';
 import { isOfflineMode } from './offline-db.js';
 import { hentAktivFellestur } from './fellestur-client.js';
 import { aktivInnhentetListe } from './arbeidsliste-lokal.js';
@@ -676,9 +676,11 @@ export async function handleDirectSend(observations, dom, callbacks) {
 
 export function handleClear(observations, dom, callbacks) {
   if (!observations.length) return;
-  const ok = window.confirm('Slette alle observasjoner i listen?');
+  const nn = isNynorsk();
+  const ok = window.confirm(nn ? 'Sletta alle observasjonar i lista?' : 'Slette alle observasjoner i listen?');
   if (!ok) return;
   observations.splice(0, observations.length);
   callbacks.doRenderObservations();
   callbacks.saveState();
+  showToast(nn ? 'Sletta alle observasjonar' : 'Slettet alle observasjoner');
 }

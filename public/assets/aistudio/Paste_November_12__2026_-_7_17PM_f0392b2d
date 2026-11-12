@@ -1,0 +1,919 @@
+Nynorske artsnamn er allereie på plass i appen. No skal me byggja vidare på dette med å laga ein nynorskversjon av heile appen. Fjern valet i innstillingane: Nynorske artsnavn. Lag ei ny innstilling der ein kan velja språk: Bokmål/Nynorsk. 
+Format: Konkret tekst som skal endrast ; nynorsk tekst
+Rapporteringgsida:
+Lokasjon hentet ; Posisjon er henta
+STEDSNAVN ; STADNAMN
+Vis underarter ; Vis underartar
+Registrer minst én observasjon først — da kan du publisere til AO eller dele funnene herfra ; Registrer minst éin observasjon fyrst – då kan du publisera til AO eller dela funna herifrå. 
+Tøm listen automatisk ved vellykket sending ; Tøm lista automatisk ved vellukka sending
+Kopier og åpne AO-import ; Kopier og opne AO-import
+Tidligere sendt ; Tidlegare sendt
+Mine observasjoner ; Mine observasjonar
+Registrerte observasjoner dukker opp her. Start med å velge lokasjon øverst, deretter art ; Registrerte observasjonar dukkar opp her. Start med å velja lokalitet øvst, deretter art.
+Under ved meir enn éin art i “Lista di”:
+Arter ; artar
+
+Bytt lokasjon ; Byt lokasjon
+Splash ved byte av modus:
+...lagrede ; ...lagra
+Gå tilbake til dette besøket på <Lokalitetsnamn> og legg inn flere arter ; Gå attende til dette besøket på <Lokalitetsnamn> og legg inn fleire artar
+Avslutt besøket – nye observasjoner på samme lokalitet starter nytt besøk ; Avslutt besøket – nye observasjonar på same lokalitet startar nytt besøk
+Sett klokkeslett for alle observasjoner på dette stedet ; Set klokkeslett for alle observasjonar på denne lokaliteten  
+Medobservatører ; Medobservatørar
+Ny tekst for pop-up ved fleire alternativ for registering:
+Gjeld neste registrering.
+        Kommentar (synleg for alle)
+        
+      
+
+      
+        
+        Usikker artsbestemming
+
+      
+      
+        
+        Ikkje spontan
+
+      
+      
+        
+        Interessant kommentar
+
+      
+      
+        
+        Ikkje attfunne
+
+      
+      
+        
+        Ikkje funne
+
+      
+      
+        
+        Andrehandsopplysning (ikkje observert av deg sjølv)
+
+      
+      
+        Skjul funn til dato
+        
+      
+
+      
+        Privat kommentar (berre synleg for deg sjølv)
+        
+      
+
+      
+        Bilete
+
+        
+        
+        
+        
+          📁 Vel bilete
+
+          📋 Lim inn
+
+        
+        
+      
+
+    
+    
+      Lukk
+
+Ny tekst for sida Innstillinger:
+
+    Innstillingar
+
+    ← Attende
+
+    Tema
+    
+      🌙 Mørkt
+      ☀️ Lyst
+      ⬜ Reint
+    
+  
+    Lyst er standard. Reint er eit monokromt tema utan fargeaksentar – enklast å lesa i sterkt sollys.
+  
+
+    Vis andre sine private lokalitetar
+    
+
+    Viser andre sine private lokalitetar på kartet og i lokalitetsforslaget. Av som standard – i område med høg tettleik av lokalitetar vert det elles uoversiktleg. Dine eigne lokalitetar vert alltid viste.
+  
+
+    Lagring / Offline-data
+      Oversikt over lagra lokalitetar og kartfliser på denne eininga. Du kan oppdatera dei lagra
+      offline-områda dine med ferske lokalitetar og manglande kartfliser, eller tøma alt offline-innhald.
+    
+
+    Lagra lokalt: 326 lokalitetar og 46 kartfliser.
+
+    
+      
+        🔄 Synkroniser offline-område
+      
+
+      
+        🗑️ Slett alle offline-data
+      
+
+  
+    Aktivitets-snøggknappar (0-8)
+    
+      Vel kva aktivitetar som vert viste som snøggknappar. Maks 8. Dra i symbolet ⠿ for å endra rekkjefølgja.
+      Skriv eventuelt eit kort namn (maks 5 teikn) i «Kort»-feltet for meir kompakte knappar – tomt felt viser fullt namn.
+    
+
+
+    
+      
+    🗑️
+🗑️ 🗑️ 🗑️ 🗑️ 🗑️
+      + Legg til aktivitet
+
+      
+        Føreslå forkortingar
+      
+
+      
+        💾 Lagra
+      
+
+      
+        ✓ Lagra
+      
+
+    
+  
+
+
+  
+    Tving offline arts-søk
+    
+      
+      
+    
+  
+
+  
+    Når denne er på, vert berre den lokale artslista brukt (ingen søk mot Artsobservasjoner).
+  
+
+  
+    AO-innlogging
+
+    
+      Logg inn med Artsobservasjoner-kontoen din for å publisera funn direkte frå appen.
+      Brukarnamn og passord vert berre sende vidare til Artsobservasjoner.no — dei vert aldri lagra på serveren, berre lokalt i nettlesaren din så du slepp å logga inn kvar gong.
+      Du vel sjølv: lagra passordet for direkte publisering, eller lat det stå tomt og bruk «Kopier & opne AO-import» i staden.
+      Du kan tøma felta kva tid som helst.
+    
+
+    
+      Har du ikkje AO-brukar?
+      Opprett gratis konto på Artsobservasjoner.no ↗
+    
+
+    
+      Brukarnamn
+
+      
+    
+
+    
+      Passord
+
+      
+        
+        👁
+
+      
+
+    
+
+    
+      🔐 Logg inn
+    
+    
+    
+      🚪 Fjern innlogging frå denne eininga
+    
+
+  
+
+
+  
+    Oppdatering
+
+    
+      Appen sjekkar sjølv etter ny versjon, men det kan ta litt tid før han slår gjennom –
+      særleg om appen har stått open lenge. Trykk her for å tvinga fram nyaste versjon
+      med ein gong, i staden for å lukka og opna appen på nytt. Nedlasta offline-kartfliser vert bevarte.
+    
+
+    
+      🔄 Hent nyaste versjon
+    
+    
+    
+  
+
+
+  
+    Tryggingskopi
+
+    
+      Observasjonane dine vert berre lagra i denne nettlesaren. Last ned ein tryggingskopi (JSON-fil)
+      før du tømer nettlesardata eller byter eining – og gjenopprett han ved behov.
+      Gjenoppretting erstattar lista som ligg i appen no.
+    
+
+    
+      
+        ⬇️ Last ned tryggingskopi
+      
+
+      
+        ⬆️ Gjenopprett frå fil
+      
+
+     
+  
+    Tilbakemelding
+
+    Fann du ein feil, eller har du eit ønskje? Me vil gjerne høyra frå deg!
+
+
+Ny tekst for sida Fellestur:
+
+👥 Fellestur
+← Attende
+
+Ei delt kladdebok for turen. Start eller bli med her med ein kort kode – sjølve registreringa skjer på den vanlege hovudsida, med same skjema som elles. Her kan alle retta tal og sletta feilregistreringar. Når turen er over henter éin av dykk heile lista inn i arbeidslista og sender til AO. 
+
+Ny tekst for kartvisning:
+
+Tilbake ; Attende
+
+Skjul lokaliteter ; Skjul lokalitetar
+
+Skjul navn ; Skjul namn
+
+Skjul navnene på lokalitetene ; Skjul namna på lokalitetane
+
+Laster ned… ; Lastar ned…
+
+Velg område på kartet for offline-bruk ; Vel område på kartet for offline-bruk
+
+x offentlige og y private lokaliteter, og z kartfliser, er nå lastet ned og lagret ; x offentelege og y private lokalitetar, og z kartfliser, er no lasta ned og lagra
+
+Vis nedlastede områder ; Vis nedlasta område
+
+Skjul eller vis lokalitetsmarkører i offline-modus ; Skjul eller vis lokalitetsmarkørar i offline-modus
+
+Opprett ny lokasjon ; Opprett ny lokalitet 
+
+Trykk på kartet for å plassere lokasjon ; Trykk på kartet for å plassera lokalitet
+
+
+
+
+Ny tekst for sida Tidligere sendt:
+    📤 Tidlegare sendt
+
+    ← Attende
+  
+
+  
+    Funna dine hjå Artsobservasjoner, og kvitteringa for det du har publisert
+    frå denne eininga.
+  
+
+
+  🔭 Mine funn på Artsobservasjoner
+
+  
+    Alt du er med på hjå Artsobservasjoner, henta derfirå – så lista er lik på alle
+    einingane dine. Slik verkar ho.
+  
+
+  
+    
+      
+      
+      
+      
+      
+    
+    ↻ Oppdater  Berre utan bilete
+    
+      
+      <tal> funn · <tal> utan bilete
+
+Legg til bilete
+    
+  
+Siste <tal> dagar
+  
+
+        Du er ikkje innlogga på Artsobservasjoner i appen.
+        Legg inn brukarnamn og passord i innstillingar,
+        så hentar me funna dine herifrå.
+      
+
+
+
+  📱 Sendt frå denne eininga
+
+  
+    Lokal kvittering for det du har publisert dei siste 7 dagane. Verkar utan nett
+    og utan innlogging.
+  
+
+  
+      Ingen kvitteringar her enno.
+
+      Neste gong du publiserer til Artsobservasjoner, dukkar ho opp – og vert
+      liggjande i sju dagar.
+      
+
+
+      Funn du sende før denne funksjonen kom, er ikkje med.
+    
+
+
+  
+    Skal du retta eit funn, gjer du det på
+    Mine sider på artsobservasjoner.no
+
+
+Ny tekst under Mine delinger:
+
+    🔗 Mine delingar
+
+    ← Attende
+  
+
+  
+    Delingar du har laga frå denne eininga. Vert berre lagra lokalt – appen har ingen
+    eigen konto, så ei deling laga på ei anna eining vert ikkje vist her.
+  
+
+  
+        Ingen delingar enno.
+
+        Bruk «🔗 Del funna» på hovudsida for å laga di første.
+
+
+Ny tekst for Hjelp:
+
+        📖
+        Hjelp
+      
+
+      
+        ←
+        Attende
+      
+    
+
+
+    
+      
+    
+
+
+    
+      Ei rask digital feltnotatbok for fugleobservasjonar. Registrer art, antal og aktivitet på sekundar, og send observasjonane rett til artsobservasjoner.no.
+    
+
+
+    
+      Personvern: Alle observasjonar vert berre lagra i nettlesaren din. Ingenting vert sendt til ein server før du sjølv vel å publisera.
+    
+
+
+    
+    
+      🚀 Kom i gang
+      🔎 Ikona
+      🗺️ Kart & lokalitetar
+      ✓ Registrering
+      📤 Senda til AO
+      ✏️ Tidlegare sendt
+      🔗 Del med vener
+      👥 Fellestur
+      ⚙️ Innstillingar
+      📱 Installer app
+      🩹 Feilsøking
+    
+
+
+    🚀 Kom i gang på eit halvt minutt
+
+    Fem steg frå tom skjerm til ein publisert observasjon:
+
+    
+      
+        1
+
+        Hent posisjonTrykk «Hent lokalitetar», så finn appen AO-lokalitetar nær deg. Når lista er henta, dukkar «Radius» (500 m – 3 km) og «Sortering» opp — dreg du i radius-slideren, vert lista automatisk henta på nytt.
+
+      
+
+      
+        2
+
+        Vel lokalitetNedtrekkslista viser stader sorterte etter avstand. Trykk 🗺️ for å sjå dei på kart.
+
+      
+
+      
+        3
+
+        Søk artSkriv norsk eller latinsk namn og vel frå lista.
+
+      
+
+      
+        4
+
+        Antal og aktivitetSet antal, vel aktivitet med snøggknappane, og trykk ✓ for å leggja han i lista.
+
+      
+
+      
+        5
+
+        Send innPubliser direkte til Artsobservasjoner, eller kopier CSV og lim inn manuelt.
+
+      
+
+    
+
+    
+      Ny brukar? Du treng inga innlogging for å registrera og bruka kartet. Innlogging med AO-brukaren din trengst berre om du vil publisera med eitt trykk eller oppretta eigne lokalitetar. Har du ikkje AO-brukar? Opprett gratis konto ↗
+    
+
+    
+      📱 Tips: På mobil bør du installera appen på heim-skjermen – det gjev fullskjerm, offline-bruk og raskare oppstart. Vert tilrådd for dei fleste.
+    
+
+
+    🔎 Ikona i appen
+
+    Knappane øvst og i lista gjer dette:
+
+    
+      📍
+Hent lokasjonarFinn AO-lokalitetar nær deg
+      🗺️
+KartSjå lokalitetar rundt deg
+      ➕
+Ny lokasjonOpprett lokalitet (krev innlogging)
+      FellesturØvst til høgre – delt logg for ei gruppe
+
+      👥
+MedobservatørarKnappen i «② Registrer art» – legg til dei du var med
+      Lås besøkSkil fleire besøk på same lokalitet same dag
+
+      ↩
+Attende til besøketLegg inn fleire artar i eit tidlegare besøk
+      ⚙️
+InnstillingarTema, innlogging, kopi
+      ✓
+RegistrerLegg observasjonen i lista
+      📖
+HjelpDenne sida
+    🗺️ Kart & lokalitetar
+
+    Trykk 🗺️ ved lokalitetsfeltet for å sjå alle lokalitetar rundt deg på eit kart. Fargen på markøren fortel kva slags lokalitet det er:
+
+    
+      Grøn – offentlege lokalitetar frå Artsobservasjoner
+
+      Oransje – superlokalitetar som samlar fleire underlokalitetar
+
+      Grå – private lokalitetar oppretta av andre. Kan brukast fritt.
+
+      Gul ★ – dine eigne lokalitetar
+
+      Raud nål – ein ny lokalitet du er i ferd med å oppretta (vert gul når han er lagra)
+
+    
+
+    Polygon (farga omriss) er områdelokalitetar, t.d. innsjøar. Trykk inne i polygonen for å velja lokaliteten.
+
+
+    Tett med lokalitetar? Rydd kartet: Nokre stader ligg lokalitetane så tett at markørane dekkjer heile kartet, og det er uråd å sjå kvar ein er. Knappen oppe til høgre har tre trinn: fyrste trykk skjuler namna, andre trykk skjuler alle lokalitetane så du ser kartet og får zooma inn, tredje trykk hentar dei tilbake. «Skjul alt» vert ikkje hugsa til neste gong – kartet opnar alltid med lokalitetane synlege.
+
+
+    Kartlag: Nedst til venstre på kartet kan du byta mellom OpenStreetMap, Kartverket Topo og Kartverket Gråtone – nyttig om du vil sjå terreng og høgdekoter i felt.
+
+
+    Panorer for å sjå andre stader: Dra kartet dit du vil, så vert lokalitetane for det nye området automatisk henta – med same søkjeradius som du alt har valt.
+
+
+    
+      Kvifor private lokalitetar? Tidlegare kunne alle oppretta lokalitetar i AO. Denne funksjonaliteten vart fjerna, men dei eksisterande lokalitetane er der framleis. I mange område finst det få ålmenne lokalitetar – då er dei private uvurderlege. Du kan slå av vising av private lokalitetar i innstillingane.
+    
+
+
+    Opprett ny lokalitet
+
+    Manglar det ein lokalitet? Trykk ➕ ved lokalitetsfeltet (krev at du er innlogga i AO via innstillingane). Du kan òg oppretta lokalitet direkte frå kartsida med ein dragbar markør for presis plassering. Standard nøyaktigheit er 50 m; du kan velja 25–500 m eller punktobservasjon.
+
+
+    ✓ Registrera observasjonar
+
+
+    Feltmodus vs. etterregistrering
+
+    Byt modus ved å trykkja på «knappen» i øvst:
+
+    
+      Felt
+      Etterreg
+Felt (grøn) – for registrering i felt. Tidspunkt vert automatisk sett til «no».
+
+Etterreg (raud) – for å registrera frå tidlegare tidspunkt. Du vel dato og eventuelt frå/til-klokkeslett.
+
+  I etterregistreringsmodus kan du søkja etter stadnamn med autofullføring direkte frå AO.
+
+
+  Alder og kjønn
+
+  Felt for alder (Adult, 1K, 2K osb.) og kjønn (Hann, Ho, Hofarga, I par) vert viste under artssøket. Desse er valfrie og vert inkluderte i eksporten.
+
+  Har du sett alder eller kjønn, vert det vist som ei lita underlinje under arten i observasjonslista (t.d. «Adult, Hann»). Rader utan desse verdiane vert verande kompakte.
+
+
+  ⚠️ Raritetsvarsel
+
+  Så snart du har valt både art og lokalitet, sjekkar appen automatisk om arten er sjeldan akkurat der – rett frå Artsobservasjoner si eiga vurdering. Er han det, dukkar det opp ein boks under artsfeltet med AO si eiga forklaring.
+
+  Nyttig på fleire måtar:
+Du oppdagar fort om du har trykt feil art i lista, før du sender inn noko uvanleg ved eit uhell
+
+Du får vita om du faktisk har gjort eit sjeldant funn
+
+Reiser du frå ein landsdel til ein annan, ser du raskt om noko du tek for gitt heime er uvanleg akkurat der du er no
+
+  Varselet vert lagra på observasjonen og vist som eit lite ⚠️-merke i observasjonslista (hald over det for å sjå heile forklaringa). Krev nett og at du er innlogga mot AO – brukar du den innebygde offline-artslista, får du ikkje varselet utan at appen tidlegare har henta ned varsel for akkurat denne arten i Hybrid- eller Online-modus.
+
+  Registrerer du eit slikt sjeldant funn, feirar appen det med litt konfetti på skjermen – det skjer sjeldan nok til å fortena litt merksemd.
+
+
+  Medobservatørar
+
+  Trykk 👥 for å opna medobservatør-panelet. Her kan du:
+leggja til opptil 10 medobservatørar med autofullføringssøk mot AO.
+
+markera kven som er aktive – aktive vert automatisk lagde til på nye observasjonar.
+
+masseoppdatera: legg til aktive medobservatørar på alle eksisterande observasjonar med éin knapp.
+
+  Snøggknappar
+
+  Snøggknappane for aktivitet kan tilpassast i innstillingane. Vel fritt mellom alle aktivitetar, endra rekkjefølgje, eller set 0 knappar for berre å bruka rullegardinmenyen.
+
+  Kvar knapp kan få eit kortnamn (maks 5 teikn) som vert vist i staden for det fulle namnet – då får du plass til fleire knappar på skjermen. Skriv ditt eige, eller trykk «Føreslå forkortingar» for å fylla inn fornuftige standardforslag.
+
+
+  Observasjonslista
+Observasjonar vert automatisk grupperte etter lokalitet og sorterte alfabetisk
+
+Bruk +/– for å justera tal direkte i lista
+
+Trykk på talet for å skriva inn eit nytt tal
+
+Slett med angrefrist på 5 sekund
+
+Klokkeslett (frå–til) vert vist ved stadnamn. Trykk 🕐 ved lokaliteten for å setja frå/til-klokkeslett på alle observasjonane der på éin gong.
+
+Trykk ↩ ved eit stadnamn for å gå tilbake til det besøket og leggja inn fleire artar der – sjå under.
+
+  Besøk – éi gruppe per stopp
+
+  Kvar gruppe i observasjonslista er eitt besøk: éin runde på éin lokalitet. Går du frå Tovo til Kvitingen, får du to grupper. Kjem du tilbake til Tovo seinare same dag, kan det verta eit tredje besøk – det styrer du med låsen:
+Ope besøk – nye observasjonar på denne lokaliteten vert lagde til her. Bøyla heng ut til høgre, og knappen er grøn.
+
+Avslutta besøk – trykk låsen for å avslutta. Registrerer du seinare på same stad, startar det eit nytt besøk i staden for å blanda seg inn i det gamle. Trykk igjen for å opna besøket på nytt.
+
+   Nyttig når: du tek opp att ein runde same dag (t.d. morgon og kveld på same lokalitet) og vil halda teljingane frå kvart besøk skilde.
+
+
+
+ ↩ Tilbake til eit tidlegare besøk
+
+ Kom du på ein art du gløymde på ein stad lenger opp i lista? Trykk ↩ ved stadnamnet. Då går du tilbake til akkurat det besøket: du slepp å søkja opp lokaliteten på nytt, og dei nye artane vert lagde rett inn i den gruppa.
+
+ Arten får tidsspennet til besøket – ikkje tidspunktet du står og skriv. Du såg jo fuglen ein gong i løpet av besøket, og akkurat rett tidspunkt hugsar du sjeldan.
+
+
+   Slik ser det ut: Tovo-gruppa viser 17:09–17:18. Klokka er 19:40 og du hugsar at du såg ein steinvendar der. Trykk ↩ ved TOVO, søk opp steinvendar og registrer. Han hamnar i Tovo-gruppa med tida 17:09–17:18 – ikkje 19:40 – og gruppa står framleis oppført som 17:09–17:18.
+
+
+ Så lenge du legg inn i eit tidlegare besøk, viser lokalitetslinja øvst kva tid du får, til dømes «↩ 17:09–17:18». Tida vert altså aldri sett i det skjulte. Vil du justera tidene på heile besøket etterpå, brukar du 🕐 som før.
+
+
+   Avslutt besøk (): ↩ verkar der òg. Låsen hindrar berre at nye artar hamnar der av seg sjølve – trykkjer du ↩, er det eit medvite val. Du får ei melding om at klokka vert sett tilbake i tid, og arten arvar låsen slik at besøket vert verande avslutta.
+
+
+
+   Tilbake til «no»: trykk Byt lokalitet. Då er du ute av det gamle besøket, og nye artar får klokkeslettet for dagen att. Er du i røynda tilbake på lokaliteten, er det slik du gjer det – ikkje med ↩.
+
+
+
+ Bilete
+
+ Trykk ✏️-ikonet på ein observasjon for å opna «Rediger» (eit lite vindauge rett over lista) – der kan du leggja ved eitt bilete per funn. Du kan òg leggja ved bilete før du registrerer, via Fleire felt (sjå under):
+Vel fil, eller lim inn (Ctrl/Cmd+V, eller «📋 Lim inn bilete»-knappen på mobil) – begge delar verkar med både skjermbilete og kopierte biletfiler
+
+Biletet vert automatisk skalert ned før lagring
+
+    Biletet vert ikkje lasta opp med éin gong. Artsobservasjoner krev ein ekte observasjons-ID før eit bilete kan koplast til – den får funnet først når du trykkjer «Publiser til AO». Biletet ligg difor lagra i appen inntil då, og vert lasta opp automatisk som siste steg i sendinga. Skulle opplastinga svikta, vert observasjonen sendt likevel – du får beskjed om at biletet må lastast opp på nytt direkte på AO.
+
+
+  Teknisk detalj: appen set ein liten, usynleg markør i det private kommentarfeltet (berre synleg for deg sjølv på AO) for å kopla biletet til rett funn. Han vert ikkje fjerna etterpå, men er ufarleg – ingen andre ser han. Har du sjølv skrive noko i privat kommentar (sjå under), står markøren saman med din eigen tekst i det same feltet.
+
+
+  Fleire felt
+
+  Det finst felt på AO du sjeldan treng: ein open kommentar (synleg for alle), Usikker artsbestemming, Ikkje spontan, Interessant kommentar, Ikkje attfunne, Ikkje funne, Skjul funn til dato, bilete, og ein eigen privat kommentar (berre synleg for deg sjølv på AO – skild frå den opne kommentaren). Trykk  ved sida av den grøne ✓-knappen i «② Registrer art» for å setja dei før du registrerer – dei gjeld då berre for den eine arten du er i ferd med å registrera, og vert automatisk nullstilte etterpå. Vil du retta dei i ettertid på ein observasjon som alt er registrert, ligg dei same felta (pluss art, tal, alder, kjønn, stad, dato/tid og medobservatørar) i «Rediger» (✏️-ikonet i observasjonslista) – ein liten modal, ikkje ei eiga side.
+
+
+  📤 Senda til Artsobservasjoner
+
+
+  Direkte publisering (enklast)
+
+  Logg inn med AO-brukaren din i innstillingane (⚙️), så kan du publisera observasjonane med éin knapp – utan å kopiera CSV manuelt. Appen handterer innlogging og verifisering automatisk.
+
+
+  Manuell CSV-import
+
+  Om du ikkje brukar direkte publisering, kan du kopiera CSV-en og lima inn i AO:
+Trykk «Kopier & opne AO-import»
+
+Import må gjerast via www.artsobservasjoner.no (skrivebordsversjonen), ikkje mobilversjonen
+
+Lim inn heile teksten inkludert overskriftsrada
+
+ Mange lokalitetar har same namn (t.d. «Byparken»). AO kan velja feil stad.
+
+
+   Tips: Marker dei vanlege lokalitetane dine som favorittar i AO. Då foreslår AO oftare «din» variant automatisk.
+
+
+
+ ✏️ Tidlegare sendt – retta funn og leggja til bilete
+
+ «Tidlegare sendt» har to delar. Øvst ligg «Mine funn på Artsobservasjoner», som vert henta rett frå AO. Ho er difor lik på alle einingane dine: registrerer du med mobilen i felt, finn du dei same funna att på PC-en heime. Ho tek òg med funn du har registrert utanom appen, og overlever at du byter telefon.
+
+ Lista viser alt du er med på – både det du har rapportert sjølv, og det andre har rapportert med deg som observatør, til dømes frå ein fellestur. Under lokaliteten står det kven som rapporterte, når det ikkje var deg.
+
+ Nedst ligg «Sendt frå denne eininga» – den lokale kvitteringa for det du har publisert dei siste sju dagane. Ho verkar utan nett og utan innlogging, og det er herifrå du deler funn eller kopierer dei tilbake til arbeidslista.
+
+ Frå lista kan du leggja til bilete på funn som manglar det, og retta tal, aktivitet eller art på funn du sjølv har rapportert.
+
+
+   Finn du ikkje funnet? Standard tidsrom er to dagar. Ei aktiv veke gjev fort over hundre funn, og poenget med lista er som regel å finna dei få som treng noko. Vel eit lengre tidsrom øvst om funnet er eldre.
+
+
+
+ 📷 Leggja til bilete etterpå
+
+ Funn som manglar bilete, får knappen «Legg til bilete». Det er dette som gjer at du kan registrera raskt i felt med mobilen, og så leggja på dei gode bileta frå kameraet når du kjem heim.
+
+ Knappen opnar eit eige vindauge der du kan henta biletet på tre måtar:
+📁 Vel fil – på mobil får du kamera og biletbibliotek i same meny.
+
+📋 Lim inn – eller berre trykk ⌘V / Ctrl+V.
+
+Dra og slepp – dra biletet rett inn frå filhandsamaren i operativsystemet ditt (Windows: Utforskar, Mac: Finder, Linux: t.d. Filer). Oftast raskast når biletet nettopp er eksportert frå kameraet.
+
+  Deretter kan du skjera til – dra i hjørna for å kutta vekk alt som ikkje er fuglen, eller inni ramma for å flytta utsnittet – og justera eksponering om biletet vart for mørkt. «Tilbakestill» set begge delar tilbake.
+
+  Biletet vert automatisk skalert ned til 1600 pikslar før det vert sendt – same grense Artsobservasjoner sjølv brukar – så du kan trygt velja originalfila frå kameraet.
+
+  Artsobservasjoner tillet inntil 10 bilete per funn, og du kan leggja til bilete på alt du er med på – òg funn andre har rapportert. Etter ei opplasting står vindauget ope med «Legg til eitt til», så du slepp å byrja på nytt for bilete nummer to. Appen seier frå om noko ikkje gjekk gjennom, i staden for å påstå at biletet er lagt til.
+
+
+  ✏️ Retta eit funn
+
+  Knappen «Endre» vert vist på funn du sjølv har rapportert – Artsobservasjoner tillet ikkje at andre endrar eit funn, så på funn andre har rapportert kan du berre leggja til bilete.
+
+  Du kan retta tre ting direkte i appen:
+Tal – det vanlegaste. Du talde 12, men det var 15.
+
+Aktivitet – til dømes frå «stasjonær» til «næringssøkjande». Lista vert henta frå Artsobservasjoner, så ho er alltid den same som der.
+
+Art – kom nokon i etterkant og sa at det var ein lauvsongar og ikkje ein gransongar? Trykk «Byt art» og søk opp den rette. Den nye arten vert vist med den gamle i parentes, så du ser kva du endrar frå.
+
+  Dato, tid og lokalitet vert ikkje endra herfrå. Dei står synlege i vindauget så du ser kva dei er, og skal dei rettast, gjer du det på Artsobservasjoner.
+
+
+  Du får stadfesting på at endringa tok
+
+  Etter lagring hentar appen funnet tilbake frå Artsobservasjoner og viser kva dei har registrert – ikkje berre at noko vart sendt. Då står det til dømes «✅ Artsobservasjoner stadfestar: 5 individ, stasjonær».
+
+  Nokre gonger rekk ikkje lista til Artsobservasjoner å verta oppdatert med éin gong. Då seier appen at endringa er lagra, men at han ikkje fekk dobbeltsjekka – med lenkje til funnet. Det tyder nesten alltid at alt gjekk bra, berre at svaret kom for tregt.
+
+
+  Bytte du til ein sjeldan art?
+
+  Då køyrer appen den same raritetssjekken som ved registrering, på den nye arten – før du stadfestar. Er funnet uvanleg for staden og årstida, får du vita det med éin gong i staden for å verta overraska av Artsobservasjoner etterpå.
+
+  Søket viser berre fugleartar, så eit funn ikkje kan hamna i feil artsgruppe.
+
+
+
+    🔴 Funnet er usynleg for andre medan du endrar. Artsobservasjoner tek funnet ut av vising i same augneblink det vert opna for endring – òg om du ikkje endrar noko. Det vert synleg att når du lagrar.
+
+
+
+    Difor er «Avbryt» ei ekte handling, ikkje berre ein lukkeknapp: han publiserer funnet tilbake med éin gong. Det same gjer ✕ og det å trykkja utanfor vindauget. Lukkar du heile sida midt i, prøver appen å publisera funnet tilbake likevel, og nettlesaren spør om du er sikker.
+
+
+
+  «Du har funn som ikkje er publiserte»
+
+  Skulle noko likevel verta liggjande – straumen gjekk, telefonen døydde – får du eit raudt varsel øvst på «Tidlegare sendt» neste gong du opnar sida, med lenkje til å publisera hjå Artsobservasjoner.
+
+  Varselet fangar òg funn du har late att ved å redigera på Artsobservasjoner sine eigne sider, så det kan dukka opp sjølv om du aldri har brukt «Endre» i appen.
+
+
+    Kvifor tek det nokre sekund? Appen hentar heile redigeringsskjemaet frå Artsobservasjoner – det er stort – og sender det tilbake med endringa di. Det er den einaste måten å vera sikker på at ingen av dei andre felta på funnet ditt vert rørte.
+
+
+
+  ⚠️ Merknader frå Artsobservasjoner
+
+  Har AO ei innvending mot eit funn – til dømes eit urimeleg tal eller eit tidspunkt som ikkje stemmer – vert ho vist på funnet, med lenkje rett til det hos AO. Gjeld det tal, aktivitet eller art, kan du retta det med «Endre». Gjeld det tid eller lokalitet, gjer du det på Artsobservasjoner.
+
+
+  🔗 Del med vener
+
+  Trykk «🔗 Del funna» under Send inn for å laga ei fin, delbar lenkje over kva du har sett – utan å senda folk til Artsobservasjoner. Du vel sjølv kva observasjonar som skal med i førehandsvisinga, og lenkja er hemmeleg (umogleg å gjetta), men ikkje privat – alle som har henne, kan opna henne. Ho sluttar å verka etter 14 dagar.
+
+  Posisjon vert aldri delt – berre lokalitetsnamn. Observasjonar merkte «skjul til dato» er aldri med.
+
+
+  Bilete
+
+  Har ein observasjon bilete (lagt til under Rediger), kan du velja å ta det med i delinga – ei eiga, lita avkryssing («Del bilete») dukkar opp per observasjon som har bilete, haka av som standard. Biletet vert automatisk komprimert til rundt 50 KB – nok til å visa fram funnet, ikkje meint for artsbestemming.
+
+
+  Mine delingar
+
+  Lenkja «🔗 Mine delingar» ved sida av «Tidlegare sendt» viser alle delingane du har laga frå denne eininga, med status (aktiv/utgått).
+🔄 Oppdater – skriv over innhaldet i ei eksisterande deling utan å endra lenkja. Nyttig på lange feltøkter (t.d. ein heil dag på Herdla) der du etterregistrerer utover dagen, og vil at vener som alt har lenkja, skal sjå ferske funn ved å lasta sida på nytt.
+
+🗑️ Trekk tilbake – deaktiverer lenkja straks.
+
+    Tips: Delingane vert berre lagra lokalt på eininga di, akkurat som resten av arbeidslista. Ei deling laga på mobilen dukkar ikkje opp i «Mine delingar» på PC-en.
+
+
+
+  👥 Fellestur
+
+
+    Prøv han gjerne! Fellestur er testa ut i praktisk bruk, og eg vil gjerne at fleire tek han i bruk. Han er framleis ung, så meld gjerne frå om noko oppfører seg rart – lenkje til tilbakemelding finn du under Innstillingar og i heilt nedst på rapporteringssida.
+
+
+  Er de fleire fuglefolk på same tur, kan de dela på registreringsarbeidet i staden for at kvar einskild fører si eiga liste.
+Trykk øvst til høgre på hovudsida (ved sida av 📖 og ⚙️) og vel «🆕 Start ny fellestur» – eller «🔑 Bli med (har kode)» om nokon andre alt har starta ein. Gjer dette før de byrjar å registrera: funn du legg inn på førehand, vert liggjande i di eiga liste og hamnar ikkje i den delte loggen.
+
+Del den 5-sifra koden (eller lenkja «🔗 Kopier delbar lenkje») med resten av gruppa.
+
+Så lenge fellesturen er aktiv, registrerer alle på hovudsida akkurat som vanleg – art, stad, tal, aktivitet. Eit blått band øvst viser at de er på fellestur, og på denne sida vil du sjå at «④ Send inn»-knappane er sperra – innsending vert gjord samla til slutt, av éin person (sjå under), ikkje fortløpande av kvar einskild.
+
+Det som vert registrert, hamnar i ein delt logg: alle deltakarane ser funna til kvarandre dukka opp i løpet av nokre sekund, kan retta tal og sletta feilregistreringar.
+
+ Ingen kontoar for å delta – koden er hemmeleg, ikkje privat, akkurat som ei delingslenkje. Alle med koden kan sjå og redigera loggen. Er du innlogga på AO på eininga, vert ditt ekte AO-brukarnamn brukt som «ditt namn» i loggen; utan innlogging kan du skriva eit fritt namn og framleis bidra med funn.
+
+ Tur frå Feltlogg: Skriv inn den same 5-sifra koden via «Bli med (har kode)».
+   Du får vita om turen er kjend i Enkel-AO eller gjennom hendingar vi har motteke frå Feltlogg.
+   Ingen oversikt over turane til andre grupper vert vist. Om koden er ukjend, får du eit gult varsel:
+   Turen kan vera oppretta i Feltlogg utan funn, eller koden kan vera feil, utgått eller ikkje i bruk.
+   Du kan velja «Bli med likevel», men må sjølv kontrollera koden med den som starta turen.
+   Turen vert vist som ikkje stadfesta til vi tek imot ei hending frå ein tilkopla app.
+
+
+ Avslutta turen
+
+ Det finst ingen «avslutt for alle»-knapp – kvar deltakar forlèt individuelt, på si eiga eining. Men
+   når det er ferdig registrert, skal berre éin person i gruppa gjera sjølve innsendinga:
+«📤 Send inn lista og avslutt fellestur» (godt synleg knapp på fellestur-sida) – dette er den vanlege vegen når turen er ferdig. Krev at du er innlogga på AO (⚙️ Innstillingar), sidan det er starten på sjølve innsendinga. Hentar heile den delte loggen inn i di private arbeidsliste, klar til å senda til AO frå hovudsida, og forlèt turen på denne eininga. Dei andre i gruppa får eit tydeleg raudt varsel om at du har gjort dette, slik at ikkje fleire sender det same på nytt.
+
+«Forlat utan å senda inn» (fellestur-sida) / «Forlat» (banneret på hovudsida) – for berre å forlata på denne eininga utan å ta ansvar for innsendinga. Spør om du vil kopiera lista inn lokalt først.
+
+  Å forlata gjeld berre di eiga eining – den delte loggen står ved lag og er framleis tilgjengeleg med koden for dei andre heilt til nokon sender inn (eller til han går ut). Fellesturen går uansett automatisk ut etter 48 timar.
+
+
+  ⚙️ Innstillingar
+
+  Opna innstillingar med tannhjulet (⚙️) øvst.
+
+
+  Tema
+
+  Vel utsjånad med knapperada:
+Lyst – standard, lettast å lesa ute i dagslys.
+
+Mørkt – skånsamt i lite lys.
+
+Reint – monokromt svart/kvitt utan fargeaksentar.
+
+  Tryggingskopi
+
+  Last ned alle observasjonane dine til ei fil, og gjenopprett dei seinare. Nyttig som tryggleik mot datatap om du tømer nettlesaren, byter eining eller nettlesar – sidan observasjonane elles berre ligg lokalt.
+
+
+  AO-innlogging
+
+  Logg inn med AO-brukaren din for å publisera direkte. Brukarnamn og passord vert aldri lagra på serveren – berre lokalt på di eining, og du vel sjølv om passordet skal hugsast. Trykk «Fjern innlogging» for å sletta lagra brukarnamn, passord og den aktive AO-sesjonen frå denne eininga (nyttig ved feilsøking, personvern eller kontobyte). Knappen vert berre vist når du er innlogga.
+
+
+  Nyheitsmeldingar
+
+  Når du opnar appen, vert det vist korte meldingar om nye funksjonar. Har du vore borte ei stund, ser du alle dei nye samla. Kvar melding vert berre vist éin gong, og aldri for heilt nye brukarar.
+
+
+  📱 Installer appen på mobilen
+
+  Dei aller fleste bør «installera» appen. Det tek ti sekund og gjev ei langt betre oppleving i felt:
+Fullskjerm utan nettlesarlinje – meir plass til observasjonslista.
+
+Verkar offline – òg der du ikkje har dekning.
+
+Raskare oppstart og eit eige ikon på heim-skjermen, akkurat som ein vanleg app.
+
+  Det vert ikkje installert noko frå App Store / Google Play – appen vert berre lagd som ein snarveg på heim-skjermen.
+
+
+
+    🍎 iPhone og iPad (Safari)
+Trykk på Del-knappen
+
+          (firkant med pil opp, nedst eller øvst i Safari).
+Bla ned og vel «Legg til på Heim-skjerm».
+
+Trykk «Legg til» øvst til høgre.
+
+   🤖 Android (Chrome)
+Trykk på menyen
+
+          (tre prikkar øvst til høgre).
+Vel «Legg til på startskjermen» eller «Installer app».
+
+Stadfest med «Legg til».
+
+ Offline-støtte
+
+ Appen verkar utan nettsamband. Artssøk brukar ein snøggbuffer. Observasjonar vert lagra lokalt uansett.
+
+
+ Lagring av data
+Observasjonane vert lagra i nettlesaren din og forsvinn ikkje ved oppfrisking.
+
+Dei vert ikkje synkroniserte mellom einingar eller nettlesarar.
+
+Om du slettar nettlesardata eller brukar privat modus, blir observasjonane tapte. Ta ein tryggingskopi for tryggleik – trykk «⬇️ Last ned tryggingskopi» under Innstillingar → Tryggingskopi.
+
+  Tastatursnarvegar (desktop)
+↑ / ↓ – Naviger i artslista
+
+Enter – Vel art / Gå vidare / Lagra
+
+Esc – Lukk artslista
+  🩹 Feilsøking
+
+
+  Posisjon ikkje tilgjengeleg
+
+  Sjekk at nettlesaren har løyve til å bruka posisjonen din (lås-ikon i adressefeltet). På PC/Mac er posisjonen ofte unøyaktig (IP-basert) – appen er laga for mobil i felt.
+
+
+  Artslista viser ingenting
+
+  Skriv minst 2–3 teikn. Om det framleis er tomt, kan det vera eit mellombels problem med Artsobservasjoner-API-et.
+
+
+  Stadnamn vert ikkje føreslege
+
+  Forslaga kjem frå Artsobservasjoner. Om ingen vert viste, finst det kanskje ingen registrerte lokalitetar i nærleiken. Du kan oppretta ein ny lokalitet med ➕-knappen.
+
+
+  Om appen
+
+  Utvikla av Kjetil Salomonsen og Espen Bore Hollund som eit personleg verktøy for effektiv registrering av fugleobservasjonar i felt.
+
+  Kontakt: k@vikebo.com

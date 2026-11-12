@@ -58,6 +58,19 @@
       import { hentMineDelinger, glemDeling, openShareDialog } from '/js/share.js';
       import { loadObservations } from '/js/storage.js';
 
+      const nn = typeof window !== 'undefined' && typeof window.__isNynorsk === 'function' && Boolean(window.__isNynorsk());
+      if (nn) {
+        document.title = 'Mine delingar';
+        const h1 = document.querySelector('header h1');
+        if (h1) h1.textContent = '🔗 Mine delingar';
+        const backLink = document.querySelector('header .back-link');
+        if (backLink) backLink.textContent = '← Attende';
+        const ingress = document.querySelector('.ingress');
+        if (ingress) {
+          ingress.textContent = 'Delingar du har laga frå denne eininga. Vert berre lagra lokalt – appen har ingen eigen konto, så ei deling laga på ei anna eining vert ikkje vist her.';
+        }
+      }
+
       const MND = ['januar', 'februar', 'mars', 'april', 'mai', 'juni',
         'juli', 'august', 'september', 'oktober', 'november', 'desember'];
 
@@ -90,7 +103,12 @@
         const delinger = hentMineDelinger();
 
         if (!delinger.length) {
-          listeEl.innerHTML = `<div class="tom">
+          listeEl.innerHTML = nn
+            ? `<div class="tom">
+            Ingen delingar enno.<br>
+            Bruk «🔗 Del funna» på hovudsida for å laga di fyrste.
+          </div>`
+            : `<div class="tom">
             Ingen delinger ennå.<br>
             Bruk «🔗 Del funnene» på hovedsiden for å lage din første.
           </div>`;
@@ -101,9 +119,9 @@
           const utlopt = erUtlopt(d);
           const slug = tekst(d.slug);
           const tittel = d.displayName ? tekst(d.displayName) : (formatDato(d.dato) || 'Deling');
-          const antall = d.obsCount ? `${d.obsCount} observasjon${d.obsCount !== 1 ? 'er' : ''}` : '';
+          const antall = d.obsCount ? `${d.obsCount} observasjon${d.obsCount !== 1 ? (nn ? 'ar' : 'er') : ''}` : '';
           const statusHtml = utlopt
-            ? '<span class="status utlopt-badge">Utløpt</span>'
+            ? `<span class="status utlopt-badge">${nn ? 'Utgått' : 'Utløpt'}</span>`
             : `<span class="status aktiv">Aktiv${d.expiresTs ? ' · til ' + formatUtloper(d.expiresTs) : ''}</span>`;
           return `
             <div class="deling ${utlopt ? 'utlopt' : ''}">

@@ -5,7 +5,7 @@
 // Versjonert import
 import { createAoSite, ensureAoTokens, fetchAoSitesCached, fetchAoSitesByBounds, getCachedPrivateSites, hasActiveAoLogin } from './api.js?v=v1.60.15';
 import { mergeAoSitesWithPrivateCache, isPrivateSite, shouldShowOthersPrivateSites, DEFAULT_MAP_CENTER } from './location.js?v=v1.60.15';
-import { saveLastKnownPosition, loadLastKnownPosition } from './storage.js?v=v1.60.15';
+import { saveLastKnownPosition, loadLastKnownPosition, loadNynorskArtsnavn } from './storage.js?v=v1.60.15';
 import { haversine } from './utils.js';
 // Versjonert import: HARD avhengighet til navngitte eksporter i en modul som
 // er ny her. Samme begrunnelse som location.js-importen over.
@@ -107,7 +107,7 @@ const sizeMeters = (typeof data.sizeMeters === 'number' && data.sizeMeters > 0) 
 const missingLocationBanner = document.getElementById('missing-location-banner');
 if (missingLocationBanner) {
   if (!isUserPositionAvailable) {
-    missingLocationBanner.textContent = 'Din posisjon er ikke tilgjengelig';
+    missingLocationBanner.textContent = loadNynorskArtsnavn() ? 'Din posisjon er ikkje tilgjengeleg' : 'Din posisjon er ikke tilgjengelig';
     missingLocationBanner.style.display = 'block';
   } else {
     missingLocationBanner.style.display = 'none';
@@ -874,12 +874,12 @@ function recenterToGps() {
         else map.setView([fallback.lat, fallback.lon], Math.max(map.getZoom(), 13), { animate: true });
       }
       if (missingLocationBanner) {
-        missingLocationBanner.textContent = 'Kunne ikke hente fersk posisjon. Sjekk GPS-signal/tillatelse.';
+        missingLocationBanner.textContent = isMapNynorsk() ? 'Kunne ikkje henta fersk posisjon. Sjekk GPS-signal/løyve.' : 'Kunne ikke hente fersk posisjon. Sjekk GPS-signal/tillatelse.';
         missingLocationBanner.style.display = 'block';
         updateBannerAndOfflinePanelLayout();
         setTimeout(() => {
           missingLocationBanner.style.display = isUserPositionAvailable ? 'none' : 'block';
-          if (!isUserPositionAvailable) missingLocationBanner.textContent = 'Din posisjon er ikke tilgjengelig';
+          if (!isUserPositionAvailable) missingLocationBanner.textContent = isMapNynorsk() ? 'Din posisjon er ikkje tilgjengeleg' : 'Din posisjon er ikke tilgjengelig';
           updateBannerAndOfflinePanelLayout();
         }, 4000);
       }
@@ -895,10 +895,19 @@ const downloadModalBackdropEl = document.getElementById('offline-download-modal-
 const downloadModalTextEl = document.getElementById('offline-download-modal-text');
 const downloadModalOkBtnEl = document.getElementById('offline-download-modal-ok-btn');
 
+function isMapNynorsk() {
+  return typeof window !== 'undefined' && typeof window.__isNynorsk === 'function' && Boolean(window.__isNynorsk());
+}
+
 function openDownloadModal(publicCount, privateCount, alreadyDownloaded = false, totalTiles = 0, failedTiles = 0) {
+  const nn = isMapNynorsk();
   let message = alreadyDownloaded
-    ? `${publicCount} offentlige og ${privateCount} private lokaliteter, samt ${totalTiles} kartfliser for området, er allerede lagret for offline-bruk.`
-    : `${publicCount} offentlige og ${privateCount} private lokaliteter, og ${totalTiles} kartfliser, er nå lastet ned og lagret.`;
+    ? (nn
+        ? `${publicCount} offentelege og ${privateCount} private lokalitetar, samt ${totalTiles} kartfliser for området, er allereie lagra for offline-bruk.`
+        : `${publicCount} offentlige og ${privateCount} private lokaliteter, samt ${totalTiles} kartfliser for området, er allerede lagret for offline-bruk.`)
+    : (nn
+        ? `${publicCount} offentelege og ${privateCount} private lokalitetar, og ${totalTiles} kartfliser, er no lasta ned og lagra.`
+        : `${publicCount} offentlige og ${privateCount} private lokaliteter, og ${totalTiles} kartfliser, er nå lastet ned og lagret.`);
   
   if (failedTiles > 0) {
     message += `\n\nOBS: ${failedTiles} av ${totalTiles} kartfliser kunne ikke lastes ned. Dette skjer oftest hvis OpenStreetMap har gitt deg en midlertidig sperre (IP-ban) for å beskytte serverne sine.\n\nTIPS: Åpne kartmenyen (nede til venstre), bytt til "Kartverket Topo" og prøv å laste ned på nytt!`;
@@ -1082,9 +1091,10 @@ function renderSites(sitesToRender, { fitToBounds = false } = {}) {
       if (distance !== null) distStr = distance < 1000 ? `${Math.round(distance)} m` : `${(distance / 1000).toFixed(1)} km`;
 
       const siteIdStr = site.id != null ? String(site.id) : '';
+      const selectBtnLabel = isMapNynorsk() ? 'Vel denne lokaliteten' : 'Velg denne lokaliteten';
       let popupHtml = `<strong>${displayName}</strong>`;
       if (distStr) popupHtml += `<br>Avstand: ${distStr}`;
-      popupHtml += `<br><br><button onclick="selectLocation(${escapeHtml(JSON.stringify(siteName))}, ${escapeHtml(JSON.stringify(siteIdStr))})">Velg denne lokaliteten</button>`;
+      popupHtml += `<br><br><button onclick="selectLocation(${escapeHtml(JSON.stringify(siteName))}, ${escapeHtml(JSON.stringify(siteIdStr))})">${selectBtnLabel}</button>`;
 
       const siteShapeLayers = [];
       const hasPolygon = !!(site.raw && site.raw.isPolygon && site.raw.polygonCoordinates && site.raw.polygonCoordinates.length > 0);
@@ -1210,7 +1220,7 @@ async function hentOgTegnLokaliteter(center, seq) {
   const bounds = createCenteredBounds(center.lat, center.lng, diameter, diameter);
   const egneLokaliteter = () => filterSitesInBounds(getCachedPrivateSites(), bounds)
     .map((site) => ({ ...site, isMine: true, isPrivate: true }));
-  lokalitetsstatus?.replaceChildren('Henter lokaliteter …');
+  lokalitetsstatus?.replaceChildren(isMapNynorsk() ? 'Hentar lokalitetar …' : 'Henter lokaliteter …');
   try {
     const { sites: bboxSites } = await fetchLocationsWithNetworkMode(center.lat, center.lng, AUTO_FETCH_RADIUS_M, {
       ensureTokens: ensureAoTokens, fetchOnline: fetchAoSitesCached, persistOpportunistic: true,
@@ -1389,10 +1399,10 @@ if (createBtn) createBtn.addEventListener('click', async () => {
   try {
     const loggedIn = await ensureAoTokens();
     if (!loggedIn) { showPanelStatus('Innlogging feilet.', true); createBtn.disabled = false; return; }
-    showPanelStatus('Oppretter lokasjon...', false);
+    showPanelStatus(isMapNynorsk() ? 'Opprettar lokalitet...' : 'Oppretter lokasjon...', false);
     const result = await createAoSite(name, latlng.lat, latlng.lng, parseInt(accuracySelect.value));
     if (result.success) {
-      showPanelStatus(result.message || 'Lokasjon opprettet!', false);
+      showPanelStatus(result.message || (isMapNynorsk() ? 'Lokalitet oppretta!' : 'Lokasjon opprettet!'), false);
       if (dropMarker) { map.removeLayer(dropMarker); dropMarker = null; }
       removeAccuracyCircle();
       addNewSiteMarker(name, latlng.lat, latlng.lng, result.siteId);
@@ -1496,7 +1506,12 @@ function updateOfflineMarkersVisibility(visible) {
     if (map.hasLayer(siteLayerGroup)) map.removeLayer(siteLayerGroup);
     labelMarkers.forEach((m) => { if (map.hasLayer(m)) map.removeLayer(m); });
   }
-  if (toggleOfflineMarkersBtn) toggleOfflineMarkersBtn.textContent = visible ? '📍 Skjul lokaliteter' : '📍 Vis lokaliteter';
+  if (toggleOfflineMarkersBtn) {
+    const nn = isMapNynorsk();
+    toggleOfflineMarkersBtn.textContent = visible
+      ? (nn ? '📍 Skjul lokalitetar' : '📍 Skjul lokaliteter')
+      : (nn ? '📍 Vis lokalitetar' : '📍 Vis lokaliteter');
+  }
 }
 
 function formatKm(meters) { return (meters / 1000).toFixed(1).replace('.', ','); }
@@ -1742,7 +1757,13 @@ function enterOfflineSelectMode() {
 
   if (toggleOfflineBtn) toggleOfflineBtn.textContent = '✕ Lukk områdevalg';
   if (offlineAreasListBtn) offlineAreasListBtn.style.display = 'flex';
-  if (toggleOfflineMarkersBtn) { toggleOfflineMarkersBtn.style.display = 'flex'; toggleOfflineMarkersBtn.textContent = showOfflineMarkers ? '📍 Skjul lokaliteter' : '📍 Vis lokaliteter'; }
+  if (toggleOfflineMarkersBtn) {
+    const nn = isMapNynorsk();
+    toggleOfflineMarkersBtn.style.display = 'flex';
+    toggleOfflineMarkersBtn.textContent = showOfflineMarkers
+      ? (nn ? '📍 Skjul lokalitetar' : '📍 Skjul lokaliteter')
+      : (nn ? '📍 Vis lokalitetar' : '📍 Vis lokaliteter');
+  }
   if (offlinePanel) offlinePanel.style.display = 'block';
   refreshMapOfflineStorageStats();
   updateBannerAndOfflinePanelLayout();
@@ -1810,7 +1831,7 @@ if (cancelOfflineBtn) cancelOfflineBtn.addEventListener('click', exitOfflineSele
 const tileDownloadProgressEl = document.getElementById('tile-download-progress');
 const tileDownloadProgressTextEl = document.getElementById('tile-download-progress-text');
 
-function setTileDownloadProgressVisible(visible, text = 'Laster ned kartfliser...', percent = null) {
+function setTileDownloadProgressVisible(visible, text = isMapNynorsk() ? 'Lastar ned…' : 'Laster ned kartfliser...', percent = null) {
   if (mapTopProgressEl) {
     if (visible) {
       if (mapTopProgressTextEl) mapTopProgressTextEl.textContent = text;
@@ -1872,9 +1893,9 @@ async function startOfflineAreaDownload() {
   if (checkBtnEl) checkBtnEl.disabled = true;
   if (downloadOfflineBtn) {
     downloadOfflineBtn.disabled = true;
-    downloadOfflineBtn.textContent = 'Laster ned lokaliteter …';
+    downloadOfflineBtn.textContent = isMapNynorsk() ? 'Lastar ned…' : 'Laster ned lokaliteter …';
   }
-  setTileDownloadProgressVisible(true, 'Laster ned lokaliteter …', 10);
+  setTileDownloadProgressVisible(true, isMapNynorsk() ? 'Lastar ned…' : 'Laster ned lokaliteter …', 10);
 
   try {
     const existingOfflineSites = await getOfflineLocationsInBounds(targetBounds).catch(() => []);
@@ -1934,14 +1955,15 @@ async function startOfflineAreaDownload() {
     if (tilesAlreadyDownloaded) {
       if (downloadOfflineBtn) downloadOfflineBtn.textContent = 'Kartfliser er allerede lagret';
     } else {
-      setTileDownloadProgressVisible(true, `Laster ned kartfliser... (0/${tilesToDownload.length})`, 25);
+      const nn = isMapNynorsk();
+      setTileDownloadProgressVisible(true, `${nn ? 'Lastar ned…' : 'Laster ned kartfliser...'} (0/${tilesToDownload.length})`, 25);
       const result = await downloadTilesInBatches(tilesToDownload, {
         batchSize: MAX_TILE_BATCH_SIZE,
         cacheName: MAP_TILE_CACHE_NAME,
         onProgress: ({ completed, total }) => {
           const pct = total > 0 ? 25 + (completed / total) * 70 : 50;
-          setTileDownloadProgressVisible(true, `Laster ned kartfliser (${completed}/${total}) …`, pct);
-          if (downloadOfflineBtn) downloadOfflineBtn.textContent = `Laster ned kartfliser (${completed}/${total}) …`;
+          setTileDownloadProgressVisible(true, `${nn ? 'Lastar ned…' : 'Laster ned kartfliser'} (${completed}/${total}) …`, pct);
+          if (downloadOfflineBtn) downloadOfflineBtn.textContent = `${nn ? 'Lastar ned…' : 'Laster ned kartfliser'} (${completed}/${total}) …`;
         },
       });
       failedCount = result.failed || 0;

@@ -32,13 +32,24 @@ export function nesteVisning(visning) {
   return VISNINGER[(i + 1) % VISNINGER.length];
 }
 
+function erNynorsk(lang) {
+  if (lang === 'nn') return true;
+  if (lang === 'nb') return false;
+  if (typeof window !== 'undefined' && typeof window.__isNynorsk === 'function') {
+    return Boolean(window.__isNynorsk());
+  }
+  return false;
+}
+
 /**
  * Knappeteksten beskriver hva NESTE trykk gjør, ikke tilstanden man står i.
  * @param {Visning} visning
+ * @param {'nb'|'nn'} [lang]
  * @returns {string}
  */
-export function knappetekst(visning) {
-  if (visning === 'alt') return '🏷️ Skjul navn';
+export function knappetekst(visning, lang) {
+  const nn = erNynorsk(lang);
+  if (visning === 'alt') return nn ? '🏷️ Skjul namn' : '🏷️ Skjul navn';
   if (visning === 'kun-pins') return '🙈 Skjul alt';
   return '👁️ Vis alt';
 }
@@ -47,16 +58,20 @@ export function knappetekst(visning) {
  * Hjelpetekst (`title`) for knappen. Må følge teksten: i 'ingen' VISER neste
  * trykk alt, og en fast tittel ville lovet det motsatte ved hover på PC.
  * @param {Visning} visning
+ * @param {'nb'|'nn'} [lang]
  * @returns {string}
  */
-export function knappetittel(visning) {
+export function knappetittel(visning, lang) {
+  const nn = erNynorsk(lang);
   if (visning === 'alt') {
-    return 'Skjul navnene på lokalitetene';
+    return nn ? 'Skjul namna på lokalitetane' : 'Skjul navnene på lokalitetene';
   }
   if (visning === 'kun-pins') {
-    return 'Skjul alle lokalitetene, så du ser kartet og får zoomet inn';
+    return nn
+      ? 'Skjul alle lokalitetane, så du ser kartet og får zooma inn'
+      : 'Skjul alle lokalitetene, så du ser kartet og får zoomet inn';
   }
-  return 'Vis lokalitetene med navn igjen';
+  return nn ? 'Vis lokalitetane med namn igjen' : 'Vis lokalitetene med navn igjen';
 }
 
 /** Skal de permanente navne-tooltipene være åpne? */

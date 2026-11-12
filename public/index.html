@@ -55,6 +55,7 @@
                     localStorage.setItem('network_mode_v1', 'hybrid');
                   }
                 } catch (e) {}
+                var nn = typeof window.__isNynorsk === 'function' ? window.__isNynorsk() : false;
                 var toggleBtn = document.getElementById('offline-mode-toggle');
                 var toggleText = document.getElementById('offline-mode-toggle-text');
                 if (toggleBtn) {
@@ -63,20 +64,20 @@
                     if (toggleText) toggleText.textContent = '📴 Offline';
                     toggleBtn.className = 'pill offline-toggle-pill is-offline';
                     toggleBtn.setAttribute('aria-pressed', 'true');
-                    toggleBtn.setAttribute('aria-label', 'Nettverksmodus: Offline. Trykk for å bytte til Online.');
-                    toggleBtn.title = 'Nettverksmodus: Offline (kun lokalt mellomlager). Trykk for å bytte til Online.';
+                    toggleBtn.setAttribute('aria-label', nn ? 'Nettverksmodus: Offline. Trykk for å byta til Online.' : 'Nettverksmodus: Offline. Trykk for å bytte til Online.');
+                    toggleBtn.title = nn ? 'Nettverksmodus: Offline (berre lokalt mellomlager). Trykk for å byta til Online.' : 'Nettverksmodus: Offline (kun lokalt mellomlager). Trykk for å bytte til Online.';
                   } else if (mode === 'online') {
                     if (toggleText) toggleText.textContent = '🌐 Online';
                     toggleBtn.className = 'pill offline-toggle-pill is-online';
                     toggleBtn.setAttribute('aria-pressed', 'false');
-                    toggleBtn.setAttribute('aria-label', 'Nettverksmodus: Online. Trykk for å bytte til Hybrid.');
-                    toggleBtn.title = 'Nettverksmodus: Online (henter alltid ferskeste data). Trykk for å bytte til Hybrid.';
+                    toggleBtn.setAttribute('aria-label', nn ? 'Nettverksmodus: Online. Trykk for å byta til Hybrid.' : 'Nettverksmodus: Online. Trykk for å bytte til Hybrid.');
+                    toggleBtn.title = nn ? 'Nettverksmodus: Online (hentar alltid ferskaste data). Trykk for å byta til Hybrid.' : 'Nettverksmodus: Online (henter alltid ferskeste data). Trykk for å bytte til Hybrid.';
                   } else {
                     if (toggleText) toggleText.textContent = '🔄 Hybrid';
                     toggleBtn.className = 'pill offline-toggle-pill is-hybrid';
                     toggleBtn.setAttribute('aria-pressed', 'mixed');
-                    toggleBtn.setAttribute('aria-label', 'Nettverksmodus: Hybrid. Trykk for å bytte til Offline.');
-                    toggleBtn.title = 'Nettverksmodus: Hybrid (lokalt mellomlager først, nettverk ved behov). Trykk for å bytte til Offline.';
+                    toggleBtn.setAttribute('aria-label', nn ? 'Nettverksmodus: Hybrid. Trykk for å byta til Offline.' : 'Nettverksmodus: Hybrid. Trykk for å bytte til Offline.');
+                    toggleBtn.title = nn ? 'Nettverksmodus: Hybrid (lokalt mellomlager fyrst, nettverk ved behov). Trykk for å byta til Offline.' : 'Nettverksmodus: Hybrid (lokalt mellomlager først, nettverk ved behov). Trykk for å bytte til Offline.';
                   }
                 }
                 var fellesturHeaderBtn = document.getElementById('fellestur-header-btn');
@@ -85,7 +86,7 @@
                   if (isOff) {
                     fellesturHeaderBtn.classList.add('is-offline-disabled');
                     fellesturHeaderBtn.setAttribute('aria-disabled', 'true');
-                    fellesturHeaderBtn.title = 'Fellestur: Ikke tilgjengelig i offline-modus!';
+                    fellesturHeaderBtn.title = nn ? 'Fellestur: Ikkje tilgjengeleg i offline-modus!' : 'Fellestur: Ikke tilgjengelig i offline-modus!';
                   } else {
                     fellesturHeaderBtn.classList.remove('is-offline-disabled');
                     fellesturHeaderBtn.setAttribute('aria-disabled', 'false');
@@ -493,7 +494,7 @@
             <!-- CTA for ikke-innloggede: viser at direkte publisering finnes -->
             <a href="/settings.html" class="btn btn-primary-action" id="ao-login-cta" style="display:none;text-decoration:none;">
               <span>📡</span>
-              <span>Publiser med ett trykk – logg inn</span>
+              <span id="ao-login-cta-text">Publiser med ett trykk – logg inn</span>
             </a>
             <button class="btn btn-secondary-action" id="copy-open-btn" disabled>
               <span>📋</span>
@@ -565,21 +566,21 @@
         <table id="medobs-modal-table" style="width:100%;border-collapse:collapse;table-layout:fixed;">
           <thead>
             <tr>
-              <th style="text-align:left;padding:6px 4px;font-size:0.8em;color:var(--muted);">Navn</th>
-              <th style="width:50px;text-align:center;padding:6px 4px;font-size:0.8em;color:var(--muted);">Aktiv</th>
+              <th id="medobs-th-navn" style="text-align:left;padding:6px 4px;font-size:0.8em;color:var(--muted);">Navn</th>
+              <th id="medobs-th-aktiv" style="width:50px;text-align:center;padding:6px 4px;font-size:0.8em;color:var(--muted);">Aktiv</th>
               <th style="width:32px;"></th>
             </tr>
           </thead>
           <tbody id="medobs-modal-tbody"></tbody>
         </table>
         <button type="button" id="medobs-add-row-btn" style="display:flex;align-items:center;gap:6px;width:100%;margin-top:8px;padding:9px 12px;background:none;border:1px dashed var(--border);border-radius:8px;color:var(--muted);cursor:pointer;font-size:0.9em;">
-          <span style="font-size:1.1em;font-weight:bold;">+</span> Legg til person
+          <span style="font-size:1.1em;font-weight:bold;">+</span> <span id="medobs-add-row-label">Legg til person</span>
         </button>
         <div style="margin-top:12px;display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;">
           <button type="button" id="medobs-apply-all-btn" style="padding:8px 12px;border-radius:6px;border:1px solid var(--border);background:var(--accent);color:white;cursor:pointer;font-size:0.85em;font-weight:500;">Legg til på alle obs</button>
           <button type="button" id="medobs-close-btn" style="padding:8px 16px;border:1px solid var(--border);border-radius:6px;background:transparent;color:var(--text);cursor:pointer;font-size:0.9em;">Lukk</button>
         </div>
-        <p style="margin-top:10px;font-size:0.75em;color:var(--muted);line-height:1.3;">Aktive medobservatører legges automatisk på nye observasjoner.</p>
+        <p id="medobs-auto-hint" style="margin-top:10px;font-size:0.75em;color:var(--muted);line-height:1.3;">Aktive medobservatører legges automatisk på nye observasjoner.</p>
       </div>
     </div>
 
@@ -604,7 +605,7 @@
       .medobs-ac-spinner { padding: 8px 10px; font-size: 0.85em; color: var(--muted); }
     </style>
     <script type="module">
-      import { loadMedobs, saveMedobs } from './js/storage.js';
+      import { loadMedobs, saveMedobs, isNynorsk } from './js/storage.js';
 
       const modal = document.getElementById('medobs-modal');
       const tbody = document.getElementById('medobs-modal-tbody');
@@ -729,10 +730,11 @@
       function renderModal(focusIndex) {
         const list = load();
         tbody.innerHTML = '';
+        const nn = typeof isNynorsk === 'function' ? isNynorsk() : (typeof window.__isNynorsk === 'function' && window.__isNynorsk());
 
         if (list.length === 0) {
           const tr = document.createElement('tr');
-          tr.innerHTML = `<td colspan="3" style="padding:10px 4px;font-size:0.85em;color:var(--muted);">Ingen medobservatører lagt til ennå.</td>`;
+          tr.innerHTML = `<td colspan="3" style="padding:10px 4px;font-size:0.85em;color:var(--muted);">${nn ? 'Ingen medobservatørar er lagde til.' : 'Ingen medobservatører lagt til ennå.'}</td>`;
           tbody.appendChild(tr);
         }
 
@@ -740,7 +742,7 @@
           const tr = document.createElement('tr');
           tr.innerHTML = `
             <td style="padding:4px 2px;">
-              <input type="text" data-i="${i}" value="${esc(it.name)}" autocomplete="off" placeholder="Navn…"
+              <input type="text" data-i="${i}" value="${esc(it.name)}" autocomplete="off" placeholder="${nn ? 'Namn…' : 'Navn…'}"
                 style="width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:16px;background:var(--card-bg);color:var(--text);box-sizing:border-box;" />
             </td>
             <td style="text-align:center;padding:4px 2px;">
@@ -1085,11 +1087,11 @@
               <button type="button" id="em-photo-remove-btn" class="btn-ghost">Fjern bilde</button>
             </div>
           </div>
-          <div style="font-size:0.8em;color:var(--muted);margin-top:4px;">
+          <div id="em-photo-hint" style="font-size:0.8em;color:var(--muted);margin-top:4px;">
             Bildet lastes opp til Artsobservasjoner når observasjonen er sendt — ikke før.
           </div>
 
-          <label style="display:block;color:var(--muted);font-size:0.85em;margin:10px 0 4px 0;">Medobservatører</label>
+          <label id="em-medobs-label" style="display:block;color:var(--muted);font-size:0.85em;margin:10px 0 4px 0;">Medobservatører</label>
           <div id="em-medobs-picker" style="display:flex;flex-direction:column;gap:6px;"></div>
           <div style="display:flex;gap:6px;margin-top:6px;">
             <input id="em-medobs-new-name" type="text" placeholder="Legg til navn…" autocomplete="off" style="flex:1;padding:8px;border-radius:8px;border:1px solid rgba(148,163,184,0.15);background:rgba(255,255,255,0.02);color:var(--text);box-sizing:border-box;" />
@@ -1151,6 +1153,402 @@
       <ul id="arbeidsliste-rader" class="arbeidsliste-rader"></ul>
       <button type="button" class="btn btn-primary-action" id="arbeidsliste-ta-inn" hidden>Hent inn i Lista di</button>
     </dialog>
+    <script>
+      (function() {
+        function setLabelTextKeepingInput(inputEl, text) {
+          if (!inputEl || !inputEl.parentElement) return;
+          const label = inputEl.parentElement;
+          const nodes = Array.from(label.childNodes);
+          const textNode = nodes.find(n => n.nodeType === Node.TEXT_NODE && n.textContent.trim().length > 0);
+          if (textNode) {
+            textNode.textContent = ' ' + text;
+          }
+        }
 
+        function setCommentLabelPrefix(textareaEl, prefixText, parenText) {
+          if (!textareaEl || !textareaEl.parentElement) return;
+          const label = textareaEl.parentElement;
+          const firstNode = label.childNodes[0];
+          if (firstNode && firstNode.nodeType === Node.TEXT_NODE) {
+            firstNode.textContent = prefixText + ' ';
+          }
+          const span = label.querySelector('span');
+          if (span) span.textContent = parenText;
+        }
+
+        function setCheckboxSpanText(checkboxId, text, subText) {
+          const cb = document.getElementById(checkboxId);
+          if (!cb || !cb.parentElement) return;
+          const span = cb.parentElement.querySelector('span');
+          if (!span) return;
+          if (subText) {
+            span.innerHTML = text + ' <span style="opacity:0.8;">' + subText + '</span>';
+          } else {
+            span.textContent = text;
+          }
+        }
+
+        function applyIndexLanguage() {
+          const nn = typeof window.__isNynorsk === 'function' ? window.__isNynorsk() : false;
+          if (document.documentElement) document.documentElement.lang = nn ? 'nn' : 'nb';
+
+          // Header-ikon hjelpetekstar (title og aria-label)
+          const modePill = document.getElementById('mode-pill');
+          if (modePill) {
+            modePill.title = nn ? 'Klikk for å byta mellom Felt og Etterregistrering' : 'Klikk for å bytte mellom Felt og Etterregistrering';
+          }
+          const fellesturBtn = document.getElementById('fellestur-header-btn');
+          if (fellesturBtn) {
+            const isOff = fellesturBtn.classList.contains('is-offline-disabled');
+            if (isOff) {
+              fellesturBtn.title = nn ? 'Fellestur: Ikkje tilgjengeleg i offline-modus!' : 'Fellestur: Ikke tilgjengelig i offline-modus!';
+            } else {
+              fellesturBtn.removeAttribute('title');
+            }
+            fellesturBtn.setAttribute('aria-label', nn ? 'Fellestur – registrer saman med andre i éin delt logg' : 'Fellestur – registrer sammen med andre i én delt logg');
+          }
+          document.querySelectorAll('.header-actions a[href="/settings.html"]').forEach((el) => {
+            if (el.id === 'ao-status-dot') return;
+            if (el.closest('#header-menu')) {
+              el.textContent = nn ? 'Innstillingar' : 'Innstillinger';
+            } else {
+              el.title = nn ? 'Innstillingar' : 'Innstillinger';
+              el.setAttribute('aria-label', nn ? 'Innstillingar' : 'Innstillinger');
+            }
+          });
+          const aoDot = document.getElementById('ao-status-dot');
+          if (aoDot && aoDot.classList.contains('ao-out')) {
+            aoDot.title = nn ? 'Ikkje innlogga mot Artsobservasjoner – trykk for å logga inn' : 'Ikke innlogget mot Artsobservasjoner – trykk for å logge inn';
+            aoDot.setAttribute('aria-label', nn ? 'Ikkje innlogga mot Artsobservasjoner. Trykk for å logga inn.' : 'Ikke innlogget mot Artsobservasjoner. Trykk for å logge inn.');
+          } else if (aoDot && aoDot.title) {
+            if (nn) {
+              aoDot.title = aoDot.title.replace('Innlogget som ', 'Innlogga som ');
+            } else {
+              aoDot.title = aoDot.title.replace('Innlogga som ', 'Innlogget som ');
+            }
+          }
+
+          // Arbeidsliste-overføring (frå main). Rører berre element som framleis har sin
+          // kjende standardtekst, så tekst som modulen set dynamisk blir ikkje overskriven.
+          const alTekst = [
+            ['arbeidsliste-overfor', 'Fortsett på en annen enhet', 'Hald fram på ei anna eining'],
+            ['arbeidsliste-hent', 'Hent liste fra en annen enhet', 'Hent liste frå ei anna eining'],
+            ['arbeidsliste-lokal', 'Åpne innhentet liste', 'Opne innhenta liste'],
+            ['arbeidsliste-tittel', 'Overfør arbeidslista', 'Overfør arbeidslista'],
+            ['arbeidsliste-logg-inn', 'Bruk AO-innlogging', 'Bruk AO-innlogging'],
+            ['arbeidsliste-innstillinger', 'Innstillinger', 'Innstillingar'],
+            ['arbeidsliste-lagre', 'Lagre privat kopi', 'Lagra privat kopi'],
+            ['arbeidsliste-forhandsvis', 'Forhåndsvis kopien', 'Førehandsvis kopien'],
+            ['arbeidsliste-slett', 'Slett serverkopien', 'Slett tenarkopien'],
+            ['arbeidsliste-ta-inn', 'Hent inn i Lista di', 'Hent inn i Lista di'],
+            ['arbeidsliste-advarsel',
+              'Lista finnes fortsatt på den andre enheten. Sjekk om funn allerede er sendt og publiser fra én enhet. Når du henter inn lista, blir den lagret i denne nettleseren og kan åpnes her uten nett.',
+              'Lista finst framleis på den andre eininga. Sjekk om funn allereie er sende, og publiser frå éi eining. Når du hentar inn lista, blir ho lagra i denne nettlesaren og kan opnast her utan nett.'],
+          ];
+          const normWs = (s) => (s || '').replace(/\s+/g, ' ').trim();
+          alTekst.forEach(([id, nb, nnTxt]) => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            const cur = normWs(el.textContent);
+            if (cur === normWs(nb) || cur === normWs(nnTxt)) el.textContent = nn ? nnTxt : nb;
+          });
+          const alLukk = document.querySelector('#arbeidsliste-dialog .arbeidsliste-dialoghode button');
+          if (alLukk) alLukk.textContent = 'Lukk';
+
+          // Seksjon ① Lokalitet
+          const locLegend = document.querySelector('.section-lokasjon legend');
+          if (locLegend) locLegend.textContent = nn ? '① Lokalitet' : '① Lokasjon';
+
+          const locBtn = document.getElementById('loc-btn');
+          if (locBtn) {
+            locBtn.title = nn ? 'Finn AO-lokalitetar nær posisjonen din' : 'Finn AO-lokaliteter nær posisjonen din';
+            const span = locBtn.querySelector('span');
+            if (span) span.textContent = nn ? '📍 Hent lokalitetar' : '📍 Hent lokasjoner';
+          }
+
+          const locMapBtn = document.getElementById('loc-map-btn');
+          if (locMapBtn) {
+            locMapBtn.title = nn ? 'Opne kart' : 'Åpne kart';
+            locMapBtn.setAttribute('aria-label', nn ? 'Opne kart' : 'Åpne kart');
+          }
+          const locPinnedMapBtn = document.getElementById('loc-pinned-map-btn');
+          if (locPinnedMapBtn) {
+            locPinnedMapBtn.title = nn ? 'Opne kart' : 'Åpne kart';
+            locPinnedMapBtn.setAttribute('aria-label', nn ? 'Opne kart' : 'Åpne kart');
+          }
+          const locPinnedLabel = document.getElementById('loc-pinned-label');
+          if (locPinnedLabel) {
+            locPinnedLabel.title = nn ? 'Trykk for å byta lokalitet' : 'Trykk for å bytte plass';
+          }
+          const createSiteBtn = document.getElementById('create-site-btn');
+          if (createSiteBtn) {
+            createSiteBtn.title = nn ? 'Opprett ny AO-lokalitet' : 'Opprett ny AO-lokasjon';
+            createSiteBtn.setAttribute('aria-label', nn ? 'Opprett ny AO-lokalitet' : 'Opprett ny AO-lokasjon');
+          }
+          const createSiteModalH3 = document.querySelector('#create-site-modal h3');
+          if (createSiteModalH3) {
+            createSiteModalH3.textContent = nn ? 'Opprett ny AO-lokalitet' : 'Opprett ny AO-lokasjon';
+          }
+          const createSiteNameLabel = document.querySelector('label[for="create-site-name"]');
+          if (createSiteNameLabel) createSiteNameLabel.textContent = nn ? 'Lokalitetsnamn' : 'Lokalitetsnavn';
+          const createSiteAccLabel = document.querySelector('label[for="create-site-accuracy"]');
+          if (createSiteAccLabel) createSiteAccLabel.textContent = nn ? 'Nøyaktigheit' : 'Nøyaktighet';
+
+          const aoSizeInput = document.getElementById('ao-size');
+          if (aoSizeInput) aoSizeInput.title = nn ? 'Søkjeradius (500 m – 3 km)' : 'Søkeradius (500 m – 3 km)';
+          const sortStandardBtn = document.getElementById('loc-sort-standard');
+          if (sortStandardBtn) {
+            sortStandardBtn.title = nn
+              ? 'Gruppert etter type: eigne private, superlokalitet, ålmenn, andre sine private — nærmast fyrst innad i kvar gruppe'
+              : 'Gruppert etter type: egne private, superlokasjon, offentlig, andres private — nærmest først innad i hver gruppe';
+          }
+          const sortAvstandBtn = document.getElementById('loc-sort-avstand');
+          if (sortAvstandBtn) {
+            sortAvstandBtn.title = nn ? 'Berre avstand, uansett type lokalitet' : 'Kun avstand, uansett type lokasjon';
+          }
+
+          const placeLabel = document.querySelector('label[for="place"]');
+          if (placeLabel) placeLabel.textContent = nn ? 'Stadnamn' : 'Stedsnavn';
+
+          // Seksjon ② Registrer art
+          const countLabel = document.querySelector('label[for="count"]');
+          if (countLabel) countLabel.textContent = nn ? 'Antal' : 'Antall';
+          const searchInput = document.getElementById('search');
+          if (searchInput) searchInput.placeholder = nn ? 'Skriv artsnamn her …' : 'Skriv artsnavn her …';
+          const emptyMsg = document.getElementById('empty-msg');
+          if (emptyMsg && (emptyMsg.textContent.includes('Ingen treff') || !emptyMsg.textContent.trim())) {
+            emptyMsg.textContent = nn ? 'Ingen treff enno. Skriv minst 2 teikn.' : 'Ingen treff ennå. Skriv minst 2 tegn.';
+          }
+          const extraOpenBtn = document.getElementById('extra-fields-open-btn');
+          if (extraOpenBtn) {
+            extraOpenBtn.title = nn
+              ? 'Fleire felt (usikker artsbestemming, privat kommentar m.m.) for neste registrering'
+              : 'Flere felt (usikker artsbestemming, privat kommentar m.m.) for neste registrering';
+            extraOpenBtn.setAttribute('aria-label', nn ? 'Fleire felt for neste registrering' : 'Flere felt for neste registrering');
+          }
+
+          ['age', 'em-age'].forEach((id) => {
+            const sel = document.getElementById(id);
+            if (sel && sel.options.length > 0 && sel.options[0].value === '') {
+              sel.options[0].textContent = nn ? 'Ikkje oppgjeve' : 'Ikke oppgitt';
+            }
+          });
+          ['gender', 'em-gender'].forEach((id) => {
+            const sel = document.getElementById(id);
+            if (!sel) return;
+            Array.from(sel.options).forEach((opt) => {
+              if (opt.value === '') opt.textContent = nn ? 'Ikkje oppgjeve' : 'Ikke oppgitt';
+              else if (opt.value === 'Hunn') opt.textContent = nn ? 'Ho' : 'Hunn';
+              else if (opt.value === 'Hunnfarget') opt.textContent = nn ? 'Hofarga' : 'Hunnfarget';
+            });
+          });
+
+          setLabelTextKeepingInput(
+            document.getElementById('include-subtaxa'),
+            nn ? 'Vis underartar' : 'Vis underarter'
+          );
+
+          const sendEmptyHint = document.getElementById('send-empty-hint');
+          if (sendEmptyHint) {
+            sendEmptyHint.textContent = nn
+              ? 'Registrer minst éin observasjon fyrst – då kan du publisera til AO eller dela funna herifrå.'
+              : 'Registrer minst én observasjon først — da kan du publisere til AO eller dele funnene herfra.';
+          }
+
+          setLabelTextKeepingInput(
+            document.getElementById('ao-direct-auto-clear'),
+            nn ? 'Tøm lista automatisk ved vellukka sending' : 'Tøm listen automatisk ved vellykket sending'
+          );
+
+          const aoLoginCtaText = document.getElementById('ao-login-cta-text');
+          if (aoLoginCtaText) {
+            aoLoginCtaText.textContent = nn ? 'Publiser med eitt trykk – logg inn' : 'Publiser med ett trykk – logg inn';
+          }
+
+          const copyOpenBtn = document.getElementById('copy-open-btn');
+          if (copyOpenBtn) {
+            const spans = copyOpenBtn.querySelectorAll('span');
+            if (spans.length >= 2) {
+              spans[1].textContent = nn ? 'Kopier & opne AO-import' : 'Kopier & åpne AO-import';
+            }
+          }
+
+          const shareBtn = document.getElementById('share-btn');
+          if (shareBtn) {
+            const spans = shareBtn.querySelectorAll('span');
+            if (spans.length >= 2) {
+              spans[1].textContent = nn ? 'Del funna' : 'Del funnene';
+            }
+          }
+
+          const sendtLink = document.getElementById('tidligere-sendt-link');
+          if (sendtLink) sendtLink.textContent = nn ? '📤 Tidlegare sendt' : '📤 Tidligere sendt';
+
+          const delingerLink = document.getElementById('mine-delinger-link');
+          if (delingerLink) delingerLink.textContent = nn ? '🔗 Mine delingar' : '🔗 Mine delinger';
+
+          const resultsEl = document.getElementById('results');
+          if (resultsEl) resultsEl.setAttribute('aria-label', nn ? 'Artar' : 'Arter');
+
+          const locChangeBtn = document.getElementById('loc-change-btn');
+          if (locChangeBtn) locChangeBtn.textContent = nn ? 'Byt lokalitet' : 'Bytt lokasjon';
+
+          const locText = document.getElementById('loc-text');
+          if (locText && locText.textContent) {
+            if (nn) {
+              locText.textContent = locText.textContent
+                .replace('Lokasjon hentet', 'Posisjon er henta')
+                .replace('Trykk «Hent lokasjoner» før registrering.', 'Trykk «Hent lokalitetar» før registrering.')
+                .replace('Kunne ikke hente lokasjon. Sjekk tillatelser og prøv igjen.', 'Kunne ikkje henta posisjon. Sjekk appløyve og prøv igjen.')
+                .replace('(kl ', '(kl. ');
+            } else {
+              locText.textContent = locText.textContent
+                .replace('Posisjon er henta', 'Lokasjon hentet')
+                .replace('Trykk «Hent lokalitetar» før registrering.', 'Trykk «Hent lokasjoner» før registrering.')
+                .replace('Kunne ikkje henta posisjon. Sjekk appløyve og prøv igjen.', 'Kunne ikke hente lokasjon. Sjekk tillatelser og prøv igjen.');
+            }
+          }
+
+          const medobsOpenBtn = document.getElementById('medobs-open-btn');
+          if (medobsOpenBtn) medobsOpenBtn.textContent = nn ? '👥 Medobservatørar' : '👥 Medobservatører';
+
+          const medobsModalH3 = document.querySelector('#medobs-modal h3');
+          if (medobsModalH3) medobsModalH3.textContent = nn ? '👥 Medobservatørar' : '👥 Medobservatører';
+
+          const medobsThNavn = document.getElementById('medobs-th-navn');
+          if (medobsThNavn) medobsThNavn.textContent = nn ? 'Namn' : 'Navn';
+
+          const medobsThAktiv = document.getElementById('medobs-th-aktiv');
+          if (medobsThAktiv) medobsThAktiv.textContent = 'Aktiv';
+
+          const medobsAutoHint = document.getElementById('medobs-auto-hint');
+          if (medobsAutoHint) {
+            medobsAutoHint.textContent = nn
+              ? 'Aktive medobservatørar blir automatisk lagde til på nye observasjonar.'
+              : 'Aktive medobservatører legges automatisk på nye observasjoner.';
+          }
+
+          const emptyMedobsTd = document.querySelector('#medobs-modal-tbody td[colspan="3"]');
+          if (emptyMedobsTd) {
+            emptyMedobsTd.textContent = nn ? 'Ingen medobservatørar er lagde til.' : 'Ingen medobservatører lagt til ennå.';
+          }
+
+          const extraModal = document.getElementById('extra-fields-modal');
+          if (extraModal) {
+            const subP = extraModal.querySelector('p');
+            if (subP) subP.textContent = nn ? 'Gjeld neste registrering.' : 'Gjelder neste registrering.';
+          }
+
+          setCommentLabelPrefix(
+            document.getElementById('extra-comment'),
+            'Kommentar',
+            nn ? '(synleg for alle)' : '(synlig for alle)'
+          );
+          setCheckboxSpanText('extra-uncertain', 'Usikker artsbestemming');
+          setCheckboxSpanText('extra-not-spontaneous', nn ? 'Ikkje spontan' : 'Ikke spontan');
+          setCheckboxSpanText('extra-interesting', 'Interessant kommentar');
+          setCheckboxSpanText('extra-not-refound', nn ? 'Ikkje attfunne' : 'Ikke gjenfunnet');
+          setCheckboxSpanText('extra-not-found', nn ? 'Ikkje funne' : 'Ikke funnet');
+          setCheckboxSpanText(
+            'extra-secondhand',
+            nn ? 'Andrehandsopplysning' : 'Andrehåndsopplysning',
+            nn ? '(ikkje observert av deg sjølv)' : '(ikke observert av deg selv)'
+          );
+          setCommentLabelPrefix(
+            document.getElementById('extra-private-comment'),
+            'Privat kommentar',
+            nn ? '(berre synleg for deg sjølv)' : '(kun synlig for deg selv)'
+          );
+
+          const extraPhotoInput = document.getElementById('extra-photo');
+          if (extraPhotoInput && extraPhotoInput.parentElement) {
+            const lbl = extraPhotoInput.parentElement.querySelector('label');
+            if (lbl) lbl.textContent = nn ? 'Bilete' : 'Bilde';
+          }
+          const extraPickBtn = document.getElementById('extra-photo-pick-btn');
+          if (extraPickBtn) extraPickBtn.textContent = nn ? '📁 Vel bilete' : '📁 Velg bilde';
+          const extraPasteBtn = document.getElementById('extra-photo-paste-btn');
+          if (extraPasteBtn) extraPasteBtn.textContent = '📋 Lim inn';
+          const extraCloseBtn = document.getElementById('extra-fields-close-btn');
+          if (extraCloseBtn) extraCloseBtn.textContent = 'Lukk';
+
+          // Rediger observasjon-modalen (#observation-edit-modal)
+          const emCountInput = document.getElementById('em-count');
+          if (emCountInput && emCountInput.parentElement) {
+            const firstNode = emCountInput.parentElement.childNodes[0];
+            if (firstNode && firstNode.nodeType === Node.TEXT_NODE) {
+              firstNode.textContent = (nn ? 'Antal' : 'Antall') + '\n            ';
+            }
+          }
+          const emPlaceInput = document.getElementById('em-place');
+          if (emPlaceInput && emPlaceInput.parentElement) {
+            const firstNode = emPlaceInput.parentElement.childNodes[0];
+            if (firstNode && firstNode.nodeType === Node.TEXT_NODE) {
+              firstNode.textContent = (nn ? 'Stad' : 'Sted') + '\n            ';
+            }
+          }
+          setCommentLabelPrefix(
+            document.getElementById('em-comment'),
+            'Kommentar',
+            nn ? '(synleg for alle)' : '(synlig for alle)'
+          );
+          setCheckboxSpanText('em-uncertain', 'Usikker artsbestemming');
+          setCheckboxSpanText('em-not-spontaneous', nn ? 'Ikkje spontan' : 'Ikke spontan');
+          setCheckboxSpanText('em-interesting', 'Interessant kommentar');
+          setCheckboxSpanText('em-not-refound', nn ? 'Ikkje attfunne' : 'Ikke gjenfunnet');
+          setCheckboxSpanText('em-not-found', nn ? 'Ikkje funne' : 'Ikke funnet');
+          setCheckboxSpanText(
+            'em-secondhand',
+            nn ? 'Andrehandsopplysning' : 'Andrehåndsopplysning',
+            nn ? '(ikkje observert av deg sjølv)' : '(ikke observert av deg selv)'
+          );
+          setCommentLabelPrefix(
+            document.getElementById('em-private-comment'),
+            'Privat kommentar',
+            nn ? '(berre synleg for deg sjølv)' : '(kun synlig for deg selv)'
+          );
+
+          const emPhotoInput = document.getElementById('em-photo');
+          if (emPhotoInput && emPhotoInput.previousElementSibling && emPhotoInput.previousElementSibling.tagName === 'LABEL') {
+            emPhotoInput.previousElementSibling.textContent = nn ? 'Bilete' : 'Bilde';
+          }
+          const emPickBtn = document.getElementById('em-photo-pick-btn');
+          if (emPickBtn) emPickBtn.textContent = nn ? '📁 Vel bilete' : '📁 Velg bilde';
+          const emPhotoHint = document.getElementById('em-photo-hint');
+          if (emPhotoHint) {
+            emPhotoHint.textContent = nn
+              ? 'Biletet blir lasta opp til Artsobservasjoner når observasjonen er sendt – ikkje før.'
+              : 'Bildet lastes opp til Artsobservasjoner når observasjonen er sendt — ikke før.';
+          }
+          const emMedobsLabel = document.getElementById('em-medobs-label');
+          if (emMedobsLabel) {
+            emMedobsLabel.textContent = nn ? 'Medobservatørar' : 'Medobservatører';
+          }
+          const emMedobsPicker = document.getElementById('em-medobs-picker');
+          if (emMedobsPicker && emMedobsPicker.previousElementSibling && emMedobsPicker.previousElementSibling.tagName === 'LABEL') {
+            emMedobsPicker.previousElementSibling.textContent = nn ? 'Medobservatørar' : 'Medobservatører';
+          }
+          const emMedobsNewName = document.getElementById('em-medobs-new-name');
+          if (emMedobsNewName) {
+            emMedobsNewName.placeholder = nn ? 'Legg til namn…' : 'Legg til navn…';
+          }
+          const emMedobsNewAddBtn = document.getElementById('em-medobs-new-add-btn');
+          if (emMedobsNewAddBtn) {
+            emMedobsNewAddBtn.textContent = nn ? 'Legg til' : 'Legg til';
+          }
+
+          const emptyObsMsg = document.querySelector('.obs-empty-msg');
+          if (emptyObsMsg) {
+            emptyObsMsg.textContent = nn
+              ? 'Registrerte observasjonar dukkar opp her. Start med å velja lokalitet øvst, deretter art.'
+              : 'Registrerte observasjoner dukker opp her. Start med å velge lokasjon øverst, deretter art.';
+          }
+        }
+
+        applyIndexLanguage();
+        window.addEventListener('DOMContentLoaded', applyIndexLanguage);
+        window.addEventListener('pageshow', applyIndexLanguage);
+      })();
+    </script>
   </body>
 </html>

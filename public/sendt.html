@@ -460,7 +460,7 @@
     </div>
 
     <script type="module">
-      import { loadSentBatches, loadObservations, saveObservations, SENT_MAX_DAYS } from '/js/storage.js';
+      import { loadSentBatches, loadObservations, saveObservations, SENT_MAX_DAYS, activityDisplayName } from '/js/storage.js';
       import { openShareDialog } from '/js/share.js';
       // Importene er versjonert: photo-picker.js har fått ny dropZone-støtte, og
       // bilde-editor.js har fått `settSkygger` og `settZoom`/`vedVisningsendring`
@@ -470,6 +470,46 @@
       import { initPhotoPicker } from '/js/photo-picker.js?v=v1.60.15';
       import { lagBildeEditor } from '/js/bilde-editor.js?v=v1.60.15';
       import { loggInnMedLagretLegitimasjon } from '/js/api.js?v=v1.60.15';
+
+      const nn = typeof window !== 'undefined' && typeof window.__isNynorsk === 'function' && Boolean(window.__isNynorsk());
+      if (nn) {
+        document.title = 'Tidlegare sendt';
+        const h1 = document.querySelector('header h1');
+        if (h1) h1.textContent = '📤 Tidlegare sendt';
+        const backLink = document.querySelector('header .back-link');
+        if (backLink) backLink.textContent = '← Attende';
+        const ingress = document.querySelector('.ingress');
+        if (ingress) {
+          ingress.textContent = 'Funna dine hjå Artsobservasjoner, og kvitteringa for det du har publisert frå denne eininga.';
+        }
+        const h2s = document.querySelectorAll('.shell h2');
+        const infos = document.querySelectorAll('.shell .seksjon-info');
+        if (infos[0]) {
+          infos[0].innerHTML = 'Alt du er med på hjå Artsobservasjoner, henta derfirå – så lista er lik på alle einingane dine. <a href="/help.html#tidligere-sendt">Slik verkar ho</a>.';
+        }
+        if (h2s[1]) h2s[1].textContent = '📱 Sendt frå denne eininga';
+        if (infos[1]) {
+          infos[1].textContent = 'Lokal kvittering for det du har publisert dei siste 7 dagane. Verkar utan nett og utan innlogging.';
+        }
+        const dagerSelect = document.getElementById('ao-dager');
+        if (dagerSelect) {
+          Array.from(dagerSelect.options).forEach((opt) => {
+            opt.textContent = `Siste ${opt.value} dagar`;
+          });
+        }
+        const bareUtenBildeSpan = document.querySelector('label.filter-pille span');
+        if (bareUtenBildeSpan) bareUtenBildeSpan.textContent = 'Berre utan bilete';
+        const emArtByttBtn = document.getElementById('em-art-bytt');
+        if (emArtByttBtn) emArtByttBtn.textContent = 'Byt art';
+        const emAntallLabel = document.querySelector('label[for="em-antall"]');
+        if (emAntallLabel) emAntallLabel.textContent = 'Antal';
+        const bmFilBtn = document.getElementById('bm-fil');
+        if (bmFilBtn) bmFilBtn.textContent = '📁 Vel fil';
+        const footerEl = document.querySelector('footer');
+        if (footerEl) {
+          footerEl.innerHTML = 'Skal du retta eit funn, gjer du det på <a href="https://www.artsobservasjoner.no/User/MyPages" target="_blank" rel="noopener">Mine sider på artsobservasjoner.no</a>.';
+        }
+      }
 
       const MND = ['januar', 'februar', 'mars', 'april', 'mai', 'juni',
         'juli', 'august', 'september', 'oktober', 'november', 'desember'];
@@ -528,7 +568,7 @@
       }
 
       function renderFunn(funn) {
-        const detaljer = [funn.time, funn.activity].filter(Boolean).join(' · ');
+        const detaljer = [funn.time, activityDisplayName(funn.activity)].filter(Boolean).join(' · ');
         const advarsel = funn.triggeredRules
           ? `<div class="advarsel">⚠️ Artsobservasjoner har en merknad til dette funnet:
              ${tekst(funn.triggeredRules)}</div>`
@@ -536,9 +576,11 @@
         // Knappen blir stående også etter første bilde: AO tillater inntil 10 per
         // funn, og en fugl fortjener gjerne både nærbilde og habitatbilde. Merket
         // ved siden av forteller at det alt ligger noe der.
-        const harMerke = funn.hasImage ? '<span class="har-bilde">🖼️ Har bilde</span>' : '';
+        const harMerke = funn.hasImage
+          ? `<span class="har-bilde">${nn ? '🖼️ Har bilete' : '🖼️ Har bilde'}</span>`
+          : '';
         const bildeknapp = `<button class="btn-liten ${funn.hasImage ? '' : 'primar'}"
-          data-bilde="${attr(funn.sightingId)}">${funn.hasImage ? '➕ Legg til ett til' : '📷 Legg til bilde'}</button>`;
+          data-bilde="${attr(funn.sightingId)}">${funn.hasImage ? (nn ? '➕ Legg til eitt til' : '➕ Legg til ett til') : (nn ? '📷 Legg til bilete' : '📷 Legg til bilde')}</button>`;
 
         // Bilder kan alle involverte legge til, men bare rapportøren kan endre
         // funnet. AO skjuler selv «Endre» for andre, så vi speiler den regelen i
@@ -572,7 +614,13 @@
       async function lastAoFunn() {
         const t = hentTokens();
         if (!t.loginToken || !t.authCookie) {
-          aoListeEl.innerHTML = `<div class="beskjed">
+          aoListeEl.innerHTML = nn
+            ? `<div class="beskjed">
+            Du er ikkje innlogga på Artsobservasjoner i appen.
+            <a href="/settings.html">Legg inn brukarnamn og passord i innstillingar</a>,
+            så hentar me funna dine herifrå.
+          </div>`
+            : `<div class="beskjed">
             Du er ikke innlogget på Artsobservasjoner i appen.
             <a href="/settings.html">Legg inn brukernavn og passord i innstillinger</a>,
             så henter vi funnene dine herfra.
@@ -691,11 +739,11 @@
         const synlige = bareUtenBilde ? funnCache.filter((f) => !f.hasImage) : funnCache;
 
         const sammendrag = `<p class="sammendrag">${funnCache.length} funn
-          ${utenBilde ? `· <strong>${utenBilde}</strong> uten bilde` : '· alle har bilde'}</p>`;
+          ${utenBilde ? `· <strong>${utenBilde}</strong> ${nn ? 'utan bilete' : 'uten bilde'}` : (nn ? '· alle har bilete' : '· alle har bilde')}</p>`;
 
         if (!synlige.length) {
           aoListeEl.innerHTML = sammendrag + `<div class="tom">
-            Alle funnene i dette tidsrommet har bilde.
+            ${nn ? 'Alle funna i dette tidsrommet har bilete.' : 'Alle funnene i dette tidsrommet har bilde.'}
           </div>`;
           return;
         }
@@ -734,7 +782,7 @@
         if (!el) return;
         const utenBilde = funnCache.filter((f) => !f.hasImage).length;
         el.innerHTML = `${funnCache.length} funn ${utenBilde
-          ? `· <strong>${utenBilde}</strong> uten bilde` : '· alle har bilde'}`;
+          ? `· <strong>${utenBilde}</strong> ${nn ? 'utan bilete' : 'uten bilde'}` : (nn ? '· alle har bilete' : '· alle har bilde')}`;
       }
 
       function settStatus(sightingId, melding, type) {
@@ -814,13 +862,13 @@
         if (!funn || !rad) return;
         const knapp = rad.querySelector('[data-bilde]');
         if (knapp) {
-          knapp.textContent = '➕ Legg til ett til';
+          knapp.textContent = nn ? '➕ Legg til eitt til' : '➕ Legg til ett til';
           knapp.classList.remove('primar');
         }
         if (!rad.querySelector('.har-bilde')) {
           const merke = document.createElement('span');
           merke.className = 'har-bilde';
-          merke.textContent = '🖼️ Har bilde';
+          merke.textContent = nn ? '🖼️ Har bilete' : '🖼️ Har bilde';
           rad.querySelector('.funn-handling').prepend(merke);
         }
       }
@@ -1183,7 +1231,7 @@
 
         emAntall.value = res.quantity || '';
         emAktivitet.innerHTML = (res.activityOptions || [])
-          .map((o) => `<option value="${attr(o.id)}">${tekst(o.navn)}</option>`).join('');
+          .map((o) => `<option value="${attr(o.id)}" data-bokmal="${attr(o.navn)}">${tekst(activityDisplayName(o.navn))}</option>`).join('');
         if (res.activityId) emAktivitet.value = res.activityId;
 
         // Det vi IKKE endrer her skal stå synlig, så ingen tror det er glemt.
@@ -1202,7 +1250,7 @@
         if (!emOkt) return;
         const antall = String(emAntall.value || '').trim();
         if (!antall || Number(antall) < 1) {
-          emSettStatus('Antall må være minst 1.', 'feil');
+          emSettStatus(nn ? 'Antal må vera minst 1.' : 'Antall må være minst 1.', 'feil');
           emAntall.focus();
           return;
         }
@@ -1215,8 +1263,9 @@
         if (emAktivitet.value && emAktivitet.value !== String(emOkt.opprinneligAktivitet)) {
           endringer.activity_id = emAktivitet.value;
           // Navnet sendes med så serveren kan BEKREFTE endringen mot AO etterpå.
+          const selOpt = emAktivitet.options[emAktivitet.selectedIndex];
           endringer.activity_navn =
-            emAktivitet.options[emAktivitet.selectedIndex].textContent.trim();
+            ((selOpt && selOpt.dataset && selOpt.dataset.bokmal) || (selOpt ? selOpt.textContent : '')).trim();
         }
 
         emLagre.disabled = true;
@@ -1485,7 +1534,7 @@
           const rader = iGruppe.map(o => {
             const navn = (o.species && o.species.taxonName) || '';
             const tid = (o.timestamp || '').slice(11, 16);
-            const detaljer = [o.activity, o.age, o.gender].filter(Boolean).join(' · ');
+            const detaljer = [activityDisplayName(o.activity), o.age, o.gender].filter(Boolean).join(' · ');
             return `<li><span class="antall">${tekst(o.count || '')}</span> ${tekst(navn)}
               <span class="detalj">${tid ? ' – ' + tekst(tid) : ''}${detaljer ? ' · ' + tekst(detaljer) : ''}</span></li>`;
           }).join('');
@@ -1515,7 +1564,15 @@
       if (!batches.length) {
         // Loggen kan ikke fylles bakover — funn sendt før denne funksjonen fantes
         // ble aldri lagret. Si det, i stedet for å påstå at ingenting er sendt.
-        listeEl.innerHTML = `<div class="tom">
+        listeEl.innerHTML = nn
+          ? `<div class="tom">
+          Ingen kvitteringar her enno.<br>
+          Neste gong du publiserer til Artsobservasjoner, dukkar ho opp – og vert
+          liggjande i sju dagar.
+          <br><br><span style="font-size:0.85em;opacity:0.75;">
+          Funn du sende før denne funksjonen kom, er ikkje med.</span>
+        </div>`
+          : `<div class="tom">
           Ingen kvitteringer her ennå.<br>
           Neste gang du publiserer til Artsobservasjoner, dukker den opp — og blir
           liggende i ${SENT_MAX_DAYS} dager.

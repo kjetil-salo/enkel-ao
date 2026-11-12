@@ -6,7 +6,7 @@
 import { fetchAoSites, createAoSite, getCachedPrivateSites, ensureAoTokens } from './api.js';
 import { setLocationStatus, haversine } from './ui.js';
 import { isOfflineMode, getAllOfflineLocations, fetchLocationsWithNetworkMode } from './offline-db.js';
-import { saveLastKnownPosition, loadLastKnownPosition } from './storage.js';
+import { saveLastKnownPosition, loadLastKnownPosition, loadNynorskArtsnavn } from './storage.js';
 
 /**
  * Standard kartsenter (Svortland, Bømlo) som brukes når brukerens GPS-posisjon
@@ -166,7 +166,9 @@ export function setAoSiteSuggestions(sites, currentPosition, dropdown, aoSitesEl
 
   if (!currentAoSites.length) {
     dropdown.style.display = 'none';
-    aoSitesEl.innerHTML = 'Ingen lokasjoner fra Artsobservasjoner i nærheten.';
+    aoSitesEl.innerHTML = loadNynorskArtsnavn()
+      ? 'Ingen lokalitetar frå Artsobservasjoner i nærleiken.'
+      : 'Ingen lokasjoner fra Artsobservasjoner i nærheten.';
     aoSitesEl.style.display = 'block';
     return currentAoSites;
   }
@@ -176,7 +178,9 @@ export function setAoSiteSuggestions(sites, currentPosition, dropdown, aoSitesEl
   const userLon = currentPosition && typeof currentPosition.lon === 'number' ? currentPosition.lon : null;
   
   if (userLat == null || userLon == null) {
-    aoSitesEl.innerHTML = 'Kan ikke vise avstand til lokasjoner fordi posisjonen til enheten ikke er tilgjengelig. Godta posisjonsdeling i nettleseren.';
+    aoSitesEl.innerHTML = loadNynorskArtsnavn()
+      ? 'Kan ikkje visa avstand til lokalitetar fordi posisjonen til eininga ikkje er tilgjengeleg. Godta posisjonsdeling i nettlesaren.'
+      : 'Kan ikke vise avstand til lokasjoner fordi posisjonen til enheten ikke er tilgjengelig. Godta posisjonsdeling i nettleseren.';
     aoSitesEl.style.display = 'block';
   }
   
@@ -214,7 +218,9 @@ export function setAoSiteSuggestions(sites, currentPosition, dropdown, aoSitesEl
   
   if (!visibleSites.length) {
     dropdown.style.display = 'none';
-    aoSitesEl.innerHTML = 'Ingen lokasjoner fra Artsobservasjoner i nærheten.';
+    aoSitesEl.innerHTML = loadNynorskArtsnavn()
+      ? 'Ingen lokalitetar frå Artsobservasjoner i nærleiken.'
+      : 'Ingen lokasjoner fra Artsobservasjoner i nærheten.';
     aoSitesEl.style.display = 'block';
     return currentAoSites;
   }
@@ -222,7 +228,7 @@ export function setAoSiteSuggestions(sites, currentPosition, dropdown, aoSitesEl
   // Legg til en tom "Velg lokasjon"-rad
   const emptyDiv = document.createElement('div');
   emptyDiv.className = 'ao-site-suggestion ao-site-empty';
-  emptyDiv.textContent = 'Velg lokasjon...';
+  emptyDiv.textContent = loadNynorskArtsnavn() ? 'Vel lokalitet...' : 'Velg lokasjon...';
   emptyDiv.style.color = 'var(--muted)';
   emptyDiv.style.cursor = 'default';
   dropdown.appendChild(emptyDiv);
@@ -364,7 +370,14 @@ export function initLocation(elements, onPositionUpdate, aoSizeMeters = 1000) {
   try {
     const savedStatus = localStorage.getItem('locationStatus');
     if (savedStatus) {
-      const { mode, text } = JSON.parse(savedStatus);
+      let { mode, text } = JSON.parse(savedStatus);
+      if (loadNynorskArtsnavn() && typeof text === 'string') {
+        text = text
+          .replace('Kunne ikke hente lokasjon. Sjekk tillatelser og prøv igjen.', 'Kunne ikkje henta posisjon. Sjekk appløyve og prøv igjen.')
+          .replace('Trykk «Hent lokasjoner» før registrering.', 'Trykk «Hent lokalitetar» før registrering.')
+          .replace('Lokasjon hentet', 'Posisjon er henta')
+          .replace('(kl ', '(kl. ');
+      }
       // Gjenopprett status uten å oppdatere klokkeslett
       if (locText) locText.textContent = text;
       if (locDot) {
@@ -377,11 +390,21 @@ export function initLocation(elements, onPositionUpdate, aoSizeMeters = 1000) {
         }
       }
     } else {
-      setLocationStatus(locDot, locText, 'idle', 'Trykk «Hent lokasjoner» før registrering.');
+      setLocationStatus(
+        locDot,
+        locText,
+        'idle',
+        loadNynorskArtsnavn() ? 'Trykk «Hent lokalitetar» før registrering.' : 'Trykk «Hent lokasjoner» før registrering.'
+      );
     }
   } catch (e) {
     // Hvis localStorage feiler, bruk default
-    setLocationStatus(locDot, locText, 'idle', 'Trykk «Hent lokasjoner» før registrering.');
+    setLocationStatus(
+      locDot,
+      locText,
+      'idle',
+      loadNynorskArtsnavn() ? 'Trykk «Hent lokalitetar» før registrering.' : 'Trykk «Hent lokasjoner» før registrering.'
+    );
   }
 
   const TARGET_GPS_ACCURACY_M = 15;
@@ -402,13 +425,13 @@ export function initLocation(elements, onPositionUpdate, aoSizeMeters = 1000) {
   locBtn.addEventListener('click', () => {
     console.log('[loc-btn] Klikk registrert, starter geolokasjon');
     if (!navigator.geolocation) {
-      setLocationStatus(locDot, locText, 'error', 'Geolokasjon støttes ikke i denne nettleseren.');
+      setLocationStatus(locDot, locText, 'error', loadNynorskArtsnavn() ? 'Geolokasjon vert ikkje støtta i denne nettlesaren.' : 'Geolokasjon støttes ikke i denne nettleseren.');
       return;
     }
 
     stopActiveWatch();
 
-    setLocationStatus(locDot, locText, 'pending', 'Henter lokasjon …');
+    setLocationStatus(locDot, locText, 'pending', loadNynorskArtsnavn() ? 'Hentar posisjon …' : 'Henter lokasjon …');
     locBtn.disabled = true;
 
     // Les radius direkte fra inputfeltet hvis det finnes
@@ -448,7 +471,8 @@ export function initLocation(elements, onPositionUpdate, aoSizeMeters = 1000) {
         onPositionUpdate(posToUse, [], effectiveAoSize);
       } finally {
         const currentAccStr = Math.round((bestPosition || posToUse).accuracy);
-        setLocationStatus(locDot, locText, 'ok', `Lokasjon hentet (±${currentAccStr} m)`);
+        const prefix = loadNynorskArtsnavn() ? 'Posisjon er henta' : 'Lokasjon hentet';
+        setLocationStatus(locDot, locText, 'ok', `${prefix} (±${currentAccStr} m)`);
       }
     }
 
@@ -470,7 +494,14 @@ export function initLocation(elements, onPositionUpdate, aoSizeMeters = 1000) {
 
       if (!bestPosition) {
         console.warn('Ingen GPS-fix mottatt innen tidsfrist');
-        setLocationStatus(locDot, locText, 'error', 'Kunne ikke hente lokasjon. Sjekk tillatelser og prøv igjen.');
+        setLocationStatus(
+          locDot,
+          locText,
+          'error',
+          loadNynorskArtsnavn()
+            ? 'Kunne ikkje henta posisjon. Sjekk appløyve og prøv igjen.'
+            : 'Kunne ikke hente lokasjon. Sjekk tillatelser og prøv igjen.'
+        );
         const fallbackSites = isOfflineMode() ? await getAllOfflineLocations().catch(() => []) : [];
         onPositionUpdate(null, fallbackSites, effectiveAoSize);
         if (typeof updateMapBtnVisibility === 'function') updateMapBtnVisibility();
@@ -479,7 +510,9 @@ export function initLocation(elements, onPositionUpdate, aoSizeMeters = 1000) {
       }
 
       const accStr = Math.round(bestPosition.accuracy);
-      setLocationStatus(locDot, locText, 'pending', `Lokasjon hentet (±${accStr} m), henter lokaliteter …`);
+      const prefix = loadNynorskArtsnavn() ? 'Posisjon er henta' : 'Lokasjon hentet';
+      const fetchingSuffix = loadNynorskArtsnavn() ? 'hentar lokalitetar …' : 'henter lokaliteter …';
+      setLocationStatus(locDot, locText, 'pending', `${prefix} (±${accStr} m), ${fetchingSuffix}`);
 
       await fetchAndApplySites(bestPosition);
 
@@ -506,7 +539,12 @@ export function initLocation(elements, onPositionUpdate, aoSizeMeters = 1000) {
       }
 
       if (!finished) {
-        setLocationStatus(locDot, locText, 'pending', `Henter lokasjon … ±${Math.round(accuracy)}m`);
+        setLocationStatus(
+          locDot,
+          locText,
+          'pending',
+          `${loadNynorskArtsnavn() ? 'Hentar posisjon …' : 'Henter lokasjon …'} ±${Math.round(accuracy)}m`
+        );
         if (accuracy <= TARGET_GPS_ACCURACY_M) {
           finish();
         }
@@ -519,7 +557,8 @@ export function initLocation(elements, onPositionUpdate, aoSizeMeters = 1000) {
         if (locText) {
           locText.title = `${latStr}, ${lonStr} (±${accStr} m)`;
         }
-        setLocationStatus(locDot, locText, 'ok', `Lokasjon hentet (±${accStr} m)`);
+        const prefix = loadNynorskArtsnavn() ? 'Posisjon er henta' : 'Lokasjon hentet';
+        setLocationStatus(locDot, locText, 'ok', `${prefix} (±${accStr} m)`);
 
         const movedMeters = lastFetchedPosition
           ? haversine(lastFetchedPosition.lat, lastFetchedPosition.lon, candidate.lat, candidate.lon)
@@ -543,7 +582,14 @@ export function initLocation(elements, onPositionUpdate, aoSizeMeters = 1000) {
           console.warn('Feil ved geolokasjon (watchPosition)', err);
           if (!bestPosition && !finished) {
             stopActiveWatch();
-            setLocationStatus(locDot, locText, 'error', 'Kunne ikke hente lokasjon. Sjekk tillatelser og prøv igjen.');
+            setLocationStatus(
+              locDot,
+              locText,
+              'error',
+              loadNynorskArtsnavn()
+                ? 'Kunne ikkje henta posisjon. Sjekk appløyve og prøv igjen.'
+                : 'Kunne ikke hente lokasjon. Sjekk tillatelser og prøv igjen.'
+            );
             const fallbackSites = isOfflineMode() ? await getAllOfflineLocations().catch(() => []) : [];
             onPositionUpdate(null, fallbackSites, effectiveAoSize);
             if (typeof updateMapBtnVisibility === 'function') updateMapBtnVisibility();

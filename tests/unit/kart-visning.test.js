@@ -47,6 +47,10 @@ describe('knappetekst', () => {
     expect(knappetekst('ingen')).toContain('Vis alt');
   });
 
+  it('bruker nynorsk når lang er nn', () => {
+    expect(knappetekst('alt', 'nn')).toContain('Skjul namn');
+  });
+
   it('har en tekst for hver tilstand', () => {
     const tekster = VISNINGER.map(knappetekst);
     expect(new Set(tekster).size).toBe(VISNINGER.length);
@@ -61,6 +65,10 @@ describe('knappetittel', () => {
     // Det var denne som motsa seg selv med en fast tittel: her VISER neste trykk
     expect(knappetittel('ingen')).toMatch(/[Vv]is/);
     expect(knappetittel('ingen')).not.toMatch(/[Ss]kjul/);
+  });
+
+  it('bruker nynorsk når lang er nn', () => {
+    expect(knappetittel('alt', 'nn')).toBe('Skjul namna på lokalitetane');
   });
 
   it('har en egen tittel for hver tilstand', () => {

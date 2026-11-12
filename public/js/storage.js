@@ -14,6 +14,7 @@ const SENT_KEY = 'sent_observations_v1';
 const LOCATION_SORT_KEY = 'location_sort_mode_v1';
 const AO_DIRECT_AUTO_CLEAR_KEY = 'ao_direct_auto_clear_v1';
 const NYNORSK_ARTSNAVN_KEY = 'nynorsk_artsnavn_v1';
+const LANGUAGE_KEY = 'app_language_v1';
 export const LAST_KNOWN_POSITION_KEY = 'ao_last_known_position_v1';
 
 /**
@@ -347,6 +348,54 @@ export function loadAoDirectAutoClear() {
 }
 
 /**
+ * Lagre valgt språk ('nb' eller 'nn') og synkroniser med nynorsk_artsnavn_v1.
+ * @param {'nb'|'nn'|boolean} lang
+ */
+export function saveLanguage(lang) {
+  if (!window.localStorage) return;
+  const isNn = lang === 'nn' || lang === true || lang === '1';
+
+  try {
+    window.localStorage.setItem(LANGUAGE_KEY, isNn ? 'nn' : 'nb');
+    window.localStorage.setItem(NYNORSK_ARTSNAVN_KEY, isNn ? '1' : '0');
+    if (typeof document !== 'undefined' && document.documentElement) {
+      document.documentElement.lang = isNn ? 'nn' : 'nb';
+    }
+  } catch (e) {
+    console.warn('Kunne ikke lagre språk-valg', e);
+  }
+}
+
+/**
+ * Last valgt språk ('nb' eller 'nn'). Default 'nb'.
+ * Bakoverkompatibel med eksisterende nynorsk_artsnavn_v1-nøkkel.
+ * @returns {'nb'|'nn'}
+ */
+export function loadLanguage() {
+  if (!window.localStorage) return 'nb';
+
+  try {
+    const lang = window.localStorage.getItem(LANGUAGE_KEY);
+    if (lang === 'nn' || lang === 'nb') return lang;
+
+    const ny = window.localStorage.getItem(NYNORSK_ARTSNAVN_KEY);
+    if (ny === '1' || ny === 'true') return 'nn';
+    if (ny === '0' || ny === 'false') return 'nb';
+    return 'nb';
+  } catch (e) {
+    return 'nb';
+  }
+}
+
+/**
+ * Sjekk om nynorsk ('nn') er aktivt språk.
+ * @returns {boolean}
+ */
+export function isNynorsk() {
+  return loadLanguage() === 'nn';
+}
+
+/**
  * Lagre om nynorske artsnavn skal brukes som visningsnavn i artssøket (kun
  * offline-lista, se docs/ for kildeanalyse). Rent visuelt - endrer ALDRI
  * hvilket navn som faktisk lagres/sendes til AO ved publisering (det er
@@ -355,13 +404,7 @@ export function loadAoDirectAutoClear() {
  * @param {boolean} value
  */
 export function saveNynorskArtsnavn(value) {
-  if (!window.localStorage) return;
-
-  try {
-    window.localStorage.setItem(NYNORSK_ARTSNAVN_KEY, value ? '1' : '0');
-  } catch (e) {
-    console.warn('Kunne ikke lagre nynorsk-valg', e);
-  }
+  saveLanguage(Boolean(value) ? 'nn' : 'nb');
 }
 
 /**
@@ -369,13 +412,7 @@ export function saveNynorskArtsnavn(value) {
  * @returns {boolean}
  */
 export function loadNynorskArtsnavn() {
-  if (!window.localStorage) return false;
-
-  try {
-    return window.localStorage.getItem(NYNORSK_ARTSNAVN_KEY) === '1';
-  } catch (e) {
-    return false;
-  }
+  return isNynorsk();
 }
 
 /**
@@ -419,6 +456,128 @@ export function speciesDisplayName(species, userLanguage = undefined) {
     }
   }
   return species.taxonName || species.nameNob || species.norwegian || '';
+}
+
+/**
+ * Nynorsk-omsetjing av alle AO-aktivitetskodar.
+ * Nøkkel er bokmål-namnet frå activities.json / AO, verdi er nynorsk visingsnamn.
+ */
+export const ACTIVITY_NYNORSK_MAP = {
+  // Alle 61 aktivitetskodar frå public/data/activities.json
+  'Stasjonær': 'Stasjonær',
+  'Rastende': 'Rastande',
+  'Overflygende': 'Overflygande',
+  'Næringssøkende': 'Næringssøkjande',
+  'Ved fôring': 'Ved fôring',
+  'Trekkende': 'Trekkjande',
+  'Sang/spill, ikke hekking': 'Song/spel, ikkje hekking',
+  'Lokkelyd, øvrige lyder': 'Lokkelyd, andre lydar',
+  'Revir, ikke hekking': 'Revir, ikkje hekking',
+  'Trekkende mot N': 'Trekkjande mot N',
+  'Trekkende mot NØ': 'Trekkjande mot NA',
+  'Trekkende mot Ø': 'Trekkjande mot A',
+  'Trekkende mot SØ': 'Trekkjande mot SA',
+  'Trekkende mot S': 'Trekkjande mot S',
+  'Trekkende mot SV': 'Trekkjande mot SV',
+  'Trekkende mot V': 'Trekkjande mot V',
+  'Trekkende mot NV': 'Trekkjande mot NV',
+  'Permanent revir': 'Permanent revir',
+  'Sang/spill i hekketid og passende hekkebiotop': 'Song/spel i hekketid og passande hekkebiotop',
+  'Observasjon i hekketid, passende biotop': 'Observasjon i hekketid, passande biotop',
+  'Par i passende hekkebiotop': 'Par i passande hekkebiotop',
+  'Paring/kurtise på mulig hekkeplass': 'Paring/kurtise på mogleg hekkeplass',
+  'Reirbygging': 'Reirbygging',
+  'Reirbesøk?': 'Reirbesøk?',
+  'Besøker bebodd reir': 'Besøkjer bebodd reir',
+  'Reir i bruk': 'Reir i bruk',
+  'Rugende': 'Rugande',
+  'Rugeflekker': 'Rugeflekkar',
+  'Reir med egg eller unger': 'Reir med egg eller ungar',
+  'Reir, unger hørt': 'Reir, ungar høyrt',
+  'Mat til unger': 'Mat til ungar',
+  'Bar ekskrementpose': 'Bar ekskrementpose',
+  'Unger utenfor reir, ikke utvokste': 'Ungar utanfor reir, ikkje utvaksne',
+  'Eggeskall': 'Eggeskall',
+  'Brukt reir': 'Brukt reir',
+  'Engstelig adferd, indikasjon på hekking': 'Engsteleg åtferd, indikasjon på hekking',
+  'Avledningsmanøver': 'Avleiingsmanøver',
+  'Mislykket hekking': 'Mislykka hekking',
+  'Ringmerket': 'Ringmerkt',
+  'Individmerket (kontroll)': 'Individmerkt (kontroll)',
+  'Trekkforsøk': 'Trekkforsøk',
+  'Syk': 'Sjuk',
+  'Død - kollisjon med kraftledning': 'Daud - kollisjon med kraftleidning',
+  'Død - kollisjon med vindturbin': 'Daud - kollisjon med vindturbin',
+  'Død - kollisjon med vindu': 'Daud - kollisjon med vindauge',
+  'Død - kollisjon med fyr': 'Daud - kollisjon med fyr',
+  'Død - kollisjon med fly': 'Daud - kollisjon med fly',
+  'Død - kollisjon med gjerde': 'Daud - kollisjon med gjerde',
+  'Drept av elektrokusjon (strømslag)': 'Drepen av elektrokusjon (straumslag)',
+  'Drept av olje': 'Drepen av olje',
+  'Trafikkdrept': 'Trafikkdrepen',
+  'Garndød': 'Garndaud',
+  'Skadet av fiskeredskap': 'Skadd av fiskereiskap',
+  'Drept av predator': 'Drepen av predator',
+  'Død av sykdom/sult': 'Daud av sjukdom/sult',
+  'Skutt/avlivet': 'Skoten/avliva',
+  'Død - ukjent dødsårsak': 'Daud - ukjend dødsårsak',
+  'Ferske spor': 'Ferske spor',
+  'Eldre spor': 'Eldre spor',
+  'Fersk møkk': 'Fersk møkk',
+  'Eldre møkk': 'Eldre møkk',
+  // Eldre aliasar og hurtigknappar
+  'Stationær': 'Stasjonær',
+  'Overflyvende': 'Overflygande',
+  'Syngende': 'Syngjande',
+  'Spill/sang': 'Spel/song',
+  'Sang/spill': 'Song/spel',
+  'Reir med unger eller hørt unger': 'Reir med ungar eller høyrt ungar',
+};
+
+const ACTIVITY_BOKMAL_MAP = (() => {
+  const rev = {};
+  for (const [nb, nn] of Object.entries(ACTIVITY_NYNORSK_MAP)) {
+    if (!rev[nn]) rev[nn] = nb;
+  }
+  rev['Stasjonær'] = 'Stasjonær';
+  rev['Overflygande'] = 'Overflygende';
+  rev['Trekkjande mot Ø'] = 'Trekkende mot Ø';
+  rev['Trekkjande mot NØ'] = 'Trekkende mot NØ';
+  rev['Trekkjande mot SØ'] = 'Trekkende mot SØ';
+  return rev;
+})();
+
+/**
+ * Returnerer visingsnamn for ein aktivitetskode basert på språkpreferanse (nb/nn).
+ * @param {string} label
+ * @param {string} [userLanguage]
+ * @returns {string}
+ */
+export function activityDisplayName(label, userLanguage) {
+  if (!label) return '';
+  const useNynorsk = userLanguage !== undefined
+    ? userLanguage === 'nn'
+    : loadNynorskArtsnavn();
+  if (useNynorsk) {
+    if (ACTIVITY_NYNORSK_MAP[label]) return ACTIVITY_NYNORSK_MAP[label];
+    const trimmed = label.trim();
+    if (ACTIVITY_NYNORSK_MAP[trimmed]) return ACTIVITY_NYNORSK_MAP[trimmed];
+    return label;
+  }
+  return activityBokmalName(label);
+}
+
+/**
+ * Konverterer eit eventuelt nynorsk aktivitetsnamn tilbake til kanonisk bokmål AO-namn.
+ * @param {string} label
+ * @returns {string}
+ */
+export function activityBokmalName(label) {
+  if (!label) return '';
+  if (ACTIVITY_BOKMAL_MAP[label]) return ACTIVITY_BOKMAL_MAP[label];
+  const trimmed = label.trim();
+  if (ACTIVITY_BOKMAL_MAP[trimmed]) return ACTIVITY_BOKMAL_MAP[trimmed];
+  return label;
 }
 
 /**

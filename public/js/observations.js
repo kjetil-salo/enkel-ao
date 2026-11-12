@@ -2,7 +2,7 @@
  * Observations-modul for håndtering av observasjoner og CSV-eksport
  */
 
-import { defaultCoObservers, loadMedobs, speciesDisplayName } from './storage.js?v=v1.60.15';
+import { defaultCoObservers, loadMedobs, speciesDisplayName, loadNynorskArtsnavn, activityDisplayName, activityBokmalName, isNynorsk } from './storage.js?v=v1.60.15';
 import { showToast } from './ui.js';
 import { toLocalISOString } from './utils.js';
 import { getObservationVisitKey, setVisitLocked } from './visits.js';
@@ -15,6 +15,8 @@ function showTimeModal(groupItems, defaultFra, defaultTil, groupName, observatio
   // Fjern evt. eksisterende modal
   const existing = document.getElementById('time-modal');
   if (existing) existing.remove();
+
+  const nn = typeof isNynorsk === 'function' ? isNynorsk() : (typeof window !== 'undefined' && typeof window.__isNynorsk === 'function' && window.__isNynorsk());
 
   const overlay = document.createElement('div');
   overlay.id = 'time-modal';
@@ -31,24 +33,24 @@ function showTimeModal(groupItems, defaultFra, defaultTil, groupName, observatio
   });
 
   box.innerHTML = `
-    <h3 style="margin:0 0 4px 0;font-size:1.05em;">🕐 Sett klokkeslett</h3>
+    <h3 style="margin:0 0 4px 0;font-size:1.05em;">🕐 ${nn ? 'Set klokkeslett' : 'Sett klokkeslett'}</h3>
     <p style="margin:0 0 14px 0;font-size:0.8em;color:var(--muted);line-height:1.3;"></p>
     <div style="display:flex;gap:12px;align-items:center;margin-bottom:16px;">
       <div style="flex:1;">
-        <label style="font-size:0.8em;color:var(--muted);display:block;margin-bottom:4px;">Fra</label>
+        <label style="font-size:0.8em;color:var(--muted);display:block;margin-bottom:4px;">${nn ? 'Frå' : 'Fra'}</label>
         <input type="time" id="time-modal-fra" style="width:100%;padding:8px;border-radius:8px;border:1px solid var(--border,rgba(148,163,184,0.25));background:var(--card-bg);color:var(--text);font-size:16px;box-sizing:border-box;" />
       </div>
       <div style="flex:1;">
-        <label style="font-size:0.8em;color:var(--muted);display:block;margin-bottom:4px;">Til</label>
+        <label style="font-size:0.8em;color:var(--muted);display:block;margin-bottom:4px;">${nn ? 'Til' : 'Til'}</label>
         <input type="time" id="time-modal-til" style="width:100%;padding:8px;border-radius:8px;border:1px solid var(--border,rgba(148,163,184,0.25));background:var(--card-bg);color:var(--text);font-size:16px;box-sizing:border-box;" />
       </div>
     </div>
     <div style="display:flex;gap:8px;justify-content:flex-end;">
       <button type="button" id="time-modal-cancel" style="padding:8px 16px;border:1px solid var(--border,rgba(148,163,184,0.25));border-radius:6px;background:transparent;color:var(--text);cursor:pointer;font-size:0.9em;">Avbryt</button>
-      <button type="button" id="time-modal-apply" style="padding:8px 16px;border:none;border-radius:6px;background:var(--accent,#3b82f6);color:white;cursor:pointer;font-size:0.9em;font-weight:500;">Sett på alle</button>
+      <button type="button" id="time-modal-apply" style="padding:8px 16px;border:none;border-radius:6px;background:var(--accent,#3b82f6);color:white;cursor:pointer;font-size:0.9em;font-weight:500;">${nn ? 'Set på alle' : 'Sett på alle'}</button>
     </div>
   `;
-  box.querySelector('p').textContent = `${groupName} — ${groupItems.length} observasjon${groupItems.length !== 1 ? 'er' : ''}`;
+  box.querySelector('p').textContent = `${groupName} — ${groupItems.length} observasjon${groupItems.length !== 1 ? (nn ? 'ar' : 'er') : ''}`;
 
   overlay.appendChild(box);
   document.body.appendChild(overlay);
@@ -97,14 +99,14 @@ function showTimeModal(groupItems, defaultFra, defaultTil, groupName, observatio
 
     if (beregnet.some((b) => b.fraDate > now)) {
       fraInput.style.borderColor = '#ef4444';
-      showToast(`Fra-tid ${fraVal} er frem i tid — AO underkjenner`);
+      showToast(nn ? `Frå-tid ${fraVal} er fram i tid — AO godtek ikkje` : `Fra-tid ${fraVal} er frem i tid — AO underkjenner`);
       fraInput.focus();
       return;
     }
 
     if (beregnet.some((b) => b.tilDate && b.tilDate > now)) {
       tilInput.style.borderColor = '#ef4444';
-      showToast(`Til-tid ${tilVal} er frem i tid — AO underkjenner`);
+      showToast(nn ? `Til-tid ${tilVal} er fram i tid — AO godtek ikkje` : `Til-tid ${tilVal} er frem i tid — AO underkjenner`);
       tilInput.focus();
       return;
     }
@@ -119,7 +121,7 @@ function showTimeModal(groupItems, defaultFra, defaultTil, groupName, observatio
     saveState();
     renderObservations(observations, obsListEl, buttons, saveState);
     close();
-    showToast(`Klokkeslett satt på ${groupItems.length} obs`);
+    showToast(nn ? `Klokkeslett sett på ${groupItems.length} obs` : `Klokkeslett satt på ${groupItems.length} obs`);
   });
 
   fraInput.focus();
@@ -138,7 +140,9 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
   if (!observations.length) {
     const item = document.createElement('div');
     item.className = 'obs-empty-msg';
-    item.textContent = 'Registrerte observasjoner dukker opp her. Start med å velge lokasjon øverst, deretter art.';
+    item.textContent = loadNynorskArtsnavn()
+      ? 'Registrerte observasjonar dukkar opp her. Start med å velja lokalitet øvst, deretter art.'
+      : 'Registrerte observasjoner dukker opp her. Start med å velge lokasjon øverst, deretter art.';
     obsListEl.appendChild(item);
     return;
   }
@@ -246,9 +250,10 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
       nameWrap.appendChild(timeSpan);
     }
 
+    const nn = loadNynorskArtsnavn();
     const metaSpan = document.createElement('span');
     metaSpan.className = 'obs-group-meta';
-    metaSpan.textContent = `${uniqueSpecies.size} art${uniqueSpecies.size === 1 ? '' : 'er'}`;
+    metaSpan.textContent = `${uniqueSpecies.size} art${uniqueSpecies.size === 1 ? '' : (nn ? 'ar' : 'er')}`;
 
     nameWrap.appendChild(metaSpan);
     groupHeader.appendChild(nameWrap);
@@ -266,10 +271,14 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
       const usePlaceBtn = document.createElement('button');
       usePlaceBtn.type = 'button';
       usePlaceBtn.textContent = '↩';
-      usePlaceBtn.setAttribute('aria-label', `Gå tilbake til besøket på ${groupPlaceName}`);
+      usePlaceBtn.setAttribute('aria-label', nn ? `Gå attende til besøket på ${groupPlaceName}` : `Gå tilbake til besøket på ${groupPlaceName}`);
       usePlaceBtn.title = visitLocked
-        ? `Gå tilbake til dette avsluttede besøket på ${groupPlaceName} — nye arter får besøkets klokkeslett`
-        : `Gå tilbake til dette besøket på ${groupPlaceName} og legg inn flere arter`;
+        ? (nn
+            ? `Gå attende til dette avslutta besøket på ${groupPlaceName} — nye artar får besøkets klokkeslett`
+            : `Gå tilbake til dette avsluttede besøket på ${groupPlaceName} — nye arter får besøkets klokkeslett`)
+        : (nn
+            ? `Gå attende til dette besøket på ${groupPlaceName} og legg inn fleire artar`
+            : `Gå tilbake til dette besøket på ${groupPlaceName} og legg inn flere arter`);
       usePlaceBtn.className = 'obs-group-place-btn';
       const groupPlaceId = group.items[0].placeId || null;
       usePlaceBtn.addEventListener('click', (e) => {
@@ -299,10 +308,10 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
     lockBtn.innerHTML = visitLocked
       ? '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="10.5" width="14" height="10.5" rx="2.5"/><path d="M7.5 10.5V7a3.5 3.5 0 0 1 7 0v3.5"/></svg>'
       : '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="10.5" width="14" height="10.5" rx="2.5"/><path d="M14.5 10.5V7a3.5 3.5 0 0 1 7 0v2"/></svg>';
-    lockBtn.setAttribute('aria-label', visitLocked ? 'Besøk avsluttet' : 'Besøk åpent');
+    lockBtn.setAttribute('aria-label', visitLocked ? (nn ? 'Besøk avslutta' : 'Besøk avsluttet') : (nn ? 'Besøk opna' : 'Besøk åpent'));
     lockBtn.title = visitLocked
-      ? 'Åpne besøket igjen - nye observasjoner kan legges her'
-      : 'Avslutt besøket - nye observasjoner på samme lokalitet starter nytt besøk';
+      ? (nn ? 'Opne besøket att – nye observasjonar kan leggjast her' : 'Åpne besøket igjen - nye observasjoner kan legges her')
+      : (nn ? 'Avslutt besøket – nye observasjonar på same lokalitet startar nytt besøk' : 'Avslutt besøket - nye observasjoner på samme lokalitet starter nytt besøk');
     lockBtn.className = `obs-group-lock-btn${visitLocked ? ' is-locked' : ''}`;
     lockBtn.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -310,7 +319,7 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
       setVisitLocked(observations, group.visitKey, nextLocked);
       saveState();
       renderObservations(observations, obsListEl, buttons, saveState);
-      showToast(nextLocked ? 'Besøk avsluttet' : 'Besøk åpnet igjen', { raw: true });
+      showToast(nextLocked ? (nn ? 'Besøk avslutta' : 'Besøk avsluttet') : (nn ? 'Besøk opna att' : 'Besøk åpnet igjen'), { raw: true });
     });
     groupActions.appendChild(lockBtn);
 
@@ -320,8 +329,10 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
     // Tydelig SVG-klokke (visere mot 10:10) i stedet for 🕐-emoji, som blir
     // utydelig og plattformavhengig i småformat.
     clockBtn.innerHTML = '<svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3.2 1.9"/></svg>';
-    clockBtn.setAttribute('aria-label', 'Sett klokkeslett');
-    clockBtn.title = 'Sett klokkeslett for alle observasjoner på dette stedet';
+    clockBtn.setAttribute('aria-label', nn ? 'Set klokkeslett' : 'Sett klokkeslett');
+    clockBtn.title = nn
+      ? 'Set klokkeslett for alle observasjonar på denne lokaliteten'
+      : 'Sett klokkeslett for alle observasjoner på dette stedet';
     clockBtn.className = 'obs-group-time-btn';
 
     const defaultFra = earliestMs < Infinity ? fmt(new Date(earliestMs)) : '';
@@ -362,7 +373,8 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
         // «– førsteord» bindes sammen (nowrap) så en tankestrek aldri blir
         // stående alene sist på linja; resten av lange aktiviteter kan brytes.
         primaryLine.appendChild(document.createTextNode(' '));
-        const words = obs.activity.split(' ');
+        const displayActivity = activityDisplayName(obs.activity);
+        const words = displayActivity.split(' ');
         const dashUnit = document.createElement('span');
         dashUnit.className = 'obs-activity-inline';
         dashUnit.style.whiteSpace = 'nowrap';
@@ -542,7 +554,7 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
           lineHeight: '1',
           padding: isNarrow ? '4px 3px' : '4px 6px',
         });
-        span.title = 'Klikk for å endre antall';
+        span.title = loadNynorskArtsnavn() ? 'Klikk for å endra antal' : 'Klikk for å endre antall';
         span.addEventListener('click', () => {
           showInput();
         });
@@ -669,15 +681,18 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
         renderObservations(observations, obsListEl, buttons, saveState);
         saveState();
 
+        const nn = typeof isNynorsk === 'function' ? isNynorsk() : (typeof window !== 'undefined' && typeof window.__isNynorsk === 'function' && window.__isNynorsk());
+        const deleteToastMsg = nn ? `Sletta ${speciesName}` : `Slettet ${speciesName}`;
+
         // Vis toast med undo-mulighet
-        showToast(`Slettet ${speciesName}`, {
+        showToast(deleteToastMsg, {
           duration: 5000,
           onUndo: () => {
             // Sett tilbake observasjonen på samme posisjon
             observations.splice(deletedIndex, 0, deletedObs);
             renderObservations(observations, obsListEl, buttons, saveState);
             saveState();
-            showToast(`${speciesName} gjenopprettet`);
+            showToast(nn ? `${speciesName} gjenoppretta` : `${speciesName} gjenopprettet`);
           }
         });
       });
@@ -794,7 +809,7 @@ export function toCsv(observations) {
     // Bruk lokalitets-ID hvis tilgjengelig, ellers navn (unngår tvetydighet ved import)
     const place = (obs.placeId || obs.placeName || '').toString().replace(/[;\t]/g, ',');
     const count = obs.count != null ? String(obs.count) : '';
-    const activity = (obs.activity || '').replace(/[;\t]/g, ',');
+    const activity = activityBokmalName(obs.activity || '').replace(/[;\t]/g, ',');
     const age = (obs.age || '').replace(/[;\t]/g, ',');
     const gender = (obs.gender || '').replace(/[;\t]/g, ',');
     const comment = (obs.comment || '').replace(/[;\t]/g, ',');
