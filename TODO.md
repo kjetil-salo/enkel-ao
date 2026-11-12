@@ -1,5 +1,21 @@
 # TODO
 
+## 42. Overfør arbeidslista fra mobil til Mac (2026-11-11)
+
+**Høyeste prioritet.** La en observatør lagre arbeidslista fra mobilen som en
+privat kopi, finne den igjen på Mac med samme AO-konto og gå gjennom funnene
+før publisering. Første leveranse bruker manuell lagring og henting av siste
+kopi. Engangskode uten innlogging er foreslått som trinn 2.
+
+Første versjon ligger på [staging](https://aos.efugl.no/) fra 2026-11-11.
+Overføring med ekte AO-innlogging, bilde og privat kommentar er verifisert.
+Test av den installerte PWA-en på fysisk mobil gjenstår.
+
+OpenSpec-piloten er startet med [forslag](openspec/changes/overfor-arbeidsliste/proposal.md),
+[krav](openspec/changes/overfor-arbeidsliste/specs/arbeidsliste-overforing/spec.md),
+[design](openspec/changes/overfor-arbeidsliste/design.md) og
+[oppgaver](openspec/changes/overfor-arbeidsliste/tasks.md).
+
 ## 40. Kjør full pen-test av enkel-ao (2026-11-09)
 
 Sikkerhetsrunden 09.11.2026 (Vegards funn + oppfølgingene) var reaktiv — en
@@ -181,6 +197,10 @@ mange mikroversjoner) er feil granularitet for en forslagssyklus per endring.
 
 **Beslutning:** test det likevel på ÉN feature — neste feature av en viss
 størrelse, uansett hvilken. Ikke konverter eksisterende dokumentasjon.
+
+**Status 2026-11-11.** Piloten er startet med [overføring av arbeidslista](openspec/changes/overfor-arbeidsliste/proposal.md).
+Kravteksten er på bokmål. OpenSpec-valideringen bruker engelske formatnøkler
+som `Requirement`, `Scenario`, `SHALL`, `WHEN` og `THEN`.
 
 - `openspec init` i repoet, men kun én `changes/`-mappe for den ene featuren
 - `docs/` og `CLAUDE.md` forblir autoritative i piloten; OpenSpec-treet er

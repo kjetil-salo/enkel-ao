@@ -1,0 +1,5 @@
+schema: spec-driven
+context: |
+  Pilot for overføring av arbeidsliste. Les AGENTS.md, CLAUDE.md og
+  CONTRIBUTING.md for prosjektets konvensjoner og arkitektur.
+  Skriv innhold på norsk bokmål. Behold formatnøklene OpenSpec trenger.

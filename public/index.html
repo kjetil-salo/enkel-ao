@@ -24,7 +24,7 @@
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta name="twitter:card" content="summary_large_image" />
-    <link rel="stylesheet" href="style.css?v=v1.60.14-kartcache.2" />
+    <link rel="stylesheet" href="style.css?v=v1.60.15" />
   </head>
   <body>
     <script src="/js/theme.js"></script>
@@ -100,6 +100,9 @@
             <details class="header-menu" id="header-menu">
               <summary aria-label="Meny" title="Meny"><span aria-hidden="true">⋯</span></summary>
               <nav class="header-menu-links" aria-label="Hovedmeny">
+                <button type="button" id="arbeidsliste-overfor" hidden>Fortsett på en annen enhet</button>
+                <button type="button" id="arbeidsliste-hent">Hent liste fra en annen enhet</button>
+                <button type="button" id="arbeidsliste-lokal" hidden>Åpne innhentet liste</button>
                 <a href="/fellestur.html">Fellestur</a>
                 <a href="/help.html">Hjelp</a>
                 <a href="/settings.html">Innstillinger</a>
@@ -120,15 +123,12 @@
             <a href="/fellestur.html" id="fellestur-header-btn" aria-label="Fellestur – registrer sammen med andre i én delt logg" style="color: var(--muted); text-decoration: none; font-size: 1.2rem; padding: 4px 8px; border-radius: 8px; transition: all 0.2s; display: flex; align-items: center;" title="Fellestur – registrer sammen med andre i én delt logg" onmouseover="this.style.color='var(--accent)'; this.style.background='var(--accent-soft)'" onmouseout="this.style.color='var(--muted)'; this.style.background='transparent'"><svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="3.4"/><path d="M5.8 20v-1.2A4.2 4.2 0 0 1 10 14.6h4a4.2 4.2 0 0 1 4.2 4.2V20"/><circle cx="4.2" cy="9.8" r="2.1"/><path d="M1.4 19.4v-1a3.4 3.4 0 0 1 2.5-3.3"/><circle cx="19.8" cy="9.8" r="2.1"/><path d="M22.6 19.4v-1a3.4 3.4 0 0 0-2.5-3.3"/></svg></a>
             <a href="/help.html" aria-label="Hjelp" style="color: var(--muted); text-decoration: none; font-size: 1.2rem; padding: 4px 8px; border-radius: 8px; transition: all 0.2s; display: flex; align-items: center;" title="Hjelp" onmouseover="this.style.color='var(--accent)'; this.style.background='var(--accent-soft)'" onmouseout="this.style.color='var(--muted)'; this.style.background='transparent'">📖</a>
             <a href="/settings.html" aria-label="Innstillinger" style="color: var(--muted); text-decoration: none; font-size: 1.2rem; padding: 4px 8px; border-radius: 8px; transition: all 0.2s; display: flex; align-items: center;" title="Innstillinger" onmouseover="this.style.color='var(--accent)'; this.style.background='var(--accent-soft)'" onmouseout="this.style.color='var(--muted)'; this.style.background='transparent'">⚙️</a>
-            <div class="kbd-hint">
-              <span class="kbd-key">↑</span><span class="kbd-key">↓</span><span class="kbd-key">Enter</span>
-            </div>
           </div>
         </header>
         <script type="module">
           // Toppraden trappes ned bare så mye som faktisk trengs. Se
           // header-plass.js for hvorfor dette ikke kan gjøres i ren CSS.
-          import { tilpassHeader } from '/js/header-plass.js?v=v1.60.14-kartcache.2';
+          import { tilpassHeader } from '/js/header-plass.js?v=v1.60.15';
 
           const appHeader = document.querySelector('.app-header');
 
@@ -541,20 +541,20 @@
         else bredVisning.addListener(plasserSendInn);
       })();
     </script>
-    <script type="module" src="/js/main.js?v=v1.60.14-kartcache.2"></script>
+    <script type="module" src="/js/main.js?v=v1.60.15"></script>
     <script type="module">
       // Registrer Service Worker for offline-støtte.
       // Versjonert URL: Cloudflare overstyrer origin sin max-age=300 med 4 timer, så
       // en endret /sw.js kan bli liggende i edge-cachen og aldri nå installerte apper.
       // Bruk inline versjon her: /js/version.js kan selv være cachet i gammel versjon.
-      const VERSION = 'v1.60.14-kartcache.2';
+      const VERSION = 'v1.60.15';
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register(`/sw.js?v=${VERSION}`).catch(() => {});
       }
     </script>
     <footer class="footer-credit">Versjon <span id="version"></span>  |  <a href="/changelog.html" style="color:var(--accent);text-decoration:none;">Endringslogg</a>  |  <a href="/feedback.html" style="color:var(--accent);text-decoration:none;">Gi tilbakemelding</a>  |  © 2026 Kjetil Salomonsen</footer>
     <script type="module">
-      const VERSION = 'v1.60.14-kartcache.2';
+      const VERSION = 'v1.60.15';
       document.getElementById('version').textContent = VERSION;
     </script>
 
@@ -914,7 +914,7 @@
       }
     </style>
     <script type="module">
-      import { initPhotoPicker } from './js/photo-picker.js?v=v1.60.14-kartcache.2';
+      import { initPhotoPicker } from './js/photo-picker.js?v=v1.60.15';
 
       const extraModal = document.getElementById('extra-fields-modal');
       const extraOpenBtn = document.getElementById('extra-fields-open-btn');
@@ -1129,5 +1129,28 @@
         </div>
       </div>
     </div>
+    <dialog id="arbeidsliste-dialog" class="arbeidsliste-dialog" aria-labelledby="arbeidsliste-tittel">
+      <form method="dialog" class="arbeidsliste-dialoghode">
+        <h2 id="arbeidsliste-tittel">Overfør arbeidslista</h2>
+        <button class="btn" value="lukk">Lukk</button>
+      </form>
+      <p id="arbeidsliste-konto"></p>
+      <p id="arbeidsliste-info"></p>
+      <p id="arbeidsliste-status" role="status"></p>
+      <div class="arbeidsliste-knapper">
+        <button type="button" class="btn" id="arbeidsliste-logg-inn">Bruk AO-innlogging</button>
+        <a class="btn" id="arbeidsliste-innstillinger" href="/settings.html">Innstillinger</a>
+        <button type="button" class="btn" id="arbeidsliste-lagre" hidden>Lagre privat kopi</button>
+        <button type="button" class="btn" id="arbeidsliste-forhandsvis" hidden>Forhåndsvis kopien</button>
+        <button type="button" class="btn" id="arbeidsliste-slett" hidden>Slett serverkopien</button>
+      </div>
+      <p id="arbeidsliste-advarsel" hidden>
+        Lista finnes fortsatt på den andre enheten. Sjekk om funn allerede er sendt og publiser fra én enhet.
+        Når du henter inn lista, blir den lagret i denne nettleseren og kan åpnes her uten nett.
+      </p>
+      <ul id="arbeidsliste-rader" class="arbeidsliste-rader"></ul>
+      <button type="button" class="btn btn-primary-action" id="arbeidsliste-ta-inn" hidden>Hent inn i Lista di</button>
+    </dialog>
+
   </body>
 </html>

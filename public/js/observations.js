@@ -2,7 +2,7 @@
  * Observations-modul for håndtering av observasjoner og CSV-eksport
  */
 
-import { defaultCoObservers, loadMedobs, speciesDisplayName } from './storage.js?v=v1.60.14-kartcache.2';
+import { defaultCoObservers, loadMedobs, speciesDisplayName } from './storage.js?v=v1.60.15';
 import { showToast } from './ui.js';
 import { toLocalISOString } from './utils.js';
 import { getObservationVisitKey, setVisitLocked } from './visits.js';
@@ -32,15 +32,15 @@ function showTimeModal(groupItems, defaultFra, defaultTil, groupName, observatio
 
   box.innerHTML = `
     <h3 style="margin:0 0 4px 0;font-size:1.05em;">🕐 Sett klokkeslett</h3>
-    <p style="margin:0 0 14px 0;font-size:0.8em;color:var(--muted);line-height:1.3;">${groupName} — ${groupItems.length} observasjon${groupItems.length !== 1 ? 'er' : ''}</p>
+    <p style="margin:0 0 14px 0;font-size:0.8em;color:var(--muted);line-height:1.3;"></p>
     <div style="display:flex;gap:12px;align-items:center;margin-bottom:16px;">
       <div style="flex:1;">
         <label style="font-size:0.8em;color:var(--muted);display:block;margin-bottom:4px;">Fra</label>
-        <input type="time" id="time-modal-fra" value="${defaultFra}" style="width:100%;padding:8px;border-radius:8px;border:1px solid var(--border,rgba(148,163,184,0.25));background:var(--card-bg);color:var(--text);font-size:16px;box-sizing:border-box;" />
+        <input type="time" id="time-modal-fra" style="width:100%;padding:8px;border-radius:8px;border:1px solid var(--border,rgba(148,163,184,0.25));background:var(--card-bg);color:var(--text);font-size:16px;box-sizing:border-box;" />
       </div>
       <div style="flex:1;">
         <label style="font-size:0.8em;color:var(--muted);display:block;margin-bottom:4px;">Til</label>
-        <input type="time" id="time-modal-til" value="${defaultTil}" style="width:100%;padding:8px;border-radius:8px;border:1px solid var(--border,rgba(148,163,184,0.25));background:var(--card-bg);color:var(--text);font-size:16px;box-sizing:border-box;" />
+        <input type="time" id="time-modal-til" style="width:100%;padding:8px;border-radius:8px;border:1px solid var(--border,rgba(148,163,184,0.25));background:var(--card-bg);color:var(--text);font-size:16px;box-sizing:border-box;" />
       </div>
     </div>
     <div style="display:flex;gap:8px;justify-content:flex-end;">
@@ -48,12 +48,15 @@ function showTimeModal(groupItems, defaultFra, defaultTil, groupName, observatio
       <button type="button" id="time-modal-apply" style="padding:8px 16px;border:none;border-radius:6px;background:var(--accent,#3b82f6);color:white;cursor:pointer;font-size:0.9em;font-weight:500;">Sett på alle</button>
     </div>
   `;
+  box.querySelector('p').textContent = `${groupName} — ${groupItems.length} observasjon${groupItems.length !== 1 ? 'er' : ''}`;
 
   overlay.appendChild(box);
   document.body.appendChild(overlay);
 
   const fraInput = document.getElementById('time-modal-fra');
   const tilInput = document.getElementById('time-modal-til');
+  fraInput.value = defaultFra;
+  tilInput.value = defaultTil;
   const cancelBtn = document.getElementById('time-modal-cancel');
   const applyBtn = document.getElementById('time-modal-apply');
 

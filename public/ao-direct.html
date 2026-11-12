@@ -503,6 +503,7 @@
     </div>
 
     <script type="module">
+      import { fjernOverforingssesjon } from './js/arbeidsliste-sesjon.js';
       // Last observations fra localStorage
       let observations = [];
       try {
@@ -810,6 +811,7 @@
       }
       updateDeleteBtn();
       deleteCredentialsBtn.addEventListener('click', () => {
+        fjernOverforingssesjon();
         localStorage.removeItem('ao_username');
         localStorage.removeItem('ao_password');
         aoUsernameInput.value = '';
@@ -885,6 +887,9 @@
             localStorage.setItem('ao_tokens', JSON.stringify(tokens));
 
             // Lagre credentials for auto-relogin
+            if (username !== localStorage.getItem('ao_username') || password !== localStorage.getItem('ao_password')) {
+              fjernOverforingssesjon();
+            }
             localStorage.setItem('ao_username', username);
             localStorage.setItem('ao_password', password);
 
@@ -914,6 +919,7 @@
 
       // Save tokens manually
       saveTokensBtn.addEventListener('click', () => {
+        fjernOverforingssesjon();
         const loginToken = loginTokenInput.value.trim();
         const tokens = {
           loginToken: loginToken,

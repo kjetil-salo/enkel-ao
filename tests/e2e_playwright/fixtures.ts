@@ -1,4 +1,4 @@
-import { test as base, expect } from '@playwright/test';
+import { test as base, expect, type BrowserContext, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { CURRENT_NEWS_SPLASH, STORAGE_KEY as NEWS_STORAGE_KEY } from '../../public/js/news-splash.js';
@@ -25,19 +25,23 @@ const HINT_STORAGE_KEY = hintConstant('STORAGE_KEY');
  * for å duplisere dem her, slik at fixturen automatisk følger med når en ny
  * nyhet/hint publiseres.
  */
+export async function merkIntroLest(mal: BrowserContext | Page) {
+  await mal.addInitScript(
+    ({ newsKey, newsId, hintKey, hintId }) => {
+      try {
+        window.localStorage.setItem(newsKey, newsId);
+        window.localStorage.setItem(hintKey, hintId);
+      } catch {
+        // localStorage kan være utilgjengelig i noen testkontekster.
+      }
+    },
+    { newsKey: NEWS_STORAGE_KEY, newsId: CURRENT_NEWS_SPLASH.id, hintKey: HINT_STORAGE_KEY, hintId: HINT_ID },
+  );
+}
+
 export const test = base.extend({
   page: async ({ page }, use) => {
-    await page.addInitScript(
-      ({ newsKey, newsId, hintKey, hintId }) => {
-        try {
-          window.localStorage.setItem(newsKey, newsId);
-          window.localStorage.setItem(hintKey, hintId);
-        } catch (e) {
-          // localStorage kan være utilgjengelig i noen test-kontekster — ufarlig å hoppe over.
-        }
-      },
-      { newsKey: NEWS_STORAGE_KEY, newsId: CURRENT_NEWS_SPLASH.id, hintKey: HINT_STORAGE_KEY, hintId: HINT_ID },
-    );
+    await merkIntroLest(page);
     await use(page);
   },
 });

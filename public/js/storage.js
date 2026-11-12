@@ -3,7 +3,8 @@
  */
 import { hentAktivFellestur } from './fellestur-client.js';
 import { lastSpeil, lagreSpeilOgSynk, hentTurMedobservatorer } from './fellestur-sync.js';
-import { translateDedicatedSubspeciesToNynorsk } from './species-matcher.js?v=v1.60.14-kartcache.2';
+import { translateDedicatedSubspeciesToNynorsk } from './species-matcher.js?v=v1.60.15';
+import { aktivInnhentetListe, lagreEndringerIInnhentetListe, lesInnhentetListe } from './arbeidsliste-lokal.js';
 
 const STORAGE_KEY = 'fugleobservasjoner_v1';
 const MEDOBS_KEY = 'medobs_list_v1';
@@ -122,16 +123,18 @@ export function defaultCoObservers() {
  *   bilde kunne forsvinne uten at brukeren fikk vite det.
  */
 export function saveObservations(observations) {
-  if (hentAktivFellestur()) return lagreSpeilOgSynk(observations);
+  const innhentet = aktivInnhentetListe();
+  if (!innhentet && hentAktivFellestur()) return lagreSpeilOgSynk(observations);
 
   if (!window.localStorage) return false;
 
   try {
-    const payload = {
-      version: 1,
-      observations,
-    };
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+    if (innhentet) {
+      lagreEndringerIInnhentetListe(observations);
+    } else {
+      const payload = { version: 1, observations };
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+    }
     lastSaveError = null;
     return true;
   } catch (e) {
@@ -141,23 +144,38 @@ export function saveObservations(observations) {
   }
 }
 
+export function lesPrivatArbeidsliste() {
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (raw === null) return [];
+  try {
+    const payload = JSON.parse(raw);
+    if (Array.isArray(payload?.observations)) return payload.observations;
+  } catch {
+    // Behold uleselig innhold i lagringen.
+  }
+  throw new Error('Den lokale lista kan ikke leses. Lokale data er beholdt.');
+}
+
+export function lesArbeidslisteForOverforing() {
+  if (aktivInnhentetListe()) {
+    const liste = lesInnhentetListe();
+    if (!liste) throw new Error('Finner ikke den lokalt lagrede kopien.');
+    return liste.observations;
+  }
+  return lesPrivatArbeidsliste();
+}
+
 /**
  * Last observasjoner fra localStorage
  * @returns {Array} - Liste med observasjoner
  */
 export function loadObservations() {
-  if (hentAktivFellestur()) return lastSpeil();
+  if (!aktivInnhentetListe() && hentAktivFellestur()) return lastSpeil();
 
   if (!window.localStorage) return [];
 
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
-
-    const payload = JSON.parse(raw);
-    if (!payload || !Array.isArray(payload.observations)) return [];
-
-    return payload.observations;
+    return lesArbeidslisteForOverforing();
   } catch (e) {
     console.warn('Kunne ikke lese fra localStorage', e);
     return [];

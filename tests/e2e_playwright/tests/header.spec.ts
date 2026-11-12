@@ -73,6 +73,8 @@ test('mobilmenyen ligger over skjemaet og kan lukkes med Escape og trykk utenfor
   await expect(menu.getByRole('link', { name: 'Fellestur', exact: true })).toHaveAttribute('href', '/fellestur.html');
   await expect(menu.getByRole('link', { name: 'Innstillinger', exact: true })).toHaveAttribute('href', '/settings.html');
   expect((await location.boundingBox())!.y).toBe(before!.y);
+  await expect(menu.getByRole('button', { name: 'Hent liste fra en annen enhet' })).toBeVisible();
+  await expect(menu.locator('#arbeidsliste-overfor')).toBeHidden();
   // Et faktisk treff i panelet, ikke bare et synlig element bak skjemaet.
   await help.click({ trial: true });
   await page.keyboard.press('Escape');
@@ -80,7 +82,7 @@ test('mobilmenyen ligger over skjemaet og kan lukkes med Escape og trykk utenfor
   await expect(trigger).toBeFocused();
 
   await trigger.click();
-  await page.locator('#place').click();
+  await page.locator('#place').click({ position: { x: 12, y: 14 } });
   await expect(help).toBeHidden();
   await expect(page.locator('#place')).toBeFocused();
 
@@ -123,17 +125,26 @@ test('menypanelet følger alle tre temaer', async ({ page }) => {
   }
 });
 
-test('desktop beholder ikonlenkene og full modustekst', async ({ page }) => {
+test('desktop viser listeoverføring i menyen og beholder ikonlenkene', async ({ page }) => {
   await page.setViewportSize({ width: 800, height: 900 });
   await page.goto('/');
   await page.locator('#mode-pill').click();
   await expect(page.locator('#mode-pill-text')).toBeVisible();
   await expect(page.locator('#mode-pill-text')).toHaveText('Etterregistrering');
-  await expect(page.locator('#header-menu')).toBeHidden();
+  const menu = page.locator('#header-menu');
+  const trigger = menu.locator('summary');
+  await expect(trigger).toBeVisible();
   const actions = page.locator('.header-actions');
   await expect(actions.getByRole('link', { name: 'Hjelp', exact: true })).toBeVisible();
   await expect(actions.getByRole('link', { name: 'Innstillinger', exact: true })).toBeVisible();
   await expect(actions.getByRole('link', { name: /Fellestur –/ })).toBeVisible();
+  await expect(page.locator('.section-liste [id^="arbeidsliste-"]')).toHaveCount(0);
+  await trigger.press('Enter');
+  await menu.getByRole('button', { name: 'Hent liste fra en annen enhet' }).press('Enter');
+  await expect(page.locator('#arbeidsliste-dialog')).toBeVisible();
+  await expect(menu).not.toHaveAttribute('open', '');
+  await page.getByRole('button', { name: 'Lukk', exact: true }).click();
+  await expect(trigger).toBeFocused();
 });
 
 // Prioriteringen i trinn-systemet: nettverksmodusen (Online/Hybrid/Offline) er

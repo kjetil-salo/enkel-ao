@@ -7,7 +7,7 @@
     <link rel="icon" href="/favicon.png" type="image/png" />
     <link rel="apple-touch-icon" href="/icon-192.png" />
     <link rel="manifest" href="/manifest.json">
-    <link rel="stylesheet" href="style.css?v=v1.60.14-kartcache.2" />
+    <link rel="stylesheet" href="style.css?v=v1.60.15" />
       <style>
         .settings-card {
           background: var(--card-bg, #111827);
@@ -363,6 +363,9 @@
             style="padding:10px 16px;border-radius:8px;border:none;background:#3b82f6;color:white;font-size:0.95em;cursor:pointer;">
             ⬇️ Last ned sikkerhetskopi
           </button>
+          <button type="button" id="backup-innhentet" class="btn" style="display:none;">
+            Last ned innhentet liste
+          </button>
           <button type="button" id="backup-restore"
             style="padding:10px 16px;border-radius:8px;border:1px solid rgba(148,163,184,0.3);background:transparent;color:var(--text,#e5e7eb);font-size:0.95em;cursor:pointer;">
             ⬆️ Gjenopprett fra fil
@@ -428,15 +431,17 @@
     </div>
 
     <script type="module">
-      import { loadActivityPills, saveActivityPills, ACTIVITY_SHORT_SUGGESTIONS, loadNynorskArtsnavn, saveNynorskArtsnavn } from './js/storage.js?v=v1.60.14-kartcache.2';
-      import { loadActivities, fetchAoSitesByBounds, hasActiveAoLogin, ensureAoTokens, getCachedPrivateSites } from './js/api.js?v=v1.60.14-kartcache.2';
-      import { shouldShowOthersPrivateSites } from './js/location.js?v=v1.60.14-kartcache.2';
+      import { fjernOverforingssesjon } from './js/arbeidsliste-sesjon.js';
+      import { apneInnhentetListe, lagreInnhentetKopi, lesInnhentetListe, lukkInnhentetListe } from './js/arbeidsliste-lokal.js';
+      import { loadActivityPills, saveActivityPills, ACTIVITY_SHORT_SUGGESTIONS, loadNynorskArtsnavn, saveNynorskArtsnavn } from './js/storage.js?v=v1.60.15';
+      import { loadActivities, fetchAoSitesByBounds, hasActiveAoLogin, ensureAoTokens, getCachedPrivateSites } from './js/api.js?v=v1.60.15';
+      import { shouldShowOthersPrivateSites } from './js/location.js?v=v1.60.15';
       import {
         getOfflineStorageStats,
         syncOfflineAreas,
         clearAllOfflineData,
         clearAppCachesPreservingMapTiles,
-      } from './js/offline-db.js?v=v1.60.14-kartcache.2';
+      } from './js/offline-db.js?v=v1.60.15';
 
       // Service Worker registreres og modus synkroniseres av offline-db.js (importert over).
 
@@ -904,6 +909,7 @@
 
       aoUsernameInput.addEventListener('input', () => {
         const val = aoUsernameInput.value.trim();
+        if (val !== (localStorage.getItem('ao_username') || '')) fjernOverforingssesjon();
         if (val) localStorage.setItem('ao_username', val);
         else localStorage.removeItem('ao_username');
         updateClearLoginVisibility();
@@ -911,6 +917,7 @@
 
       aoPasswordInput.addEventListener('input', () => {
         const val = aoPasswordInput.value;
+        if (val !== (localStorage.getItem('ao_password') || '')) fjernOverforingssesjon();
         if (val) localStorage.setItem('ao_password', val);
         else localStorage.removeItem('ao_password');
         updateClearLoginVisibility();
@@ -1003,6 +1010,7 @@
       }
 
       clearLoginBtn.addEventListener('click', () => {
+        fjernOverforingssesjon();
         localStorage.removeItem('ao_username');
         localStorage.removeItem('ao_password');
         localStorage.removeItem('ao_tokens');
@@ -1133,6 +1141,7 @@
       // Sikkerhetskopi (backup/gjenoppretting av observasjoner)
       const OBS_KEY = 'fugleobservasjoner_v1';
       const backupDownloadBtn = document.getElementById('backup-download');
+      const backupInnhentetBtn = document.getElementById('backup-innhentet');
       const backupRestoreBtn = document.getElementById('backup-restore');
       const backupFileInput = document.getElementById('backup-file');
       const backupStatus = document.getElementById('backup-status');
@@ -1151,14 +1160,7 @@
         } catch (e) { return 0; }
       }
 
-      backupDownloadBtn.addEventListener('click', () => {
-        let payload;
-        try {
-          const raw = localStorage.getItem(OBS_KEY);
-          payload = raw ? JSON.parse(raw) : { version: 1, observations: [] };
-        } catch (e) {
-          payload = { version: 1, observations: [] };
-        }
+      function lastNedBackup(payload) {
         const backup = {
           app: 'enkel-ao',
           type: 'observations-backup',
@@ -1176,8 +1178,37 @@
         a.click();
         a.remove();
         URL.revokeObjectURL(url);
-        const n = currentObsCount();
+        const n = payload.observations.length;
         showBackupStatus(`✅ Lastet ned sikkerhetskopi med ${n} observasjon${n === 1 ? '' : 'er'}.`, 'success');
+      }
+
+      backupDownloadBtn.addEventListener('click', () => {
+        try {
+          const payload = JSON.parse(localStorage.getItem(OBS_KEY) || '{"version":1,"observations":[]}');
+          if (!Array.isArray(payload?.observations)) throw new Error();
+          lastNedBackup(payload);
+        } catch {
+          showBackupStatus('Kunne ikke lese den lokale lista.', 'error');
+        }
+      });
+
+      function oppdaterBackupInnhentet() {
+        try {
+          backupInnhentetBtn.style.display = lesInnhentetListe() ? '' : 'none';
+        } catch {
+          backupInnhentetBtn.style.display = 'none';
+        }
+      }
+      oppdaterBackupInnhentet();
+      window.addEventListener('pageshow', oppdaterBackupInnhentet);
+      window.addEventListener('storage', oppdaterBackupInnhentet);
+      backupInnhentetBtn.addEventListener('click', () => {
+        try {
+          const { observations, ...overforing } = lesInnhentetListe();
+          lastNedBackup({ version: 1, observations, overforing });
+        } catch {
+          showBackupStatus('Kunne ikke lese den innhentede lista.', 'error');
+        }
       });
 
       backupRestoreBtn.addEventListener('click', () => backupFileInput.click());
@@ -1186,7 +1217,7 @@
         const file = backupFileInput.files && backupFileInput.files[0];
         if (!file) return;
         const reader = new FileReader();
-        reader.onload = () => {
+        reader.onload = async () => {
           try {
             const parsed = JSON.parse(reader.result);
             // Godta både vårt backup-format og rått payload-format
@@ -1198,6 +1229,24 @@
               return;
             }
             const count = payload.observations.length;
+            if (payload.overforing) {
+              const { eier, kopiId, lagretTs } = payload.overforing;
+              if (!/^ao:[1-9][0-9]{0,19}$/.test(eier) || !/^[a-f0-9]{32}$/.test(kopiId)
+                  || !Number.isFinite(lagretTs) || !count) {
+                showBackupStatus('Filen har ugyldig kontoinformasjon for den innhentede lista.', 'error');
+                return;
+              }
+              if (!confirm(`Gjenopprette ${count} observasjoner som innhentet liste? Den lokale lista bevares.`)) return;
+              try {
+                await apneInnhentetListe(() => lagreInnhentetKopi({ id: kopiId, lagretTs }, payload.observations, eier));
+                lukkInnhentetListe();
+                oppdaterBackupInnhentet();
+                showBackupStatus('Innhentet liste gjenopprettet. Åpne den fra ⋯-menyen.', 'success');
+              } catch (feil) {
+                showBackupStatus(feil.message, 'error');
+              }
+              return;
+            }
             const existing = currentObsCount();
             if (!confirm(`Gjenopprette ${count} observasjon${count === 1 ? '' : 'er'}? Dette erstatter de ${existing} som ligger i appen nå.`)) {
               return;

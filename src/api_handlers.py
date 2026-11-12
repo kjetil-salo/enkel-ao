@@ -327,7 +327,7 @@ def _sliding_expiration(auth_cookie: str, user_id: str, login_token: str = None)
         return None
 
 
-def login_to_ao(username: str, password: str, bind_token: bool = True) -> dict:
+def login_to_ao(username: str, password: str, bind_token: bool = True, *, diskret: bool = False) -> dict:
     """
     Logger inn på Artsobservasjoner med brukernavn/passord.
 
@@ -335,6 +335,8 @@ def login_to_ao(username: str, password: str, bind_token: bool = True) -> dict:
     (`_full_relogin`). Tokenet AO gir da, ser klienten aldri — å binde det ville
     bare presset brukerens egne, gyldige avtrykk nærmere taket uten at noen kan
     bruke det nye.
+
+    `diskret=True` utelater brukernavn og sesjonsdata fra overføringsloggen.
 
     Returnerer dict med:
     - authCookie: .ASPXAUTHNO cookie-verdi
@@ -344,7 +346,8 @@ def login_to_ao(username: str, password: str, bind_token: bool = True) -> dict:
     Raises:
         ValueError: Ved ugyldig brukernavn/passord eller andre feil
     """
-    logger.info(f'[AO-LOGIN] Starter innlogging for bruker: {username}')
+    if not diskret:
+        logger.info(f'[AO-LOGIN] Starter innlogging for bruker: {username}')
 
     # Steg 1: Hent login-siden for CSRF-token
     with httpx.Client() as client:
@@ -438,9 +441,11 @@ def login_to_ao(username: str, password: str, bind_token: bool = True) -> dict:
         # IKKE user_id, som er ustabilt per AO-konto, se _load_credentials-docstring)
         if bind_token:
             _save_credentials(username, password, login_token)
-            logger.debug(f'[AO-LOGIN] Lagret credentials for auto-relogin (bruker={username})')
+            if not diskret:
+                logger.debug(f'[AO-LOGIN] Lagret credentials for auto-relogin (bruker={username})')
 
-        logger.info(f'[AO-LOGIN] Innlogging vellykket! user_id={user_id}, auth_cookie={mask_token(auth_cookie)}')
+        if not diskret:
+            logger.info(f'[AO-LOGIN] Innlogging vellykket! user_id={user_id}, auth_cookie={mask_token(auth_cookie)}')
 
         return {
             'authCookie': auth_cookie,

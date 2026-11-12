@@ -40,6 +40,10 @@ test('ny side og kart starter uten nett etter installasjon, og lokaliteter overl
   fresh.on('pageerror', err => errors.push(err.message));
   await fresh.goto(BASE);
   await expect(fresh.locator('#offline-mode-toggle-text')).toContainText('Offline');
+  await fresh.locator('#header-menu summary').click();
+  await fresh.getByRole('button', { name: 'Hent liste fra en annen enhet' }).click();
+  await expect(fresh.locator('#arbeidsliste-status')).toContainText('Overføring krever nett');
+  await fresh.getByRole('button', { name: 'Lukk', exact: true }).click();
   await fresh.fill('#place', 'Lagret teststed');
   await fresh.fill('#search', 'kjøttmeis');
   await expect(fresh.locator('#results .result-item').first()).toBeVisible();

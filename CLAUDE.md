@@ -215,6 +215,13 @@ The `Handler` class routes requests:
 - `/api/share-update` (POST) → oppdaterer innholdet i en eksisterende deling (samme slug/URL),
   krever `slug` + `deleteKey`. `expires_ts` endres bevisst ikke — forlenger ikke levetiden
 - `/api/share-delete` (POST) → trekker tilbake en deling; krever `slug` + `deleteKey`
+- `/api/arbeidsliste-overforing` → privat arbeidslistekopi for samme AO-konto på flere enheter.
+  `POST /innlogging` under denne stien verifiserer eier fra `EditUser.User.Id` på AOs egen
+  profilside og utsteder en lokal 24-timers sesjon. Tokenprefikset fra AO varierer ved innlogging.
+  Metadata, `/innhold`, lagring, `/slett` og `/logg-ut` bruker `Authorization: Bearer` og lokal
+  SQLite i `DB_PATH`. Alle svar har `no-store`, og API-et tillater samme opprinnelse.
+  Kopien utløper etter sju døgn og ryddes i bakgrunnen. Sett `ARBEIDSLISTE_OVERFORING=0` for å
+  deaktivere tilgang. `/status` viser om funksjonen er aktiv.
 - `/d/<slug>` → offentlig delingsside. Ukjent og utløpt slug gir **samme** 404-side (ingen enumerering)
 - `/mine-delinger.html` → frittstående side som lister brukerens delinger fra `myShares_v1`
   (localStorage, kun lokalt — ikke et serverendepunkt), med oppdater- og trekk tilbake-knapp per rad

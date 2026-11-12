@@ -281,7 +281,7 @@ describe('SSE Stream Parsing og Error in input stream resiliens', () => {
       expect(observations.length).toBe(1);
     });
 
-    it('tømmer listen dersom auto-clear er av og brukeren godkjenner confirm', async () => {
+    it.each([false, true])('tømmer etter bekreftelse bare hvis lagret liste er den samme (endret=%s)', async (endret) => {
       store['ao_username'] = 'testbruker';
       store['ao_password'] = 'hemmelig';
       store['ao_tokens'] = JSON.stringify({ loginToken: 'tok123', authCookie: 'cook123' });
@@ -291,7 +291,12 @@ describe('SSE Stream Parsing og Error in input stream resiliens', () => {
       const { dom } = lagTestDom();
       dom.aoDirectAutoClear.checked = false;
 
-      const callbacks = { doRenderObservations: vi.fn(), saveState: vi.fn() };
+      let lagret = structuredClone(observations);
+      const callbacks = {
+        doRenderObservations: vi.fn(),
+        saveState: vi.fn(() => { lagret = structuredClone(observations); }),
+        lesLagretListe: () => lagret,
+      };
       const encoder = new TextEncoder();
       const mockStream = {
         getReader() {
@@ -312,10 +317,12 @@ describe('SSE Stream Parsing og Error in input stream resiliens', () => {
       }));
 
       await handleDirectSend(observations, dom, callbacks);
+      if (endret) lagret.push({ species: { taxonName: 'Tjeld' }, count: 2 });
       vi.advanceTimersByTime(1500);
 
       expect(window.confirm).toHaveBeenCalledWith('Sending vellykket! Vil du tømme observasjonslisten?');
-      expect(observations.length).toBe(0);
+      expect(observations.length).toBe(endret ? 1 : 0);
+      if (endret) expect(lagret.at(-1).species.taxonName).toBe('Tjeld');
     });
 
     it('beholder listen uten sendtmarkering når strømoppstarten feiler før kvittering', async () => {

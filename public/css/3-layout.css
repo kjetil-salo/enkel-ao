@@ -60,7 +60,6 @@ header {
   gap: var(--space-sm);
 }
 
-.header-menu,
 .mode-pill-short {
   display: none;
 }
@@ -182,56 +181,75 @@ header {
     content: '\1F4F4';
   }
 
-  .header-menu {
-    display: block;
-    position: relative;
-    flex-shrink: 0;
-  }
+}
 
-  .header-menu summary {
+.header-menu {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.header-menu summary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-sm);
+  color: var(--color-muted);
+  font-size: 1.5rem;
+  cursor: pointer;
+  list-style: none;
+}
+
+.header-menu summary::-webkit-details-marker {
+  display: none;
+}
+
+.header-menu[open] summary,
+.header-menu summary:hover,
+.header-menu-links > :not([hidden]):hover {
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+}
+
+.header-menu-links {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  z-index: var(--z-modal);
+  width: min(15rem, calc(100vw - 1.5rem));
+  padding: var(--space-xs);
+  border: 1px solid var(--border-color-medium);
+  border-radius: var(--radius-md);
+  background: var(--color-card-bg);
+  box-shadow: var(--shadow-md);
+}
+
+.header-menu-links > :not([hidden]) {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 var(--space-md);
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+}
+
+.header-menu-links > button {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.header-menu-links > a:not([hidden]) {
+  display: none;
+}
+
+@media (max-width: 599px) {
+  .header-menu-links > a:not([hidden]) {
     display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 44px;
-    height: 44px;
-    border-radius: var(--radius-sm);
-    color: var(--color-muted);
-    font-size: 1.5rem;
-    cursor: pointer;
-    list-style: none;
-  }
-
-  .header-menu summary::-webkit-details-marker {
-    display: none;
-  }
-
-  .header-menu[open] summary,
-  .header-menu summary:hover,
-  .header-menu-links a:hover {
-    background: var(--color-accent-soft);
-    color: var(--color-accent);
-  }
-
-  .header-menu-links {
-    position: absolute;
-    top: 100%;
-    right: 0;
-    z-index: var(--z-modal);
-    width: 200px;
-    padding: var(--space-xs);
-    border: 1px solid var(--border-color-medium);
-    border-radius: var(--radius-md);
-    background: var(--color-card-bg);
-    box-shadow: var(--shadow-md);
-  }
-
-  .header-menu-links a {
-    display: flex;
-    align-items: center;
-    min-height: 44px;
-    padding: 0 var(--space-md);
-    border-radius: var(--radius-sm);
-    color: var(--color-text);
   }
 }
 

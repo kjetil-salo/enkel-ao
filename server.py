@@ -14,6 +14,7 @@ except ImportError:
 import json
 import logging
 import os
+import sqlite3
 import threading
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse, parse_qs
@@ -69,6 +70,8 @@ from src.ao_import_httpx import (post_with_curl, number_of_sightings_submitted,
                                  upload_photo_to_published_sighting)
 from src.ao_sightings import fetch_my_sightings, fetch_raw_row
 from src import ao_edit
+from src import arbeidsliste_store
+from src.arbeidsliste_auth import hent_ao_konto
 
 # Lokal lokasjons-database (feature toggle via LOCATION_DB_PATH)
 _location_db = None
@@ -82,6 +85,16 @@ if _location_db_path:
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 PUBLIC_DIR = os.path.join(BASE_DIR, 'public')
+
+_ARBEIDSLISTE_API = '/api/arbeidsliste-overforing'
+_arbeidsliste_aktiv = os.environ.get('ARBEIDSLISTE_OVERFORING', '1') != '0'
+_arbeidsliste_lager = arbeidsliste_store.ArbeidslisteLager(os.environ.get('DB_PATH', '/data/stats.db'))
+_arbeidsliste_overforinger = threading.BoundedSemaphore(3)
+_arbeidsliste_innlogginger = threading.BoundedSemaphore(2)
+
+
+def _er_arbeidsliste_api(path):
+    return path == _ARBEIDSLISTE_API or path.startswith(_ARBEIDSLISTE_API + '/')
 
 # Miljømerking av snarveien på hjemskjermen. Staging og prod serverer identiske
 # filer, så uten dette får begge navnet «Enkel-AO» og samme ikon — umulig å se
@@ -174,12 +187,16 @@ _log_export_hits = {}
 LOG_EXPORT_MAX_PER_WINDOW = 120
 LOG_EXPORT_WINDOW_SEC = 600
 
+_arbeidsliste_ip_hits = {}
+_arbeidsliste_skrive_hits = {}
+
 # Alle rate-limit-bøttene over, kun for den periodiske oppryddingen i _rate_ok:
 # uten den vokser hver dict med én nøkkel per unike IP noen gang sett, for alltid.
 _ALLE_RATE_HITS = (
     _feedback_hits, _share_hits, _fellestur_hits, _fellestur_peer_hits,
     _fellestur_poll_hits, _ao_login_hits, _ao_search_observers_hits,
     _logview_hits, _log_export_hits,
+    _arbeidsliste_ip_hits, _arbeidsliste_skrive_hits,
 )
 _siste_rate_opprydding = [0.0]
 _RATE_OPPRYDDING_INTERVALL_SEC = 3600
@@ -215,6 +232,10 @@ _MAX_BODY_PER_PATH = {
     '/api/share-update': 5 * 1024 * 1024,
     '/api/ao-sighting-save': 5 * 1024 * 1024,
     '/api/fellestur-sync': 8 * 1024 * 1024,
+    _ARBEIDSLISTE_API: arbeidsliste_store.MAKS_BODY_BYTES + 1024,
+    _ARBEIDSLISTE_API + '/innlogging': 4096,
+    _ARBEIDSLISTE_API + '/slett': 1024,
+    _ARBEIDSLISTE_API + '/logg-ut': 1024,
 }
 _MAX_BODY_FELLESTUR_PEER = 2 * 1024 * 1024  # inntil 50 events à 20 KB
 
@@ -281,6 +302,9 @@ class Handler(SimpleHTTPRequestHandler):
 
     def do_OPTIONS(self):
         """Håndter CORS preflight requests."""
+        if _er_arbeidsliste_api(urlparse(self.path).path):
+            self._send_json({'error': 'Overførings-API-et er kun for denne appen.'}, status=405)
+            return
         self.send_response(200)
         self.send_header('Access-Control-Allow-Origin', '*')
         self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
@@ -299,6 +323,10 @@ class Handler(SimpleHTTPRequestHandler):
         if lengde < 0 or lengde > _max_body_bytes(parsed.path):
             self.close_connection = True
             self._send_json({'ok': False, 'error': 'Innholdet er for stort til å sendes'}, status=413)
+            return
+
+        if _er_arbeidsliste_api(parsed.path):
+            self._handle_arbeidsliste(parsed.path, lengde)
             return
 
         if parsed.path == '/api/logview':
@@ -1341,6 +1369,121 @@ class Handler(SimpleHTTPRequestHandler):
             except Exception:
                 pass
 
+    def _handle_arbeidsliste(self, sti, lengde=None):
+        handling = sti.removeprefix(_ARBEIDSLISTE_API)
+        if not self._arbeidsliste_samme_opprinnelse():
+            self._send_json({'error': 'Overførings-API-et er kun for denne appen.'}, status=403)
+            return
+        if handling == '/status' and lengde is None:
+            self._send_json({'aktiv': _arbeidsliste_aktiv})
+            return
+        if not _arbeidsliste_aktiv:
+            self._send_json({'error': 'Listeoverføring er midlertidig utilgjengelig.'}, status=503)
+            return
+        if not _rate_ok(_arbeidsliste_ip_hits, self._client_ip(), 60, 600):
+            self._send_json({'error': 'For mange forespørsler. Prøv igjen senere.'}, status=429)
+            return
+        kapasitet = _arbeidsliste_innlogginger if handling == '/innlogging' else _arbeidsliste_overforinger
+        if not kapasitet.acquire(blocking=False):
+            self._send_json({'error': 'Overføring er opptatt. Prøv igjen om litt.'}, status=503)
+            return
+        try:
+            self.connection.settimeout(15)
+            self._arbeidsliste_svar(handling, lengde)
+        except arbeidsliste_store.UgyldigListe as feil:
+            self._send_json({'error': str(feil)}, status=400)
+        except arbeidsliste_store.Listekonflikt as feil:
+            self._send_json({'error': str(feil)}, status=409)
+        except arbeidsliste_store.LagerFullt as feil:
+            self._send_json({'error': str(feil)}, status=507)
+        except (ValueError, RecursionError):
+            self._send_json({'error': 'Ugyldig forespørsel for listeoverføring.'}, status=400)
+        except (ConnectionError, TimeoutError):
+            self.close_connection = True
+        except (sqlite3.Error, OSError):
+            self._send_json({'error': 'Overføring kunne ikke fullføres. Prøv igjen om litt.'}, status=503)
+        finally:
+            kapasitet.release()
+
+    def _arbeidsliste_samme_opprinnelse(self):
+        if self.headers.get('Sec-Fetch-Site') in ('cross-site', 'same-site'):
+            return False
+        origin = self.headers.get('Origin')
+        if origin is None:
+            return True
+        host = self.headers.get('Host', '').lower()
+        return bool(host) and origin.lower() in (f'https://{host}', f'http://{host}')
+
+    def _arbeidsliste_body(self, lengde):
+        if self.headers.get_content_type() != 'application/json':
+            raise ValueError('Innholdstype')
+        data = json.loads(self.rfile.read(lengde))
+        if not isinstance(data, dict):
+            raise ValueError('Forespørselen må være et objekt')
+        return data
+
+    def _arbeidsliste_svar(self, handling, lengde):
+        if handling == '/innlogging' and lengde is not None:
+            self._arbeidsliste_innlogging(lengde)
+            return
+        auth = self.headers.get('Authorization', '')
+        token = auth.removeprefix('Bearer ') if auth.startswith('Bearer ') else None
+        eier = _arbeidsliste_lager.hent_sesjonseier(token)
+        if eier is None:
+            self._send_json({'error': 'Logg inn for å overføre arbeidslista.'}, status=401)
+            return
+        if lengde is None and handling == '':
+            self._send_json({'kopi': _arbeidsliste_lager.siste_kopi(eier)})
+        elif lengde is None and handling == '/innhold':
+            kopi = _arbeidsliste_lager.hent_kopi(eier, self.headers.get('X-Arbeidsliste-Kopi'))
+            if kopi is None:
+                self._send_json({'error': 'Denne kopien er ikke lenger tilgjengelig.'}, status=404)
+            else:
+                self._send_json(kopi)
+        elif lengde is not None and handling == '/logg-ut':
+            _arbeidsliste_lager.slett_sesjon(token)
+            self._send_json({'ok': True})
+        elif lengde is not None and handling in ('', '/slett'):
+            if not (_rate_ok(_arbeidsliste_skrive_hits, eier, 15, 600)
+                    and _rate_ok(_arbeidsliste_skrive_hits, 'global', 120, 600)):
+                self._send_json({'error': 'For mange lagringer. Prøv igjen senere.'}, status=429)
+                return
+            data = self._arbeidsliste_body(lengde)
+            if handling == '/slett':
+                if not isinstance(data.get('id'), str):
+                    raise ValueError('Mangler kopi-ID')
+                _arbeidsliste_lager.slett_kopi(eier, data['id'])
+                self._send_json({'ok': True})
+            else:
+                if set(data) != {'liste', 'kilde', 'forsok', 'erstatter'}:
+                    raise ValueError('Ugyldig lagringsforespørsel')
+                kopi = _arbeidsliste_lager.lagre_kopi(eier, data['liste'], data['kilde'],
+                                                        data['forsok'], data['erstatter'])
+                self._send_json({'kopi': kopi})
+        else:
+            self._send_json({'error': 'Overføringshandlingen finnes ikke.'}, status=404)
+
+    def _arbeidsliste_innlogging(self, lengde):
+        if not _rate_ok(_ao_login_hits, self._client_ip(), AO_LOGIN_MAX_PER_WINDOW, AO_LOGIN_WINDOW_SEC):
+            self._send_json({'error': 'For mange innloggingsforsøk. Prøv igjen senere.'}, status=429)
+            return
+        data = self._arbeidsliste_body(lengde)
+        brukernavn, passord = data.get('username'), data.get('password')
+        if not isinstance(brukernavn, str) or not isinstance(passord, str) or not brukernavn.strip() or not passord:
+            self._send_json({'error': 'Brukernavn og passord er påkrevd.'}, status=400)
+            return
+        try:
+            resultat = login_to_ao(brukernavn.strip(), passord, bind_token=False, diskret=True)
+            konto = hent_ao_konto(resultat['authCookie'])
+        except Exception:
+            konto = None
+        if konto is None:
+            self._send_json({'error': 'Kunne ikke bekrefte AO-kontoen. Sjekk innloggingen og prøv igjen.'})
+            return
+        eier, alias = konto
+        sesjon = _arbeidsliste_lager.opprett_sesjon(eier)
+        self._send_json({'sesjon': {**sesjon, 'alias': alias}})
+
     def _handle_ao_login_post(self):
         """Håndter innlogging til AO med brukernavn/passord."""
         if not _rate_ok(_ao_login_hits, self._client_ip(), AO_LOGIN_MAX_PER_WINDOW, AO_LOGIN_WINDOW_SEC):
@@ -1358,12 +1501,25 @@ class Handler(SimpleHTTPRequestHandler):
                 self._send_json({'error': 'Brukernavn og passord er påkrevd'}, status=400)
                 return
 
-            logger.info(f'[AO-LOGIN] Innloggingsforsøk for bruker: {username}')
+            kopi_eier = data.get('arbeidslisteEier')
+            if kopi_eier is None:
+                logger.info(f'[AO-LOGIN] Innloggingsforsøk for bruker: {username}')
+                result = login_to_ao(username, password)
+                logger.info(f'[AO-LOGIN] Vellykket for user_id={result.get("userId")}')
+            else:
+                # For en innhentet liste sjekkes eieren med sesjonen som skal sende til AO.
+                try:
+                    result = login_to_ao(username, password, bind_token=False, diskret=True)
+                    konto = hent_ao_konto(result['authCookie'])
+                except Exception:
+                    konto = None
+                if konto is None:
+                    self._send_json({'error': 'Kunne ikke bekrefte AO-kontoen. Sjekk innloggingen og prøv igjen.'})
+                    return
+                if konto[0] != kopi_eier:
+                    self._send_json({'error': 'Logg inn på AO-kontoen som eier den innhentede lista.'}, status=403)
+                    return
 
-            # Logg inn via api_handlers
-            result = login_to_ao(username, password)
-
-            logger.info(f'[AO-LOGIN] Vellykket for user_id={result.get("userId")}')
             self._send_json({
                 'success': True,
                 'authCookie': result['authCookie'],
@@ -1499,6 +1655,10 @@ class Handler(SimpleHTTPRequestHandler):
     def log_message(self, format, *args):
         """Overstyr BaseHTTPRequestHandler sin innebygde request-logging."""
         path = getattr(self, 'path', '').split('?', 1)[0].split('#', 1)[0]
+        if _er_arbeidsliste_api(path):
+            if format == '"%s" %s %s':
+                logger.debug('[ARBEIDSLISTE-HTTP] status=%s', args[1])
+            return
         if path.startswith('/api/fellestur') and format == '"%s" %s %s':
             logger.info('[FELLESTUR-HTTP] metode=%s sti=%r status=%s ip=%r',
                         self.command, path[:160], args[1], self._client_ip()[:64])
@@ -1507,9 +1667,11 @@ class Handler(SimpleHTTPRequestHandler):
 
     def do_GET(self):
         """Håndter GET-forespørsler."""
-        logger.debug(f"IP: {self.client_address[0]} | UA: {self.headers.get('User-Agent', '-')} | PATH: {self.path}")
-        
         parsed = urlparse(self.path)
+        if _er_arbeidsliste_api(parsed.path):
+            self._handle_arbeidsliste(parsed.path)
+            return
+        logger.debug(f"IP: {self.client_address[0]} | UA: {self.headers.get('User-Agent', '-')} | PATH: {self.path}")
         
         # Route til riktig handler
         try:
@@ -1962,18 +2124,19 @@ class Handler(SimpleHTTPRequestHandler):
         return super().do_GET()
 
     def translate_path(self, path):
-        """Mappe URL-path til filsystemet under PUBLIC_DIR for /public/*.
-
-        SimpleHTTPRequestHandler sin standardoppførsel er å bruke cwd.
-        Vi overstyrer for å peke eksplisitt på ./public.
-        """
-        path = super().translate_path(path)
-
-        # Sørg for at alt under /public havner i PUBLIC_DIR
-        rel = os.path.relpath(path, os.getcwd())
-        if rel.startswith('public' + os.sep):
-            return os.path.join(BASE_DIR, rel)
-        return path
+        """Avgrens statisk filoppslag til public, også for HEAD og symlinker."""
+        sti = urlparse(path).path
+        if sti.startswith('/public/'):
+            sti = sti[len('/public'):]
+        relativ = os.path.relpath(super().translate_path(sti), self.directory)
+        rot = os.path.realpath(PUBLIC_DIR)
+        fil = os.path.realpath(os.path.join(rot, relativ))
+        if fil != rot and not fil.startswith(rot + os.sep):
+            return ''
+        db = os.path.realpath(_arbeidsliste_lager.db_path)
+        if fil in (db, db + '-wal', db + '-shm', db + '-journal'):
+            return ''
+        return fil
 
     def end_headers(self):
         """Legg til Cache-Control headers for å unngå aggressive mobilcache."""
@@ -1984,7 +2147,9 @@ class Handler(SimpleHTTPRequestHandler):
             return
         path_no_query = self.path.split('?', 1)[0]
         # Service Worker skal aldri mellomlagres av nettleser eller proxy
-        if path_no_query.endswith('/sw.js') or path_no_query == 'sw.js':
+        if _er_arbeidsliste_api(path_no_query):
+            self.send_header('Cache-Control', 'no-store')
+        elif path_no_query.endswith('/sw.js') or path_no_query == 'sw.js':
             self.send_header('Cache-Control', 'no-cache, no-store, must-revalidate')
             self.send_header('Service-Worker-Allowed', '/')
         # HTML, JS og CSS: Alltid revalider med server slik at oppdateringer slår inn umiddelbart
@@ -2009,7 +2174,8 @@ class Handler(SimpleHTTPRequestHandler):
         self.send_response(status)
         self.send_header('Content-Type', 'application/json; charset=utf-8')
         self.send_header('Content-Length', str(len(payload)))
-        self.send_header('Access-Control-Allow-Origin', '*')
+        if not _er_arbeidsliste_api(urlparse(self.path).path):
+            self.send_header('Access-Control-Allow-Origin', '*')
         self.send_header('Cache-Control', 'no-store')
         self._cache_header_set = True
         self.end_headers()
@@ -2030,6 +2196,26 @@ class Handler(SimpleHTTPRequestHandler):
         self._send_json(error_data, status=status)
 
 
+def _start_arbeidsliste_rydding():
+    def rydd_og_vent():
+        vent = threading.Event()
+        while True:
+            try:
+                _arbeidsliste_lager.init_db()
+                _arbeidsliste_lager.rydd_utlopte()
+            except (OSError, sqlite3.Error):
+                logger.warning('[ARBEIDSLISTE] Kunne ikke rydde utløpte kopier.')
+            vent.wait(3600)
+
+    # Rydd eksisterende kopier også når overføring er slått av.
+    if _arbeidsliste_aktiv or _arbeidsliste_lager.db_path.is_file():
+        try:
+            _arbeidsliste_lager.init_db()
+        except (OSError, sqlite3.Error):
+            logger.warning('[ARBEIDSLISTE] Kunne ikke åpne lageret ved oppstart.')
+        threading.Thread(target=rydd_og_vent, daemon=True, name='arbeidsliste-rydding').start()
+
+
 def run(port=3000):
     """Start HTTP-serveren."""
     os.chdir(BASE_DIR)
@@ -2039,6 +2225,7 @@ def run(port=3000):
     # Driftssiden leser fila for å bygge lenker, og den skal ikke måtte vente
     # på at noen tilfeldigvis poker en URL etter en deploy.
     adminsti.hent_admin_sti()
+    _start_arbeidsliste_rydding()
     logger.info(f'Server kjører på port {port} (log_level={LOG_LEVEL})')
     httpd.serve_forever()
 

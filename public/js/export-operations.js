@@ -6,6 +6,15 @@ import { toCsv } from './observations.js';
 import { flashButton } from './ui.js';
 import { appendSentBatch, loadAoDirectAutoClear } from './storage.js';
 import { isOfflineMode } from './offline-db.js';
+import { hentAktivFellestur } from './fellestur-client.js';
+import { aktivInnhentetListe } from './arbeidsliste-lokal.js';
+import { kontoKontekst, sammeKontoKontekst } from './arbeidsliste-sesjon.js';
+
+let senderTilAo = false;
+
+export function aoSendingPagar() {
+  return senderTilAo;
+}
 
 function _statusColor(type) {
   const light = document.body.classList.contains('theme-light');
@@ -326,11 +335,15 @@ export function _parseSseEvents(text) {
 }
 
 export async function handleDirectSend(observations, dom, callbacks) {
-  if (!observations.length) return;
+  if (!observations.length || senderTilAo) return;
 
   const username = localStorage.getItem('ao_username');
   const password = localStorage.getItem('ao_password');
   if (!username || !password) return;
+
+  const innhentet = aktivInnhentetListe();
+  const sammeListe = () => !hentAktivFellestur() && aktivInnhentetListe()?.kopiId === innhentet?.kopiId;
+  const konto = innhentet ? kontoKontekst() : null;
 
   const future = _findFutureObservation(observations);
   if (future) {
@@ -340,8 +353,13 @@ export async function handleDirectSend(observations, dom, callbacks) {
     return;
   }
 
+  if (innhentet) {
+    const kopitid = new Date(innhentet.lagretTs * 1000).toLocaleString('nb-NO');
+    if (!confirm(`Lista ble kopiert ${kopitid}. Sjekk hos AO om funnene allerede er sendt fra den andre enheten. Vil du publisere fra denne enheten?`)) return;
+  }
+
   // Allerede publiserte funn i lista → la brukeren velge før noe sendes
-  let utvalg = observations;
+  let utvalg = [...observations];
   const alleredeSendt = observations.filter((o) => o.sentTs);
   if (alleredeSendt.length) {
     const valg = await _visDublettAdvarsel(alleredeSendt.length, observations.length,
@@ -367,27 +385,34 @@ export async function handleDirectSend(observations, dom, callbacks) {
   _renderProgress(dom, 1, 3, 'Logger inn på AO…');
 
   const extraHeaders = allowOfflineBypass ? { 'X-Allow-Offline-Network': '1' } : {};
+  const listeVedStart = JSON.stringify(observations);
   let awaitingImportReceipt = false;
+  senderTilAo = true;
 
   try {
     const loginResp = await fetch('/api/ao-login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...extraHeaders },
-      body: JSON.stringify({ username, password }),
+      body: JSON.stringify({ username, password, ...(innhentet && { arbeidslisteEier: innhentet.eier }) }),
     });
     const loginResult = await loginResp.json();
     if (!loginResp.ok || !loginResult.success) {
       throw new Error(loginResult.error || 'Innlogging feilet');
+    }
+    if (innhentet && (!sammeListe() || !sammeKontoKontekst(konto))) {
+      throw new Error('Lista eller AO-kontoen ble endret. Kontroller lista før du prøver igjen.');
     }
 
     const tokens = JSON.parse(localStorage.getItem('ao_tokens') || '{}');
     tokens.loginToken = loginResult.loginToken;
     tokens.authCookie = loginResult.authCookie;
     tokens.userId = tokens.mapUserId || loginResult.userId;
-    localStorage.setItem('ao_tokens', JSON.stringify(tokens));
-    // Fersk sesjon: en cache med private lokaliteter hentet under den forrige,
-    // eventuelt døde, sesjonen skal ikke overleve (se api.js, 09.11.2026).
-    localStorage.removeItem('ao_private_sites');
+    if (!innhentet) {
+      localStorage.setItem('ao_tokens', JSON.stringify(tokens));
+      // Fersk sesjon: en cache med private lokaliteter hentet under den forrige,
+      // eventuelt døde, sesjonen skal ikke overleve (se api.js, 09.11.2026).
+      localStorage.removeItem('ao_private_sites');
+    }
 
     _renderProgress(dom, 2, 3, `Sender ${total} observasjon${total !== 1 ? 'er' : ''} …`, 0);
 
@@ -540,7 +565,7 @@ export async function handleDirectSend(observations, dom, callbacks) {
       throw new Error((importResult && importResult.error) || 'Import feilet');
     }
 
-    if (importResult.refreshedAuthCookie) {
+    if (importResult.refreshedAuthCookie && !innhentet) {
       const t = JSON.parse(localStorage.getItem('ao_tokens') || '{}');
       t.authCookie = importResult.refreshedAuthCookie;
       localStorage.setItem('ao_tokens', JSON.stringify(t));
@@ -574,7 +599,13 @@ export async function handleDirectSend(observations, dom, callbacks) {
     }
 
     // Tøm listen automatisk ved vellykket sending dersom innstillingen er aktivert
-    const doClearList = () => {
+    const doClearList = (forventetListe) => {
+      if (!sammeListe() || JSON.stringify(observations) !== forventetListe) return;
+      try {
+        if (callbacks.lesLagretListe && JSON.stringify(callbacks.lesLagretListe()) !== forventetListe) return;
+      } catch {
+        return;
+      }
       observations.splice(0, observations.length);
       callbacks.doRenderObservations();
       callbacks.saveState();
@@ -584,19 +615,20 @@ export async function handleDirectSend(observations, dom, callbacks) {
     };
 
     const scheduleClearList = () => {
+      const forventetListe = JSON.stringify(observations);
       const shouldAutoClear = Boolean(
         (dom.aoDirectAutoClear && dom.aoDirectAutoClear.checked) ||
         loadAoDirectAutoClear()
       );
       if (shouldAutoClear) {
         setTimeout(() => {
-          doClearList();
+          doClearList(forventetListe);
         }, 800);
       } else {
         setTimeout(() => {
           try {
             if (confirm('Sending vellykket! Vil du tømme observasjonslisten?')) {
-              doClearList();
+              doClearList(forventetListe);
             }
           } catch (_) {}
         }, 500);
@@ -615,14 +647,17 @@ export async function handleDirectSend(observations, dom, callbacks) {
       fetch('/api/log-export', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'direct' }) }).catch(() => {});
 
       const sendtTidspunkt = new Date().toISOString();
+      const tomKandidat = sammeListe() && JSON.stringify(observations) === listeVedStart;
       utvalg.forEach((o) => { o.sentTs = sendtTidspunkt; });
       appendSentBatch(utvalg.map((o) => {
         const { photo, _photoMarker, ...rest } = o;
         return photo ? { ...rest, hadPhoto: true } : rest;
       }));
-      callbacks.doRenderObservations();
-      callbacks.saveState();
-      scheduleClearList();
+      if (sammeListe() && observations.length) {
+        callbacks.doRenderObservations();
+        callbacks.saveState();
+        if (tomKandidat) scheduleClearList();
+      }
     };
 
     completeSuccessfulSend(importResult);
@@ -634,6 +669,8 @@ export async function handleDirectSend(observations, dom, callbacks) {
     dom.aoDirectStatus.style.cssText = `display:block;margin-top:8px;padding:10px;border-radius:8px;font-size:0.9rem;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);color:${_statusColor('error')};`;
     dom.aoDirectStatus.textContent = `❌ ${message}`;
     dom.aoDirectBtn.disabled = false;
+  } finally {
+    senderTilAo = false;
   }
 }
 

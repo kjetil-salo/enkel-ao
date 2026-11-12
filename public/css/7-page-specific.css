@@ -1776,27 +1776,6 @@ body.theme-light #search:disabled::placeholder {
         }
       }
 
-      .kbd-hint {
-        display: none;
-      }
-
-      @media (min-width: 600px) and (min-height: 600px) {
-        .kbd-hint {
-          display: inline-flex;
-          gap: 4px;
-          align-items: center;
-          font-size: 0.7rem;
-          color: var(--muted);
-        }
-
-        .kbd-key {
-          border-radius: 6px;
-          border: 1px solid rgba(148, 163, 184, 0.4);
-          padding: 1px 5px;
-          font-size: 0.7rem;
-        }
-      }
-
       /* ===== To-kolonner layout (iPad, Mac, PC) ===== */
       @media (min-width: 768px) and (min-height: 600px) {
         .shell {
@@ -2212,12 +2191,6 @@ body.theme-light #activity.field-highlight {
 }
 
 /* --- Diverse --- */
-body.theme-light .kbd-hint .kbd-key {
-  background: #f1f5f9 !important;
-  border-color: #cbd5e1 !important;
-  color: #64748b !important;
-}
-
 body.theme-light .footer-credit {
   color: #94a3b8 !important;
 }
@@ -2716,4 +2689,65 @@ body.theme-clean .loc-pinned {
   background: var(--color-accent, #3b82f6);
   color: #fff;
   font-weight: 600;
+}
+.arbeidsliste-knapper {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  margin-block: var(--space-sm);
+}
+
+.arbeidsliste-knapper .btn,
+.arbeidsliste-dialog .btn {
+  min-height: 44px;
+  white-space: normal;
+}
+
+.arbeidsliste-knapper [hidden],
+.arbeidsliste-dialog [hidden] {
+  display: none;
+}
+
+.arbeidsliste-dialog {
+  width: min(36rem, calc(100% - 1.5rem));
+  max-height: calc(100dvh - 2rem);
+  overflow: auto;
+  padding: var(--space-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-card-bg);
+  color: var(--color-text);
+}
+
+.arbeidsliste-dialoghode {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
+.arbeidsliste-dialog h2 {
+  font-size: var(--font-lg);
+}
+
+.arbeidsliste-dialog p:empty,
+.arbeidsliste-rader:empty {
+  display: none;
+}
+
+.arbeidsliste-rader {
+  padding-inline-start: var(--space-lg);
+  overflow-wrap: anywhere;
+}
+
+.arbeidsliste-rader li {
+  margin-block: var(--space-sm);
+}
+
+.arbeidsliste-rader img {
+  display: block;
+  max-width: min(100%, 16rem);
+  max-height: 12rem;
+  object-fit: contain;
+  margin-block: var(--space-sm);
 }
