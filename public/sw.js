@@ -2,7 +2,7 @@
  * Service Worker for Enkel-AO (PWA app-shell og kartflis-cache).
  */
 
-const CACHE_NAME = 'fugleobs-v214';
+const CACHE_NAME = 'fugleobs-v215';
 const MAP_TILE_CACHE_NAME = 'enkel-ao-kartverket-tiles-v1';
 const NETWORK_MODE_CACHE_URL = 'https://enkel-ao.local/__network_mode__';
 
@@ -34,8 +34,6 @@ const STATIC_ASSETS = [
 '/js/theme.js',
 '/js/main.js',
 '/js/header-plass.js',
-'/img/nyhet-offline-kart.jpg',
-'/img/espen.jpg',
 '/img/nyhet-nynorsk.jpg',
 '/js/api.js',
 '/js/i18n.js',
@@ -340,6 +338,15 @@ return null;
 
 async function handleAppShellFetch(request) {
 const cache = await openCacheSafe(CACHE_NAME);
+
+// Bruk bare eksakt cachetreff for versjonerte appfiler. En ny ?v= skal
+// hentes fra nettet selv om en eldre eller uversjonert kopi ligger i cachen.
+const url = new URL(request.url);
+if (cache && request.mode !== 'navigate' && /^\?v=v\d+\.\d+\.\d+$/.test(url.search) &&
+    (/^\/js\/.+\.js$/.test(url.pathname) || url.pathname === '/style.css')) {
+const cached = await cache.match(request).catch(() => null);
+if (cached) return cached;
+}
 
 // Offline-modus (Strict Cache-Only): ALDRI nettverk — heller ikke for å revalidere
 // appfilene. Før gikk hver side-, JS-, CSS- og JSON-forespørsel til nettverket

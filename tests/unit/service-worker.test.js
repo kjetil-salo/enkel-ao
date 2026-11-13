@@ -45,6 +45,41 @@ it('er gyldig JavaScript og installerer appskallet', async () => {
   const cache = await cachesMock.open(vm.runInContext('CACHE_NAME', context));
   expect(await cache.match('/index.html')).toBeDefined();
   expect(await cache.match('/js/offline-db.js')).toBeDefined();
+  expect(await cache.match('/img/nyhet-nynorsk.jpg')).toBeDefined();
+  expect(await cache.match('/img/nyhet-offline-kart.jpg')).toBeUndefined();
+  expect(await cache.match('/img/espen.jpg')).toBeUndefined();
+});
+
+it.each(['hybrid', 'online'])('gjenbruker eksakte versjoner av appfiler i %s', async mode => {
+  await syncNetworkModeToServiceWorker(mode);
+  const fetchMock = vi.fn(async () => new Response('fra nett'));
+  const { context } = worker(fetchMock);
+  const cache = await cachesMock.open(vm.runInContext('CACHE_NAME', context));
+  for (const path of ['/js/main.js', '/style.css']) {
+    const current = new Request(`https://example.test${path}?v=v1.60.18`);
+    await cache.put(current, new Response('aktiv versjon'));
+    await cache.put(`https://example.test${path}`, new Response('uversjonert'));
+    expect(await (await context.handleAppShellFetch(current)).text()).toBe('aktiv versjon');
+  }
+  expect(fetchMock).not.toHaveBeenCalled();
+
+  const next = new Request('https://example.test/js/main.js?v=v1.60.19');
+  expect(await (await context.handleAppShellFetch(next)).text()).toBe('fra nett');
+  expect(fetchMock).toHaveBeenCalledWith(next, { cache: 'no-cache' });
+  expect(await (await context.handleAppShellFetch(next)).text()).toBe('fra nett');
+  expect(fetchMock).toHaveBeenCalledTimes(1);
+});
+
+it('revaliderer HTML og uversjonerte appfiler også ved cachetreff', async () => {
+  const fetchMock = vi.fn(async () => new Response('fra nett'));
+  const { context } = worker(fetchMock);
+  const cache = await cachesMock.open(vm.runInContext('CACHE_NAME', context));
+  for (const path of ['/index.html?v=v1.60.18', '/js/main.js']) {
+    const request = new Request(`https://example.test${path}`);
+    await cache.put(request, new Response('fra cache'));
+    expect(await (await context.handleAppShellFetch(request)).text()).toBe('fra nett');
+    expect(fetchMock).toHaveBeenCalledWith(request, { cache: 'no-cache' });
+  }
 });
 
 it.each(['nettverksbrudd', 'HTTP-feil'])('beholder gammel offline-cache hvis appskallet ikke kan oppdateres: %s', async (scenario) => {
