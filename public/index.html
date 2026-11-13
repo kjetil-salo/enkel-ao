@@ -141,6 +141,25 @@
           // poster, som kommer i blandede batcher.
           let maaler = false;
           let planlagt = false;
+          // finnTrinn() (kalt av tilpassHeader) skriver data-komprimering på
+          // HVERT kandidat-trinn den prøver under selve søket, ikke bare på
+          // resultatet - hver av disse mellomliggende skrivingene når
+          // observatøren under som en ekte attributtendring, siden maaler
+          // alltid er false igjen (synkron try/finally er ferdig) når
+          // nettleseren leverer MutationObserver-microtasken. Uten filteret
+          // under utløste målingen seg selv på nytt for hvert eget skritt i
+          // søket den nettopp gjorde.
+          const observer = new MutationObserver((records) => {
+            const relevant = records.some(
+              (r) =>
+                !(
+                  r.type === 'attributes' &&
+                  r.target === appHeader &&
+                  r.attributeName === 'data-komprimering'
+                )
+            );
+            if (relevant) maal();
+          });
           const maal = () => {
             if (maaler || planlagt) return;
             planlagt = true;
@@ -152,6 +171,7 @@
               maaler = true;
               try {
                 tilpassHeader(appHeader);
+                observer.takeRecords();
               } finally {
                 maaler = false;
               }
@@ -167,7 +187,7 @@
           // viewporten, og main.js fyller kontoteksten etter at vi har målt -
           // resize alene er altså ikke nok. En observatør slipper å kjenne
           // hver enkelt knapp.
-          new MutationObserver(maal).observe(appHeader, {
+          observer.observe(appHeader, {
             subtree: true, childList: true, characterData: true, attributes: true,
           });
 
