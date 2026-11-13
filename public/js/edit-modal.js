@@ -4,7 +4,7 @@
  * stedet for en egen side. Gjenbruker photo-picker.js og coobserver-picker.js,
  * som også brukes av registrerings-modalen (✎ Flere felt i ②).
  */
-import { saveObservations, lastSaveError } from './storage.js';
+import { saveObservations, lastSaveError, activityDisplayName, activityBokmalName } from './storage.js';
 import { initPhotoPicker } from './photo-picker.js?v=v1.60.17';
 import { initCoObserverPicker } from './coobserver-picker.js';
 import { isoToDate, isoToTime, updateDateTimeInIso } from './datetime-helpers.js';
@@ -103,13 +103,17 @@ async function populateActivitySelect(currentActivity) {
   activities.forEach((a) => {
     const opt = document.createElement('option');
     opt.value = a.value;
-    opt.textContent = a.label;
+    opt.textContent = activityDisplayName(a.label);
     if (a.selected) opt.selected = true;
     els.activity.appendChild(opt);
   });
   if (currentActivity) {
+    // Sammenlign på kanonisk bokmål-form uansett hva som faktisk vises i
+    // <option>-teksten (bokmål eller nynorsk) - unngår å måtte stashe
+    // bokmål-originalen i en egen data-attributt per element.
+    const targetNb = activityBokmalName(currentActivity.trim());
     for (let i = 0; i < els.activity.options.length; i++) {
-      if (els.activity.options[i].text.trim() === currentActivity.trim()) {
+      if (activityBokmalName(els.activity.options[i].text.trim()) === targetNb) {
         els.activity.selectedIndex = i;
         break;
       }
@@ -177,7 +181,7 @@ function handleSubmit(e) {
   obs.species.taxonName = els.species.value.trim();
   obs.count = parseInt(els.count.value, 10) || 1;
   const actOpt = els.activity.options[els.activity.selectedIndex];
-  obs.activity = actOpt && actOpt.text ? actOpt.text.trim() : '';
+  obs.activity = actOpt && actOpt.text ? activityBokmalName(actOpt.text.trim()) : '';
   obs.age = els.age.value || '';
   obs.gender = els.gender.value || '';
   obs.placeName = els.place.value.trim();

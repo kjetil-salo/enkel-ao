@@ -9,6 +9,7 @@
  */
 import { loadMedobs, saveMedobs } from './storage.js';
 import { attachAoObserverAutocomplete } from './ao-observer-autocomplete.js';
+import { t } from './i18n.js';
 
 const MEDOBS_MAX = 10;
 
@@ -30,7 +31,7 @@ export function initCoObserverPicker(els) {
     const allNames = Array.from(new Set([...master, ...selected]));
     container.innerHTML = '';
     if (allNames.length === 0) {
-      container.innerHTML = '<div style="color:var(--muted);font-size:0.9em;">Ingen medobservatører lagt til ennå — legg til under.</div>';
+      container.innerHTML = `<div style="color:var(--muted);font-size:0.9em;">${t('coobserver.empty')}</div>`;
       return;
     }
     allNames.forEach((name) => {
@@ -42,7 +43,7 @@ export function initCoObserverPicker(els) {
         if (cb.checked) {
           if (selected.size >= MEDOBS_MAX) {
             cb.checked = false;
-            alert(`Maks ${MEDOBS_MAX} medobservatører per observasjon.`);
+            alert(t('coobserver.max_alert', { max: MEDOBS_MAX }));
             return;
           }
           selected.add(name);
@@ -58,7 +59,7 @@ export function initCoObserverPicker(els) {
     const name = rawName.trim();
     if (!name) return;
     if (!selected.has(name) && selected.size >= MEDOBS_MAX) {
-      alert(`Maks ${MEDOBS_MAX} medobservatører per observasjon.`);
+      alert(t('coobserver.max_alert', { max: MEDOBS_MAX }));
       return;
     }
     selected.add(name);

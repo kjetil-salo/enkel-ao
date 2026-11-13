@@ -26,8 +26,6 @@ const DICTIONARIES = { nb, nn };
 export const DEFAULT_LANGUAGE = 'nb';
 export const SUPPORTED_LANGUAGES = Object.keys(DICTIONARIES);
 
-let currentLanguage = null;
-
 function normalizeLanguage(code) {
   if (typeof code !== 'string') return null;
   const norm = code.trim().toLowerCase();
@@ -52,19 +50,21 @@ function readStoredLanguage() {
 }
 
 /**
- * Aktivt språk. Leser lagret valg kun ved første kall per sideinnlasting
- * (deretter cachet i minnet) - samme mønster som andre innstillinger i
- * storage.js.
+ * Aktivt språk. Leser localStorage på hvert kall, uten mellomlagring i minnet
+ * - samme "ingen cache" som resten av storage.js sine load*()-funksjoner.
+ *
+ * Bevisst valg, ikke en forglemt optimalisering: denne modulen importeres
+ * under flere ulike `?v=`-suffikser fra forskjellige filer (se
+ * "Versjonering" i CLAUDE.md), og ES-moduler med forskjellig URL (inkl.
+ * query-streng) er FORSKJELLIGE modulinstanser med hver sin modul-tilstand.
+ * En cachet verdi her ville dermed kunnet gå ut av synk mellom instanser -
+ * oppdaget i tests/unit/coobserver-picker.test.js, der setLanguage() fra én
+ * instans ikke nådde t() sin cache i en annen. Direkte localStorage-lesing
+ * deler alltid samme kilde uansett hvor mange modulinstanser som finnes.
  * @returns {string} språkkode, f.eks. 'nb' eller 'nn'
  */
 export function getLanguage() {
-  if (currentLanguage === null) {
-    currentLanguage = readStoredLanguage() || DEFAULT_LANGUAGE;
-    if (typeof document !== 'undefined' && document.documentElement) {
-      document.documentElement.lang = currentLanguage;
-    }
-  }
-  return currentLanguage;
+  return readStoredLanguage() || DEFAULT_LANGUAGE;
 }
 
 /**
@@ -89,8 +89,6 @@ export function setLanguage(code) {
   const norm = normalizeLanguage(code);
   if (!norm) return false;
 
-  currentLanguage = norm;
-
   if (typeof window !== 'undefined' && window.localStorage) {
     try {
       window.localStorage.setItem(LANGUAGE_KEY, norm);
@@ -101,6 +99,9 @@ export function setLanguage(code) {
     }
   }
 
+  if (typeof document !== 'undefined' && document.documentElement) {
+    document.documentElement.lang = norm;
+  }
   if (typeof document !== 'undefined' && typeof document.dispatchEvent === 'function') {
     document.dispatchEvent(new CustomEvent('i18n:language-changed', { detail: { language: norm } }));
   }

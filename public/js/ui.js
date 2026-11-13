@@ -1,6 +1,7 @@
 /**
  * UI-modul for generelle UI-funksjoner
  */
+import { t } from './i18n.js?v=v1.60.17';
 
 /**
  * Flash en knapp med suksessmelding
@@ -82,7 +83,7 @@ export function showToast(msg, options = {}) {
   } else if (typeof msg === 'string' && msg.startsWith('Du må')) {
     textSpan.textContent = msg;
     toast.style.borderColor = '#ef4444';
-  } else if (typeof msg === 'string' && msg.startsWith('Slettet')) {
+  } else if (typeof msg === 'string' && (msg.startsWith('Slettet') || msg.startsWith('Sletta'))) {
     textSpan.textContent = msg;
     toast.style.borderColor = '#f59e0b';
   } else {
@@ -97,7 +98,7 @@ export function showToast(msg, options = {}) {
   let undoBtn = null;
   if (onUndo) {
     undoBtn = document.createElement('button');
-    undoBtn.textContent = 'Angre';
+    undoBtn.textContent = t('ui.toast.undo');
     const undoBg = lysttema ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.2)';
     const undoBgAktiv = lysttema ? 'rgba(0,0,0,0.18)' : 'rgba(255,255,255,0.3)';
     undoBtn.style.cssText = `
@@ -200,7 +201,7 @@ export function setLocationStatus(locDot, locText, mode, text) {
     if (mode === 'ok' || mode === 'error') {
       const now = new Date();
       const timeStr = now.toLocaleTimeString('nb-NO', { hour: '2-digit', minute: '2-digit' });
-      displayText = `${text} (kl ${timeStr})`;
+      displayText = `${text} (${t('ui.location.time_prefix')} ${timeStr})`;
     }
     locText.textContent = displayText;
     if (mode !== 'ok') {
