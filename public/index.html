@@ -483,9 +483,9 @@
         <fieldset class="section-main section-handlinger">
           <legend>④ Send inn</legend>
           <p id="fellestur-sperre-hint" style="display:none;font-size:0.85em;color:var(--muted);margin:0 0 10px;line-height:1.4;">
-            👥 Du er på en fellestur — sending til AO gjøres samlet av én person via
-            <a href="/fellestur.html" style="color:var(--accent);">Fellestur-siden</a> når turen er ferdig,
-            ikke herfra (ellers kan flere sende det samme).
+            <span id="fellestur-sperre-before">👥 Du er på en fellestur — sending til AO gjøres samlet av én person via</span>
+            <a id="fellestur-sperre-link" href="/fellestur.html" style="color:var(--accent);">Fellestur-siden</a>
+            <span id="fellestur-sperre-after">når turen er ferdig, ikke herfra (ellers kan flere sende det samme).</span>
           </p>
           <p id="send-empty-hint" style="display:none;font-size:0.85em;color:var(--muted);margin:0 0 10px;line-height:1.4;">
             Registrer minst én observasjon først — da kan du publisere til AO eller dele funnene herfra.
@@ -1203,6 +1203,21 @@
         function applyIndexLanguage() {
           const nn = typeof window.__isNynorsk === 'function' ? window.__isNynorsk() : false;
           if (document.documentElement) document.documentElement.lang = nn ? 'nn' : 'nb';
+
+          const fellesturSperreBefore = document.getElementById('fellestur-sperre-before');
+          if (fellesturSperreBefore) {
+            fellesturSperreBefore.textContent = nn
+              ? '👥 Du er på ein fellestur – sending til AO blir gjort samla av éin person via'
+              : '👥 Du er på en fellestur — sending til AO gjøres samlet av én person via';
+          }
+          const fellesturSperreLink = document.getElementById('fellestur-sperre-link');
+          if (fellesturSperreLink) fellesturSperreLink.textContent = nn ? 'Fellestur-sida' : 'Fellestur-siden';
+          const fellesturSperreAfter = document.getElementById('fellestur-sperre-after');
+          if (fellesturSperreAfter) {
+            fellesturSperreAfter.textContent = nn
+              ? 'når turen er ferdig, ikkje herifrå (elles kan fleire senda det same).'
+              : 'når turen er ferdig, ikke herfra (ellers kan flere sende det samme).';
+          }
 
           // Header-ikon hjelpetekstar (title og aria-label)
           const modePill = document.getElementById('mode-pill');
