@@ -812,6 +812,419 @@
         Versjon <span id="version"></span> · <a href="/changelog.html" style="color:var(--accent);text-decoration:none;">Endringslogg</a> · © 2026 Kjetil Salomonsen
       </footer>
     </div>
+    <template id="help-card-nn">
+        <header>
+          <div class="title">
+            <span>📖</span>
+            <span>Hjelp</span>
+          </div>
+          <a href="/" class="back-link">
+            <span>&#8592;</span>
+            <span>Attende</span>
+          </a>
+        </header>
+
+        <div style="text-align:center;margin:8px 0 16px;">
+          <img src="/img/ugle-logo.png" alt="Jordugle" style="max-width:180px;width:70%;opacity:0.92;">
+        </div>
+
+        <p style="font-size:1.05em; margin-bottom:16px;">
+          Ei rask digital feltnotatbok for fugleobservasjonar. Registrer <strong>art, antal og aktivitet</strong> på sekund, og send observasjonane rett til artsobservasjoner.no.
+        </p>
+
+        <div class="note">
+          <strong>Personvern:</strong> Alle observasjonar vert berre lagra i nettlesaren din. Ingenting vert sendt til ein server før du sjølv vel å publisera.
+        </div>
+
+        <!-- Hopp-til-navigasjon -->
+        <nav class="toc" aria-label="Innhald">
+          <a href="#kom-i-gang">🚀 Kom i gang</a>
+          <a href="#ikoner">🔎 Ikona</a>
+          <a href="#kart">🗺️ Kart &amp; lokalitetar</a>
+          <a href="#registrere">✓ Registrering</a>
+          <a href="#sende">📤 Senda til AO</a>
+          <a href="#tidligere-sendt">✏️ Tidlegare sendt</a>
+          <a href="#dele">🔗 Del med vener</a>
+          <a href="#fellestur">👥 Fellestur</a>
+          <a href="#innstillinger">⚙️ Innstillingar</a>
+          <a href="#installer">📱 Installer app</a>
+          <a href="#feilsoking">🩹 Feilsøking</a>
+        </nav>
+
+        <h2 id="kom-i-gang">🚀 Kom i gang på eit halvt minutt</h2>
+        <p>Fem steg frå tom skjerm til ein publisert observasjon:</p>
+        <div class="quickstart">
+          <div class="qs-step">
+            <div class="qs-num">1</div>
+            <div><strong>Hent posisjon</strong><span>Trykk «Hent lokalitetar», så finn appen AO-lokalitetar nær deg. Når lista er henta, dukkar «Radius» (500 m – 3 km) og «Sortering» opp — dreg du i radius-glidaren, vert lista automatisk henta på nytt.</span></div>
+          </div>
+          <div class="qs-step">
+            <div class="qs-num">2</div>
+            <div><strong>Vel lokalitet</strong><span>Nedtrekkslista viser stader sorterte etter avstand. Trykk 🗺️ for å sjå dei på kart.</span></div>
+          </div>
+          <div class="qs-step">
+            <div class="qs-num">3</div>
+            <div><strong>Søk art</strong><span>Skriv norsk eller latinsk namn og vel frå lista.</span></div>
+          </div>
+          <div class="qs-step">
+            <div class="qs-num">4</div>
+            <div><strong>Antal og aktivitet</strong><span>Set antal, vel aktivitet med snøggknappane, og trykk ✓ for å leggja han i lista.</span></div>
+          </div>
+          <div class="qs-step">
+            <div class="qs-num">5</div>
+            <div><strong>Send inn</strong><span>Publiser direkte til Artsobservasjoner, eller kopier CSV og lim inn manuelt.</span></div>
+          </div>
+        </div>
+        <div class="tip">
+          <strong>Ny brukar?</strong> Du treng <em>inga</em> innlogging for å registrera og bruka kartet. Innlogging med AO-brukaren din trengst berre om du vil publisera med eitt trykk eller oppretta eigne lokalitetar. Har du ikkje AO-brukar? <a href="https://www.artsobservasjoner.no/UserAccount" target="_blank" rel="noopener">Opprett gratis konto ↗</a>
+        </div>
+        <div class="note">
+          <strong>📱 Tips:</strong> På mobil bør du <a href="#installer" style="color:var(--accent);text-decoration:none;">installera appen på heimskjermen</a> – det gjev fullskjerm, offline-bruk og raskare oppstart. Vert tilrådd for dei fleste.
+        </div>
+
+        <h2 id="ikoner">🔎 Ikona i appen</h2>
+        <p>Knappane øvst og i lista gjer dette:</p>
+        <div class="icons">
+          <div class="icon-item"><span class="ic">📍</span><div><strong>Hent lokalitetar</strong><span>Finn AO-lokalitetar nær deg</span></div></div>
+          <div class="icon-item"><span class="ic">🗺️</span><div><strong>Kart</strong><span>Sjå lokalitetar rundt deg</span></div></div>
+          <div class="icon-item"><span class="ic">➕</span><div><strong>Ny lokalitet</strong><span>Opprett lokalitet (krev innlogging)</span></div></div>
+          <div class="icon-item"><span class="ic"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-4px;"><circle cx="12" cy="8" r="3.4"/><path d="M5.8 20v-1.2A4.2 4.2 0 0 1 10 14.6h4a4.2 4.2 0 0 1 4.2 4.2V20"/><circle cx="4.2" cy="9.8" r="2.1"/><path d="M1.4 19.4v-1a3.4 3.4 0 0 1 2.5-3.3"/><circle cx="19.8" cy="9.8" r="2.1"/><path d="M22.6 19.4v-1a3.4 3.4 0 0 0-2.5-3.3"/></svg></span><div><strong>Fellestur</strong><span>Øvst til høgre – delt logg for ei gruppe</span></div></div>
+          <div class="icon-item"><span class="ic">👥</span><div><strong>Medobservatørar</strong><span>Knappen i «② Registrer art» – legg til dei du var med</span></div></div>
+          <div class="icon-item"><span class="ic"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px;"><rect x="4" y="10.5" width="14" height="10.5" rx="2.5"/><path d="M7.5 10.5V7a3.5 3.5 0 0 1 7 0v3.5"/></svg></span><div><strong>Lås besøk</strong><span>Skil fleire besøk på same lokalitet same dag</span></div></div>
+          <div class="icon-item"><span class="ic">↩</span><div><strong>Attende til besøket</strong><span>Legg inn fleire artar i eit tidlegare besøk</span></div></div>
+          <div class="icon-item"><span class="ic">⚙️</span><div><strong>Innstillingar</strong><span>Tema, innlogging, kopi</span></div></div>
+          <div class="icon-item"><span class="ic">✓</span><div><strong>Registrer</strong><span>Legg observasjonen i lista</span></div></div>
+          <div class="icon-item"><span class="ic">📖</span><div><strong>Hjelp</strong><span>Denne sida</span></div></div>
+        </div>
+
+        <h2 id="kart">🗺️ Kart &amp; lokalitetar</h2>
+        <p>Trykk 🗺️ ved lokalitetsfeltet for å sjå alle lokalitetar rundt deg på eit kart. Fargen på markøren fortel kva slags lokalitet det er:</p>
+        <div class="legend">
+          <div class="legend-row"><span class="dot dot-green"></span><span><strong>Grøn</strong> <span class="lbl">– ålmenne lokalitetar frå Artsobservasjoner</span></span></div>
+          <div class="legend-row"><span class="dot dot-orange"></span><span><strong>Oransje</strong> <span class="lbl">– superlokalitetar som samlar fleire underlokalitetar</span></span></div>
+          <div class="legend-row"><span class="dot dot-gray"></span><span><strong>Grå</strong> <span class="lbl">– private lokalitetar oppretta av andre. Kan brukast fritt.</span></span></div>
+          <div class="legend-row"><span class="dot dot-yellow"></span><span><strong>Gul ★</strong> <span class="lbl">– dine eigne lokalitetar</span></span></div>
+          <div class="legend-row"><span class="dot dot-red"></span><span><strong>Raud nål</strong> <span class="lbl">– ein ny lokalitet du er i ferd med å oppretta (vert gul når han er lagra)</span></span></div>
+        </div>
+        <p><strong>Polygon</strong> (farga omriss) er områdelokalitetar, t.d. innsjøar. Trykk inne i polygonen for å velja lokaliteten.</p>
+
+        <p><strong>Tett med lokalitetar? Rydd kartet:</strong> Nokre stader ligg lokalitetane så tett at markørane dekkjer heile kartet, og det er uråd å sjå kvar ein er. Knappen oppe til høgre har tre trinn: fyrste trykk skjuler namna, andre trykk skjuler alle lokalitetane så du ser kartet og får zooma inn, tredje trykk hentar dei tilbake. «Skjul alt» vert ikkje hugsa til neste gong – kartet opnar alltid med lokalitetane synlege.</p>
+
+        <p><strong>Kartlag:</strong> Nedst til venstre på kartet kan du byta mellom OpenStreetMap, Kartverket Topo og Kartverket Gråtone – nyttig om du vil sjå terreng og høgdekoter i felt.</p>
+
+        <p><strong>Panorer for å sjå andre stader:</strong> Dra kartet dit du vil, så vert lokalitetane for det nye området automatisk henta – med same søkjeradius som du alt har valt.</p>
+
+        <div class="tip">
+          <strong>Kvifor private lokalitetar?</strong> Tidlegare kunne alle oppretta lokalitetar i AO. Denne funksjonaliteten vart fjerna, men dei eksisterande lokalitetane er der framleis. I mange område finst det få ålmenne lokalitetar – då er dei private uvurderlege. Du kan slå av vising av private lokalitetar i innstillingane.
+        </div>
+
+        <h3>Opprett ny lokalitet</h3>
+        <p>Manglar det ein lokalitet? Trykk <strong>➕</strong> ved lokalitetsfeltet (krev at du er innlogga i AO via innstillingane). Du kan òg oppretta lokalitet direkte frå kartsida med ein dragbar markør for presis plassering. Standard nøyaktigheit er 50 m; du kan velja 25–500 m eller punktobservasjon.</p>
+
+        <h2 id="registrere">✓ Registrera observasjonar</h2>
+
+        <h3>Feltmodus vs. etterregistrering</h3>
+        <p>Byt modus ved å trykkja på knappen øvst:</p>
+        <div class="mode-demo">
+          <span class="mode-pill mode-felt">Felt</span>
+          <span class="mode-pill mode-etter">Etterreg</span>
+        </div>
+        <ul>
+          <li><strong style="color:#4ade80">Felt (grøn)</strong> – for registrering i felt. Tidspunkt vert automatisk sett til «no».</li>
+          <li><strong style="color:#fca5a5">Etterreg (raud)</strong> – for å registrera frå tidlegare tidspunkt. Du vel dato og eventuelt frå/til-klokkeslett.</li>
+        </ul>
+        <p>I etterregistreringsmodus kan du søkja etter stadnamn med autofullføring direkte frå AO.</p>
+
+        <h3>Alder og kjønn</h3>
+        <p>Felt for alder (Adult, 1K, 2K osb.) og kjønn (Hann, Ho, Hofarga, I par) vert viste under artssøket. Desse er valfrie og vert inkluderte i eksporten.</p>
+        <p>Har du sett alder eller kjønn, vert det vist som ei lita underlinje under arten i observasjonslista (t.d. «Adult, Hann»). Rader utan desse verdiane vert verande kompakte.</p>
+
+        <h3>⚠️ Raritetsvarsel</h3>
+        <p>Så snart du har valt både art og lokalitet, sjekkar appen automatisk om arten er sjeldan akkurat der – rett frå Artsobservasjoner si eiga vurdering. Er han det, dukkar det opp ein boks under artsfeltet med AO si eiga forklaring.</p>
+        <p>Nyttig på fleire måtar:</p>
+        <ul>
+          <li>Du oppdagar fort om du har trykt feil art i lista, før du sender inn noko uvanleg ved eit uhell</li>
+          <li>Du får vita om du faktisk har gjort eit sjeldant funn</li>
+          <li>Reiser du frå ein landsdel til ein annan, ser du raskt om noko du tek for gitt heime er uvanleg akkurat der du er no</li>
+        </ul>
+        <p>Varselet vert lagra på observasjonen og vist som eit lite ⚠️-merke i observasjonslista (hald over det for å sjå heile forklaringa). Krev nett og at du er innlogga mot AO – brukar du den innebygde offline-artslista, får du ikkje varselet utan at appen tidlegare har henta ned varsel for akkurat denne arten i Hybrid- eller Online-modus.</p>
+        <p>Registrerer du eit slikt sjeldant funn, feirar appen det med litt konfetti på skjermen – det skjer sjeldan nok til å fortena litt merksemd.</p>
+
+        <h3>Medobservatørar</h3>
+        <p>Trykk 👥 for å opna medobservatør-panelet. Her kan du:</p>
+        <ul>
+          <li>leggja til opptil 10 medobservatørar med autofullføringssøk mot AO.</li>
+          <li>markera kven som er aktive – aktive vert automatisk lagde til på nye observasjonar.</li>
+          <li>masseoppdatera: legg til aktive medobservatørar på alle eksisterande observasjonar med éin knapp.</li>
+        </ul>
+
+        <h3>Snøggknappar</h3>
+        <p>Snøggknappane for aktivitet kan tilpassast i innstillingane. Vel fritt mellom alle aktivitetar, endra rekkjefølgje, eller set 0 knappar for berre å bruka rullegardinmenyen.</p>
+        <p>Kvar knapp kan få eit <strong>kortnamn</strong> (maks 5 teikn) som vert vist i staden for det fulle namnet – då får du plass til fleire knappar på skjermen. Skriv ditt eige, eller trykk «Føreslå forkortingar» for å fylla inn fornuftige standardforslag.</p>
+
+        <h3>Observasjonslista</h3>
+        <ul>
+          <li>Observasjonar vert automatisk grupperte etter lokalitet og sorterte alfabetisk</li>
+          <li>Bruk <strong>+/–</strong> for å justera tal direkte i lista</li>
+          <li>Trykk på talet for å skriva inn eit nytt tal</li>
+          <li>Slett med angrefrist på 5 sekund</li>
+          <li>Klokkeslett (frå–til) vert vist ved stadnamn. Trykk <strong>🕐</strong> ved lokaliteten for å setja frå/til-klokkeslett på alle observasjonane der på éin gong.</li>
+          <li>Trykk <strong>↩</strong> ved eit stadnamn for å gå tilbake til det besøket og leggja inn fleire artar der – sjå under.</li>
+        </ul>
+
+        <h3>Besøk – éi gruppe per stopp</h3>
+        <p>Kvar gruppe i observasjonslista er eitt <strong>besøk</strong>: éin runde på éin lokalitet. Går du frå Tovo til Kvitingen, får du to grupper. Kjem du tilbake til Tovo seinare same dag, kan det verta eit tredje besøk – det styrer du med låsen:</p>
+        <ul>
+          <li><strong><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px;"><rect x="4" y="10.5" width="14" height="10.5" rx="2.5"/><path d="M14.5 10.5V7a3.5 3.5 0 0 1 7 0v2"/></svg> Ope besøk</strong> – nye observasjonar på denne lokaliteten vert lagde til her. Bøyla heng ut til høgre, og knappen er grøn.</li>
+          <li><strong><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px;"><rect x="4" y="10.5" width="14" height="10.5" rx="2.5"/><path d="M7.5 10.5V7a3.5 3.5 0 0 1 7 0v3.5"/></svg> Avslutta besøk</strong> – trykk låsen for å avslutta. Registrerer du seinare på same stad, startar det eit <strong>nytt besøk</strong> i staden for å blanda seg inn i det gamle. Trykk igjen for å opna besøket på nytt.</li>
+        </ul>
+        <div class="tip">
+          <strong>Nyttig når:</strong> du tek opp att ein runde same dag (t.d. morgon og kveld på same lokalitet) og vil halda teljingane frå kvart besøk skilde.
+        </div>
+
+        <h3>↩ Tilbake til eit tidlegare besøk</h3>
+        <p>Kom du på ein art du gløymde på ein stad lenger opp i lista? Trykk <strong>↩</strong> ved stadnamnet. Då går du tilbake til <em>akkurat det besøket</em>: du slepp å søkja opp lokaliteten på nytt, og dei nye artane vert lagde rett inn i den gruppa.</p>
+        <p>Arten får <strong>tidsspennet til besøket</strong> – ikkje tidspunktet du står og skriv. Du såg jo fuglen ein gong i løpet av besøket, og akkurat rett tidspunkt hugsar du sjeldan.</p>
+        <div class="tip">
+          <strong>Slik ser det ut:</strong> Tovo-gruppa viser 17:09–17:18. Klokka er 19:40 og du hugsar at du såg ein steinvendar der. Trykk ↩ ved TOVO, søk opp steinvendar og registrer. Han hamnar i Tovo-gruppa med tida 17:09–17:18 – ikkje 19:40 – og gruppa står framleis oppført som 17:09–17:18.
+        </div>
+        <p>Så lenge du legg inn i eit tidlegare besøk, viser lokalitetslinja øvst kva tid du får, til dømes «↩ 17:09–17:18». Tida vert altså aldri sett i det skjulte. Vil du justera tidene på heile besøket etterpå, brukar du 🕐 som før.</p>
+        <div class="tip">
+          <strong>Avslutt besøk (<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px;"><rect x="4" y="10.5" width="14" height="10.5" rx="2.5"/><path d="M7.5 10.5V7a3.5 3.5 0 0 1 7 0v3.5"/></svg>):</strong> ↩ verkar der òg. Låsen hindrar berre at nye artar hamnar der <em>av seg sjølve</em> – trykkjer du ↩, er det eit medvite val. Du får ei melding om at klokka vert sett tilbake i tid, og arten arvar låsen slik at besøket vert verande avslutta.
+        </div>
+        <div class="tip">
+          <strong>Tilbake til «no»:</strong> trykk <strong>Byt lokalitet</strong>. Då er du ute av det gamle besøket, og nye artar får aktuelt klokkeslett att. Er du i røynda tilbake på lokaliteten, er det slik du gjer det – ikkje med ↩.
+        </div>
+
+        <h3>Bilete</h3>
+        <p>Trykk ✏️-ikonet på ein observasjon for å opna «Rediger» (eit lite vindauge rett over lista) – der kan du leggja ved eitt bilete per funn. Du kan òg leggja ved bilete <em>før</em> du registrerer, via <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true" style="vertical-align:-3px;"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg> Fleire felt (sjå under):</p>
+        <ul>
+          <li><strong>Vel fil</strong>, eller <strong>lim inn</strong> (Ctrl/Cmd+V, eller «📋 Lim inn bilete»-knappen på mobil) – begge delar verkar med både skjermbilete og kopierte biletfiler</li>
+          <li>Biletet vert automatisk skalert ned før lagring</li>
+        </ul>
+        <div class="tip">
+          <strong>Biletet vert ikkje lasta opp med éin gong.</strong> Artsobservasjoner krev ein ekte observasjons-ID før eit bilete kan koplast til – den får funnet fyrst når du trykkjer «Publiser til AO». Biletet ligg difor lagra i appen inntil då, og vert lasta opp automatisk som siste steg i sendinga. Skulle opplastinga svikta, vert observasjonen send likevel – du får beskjed om at biletet må lastast opp på nytt direkte på AO.
+        </div>
+        <p style="font-size:0.9em;color:var(--muted);">Teknisk detalj: appen set ein liten, usynleg markør i det <strong>private</strong> kommentarfeltet (berre synleg for deg sjølv på AO) for å kopla biletet til rett funn. Han vert ikkje fjerna etterpå, men er ufarleg – ingen andre ser han. Har du sjølv skrive noko i privat kommentar (sjå under), står markøren saman med din eigen tekst i det same feltet.</p>
+
+        <h3>Fleire felt</h3>
+        <p>Det finst felt på AO du sjeldan treng: ein open <strong>kommentar</strong> (synleg for alle), <strong>Usikker artsbestemming</strong>, <strong>Ikkje spontan</strong>, <strong>Interessant kommentar</strong>, <strong>Ikkje attfunne</strong>, <strong>Ikkje funne</strong>, <strong>Skjul funn til dato</strong>, <strong>bilete</strong>, og ein eigen <strong>privat kommentar</strong> (berre synleg for deg sjølv på AO – skild frå den opne kommentaren). Trykk <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true" style="vertical-align:-3px;"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg> ved sida av den grøne ✓-knappen i «② Registrer art» for å setja dei <em>før</em> du registrerer – dei gjeld då berre for den eine arten du er i ferd med å registrera, og vert automatisk nullstilte etterpå. Vil du retta dei i ettertid på ein observasjon som alt er registrert, ligg dei same felta (pluss art, tal, alder, kjønn, stad, dato/tid og medobservatørar) i «Rediger» (✏️-ikonet i observasjonslista) – ein liten modal, ikkje ei eiga side.</p>
+
+        <h2 id="sende">📤 Senda til Artsobservasjoner</h2>
+
+        <h3>Direkte publisering (enklast)</h3>
+        <p>Logg inn med AO-brukaren din i innstillingane (⚙️), så kan du publisera observasjonane med éin knapp – utan å kopiera CSV manuelt. Appen handterer innlogging og verifisering automatisk.</p>
+
+        <h3>Manuell CSV-import</h3>
+        <p>Om du ikkje brukar direkte publisering, kan du kopiera CSV-en og lima inn i AO:</p>
+        <ol>
+          <li>Trykk «Kopier &amp; opne AO-import»</li>
+          <li>Import må gjerast via <strong>www.artsobservasjoner.no</strong> (skrivebordsversjonen), ikkje mobilversjonen</li>
+          <li>Lim inn heile teksten inkludert overskriftsrada</li>
+        </ol>
+        <p>Mange lokalitetar har <strong>same namn</strong> (t.d. «Byparken»). AO kan velja feil stad.</p>
+        <div class="tip">
+          <strong>Tips:</strong> Marker dei vanlege lokalitetane dine som <strong>favorittar</strong> i AO. Då foreslår AO oftare «din» variant automatisk.
+        </div>
+
+        <h2 id="tidligere-sendt">✏️ Tidlegare sendt – retta funn og leggja til bilete</h2>
+        <p><strong>«Tidlegare sendt»</strong> har to delar. Øvst ligg <strong>«Mine funn på Artsobservasjoner»</strong>, som vert henta rett frå AO. Ho er difor lik på alle einingane dine: registrerer du med mobilen i felt, finn du dei same funna att på PC-en heime. Ho tek òg med funn du har registrert utanom appen, og overlever at du byter telefon.</p>
+        <p>Lista viser <strong>alt du er med på</strong> – både det du har rapportert sjølv, og det andre har rapportert med deg som observatør, til dømes frå ein fellestur. Under lokaliteten står det kven som rapporterte, når det ikkje var deg.</p>
+        <p>Nedst ligg <strong>«Sendt frå denne eininga»</strong> – den lokale kvitteringa for det du har publisert dei siste sju dagane. Ho verkar utan nett og utan innlogging, og det er herifrå du deler funn eller kopierer dei tilbake til arbeidslista.</p>
+        <p>Frå lista kan du <strong>leggja til bilete</strong> på funn som manglar det, og <strong>retta tal, aktivitet eller art</strong> på funn du sjølv har rapportert.</p>
+        <div class="tip">
+          <strong>Finn du ikkje funnet?</strong> Standard tidsrom er to dagar. Ei aktiv veke gjev fort over hundre funn, og poenget med lista er som regel å finna dei få som treng noko. Vel eit lengre tidsrom øvst om funnet er eldre.
+        </div>
+
+        <h3>📷 Leggja til bilete etterpå</h3>
+        <p>Funn som manglar bilete, får knappen <strong>«Legg til bilete»</strong>. Det er dette som gjer at du kan registrera raskt i felt med mobilen, og så leggja på dei gode bileta frå kameraet når du kjem heim.</p>
+        <p>Knappen opnar eit eige vindauge der du kan henta biletet på tre måtar:</p>
+        <ul>
+          <li><strong>📁 Vel fil</strong> – på mobil får du kamera og biletbibliotek i same meny.</li>
+          <li><strong>📋 Lim inn</strong> – eller berre trykk ⌘V / Ctrl+V.</li>
+          <li><strong>Dra og slepp</strong> – dra biletet rett inn frå filhandsamaren i operativsystemet ditt (Windows: Utforskar, Mac: Finder, Linux: t.d. Filer). Oftast raskast når biletet nettopp er eksportert frå kameraet.</li>
+        </ul>
+        <p>Deretter kan du <strong>skjera til</strong> – dra i hjørna for å kutta vekk alt som ikkje er fuglen, eller inni ramma for å flytta utsnittet – og justera <strong>eksponering</strong> om biletet vart for mørkt. «Tilbakestill» set begge delar tilbake.</p>
+        <p>Biletet vert automatisk skalert ned til 1600 pikslar før det vert sendt – same grense Artsobservasjoner sjølv brukar – så du kan trygt velja originalfila frå kameraet.</p>
+        <p>Artsobservasjoner tillet inntil 10 bilete per funn, og du kan leggja til bilete på <strong>alt du er med på</strong> – òg funn andre har rapportert. Etter ei opplasting står vindauget ope med «Legg til eitt til», så du slepp å byrja på nytt for bilete nummer to. Appen seier frå om noko ikkje gjekk gjennom, i staden for å påstå at biletet er lagt til.</p>
+
+        <h3>✏️ Retta eit funn</h3>
+        <p>Knappen <strong>«Endre»</strong> vert vist på funn du sjølv har rapportert – Artsobservasjoner tillet ikkje at andre endrar eit funn, så på funn andre har rapportert kan du berre leggja til bilete.</p>
+        <p>Du kan retta tre ting direkte i appen:</p>
+        <ul>
+          <li><strong>Tal</strong> – det vanlegaste. Du talde 12, men det var 15.</li>
+          <li><strong>Aktivitet</strong> – til dømes frå «stasjonær» til «næringssøkjande». Lista vert henta frå Artsobservasjoner, så ho er alltid den same som der.</li>
+          <li><strong>Art</strong> – kom nokon i etterkant og sa at det var ein lauvsongar og ikkje ein gransongar? Trykk «Byt art» og søk opp den rette. Den nye arten vert vist med den gamle i parentes, så du ser kva du endrar frå.</li>
+        </ul>
+        <p><strong>Dato, tid og lokalitet</strong> vert ikkje endra herfrå. Dei står synlege i vindauget så du ser kva dei er, og skal dei rettast, gjer du det på Artsobservasjoner.</p>
+
+        <h4>Du får stadfesting på at endringa tok</h4>
+        <p>Etter lagring hentar appen funnet tilbake frå Artsobservasjoner og viser kva <em>dei</em> har registrert – ikkje berre at noko vart sendt. Då står det til dømes «✅ Artsobservasjoner stadfestar: 5 individ, stasjonær».</p>
+        <p>Nokre gonger rekk ikkje lista til Artsobservasjoner å verta oppdatert med éin gong. Då seier appen at endringa er lagra, men at han ikkje fekk dobbeltsjekka – med lenkje til funnet. <strong>Det tyder nesten alltid at alt gjekk bra</strong>, berre at svaret kom for tregt.</p>
+
+        <h4>Bytte du til ein sjeldan art?</h4>
+        <p>Då køyrer appen den same raritetssjekken som ved registrering, på den <strong>nye</strong> arten – før du stadfestar. Er funnet uvanleg for staden og årstida, får du vita det med éin gong i staden for å verta overraska av Artsobservasjoner etterpå.</p>
+        <p>Søket viser berre fugleartar, så eit funn ikkje kan hamna i feil artsgruppe.</p>
+
+        <div class="warning">
+          <strong>🔴 Funnet er usynleg for andre medan du endrar.</strong> Artsobservasjoner tek funnet ut av vising i same augneblink det vert opna for endring – òg om du ikkje endrar noko. Det vert synleg att når du lagrar.
+          <br><br>
+          Difor er <strong>«Avbryt» ei ekte handling</strong>, ikkje berre ein lukkeknapp: han publiserer funnet tilbake med éin gong. Det same gjer ✕ og det å trykkja utanfor vindauget. Lukkar du heile sida midt i, prøver appen å publisera funnet tilbake likevel, og nettlesaren spør om du er sikker.
+        </div>
+
+        <h4>«Du har funn som ikkje er publiserte»</h4>
+        <p>Skulle noko likevel verta liggjande – straumen gjekk, telefonen døydde – får du eit raudt varsel øvst på «Tidlegare sendt» neste gong du opnar sida, med lenkje til å publisera hjå Artsobservasjoner.</p>
+        <p>Varselet fangar òg funn som ligg til godkjenning etter at du har trykt på rediger i Artsobservasjoner sine eigne sider, så det kan dukka opp sjølv om du aldri har brukt «Endre» i appen.</p>
+        <div class="tip">
+          <strong>Kvifor tek det nokre sekund?</strong> Appen hentar heile redigeringsskjemaet frå Artsobservasjoner – det er stort – og sender det tilbake med endringa di. Det er den einaste måten å vera sikker på at ingen av dei andre felta på funnet ditt vert rørte.
+        </div>
+
+        <h3>⚠️ Merknader frå Artsobservasjoner</h3>
+        <p>Har AO ei innvending mot eit funn – til dømes eit urimeleg tal eller eit tidspunkt som ikkje stemmer – vert ho vist på funnet, med lenkje rett til det hos AO. Gjeld det tal, aktivitet eller art, kan du retta det med «Endre». Gjeld det tid eller lokalitet, gjer du det på Artsobservasjoner.</p>
+
+        <h2 id="dele">🔗 Del med vener</h2>
+        <p>Trykk <strong>«🔗 Del funna»</strong> under Send inn for å laga ei fin, delbar lenkje over kva du har sett – utan å senda folk til Artsobservasjoner. Du vel sjølv kva observasjonar som skal med i førehandsvisinga, og lenkja er hemmeleg (umogleg å gjetta), men ikkje privat – alle som har henne, kan opna henne. Ho sluttar å verka etter 14 dagar.</p>
+        <p><strong>Posisjon vert aldri delt</strong> – berre lokalitetsnamn. Observasjonar merkte «skjul til dato» er aldri med.</p>
+
+        <h3>Bilete</h3>
+        <p>Har ein observasjon bilete (lagt til under <a href="#registrere" style="color:var(--accent);text-decoration:none;">Rediger</a>), kan du velja å ta det med i delinga – ei eiga, lita avkryssing («Del bilete») dukkar opp per observasjon som har bilete, haka av som standard. Biletet vert automatisk komprimert til rundt 50 KB – nok til å visa fram funnet, ikkje meint for artsbestemming.</p>
+
+        <h3>Mine delingar</h3>
+        <p>Lenkja <strong>«🔗 Mine delingar»</strong> ved sida av «Tidlegare sendt» viser alle delingane du har laga frå denne eininga, med status (aktiv/utgått).</p>
+        <ul>
+          <li><strong>🔄 Oppdater</strong> – skriv over innhaldet i ei eksisterande deling utan å endra lenkja. Nyttig på lange feltøkter (t.d. ein heil dag på Herdla) der du etterregistrerer utover dagen, og vil at vener som alt har lenkja, skal sjå ferske funn ved å lasta sida på nytt.</li>
+          <li><strong>🗑️ Trekk tilbake</strong> – deaktiverer lenkja straks.</li>
+        </ul>
+        <div class="tip">
+          <strong>Tips:</strong> Delingane vert berre lagra lokalt på eininga di, akkurat som resten av arbeidslista. Ei deling laga på mobilen dukkar ikkje opp i «Mine delingar» på PC-en.
+        </div>
+
+        <h2 id="fellestur">👥 Fellestur</h2>
+        <div class="note">
+          <strong>Prøv han gjerne!</strong> Fellestur er testa ut i praktisk bruk, og eg vil gjerne at fleire tek han i bruk. Han er framleis ung, så meld gjerne frå om noko oppfører seg rart – lenkje til tilbakemelding finn du under <a href="#innstillinger" style="color:var(--accent);text-decoration:none;">Innstillingar</a> og heilt nedst på rapporteringssida.
+        </div>
+        <p>Er de fleire fuglefolk på same tur, kan de dela på registreringsarbeidet i staden for at kvar einskild fører si eiga liste.</p>
+        <ol>
+          <li>Trykk <strong><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-4px;"><circle cx="12" cy="8" r="3.4"/><path d="M5.8 20v-1.2A4.2 4.2 0 0 1 10 14.6h4a4.2 4.2 0 0 1 4.2 4.2V20"/><circle cx="4.2" cy="9.8" r="2.1"/><path d="M1.4 19.4v-1a3.4 3.4 0 0 1 2.5-3.3"/><circle cx="19.8" cy="9.8" r="2.1"/><path d="M22.6 19.4v-1a3.4 3.4 0 0 0-2.5-3.3"/></svg></strong> øvst til høgre på hovudsida (ved sida av 📖 og ⚙️) og vel <strong>«🆕 Start ny fellestur»</strong> – eller <strong>«🔑 Bli med (har kode)»</strong> om nokon andre alt har starta ein. Gjer dette <em>før</em> de byrjar å registrera: funn du legg inn på førehand, vert liggjande i di eiga liste og hamnar ikkje i den delte loggen.</li>
+          <li>Del den 5-sifra koden (eller lenkja «🔗 Kopier delbar lenkje») med resten av gruppa.</li>
+          <li>Så lenge fellesturen er aktiv, registrerer alle på <strong>hovudsida akkurat som vanleg</strong> – art, stad, tal, aktivitet. Eit blått band øvst viser at de er på fellestur, og på denne sida vil du sjå at «④ Send inn»-knappane er sperra – innsending vert gjord samla til slutt, av éin person (sjå under), ikkje fortløpande av kvar einskild.</li>
+          <li>Det som vert registrert, hamnar i ein <strong>delt logg</strong>: alle deltakarane ser funna til kvarandre dukka opp i løpet av nokre sekund, kan retta tal og sletta feilregistreringar.</li>
+        </ol>
+        <p>Ingen kontoar for å delta – koden er hemmeleg, ikkje privat, akkurat som ei delingslenkje. Alle med koden kan sjå og redigera loggen. Er du innlogga på AO på eininga, vert ditt ekte AO-brukarnamn brukt som «ditt namn» i loggen; utan innlogging kan du skriva eit fritt namn og framleis bidra med funn.</p>
+        <p><strong>Tur frå Feltlogg:</strong> Skriv inn den same 5-sifra koden via «Bli med (har kode)».
+          Du får vita om turen er kjend i Enkel-AO eller gjennom hendingar vi har motteke frå Feltlogg.
+          Ingen oversikt over turane til andre grupper vert vist. Om koden er ukjend, får du eit gult varsel:
+          Turen kan vera oppretta i Feltlogg utan funn, eller koden kan vera feil, utgått eller ikkje i bruk.
+          Du kan velja «Bli med likevel», men må sjølv kontrollera koden med den som starta turen.
+          Turen vert vist som ikkje stadfesta til vi tek imot ei hending frå ein tilkopla app.</p>
+
+        <h3>Avslutta turen</h3>
+        <p>Det finst ingen «avslutt for alle»-knapp – kvar deltakar forlèt individuelt, på si eiga eining. Men
+          når det er ferdig registrert, skal <strong>berre éin person</strong> i gruppa gjera sjølve innsendinga:</p>
+        <ul>
+          <li><strong>«📤 Send inn lista og avslutt fellestur»</strong> (godt synleg knapp på fellestur-sida) – dette er den vanlege vegen når turen er ferdig. Krev at du er innlogga på AO (⚙️ Innstillingar), sidan det er starten på sjølve innsendinga. Hentar heile den delte loggen inn i di private arbeidsliste, klar til å senda til AO frå hovudsida, og forlèt turen på denne eininga. Dei andre i gruppa får eit tydeleg raudt varsel om at du har gjort dette, slik at ikkje fleire sender det same på nytt.</li>
+          <li><strong>«Forlat utan å senda inn»</strong> (fellestur-sida) / <strong>«Forlat»</strong> (banneret på hovudsida) – for berre å forlata på denne eininga utan å ta ansvar for innsendinga. Spør om du vil kopiera lista inn lokalt fyrst.</li>
+        </ul>
+        <p>Å forlata gjeld berre di eiga eining – den delte loggen står ved lag og er framleis tilgjengeleg med koden for dei andre heilt til nokon sender inn (eller til han går ut). Fellesturen går uansett automatisk ut etter <strong>48 timar</strong>.</p>
+
+        <h2 id="innstillinger">⚙️ Innstillingar</h2>
+        <p>Opna innstillingar med tannhjulet (⚙️) øvst.</p>
+
+        <h3>Tema</h3>
+        <p>Vel utsjånad med knapperada:</p>
+        <ul>
+          <li><strong>Lyst</strong> – standard, lettast å lesa ute i dagslys.</li>
+          <li><strong>Mørkt</strong> – skånsamt i lite lys.</li>
+          <li><strong>Reint</strong> – monokromt svart/kvitt utan fargeaksentar.</li>
+        </ul>
+
+        <h3>Tryggingskopi</h3>
+        <p>Last ned alle observasjonane dine til ei fil, og gjenopprett dei seinare. Nyttig som tryggleik mot datatap om du tømer nettlesaren, byter eining eller nettlesar – sidan observasjonane elles berre ligg lokalt.</p>
+
+        <h3>AO-innlogging</h3>
+        <p>Logg inn med AO-brukaren din for å publisera direkte. Brukarnamn og passord vert <strong>aldri lagra på serveren</strong> – berre lokalt på di eining, og du vel sjølv om passordet skal hugsast. Trykk <strong>«Fjern innlogging»</strong> for å sletta lagra brukarnamn, passord og den aktive AO-sesjonen frå denne eininga (nyttig ved feilsøking, personvern eller kontobyte). Knappen vert berre vist når du er innlogga.</p>
+
+        <h3>Nyheitsmeldingar</h3>
+        <p>Når du opnar appen, vert det vist korte meldingar om nye funksjonar. Har du vore borte ei stund, ser du alle dei nye samla. Kvar melding vert berre vist éin gong, og aldri for heilt nye brukarar.</p>
+
+        <h2 id="installer">📱 Installer appen på mobilen</h2>
+        <p><strong>Dei aller fleste bør «installera» appen.</strong> Det tek ti sekund og gjev ei langt betre oppleving i felt:</p>
+        <ul>
+          <li><strong>Fullskjerm</strong> utan nettlesarlinje – meir plass til observasjonslista.</li>
+          <li><strong>Verkar offline</strong> – òg der du ikkje har dekning.</li>
+          <li><strong>Raskare oppstart</strong> og eit eige ikon på heimskjermen, akkurat som ein vanleg app.</li>
+        </ul>
+        <p style="color:var(--muted);font-size:0.85rem;">Det vert ikkje installert noko frå App Store / Google Play – appen vert berre lagd som ein snarveg på heimskjermen.</p>
+
+        <div class="install-card">
+          <div class="install-head">🍎 iPhone og iPad (Safari)</div>
+          <ol>
+            <li>Trykk på <strong>Del</strong>-knappen
+              <span class="glyph" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg></span>
+              (firkant med pil opp, nedst eller øvst i Safari).</li>
+            <li>Bla ned og vel <strong>«Legg til på Heim-skjerm»</strong>.</li>
+            <li>Trykk <strong>«Legg til»</strong> øvst til høgre.</li>
+          </ol>
+        </div>
+
+        <div class="install-card">
+          <div class="install-head">🤖 Android (Chrome)</div>
+          <ol>
+            <li>Trykk på <strong>menyen</strong>
+              <span class="glyph" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="12" cy="19" r="1.6"/></svg></span>
+              (tre prikkar øvst til høgre).</li>
+            <li>Vel <strong>«Legg til på startskjermen»</strong> eller <strong>«Installer app»</strong>.</li>
+            <li>Stadfest med <strong>«Legg til»</strong>.</li>
+          </ol>
+        </div>
+
+        <h3>Offline-støtte</h3>
+        <p>Appen verkar utan nettsamband. Artssøk brukar ein snøggbuffer. Observasjonar vert lagra lokalt uansett.</p>
+
+        <h3>Lagring av data</h3>
+        <ul>
+          <li>Observasjonane vert lagra i <strong>nettlesaren din</strong> og forsvinn ikkje ved oppfrisking.</li>
+          <li>Dei vert <strong>ikkje</strong> synkroniserte mellom einingar eller nettlesarar.</li>
+          <li>Om du slettar nettlesardata eller brukar privat modus, vert observasjonane tapte. Ta ein tryggingskopi for tryggleik – trykk <strong>«⬇️ Last ned tryggingskopi»</strong> under <a href="#innstillinger" style="color:var(--accent);text-decoration:none;">Innstillingar → Tryggingskopi</a>.</li>
+        </ul>
+
+        <h3>Tastatursnarvegar (desktop)</h3>
+        <ul>
+          <li><code>&#8593;</code> / <code>&#8595;</code> – Naviger i artslista</li>
+          <li><code>Enter</code> – Vel art / Gå vidare / Lagra</li>
+          <li><code>Esc</code> – Lukk artslista</li>
+        </ul>
+
+        <h2 id="feilsoking">🩹 Feilsøking</h2>
+
+        <h3>Posisjon ikkje tilgjengeleg</h3>
+        <p>Sjekk at nettlesaren har løyve til å bruka posisjonen din (lås-ikon i adressefeltet). På PC/Mac er posisjonen ofte unøyaktig (IP-basert) – appen er laga for mobil i felt.</p>
+
+        <h3>Artslista viser ingenting</h3>
+        <p>Skriv minst 2–3 teikn. Om det framleis er tomt, kan det vera eit mellombels problem med Artsobservasjoner-API-et.</p>
+
+        <h3>Stadnamn vert ikkje føreslege</h3>
+        <p>Forslaga kjem frå Artsobservasjoner. Om ingen vert viste, finst det kanskje ingen registrerte lokalitetar i nærleiken. Du kan oppretta ein ny lokalitet med ➕-knappen.</p>
+
+        <h2>Om appen</h2>
+        <p>Utvikla av <strong>Kjetil Salomonsen</strong> som eit personleg verktøy for effektiv registrering av fugleobservasjonar i felt, med bidrag frå <strong>Espen Bore Hollund</strong>.</p>
+        <p style="font-size: 0.88rem; margin-top: 12px;">Kontakt: <a href="mailto:k@vikebo.com" style="color: var(--accent); text-decoration: none;">k@vikebo.com</a></p>
+    </template>
+    <script>
+      if (typeof window.__isNynorsk === 'function' && window.__isNynorsk()) {
+        var tpl = document.getElementById('help-card-nn');
+        var card = document.querySelector('.card');
+        if (tpl && card) {
+          card.innerHTML = tpl.innerHTML;
+          if (location.hash) {
+            var target = document.getElementById(location.hash.slice(1));
+            if (target && typeof target.scrollIntoView === 'function') {
+              target.scrollIntoView();
+            }
+          }
+        }
+      }
+    </script>
     <script type="module">
       import { VERSION } from './js/version.js';
       document.getElementById('version').textContent = VERSION;

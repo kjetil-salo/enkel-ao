@@ -130,4 +130,7 @@ export default {
   'observations.count_click_title': 'Klikk for å endre antall',
   'observations.deleted_toast': 'Slettet {art}',
   'observations.restored_toast': '{art} gjenopprettet',
+
+  'fellestur.page.back_link': '← Tilbake',
+  'fellestur.page.ingress': 'En delt kladdebok for turen. Start eller bli med her med en kort kode — selve registreringen skjer på den vanlige hovedsiden, med samme skjema som ellers. Her kan alle rette tall og slette feilregistreringer, og når turen er over henter én av dere hele lista inn i arbeidslista og sender til AO.',
 };

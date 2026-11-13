@@ -19,7 +19,9 @@ import { resolveVisitIdForNewObservation } from './visits.js';
 import { hentAktivFellestur, settAktivFellestur, forlatFellestur, hentMittNavn, settMittNavn } from './fellestur-client.js';
 import { showToast } from './ui.js';
 import { attachAoObserverAutocomplete } from './ao-observer-autocomplete.js';
-import { t } from './i18n.js';
+import { t, applyTranslations } from './i18n.js';
+
+applyTranslations(); // oversetter statisk data-i18n-markup i fellestur.html (back-link, ingress)
 
 const POLL_MS = 12000;
 
