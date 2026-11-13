@@ -708,14 +708,41 @@ export function openMapPage(userPosition, sites, sizeMeters) {
     }
   }
 
-  // Lagre data i localStorage
+  const effectiveSizeMeters = (typeof sizeMeters === 'number' && sizeMeters > 0) ? sizeMeters : 1000;
+  let sitesToStore = Array.isArray(sites) ? sites : [];
+
+  // Hvis sites er en hel offline-dump (tusenvis av lokaliteter med geometri),
+  // filtrer til nærområdet rundt kartets startposisjon slik at localStorage (5 MB)
+  // ikke kaster QuotaExceededError og blokkerer navigasjonen til /map.html.
+  if (sitesToStore.length > 250 && effectivePosition && typeof effectivePosition.lat === 'number' && typeof effectivePosition.lon === 'number') {
+    const maxRadiusMeters = Math.max(effectiveSizeMeters * 3, 15000);
+    sitesToStore = sitesToStore.filter((s) => {
+      if (!s || typeof s.lat !== 'number' || typeof s.lon !== 'number') return false;
+      return calculateDistance(effectivePosition.lat, effectivePosition.lon, s.lat, s.lon) <= maxRadiusMeters;
+    });
+  }
+
+  // Lagre data i localStorage (med fallback uten lokalitetsliste ved full kvote)
   const mapData = {
     userPosition: effectivePosition,
-    sites: sites || [],
-    sizeMeters: (typeof sizeMeters === 'number' && sizeMeters > 0) ? sizeMeters : 1000
+    sites: sitesToStore,
+    sizeMeters: effectiveSizeMeters
   };
 
-  localStorage.setItem('mapData', JSON.stringify(mapData));
+  try {
+    localStorage.setItem('mapData', JSON.stringify(mapData));
+  } catch (e) {
+    console.warn('Kunne ikke lagre full mapData i localStorage, lagrer kun posisjon:', e);
+    try {
+      localStorage.setItem('mapData', JSON.stringify({
+        userPosition: effectivePosition,
+        sites: [],
+        sizeMeters: effectiveSizeMeters
+      }));
+    } catch (_) {
+      // Ignorer — map.html faller tilbake til siste kjente posisjon / standardposisjon
+    }
+  }
 
   // Naviger til kartsiden i samme fane — map.html har egen «← Tilbake»-lenke.
   // window.open('_blank') brøt ut av PWA-en på iOS (åpnet Safari i stedet for

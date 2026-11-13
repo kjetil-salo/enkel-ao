@@ -206,6 +206,31 @@ describe('openMapPage', () => {
     openMapPage({ lat: 59.9, lon: 10.7 }, [], value);
     expect(readMapData().sizeMeters).toBe(1000);
   });
+
+  it('skal fortsatt navigere til /map.html og lagre posisjon uten sites dersom localStorage er full (QuotaExceededError)', () => {
+    let calls = 0;
+    const origSetItem = localStorage.setItem;
+    localStorage.setItem = vi.fn((key, val) => {
+      if (key === 'mapData') {
+        calls++;
+        if (calls === 1) {
+          throw new DOMException('QuotaExceededError', 'QuotaExceededError');
+        }
+      }
+      localStorageStore[key] = String(val);
+    });
+
+    try {
+      openMapPage({ lat: 58.78, lon: 5.62, accuracy: 10 }, [{ id: 1, name: 'Orrevatnet', lat: 58.78, lon: 5.62 }], 1200);
+      expect(window.location.href).toBe('/map.html');
+      const saved = readMapData();
+      expect(saved.userPosition.lat).toBe(58.78);
+      expect(saved.sites).toEqual([]);
+      expect(saved.sizeMeters).toBe(1200);
+    } finally {
+      localStorage.setItem = origSetItem;
+    }
+  });
 });
 
 // ─── mergeAoSitesWithPrivateCache ───────────────────────────────

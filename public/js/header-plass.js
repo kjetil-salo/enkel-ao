@@ -61,6 +61,8 @@ export function tilpassHeader(header, erPasser = passer) {
     header.dataset.komprimering = String(t);
     return erPasser(header);
   });
-  header.dataset.komprimering = String(trinn);
+  if (header.dataset.komprimering !== String(trinn)) {
+    header.dataset.komprimering = String(trinn);
+  }
   return trinn;
 }

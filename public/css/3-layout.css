@@ -64,6 +64,11 @@ header {
   display: none;
 }
 
+.mode-pill > *,
+.offline-toggle-pill > * {
+  pointer-events: none;
+}
+
 /* Mobil: én rad, med de sjeldnere valgene samlet i en meny. */
 @media (max-width: 599px) {
   .app-header {

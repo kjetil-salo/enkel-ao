@@ -1,6 +1,6 @@
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('../../public/js/storage.js', () => ({ loadObservations: vi.fn(), saveObservations: vi.fn() }));
+vi.mock('../../public/js/storage.js', () => ({ loadObservations: vi.fn(), saveObservations: vi.fn(), loadNynorskArtsnavn: vi.fn() }));
 vi.mock('../../public/js/visits.js', () => ({ resolveVisitIdForNewObservation: vi.fn() }));
 vi.mock('../../public/js/ui.js', () => ({ showToast: vi.fn() }));
 vi.mock('../../public/js/ao-observer-autocomplete.js', () => ({ attachAoObserverAutocomplete: vi.fn() }));
@@ -181,5 +181,21 @@ describe('Fellestur – bli med via kode', () => {
     expect(location.search).toBe('');
     expect(localStorage.getItem('aktivFellestur_v1')).toBeNull();
     expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('viser nynorsk tekst i aktiv fellestur når nynorsk er slått på', async () => {
+    localStorage.setItem('nynorskArtsnavn_v1', 'true');
+    localStorage.setItem('ao_username', 'espen@ifix.no');
+    localStorage.setItem('ao_password', 'hemmelig');
+    fetch.mockResolvedValue(svar(tur()));
+    await start('00123');
+    expect(document.getElementById('tur-kilde-status').textContent).toContain('Fann turen i Enkel-AO.');
+    expect(document.getElementById('btn-kopier').textContent).toBe('🔗 Kopier delbar lenkje');
+    expect(document.body.textContent).toContain('➕ Registrer på hovudsida');
+    expect(document.body.textContent).toContain('Medobservatørar (blir krediterte når turen blir sendt til AO)');
+    expect(document.getElementById('medobs-liste').textContent).toContain('Ingen lagt til enno');
+    expect(document.body.textContent).toContain('Innlogga på AO som espen@ifix.no – dette namnet blir brukt på det du registrerer.');
+    expect(document.getElementById('btn-send-ao').textContent).toBe('📤 Send inn lista og avslutt fellestur');
+    expect(document.getElementById('btn-forlat').textContent).toBe('Forlat utan å senda inn');
   });
 });

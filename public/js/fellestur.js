@@ -14,7 +14,7 @@
  * Se docs/deling-av-observasjoner-plan.md for søsterfunksjonen "deling"
  * (read-only, én skriver) — fellestur er det motsatte: flere skrivere.
  */
-import { loadObservations, saveObservations } from './storage.js';
+import { loadObservations, saveObservations, loadNynorskArtsnavn } from './storage.js';
 import { resolveVisitIdForNewObservation } from './visits.js';
 import { hentAktivFellestur, settAktivFellestur, forlatFellestur, hentMittNavn, settMittNavn } from './fellestur-client.js';
 import { showToast } from './ui.js';
@@ -23,6 +23,15 @@ import { attachAoObserverAutocomplete } from './ao-observer-autocomplete.js';
 const POLL_MS = 12000;
 
 const app = document.getElementById('app');
+
+function erNynorsk() {
+  if (typeof window.__isNynorsk === 'function') return !!window.__isNynorsk();
+  if (typeof loadNynorskArtsnavn === 'function') {
+    const val = loadNynorskArtsnavn();
+    if (typeof val === 'boolean') return val;
+  }
+  return localStorage.getItem('nynorskArtsnavn_v1') === 'true';
+}
 
 const state = {
   kode: null,
@@ -231,14 +240,26 @@ function visOppstartsfeil(melding, kanProveIgjen = false) {
 }
 
 function turStatusHtml(tur) {
+  const nn = erNynorsk();
   if (erUbekreftet(tur)) {
-    return `<div class="tur-advarsel" role="status"><strong>⚠️ Ekstern tur er ikke bekreftet</strong>
+    return nn
+      ? `<div class="tur-advarsel" role="status"><strong>⚠️ Ekstern tur er ikkje stadfesta</strong>
+      <p>Vi har ikkje motteke hendingar frå Feltlogg på kode ${tekst(tur.kode)}.
+      Turen kan finnast der utan funn, eller koden kan vera feil eller ikkje i bruk.
+      Kontroller koden med den som starta turen.</p></div>`
+      : `<div class="tur-advarsel" role="status"><strong>⚠️ Ekstern tur er ikke bekreftet</strong>
       <p>Vi har ikke mottatt hendelser fra Feltlogg på kode ${tekst(tur.kode)}.
       Turen kan finnes der uten funn, eller koden kan være feil eller ikke i bruk.
       Kontroller koden med den som startet turen.</p></div>`;
   }
   if (tur.opprinnelse === 'ekstern') {
-    return '<p class="tur-kilde">Fant en ekstern tur – vi har mottatt hendelser fra Feltlogg eller en annen tilkoblet app.</p>';
+    return nn
+      ? '<p class="tur-kilde">Fann ein ekstern tur – vi har motteke hendingar frå Feltlogg eller ein annan tilkopla app.</p>'
+      : '<p class="tur-kilde">Fant en ekstern tur – vi har mottatt hendelser fra Feltlogg eller en annen tilkoblet app.</p>';
+  }
+  if (nn) {
+    return `<p class="tur-kilde">Fann turen i Enkel-AO.${tur.eksternBekreftet
+      ? ' Vi har òg motteke hendingar frå Feltlogg eller ein annan tilkopla app.' : ''}</p>`;
   }
   return `<p class="tur-kilde">Fant turen i Enkel-AO.${tur.eksternBekreftet
     ? ' Vi har også mottatt hendelser fra Feltlogg eller en annen tilkoblet app.' : ''}</p>`;
@@ -287,6 +308,7 @@ function renderIkkeFunnet() {
 
 function renderAktivTur() {
   const tur = state.tur;
+  const nn = erNynorsk();
   const innlogget = erInnloggetMotAo();
   // Innlogget: navnet er den ekte AO-identiteten, ikke noe man kan skrive fritt
   // — det er DENNE som vises til de andre og brukes i avsluttet-varselet, så
@@ -294,13 +316,21 @@ function renderAktivTur() {
   const aoBrukernavn = innlogget ? (localStorage.getItem('ao_username') || '') : '';
   if (innlogget && aoBrukernavn) settMittNavn(aoBrukernavn);
   const mittNavn = hentMittNavn();
+  const kopierTekst = nn ? '🔗 Kopier delbar lenkje' : '🔗 Kopier delbar lenke';
 
   const mittNavnHtml = innlogget
-    ? `<p class="obs-meta">Innlogget på AO som <strong>${tekst(aoBrukernavn)}</strong> — dette navnet brukes på det du registrerer.</p>`
-    : `<label for="mitt-navn">Ditt navn (valgfritt, vises kun til de andre i gruppa)</label>
+    ? (nn
+      ? `<p class="obs-meta">Innlogga på AO som <strong>${tekst(aoBrukernavn)}</strong> – dette namnet blir brukt på det du registrerer.</p>`
+      : `<p class="obs-meta">Innlogget på AO som <strong>${tekst(aoBrukernavn)}</strong> — dette navnet brukes på det du registrerer.</p>`)
+    : (nn
+      ? `<label for="mitt-navn">Ditt namn (valfritt, blir berre vist til dei andre i gruppa)</label>
+       <input type="text" id="mitt-navn" value="${tekst(mittNavn)}" maxlength="40" placeholder="T.d. Kjetil">
+       <p class="obs-meta">Ikkje innlogga på AO på denne eininga – du kan likevel registrera funn i fellesturen,
+         men den som til slutt hentar inn og sender til AO må vera innlogga (⚙️ Innstillingar).</p>`
+      : `<label for="mitt-navn">Ditt navn (valgfritt, vises kun til de andre i gruppa)</label>
        <input type="text" id="mitt-navn" value="${tekst(mittNavn)}" maxlength="40" placeholder="F.eks. Kjetil">
        <p class="obs-meta">Ikke innlogget på AO på denne enheten — du kan likevel registrere funn i fellesturen,
-         men den som til slutt henter inn og sender til AO må være innlogget (⚙️ Innstillinger).</p>`;
+         men den som til slutt henter inn og sender til AO må være innlogget (⚙️ Innstillinger).</p>`);
 
   app.innerHTML = `
     <div class="kort">
@@ -308,32 +338,34 @@ function renderAktivTur() {
       <div id="tur-kilde-status" aria-live="polite">${turStatusHtml(tur)}</div>
       <div id="avsluttet-varsel"></div>
       <div class="rad-btn">
-        <button class="btn liten" id="btn-kopier">🔗 Kopier delbar lenke</button>
+        <button class="btn liten" id="btn-kopier">${kopierTekst}</button>
       </div>
       ${tur.navn ? `<p><strong>${tekst(tur.navn)}</strong></p>` : ''}
 
       <div class="rad-btn">
-        <a class="btn primar" href="/" style="text-decoration:none;text-align:center;flex:1;">➕ Registrer på hovedsiden</a>
+        <a class="btn primar" href="/" style="text-decoration:none;text-align:center;flex:1;">${nn ? '➕ Registrer på hovudsida' : '➕ Registrer på hovedsiden'}</a>
       </div>
-      <p class="obs-meta">Alt du registrerer på hovedsiden mens denne fellesturen er aktiv (se bjelken øverst der),
-        havner automatisk i loggen under — hele det vanlige skjemaet med artsøk og stedssøk virker som normalt.</p>
+      <p class="obs-meta">${nn
+        ? 'Alt du registrerer på hovudsida medan denne fellesturen er aktiv (sjå bjelken øvst der), hamnar automatisk i loggen under – heile det vanlege skjemaet med artssøk og lokalitetssøk fungerer som normalt.'
+        : 'Alt du registrerer på hovedsiden mens denne fellesturen er aktiv (se bjelken øverst der), havner automatisk i loggen under — hele det vanlige skjemaet med artsøk og stedssøk virker som normalt.'}</p>
 
-      <label>Medobservatører (krediteres når turen sendes til AO)</label>
+      <label>${nn ? 'Medobservatørar (blir krediterte når turen blir sendt til AO)' : 'Medobservatører (krediteres når turen sendes til AO)'}</label>
       <div class="medobs-liste" id="medobs-liste"></div>
       <div class="medobs-legg-til">
-        <input type="text" id="medobs-nytt-navn" placeholder="Legg til navn…" maxlength="40">
+        <input type="text" id="medobs-nytt-navn" placeholder="${nn ? 'Legg til namn…' : 'Legg til navn…'}" maxlength="40">
         <button class="btn liten" id="btn-medobs-legg-til">+ Legg til</button>
       </div>
 
       ${mittNavnHtml}
 
-      <p class="obs-meta" style="margin-top:14px;"><strong>Ferdig med turen?</strong> Bruk knappen under — den
-        henter alle oppføringene i loggen inn i din lokale liste, klar til å sendes til AO fra hovedsiden.</p>
+      <p class="obs-meta" style="margin-top:14px;">${nn
+        ? '<strong>Ferdig med turen?</strong> Bruk knappen under – den hentar alle oppføringane i loggen inn i di lokale liste, klar til å sendast til AO fra hovudsida.'
+        : '<strong>Ferdig med turen?</strong> Bruk knappen under — den henter alle oppføringene i loggen inn i din lokale liste, klar til å sendes til AO fra hovedsiden.'}</p>
       <div class="rad-btn">
-        <button class="btn primar" id="btn-send-ao" style="flex:1;">📤 Send inn listen og avslutt fellestur</button>
+        <button class="btn primar" id="btn-send-ao" style="flex:1;">${nn ? '📤 Send inn lista og avslutt fellestur' : '📤 Send inn listen og avslutt fellestur'}</button>
       </div>
       <div class="rad-btn">
-        <button class="btn liten" id="btn-forlat">Forlat uten å sende inn</button>
+        <button class="btn liten" id="btn-forlat">${nn ? 'Forlat utan å senda inn' : 'Forlat uten å sende inn'}</button>
       </div>
     </div>
 
@@ -341,7 +373,7 @@ function renderAktivTur() {
       <h2>Loggen (${tur.observasjoner.length})</h2>
       <div>
         <button class="nye-badge" id="btn-nye" style="display:none;"></button>
-        <button class="btn liten" id="btn-oppdater-na">🔄 Oppdater nå</button>
+        <button class="btn liten" id="btn-oppdater-na">${nn ? '🔄 Oppdater no' : '🔄 Oppdater nå'}</button>
       </div>
     </div>
     <div id="obs-liste"></div>
@@ -365,9 +397,9 @@ function renderAktivTur() {
     try {
       await navigator.clipboard.writeText(url);
       document.getElementById('btn-kopier').textContent = '✅ Kopiert!';
-      setTimeout(() => { document.getElementById('btn-kopier').textContent = '🔗 Kopier delbar lenke'; }, 1500);
+      setTimeout(() => { document.getElementById('btn-kopier').textContent = kopierTekst; }, 1500);
     } catch (_) {
-      prompt('Kopier lenken manuelt:', url);
+      prompt(nn ? 'Kopier lenkja manuelt:' : 'Kopier lenken manuelt:', url);
     }
   });
 
@@ -387,7 +419,7 @@ function renderMedobsListe() {
   const wrap = document.getElementById('medobs-liste');
   const navn = state.tur.medobservatorer || [];
   if (!navn.length) {
-    wrap.innerHTML = '<span class="obs-meta">Ingen satt ennå</span>';
+    wrap.innerHTML = `<span class="obs-meta">${erNynorsk() ? 'Ingen lagt til enno' : 'Ingen satt ennå'}</span>`;
     return;
   }
   wrap.innerHTML = navn.map((n, i) =>

@@ -1092,39 +1092,6 @@ function setupEventListeners() {
     locPinnedMapBtn.addEventListener('click', handleOpenMapImmediately);
   }
 
-// Oppdater stil på kart-ikonet basert på posisjon. Knappen er alltid synlig
-// og åpner kartet umiddelbart. Her styres den «aktive» glødende stilen som viser om
-// vi har en GPS-posisjon klar.
-function updateMapBtnVisibility() {
-  const mapButtons = [dom.locMapBtn, document.getElementById('loc-pinned-map-btn')].filter(Boolean);
-  const hasPos = appState.currentPosition && typeof appState.currentPosition.lat === 'number' && typeof appState.currentPosition.lon === 'number';
-  const nn = loadNynorskArtsnavn();
-
-  mapButtons.forEach((btn) => {
-    btn.style.display = '';
-    if (hasPos) {
-      btn.style.background = 'var(--accent)';
-      btn.style.color = 'white';
-      btn.style.borderColor = 'var(--accent)';
-      btn.style.boxShadow = '0 0 0 3px #22c55e55, 0 2px 8px rgba(59,130,246,0.18)';
-      btn.style.fontWeight = 'bold';
-      btn.title = nn ? 'Vis posisjon og AO-lokalitetar i kart' : 'Vis posisjon og AO-lokaliteter i kart';
-      btn.classList.add('map-btn-active');
-    } else {
-      btn.style.background = '';
-      btn.style.color = '';
-      btn.style.borderColor = '';
-      btn.style.boxShadow = '';
-      btn.style.fontWeight = '';
-      btn.title = nn ? 'Opne kart' : 'Åpne kart';
-      btn.classList.remove('map-btn-active');
-    }
-  });
-}
-
-// Gjør funksjonen globalt tilgjengelig for andre moduler (f.eks. location.js)
-window.updateMapBtnVisibility = updateMapBtnVisibility;
-
   if (dom.aoSizeInput) {
     const aoSizeValueEl = document.getElementById('ao-size-value');
     const renderRadiusValue = (v) => {
@@ -1662,14 +1629,49 @@ function setupOfflineModeToggle() {
   });
 }
 
-// Synkroniser knappen umiddelbart ved modul-evaluering (før DOMContentLoaded)
+// Oppdater stil på kart-ikonet basert på posisjon. Knappen er alltid synlig
+// og åpner kartet umiddelbart. Her styres den «aktive» glødende stilen som viser om
+// vi har en GPS-posisjon klar.
+function updateMapBtnVisibility() {
+  const mapButtons = [dom.locMapBtn, document.getElementById('loc-pinned-map-btn')].filter(Boolean);
+  const hasPos = appState.currentPosition && typeof appState.currentPosition.lat === 'number' && typeof appState.currentPosition.lon === 'number';
+  const nn = loadNynorskArtsnavn();
+
+  mapButtons.forEach((btn) => {
+    btn.style.display = '';
+    if (hasPos) {
+      btn.style.background = 'var(--accent)';
+      btn.style.color = 'white';
+      btn.style.borderColor = 'var(--accent)';
+      btn.style.boxShadow = '0 0 0 3px #22c55e55, 0 2px 8px rgba(59,130,246,0.18)';
+      btn.style.fontWeight = 'bold';
+      btn.title = nn ? 'Vis posisjon og AO-lokalitetar i kart' : 'Vis posisjon og AO-lokaliteter i kart';
+      btn.classList.add('map-btn-active');
+    } else {
+      btn.style.background = '';
+      btn.style.color = '';
+      btn.style.borderColor = '';
+      btn.style.boxShadow = '';
+      btn.style.fontWeight = '';
+      btn.title = nn ? 'Opne kart' : 'Åpne kart';
+      btn.classList.remove('map-btn-active');
+    }
+  });
+}
+
+// Gjør funksjonen globalt tilgjengelig for andre moduler (f.eks. location.js)
+window.updateMapBtnVisibility = updateMapBtnVisibility;
+
+// Synkroniser knapper umiddelbart ved modul-evaluering (før DOMContentLoaded)
 updateOfflineModeUI();
+updateModeUI();
 
 // Gjenopprettet fra bfcache (tilbake-knappen) eller vanlig navigasjon —
 // les innlogging og nettverksmodus på nytt så badge og modusvelger aldri er utdatert.
 window.addEventListener('pageshow', () => {
   updateAoDirectVisibility();
   updateOfflineModeUI();
+  updateModeUI();
   syncNetworkModeToServiceWorker(getNetworkMode()).catch(() => {});
 });
 
@@ -1687,13 +1689,13 @@ window.addEventListener('DOMContentLoaded', () => {
   // Service Worker registreres og synkroniseres av offline-db.js (samme URL på alle sider)
   syncNetworkModeToServiceWorker(getNetworkMode()).catch(() => {});
 
-  updateSubtaxaCheckboxState();
-  init();
-  updateMapBtnVisibility();
   updateModeUI();
   setupModeToggle();
   updateOfflineModeUI();
   setupOfflineModeToggle();
+  updateSubtaxaCheckboxState();
+  init();
+  updateMapBtnVisibility();
   setupOfflineDisabledInterceptors();
   updateAoDirectVisibility();
   setupFellesturBanner();
@@ -1702,7 +1704,7 @@ window.addEventListener('DOMContentLoaded', () => {
   if (isOfflineMode() || isHybridMode()) {
     getAllOfflineLocations()
       .then((offlineSites) => {
-        if (offlineSites && offlineSites.length > 0) {
+        if (offlineSites && offlineSites.length > 0 && (!appState.currentAoSites || appState.currentAoSites.length === 0)) {
           appState.currentAoSites = offlineSites;
         }
       })
