@@ -1,8 +1,10 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { renderObservations, toCsv } from '../../public/js/observations.js';
+import { saveLanguage } from '../../public/js/storage.js';
 
 beforeEach(() => {
   document.body.innerHTML = '';
+  saveLanguage('nb');
   window.matchMedia = window.matchMedia || (() => ({
     matches: false,
     addEventListener: () => {},
@@ -363,5 +365,114 @@ describe('renderObservations besøk', () => {
     expect(updatedLockButtons[0].querySelector('svg')).toBeTruthy();
     expect(updatedLockButtons[0].getAttribute('aria-label')).toBe('Besøk avsluttet');
     expect(updatedLockButtons[1].getAttribute('aria-label')).toBe('Besøk åpent');
+  });
+
+  it('viser "Sletta <art>" i toast ved sletting når nynorsk er valgt', () => {
+    saveLanguage('nn');
+    const observations = [
+      {
+        species: { taxonName: 'Gråmåke', nynorsk: 'Gråmåse' },
+        placeName: 'Herdla',
+        count: 1,
+        timestamp: '2026-07-03T08:00:00',
+      },
+    ];
+    const obsListEl = document.createElement('div');
+    const saveState = vi.fn();
+    renderObservations(observations, obsListEl, {}, saveState);
+
+    const deleteBtn = obsListEl.querySelector('.delete-obs-btn');
+    expect(deleteBtn).not.toBeNull();
+    deleteBtn.click();
+
+    expect(observations).toHaveLength(0);
+    const toast = document.getElementById('registered-toast');
+    expect(toast).not.toBeNull();
+    expect(toast.textContent).toContain('Sletta Gråmåse');
+    const undoBtn = toast.querySelector('button');
+    expect(undoBtn.textContent).toBe('Angra');
+  });
+
+  it('viser "Slettet <art>" i toast ved sletting på bokmål', () => {
+    saveLanguage('nb');
+    const observations = [
+      {
+        species: { taxonName: 'Gråmåke', nynorsk: 'Gråmåse' },
+        placeName: 'Herdla',
+        count: 1,
+        timestamp: '2026-07-03T08:00:00',
+      },
+    ];
+    const obsListEl = document.createElement('div');
+    const saveState = vi.fn();
+    renderObservations(observations, obsListEl, {}, saveState);
+
+    const deleteBtn = obsListEl.querySelector('.delete-obs-btn');
+    expect(deleteBtn).not.toBeNull();
+    deleteBtn.click();
+
+    expect(observations).toHaveLength(0);
+    const toast = document.getElementById('registered-toast');
+    expect(toast).not.toBeNull();
+    expect(toast.textContent).toContain('Slettet Gråmåke');
+    const undoBtn = toast.querySelector('button');
+    expect(undoBtn.textContent).toBe('Angre');
+  });
+
+  it('bruker "Besøk avslutta" og "Besøk opna att" på hengelåsen når nynorsk er valgt', () => {
+    saveLanguage('nn');
+    const observations = [
+      {
+        species: { taxonName: 'Heilo' },
+        placeName: 'Herdla',
+        count: 1,
+        timestamp: '2026-07-03T08:00:00',
+      },
+    ];
+    const obsListEl = document.createElement('div');
+    const saveState = vi.fn();
+    renderObservations(observations, obsListEl, {}, saveState);
+
+    const lockBtn = obsListEl.querySelector('.obs-group-lock-btn');
+    expect(lockBtn).not.toBeNull();
+    expect(lockBtn.getAttribute('aria-label')).toBe('Besøk opna');
+
+    lockBtn.click();
+    expect(observations[0].visitLocked).toBe(true);
+    const toast = document.getElementById('registered-toast');
+    expect(toast.textContent).toBe('Besøk avslutta');
+
+    const updatedLockBtn = obsListEl.querySelector('.obs-group-lock-btn');
+    updatedLockBtn.click();
+    expect(observations[0].visitLocked).toBe(false);
+    expect(toast.textContent).toBe('Besøk opna att');
+  });
+
+  it('viser nynorsk tekst i klokkeslett-modalen (Set klokkeslett, Frå, Til, Set på alle)', () => {
+    saveLanguage('nn');
+    const observations = [
+      {
+        species: { taxonName: 'Heilo' },
+        placeName: 'Herdla',
+        count: 1,
+        timestamp: '2026-07-03T08:00:00',
+      },
+    ];
+    const obsListEl = document.createElement('div');
+    const saveState = vi.fn();
+    renderObservations(observations, obsListEl, {}, saveState);
+
+    const clockBtn = obsListEl.querySelector('.obs-group-time-btn');
+    expect(clockBtn).not.toBeNull();
+    expect(clockBtn.getAttribute('aria-label')).toBe('Set klokkeslett');
+
+    clockBtn.click();
+    const modal = document.getElementById('time-modal');
+    expect(modal).not.toBeNull();
+    expect(modal.querySelector('h3').textContent).toBe('🕐 Set klokkeslett');
+    expect(modal.textContent).toContain('Frå');
+    expect(modal.textContent).toContain('Til');
+    expect(modal.querySelector('#time-modal-apply').textContent).toBe('Set på alle');
+    modal.remove();
   });
 });
