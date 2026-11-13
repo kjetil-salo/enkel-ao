@@ -844,10 +844,10 @@
       // Login button handler
       loginBtn.addEventListener('click', async () => {
         const username = aoUsernameInput.value.trim();
-        const password = aoPasswordInput.value.trim();
+        const password = aoPasswordInput.value;
         const mapUserId = aoMapUserIdInput.value.trim();
 
-        if (!username || !password) {
+        if (!username || !password.trim()) {
           tokenStatus.style.display = 'block';
           tokenStatus.className = 'token-status invalid';
           tokenStatus.textContent = '❌ Fyll inn brukernavn og passord';
