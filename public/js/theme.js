@@ -28,4 +28,27 @@
     b.classList.add('theme-light', 'theme-clean');
   }
   // 'dark' = ingen klasse (basetokens gjelder)
+
+  // Settes som klassisk <script>, ikke type="module" (se filkommentaren over
+  // - unngå FOUC), så dette er den ENE stedet appen kan lese språkvalget
+  // synkront før i18n.js (en ES-modul) er lastet. window.__isNynorsk er en
+  // bevisst smal, read-only unntaks-global for nettopp dette: pre-paint-bruk
+  // i et klassisk <script> som ikke kan importere i18n.js. Modulkode skal
+  // importere isNynorsk()/getLanguage() fra i18n.js direkte, ikke denne.
+  function checkIsNynorsk() {
+    try {
+      var lang = localStorage.getItem('app_language_v1');
+      if (lang === 'nn') return true;
+      if (lang === 'nb') return false;
+      var ny = localStorage.getItem('nynorsk_artsnavn_v1');
+      return ny === '1' || ny === 'true';
+    } catch (e) {
+      return false;
+    }
+  }
+
+  window.__isNynorsk = checkIsNynorsk;
+  if (document.documentElement) {
+    document.documentElement.lang = checkIsNynorsk() ? 'nn' : 'nb';
+  }
 })();
