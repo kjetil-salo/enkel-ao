@@ -35,6 +35,13 @@ export const CURRENT_NEWS_SPLASH = {
       },
     },
     {
+      title: '💻 Rakk du ikke å sende inn før du kom hjem?',
+      body: 'Lagre en privat kopi av arbeidslista fra ⋯-menyen på mobilen '
+        + 'før du legger den fra deg. Hjemme åpner du samme meny på Mac '
+        + 'eller PC, logger inn med samme AO-konto, og henter listen inn '
+        + 'der — klar til å se gjennom funnene før du publiserer.',
+    },
+    {
       title: '🙌 Dette er Espen sitt verk',
       body: 'Espen Bore Hollund bygde den første nynorsk-versjonen av appen '
         + 'og oversatte alt innholdet selv, side for side — språkvelgeren '
