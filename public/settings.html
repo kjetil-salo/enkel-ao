@@ -7,7 +7,7 @@
     <link rel="icon" href="/favicon.png" type="image/png" />
     <link rel="apple-touch-icon" href="/icon-192.png" />
     <link rel="manifest" href="/manifest.json">
-    <link rel="stylesheet" href="style.css?v=v1.60.15" />
+    <link rel="stylesheet" href="style.css?v=v1.60.16" />
       <style>
         .settings-card {
           background: var(--card-bg, #111827);
@@ -306,7 +306,7 @@
             <input type="password" id="ao-password" autocomplete="current-password" placeholder="••••••••"
               style="width:100%;padding:10px 40px 10px 12px;border-radius:8px;border:1px solid rgba(148,163,184,0.3);background:rgba(15,23,42,0.8);color:var(--text,#e5e7eb);font-size:16px;box-sizing:border-box;" />
             <button type="button" id="toggle-ao-password"
-              style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--muted,#aaa);font-size:1.1em;padding:4px;">👁</button>
+              style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--muted,#aaa);font-size:1.1em;padding:4px;">👁️</button>
           </div>
         </div>
         <button type="button" id="test-ao-login"
@@ -433,15 +433,15 @@
     <script type="module">
       import { fjernOverforingssesjon } from './js/arbeidsliste-sesjon.js';
       import { apneInnhentetListe, lagreInnhentetKopi, lesInnhentetListe, lukkInnhentetListe } from './js/arbeidsliste-lokal.js';
-      import { loadActivityPills, saveActivityPills, ACTIVITY_SHORT_SUGGESTIONS, loadNynorskArtsnavn, saveNynorskArtsnavn } from './js/storage.js?v=v1.60.15';
-      import { loadActivities, fetchAoSitesByBounds, hasActiveAoLogin, ensureAoTokens, getCachedPrivateSites } from './js/api.js?v=v1.60.15';
-      import { shouldShowOthersPrivateSites } from './js/location.js?v=v1.60.15';
+      import { loadActivityPills, saveActivityPills, ACTIVITY_SHORT_SUGGESTIONS, loadNynorskArtsnavn, saveNynorskArtsnavn } from './js/storage.js?v=v1.60.16';
+      import { loadActivities, fetchAoSitesByBounds, hasActiveAoLogin, ensureAoTokens, getCachedPrivateSites } from './js/api.js?v=v1.60.16';
+      import { shouldShowOthersPrivateSites } from './js/location.js?v=v1.60.16';
       import {
         getOfflineStorageStats,
         syncOfflineAreas,
         clearAllOfflineData,
         clearAppCachesPreservingMapTiles,
-      } from './js/offline-db.js?v=v1.60.15';
+      } from './js/offline-db.js?v=v1.60.16';
 
       // Service Worker registreres og modus synkroniseres av offline-db.js (importert over).
 
@@ -929,7 +929,7 @@
           togglePasswordBtn.textContent = '🙈';
         } else {
           aoPasswordInput.type = 'password';
-          togglePasswordBtn.textContent = '👁';
+          togglePasswordBtn.textContent = '👁️';
         }
       });
 

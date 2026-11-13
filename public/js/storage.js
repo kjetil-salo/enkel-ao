@@ -3,7 +3,7 @@
  */
 import { hentAktivFellestur } from './fellestur-client.js';
 import { lastSpeil, lagreSpeilOgSynk, hentTurMedobservatorer } from './fellestur-sync.js';
-import { translateDedicatedSubspeciesToNynorsk } from './species-matcher.js?v=v1.60.15';
+import { translateDedicatedSubspeciesToNynorsk } from './species-matcher.js?v=v1.60.16';
 import { aktivInnhentetListe, lagreEndringerIInnhentetListe, lesInnhentetListe } from './arbeidsliste-lokal.js';
 
 const STORAGE_KEY = 'fugleobservasjoner_v1';
