@@ -21,7 +21,7 @@ import { logPageView, loadActivities, fetchAoSites, fetchAndCachePrivateSites, h
 // main.js, hver gang storage.js får en ny eksport main.js begynner å bruke.
 import { loadObservations, saveObservations, loadAoSearchRadius, saveAoSearchRadius, loadLocationSortMode, saveLocationSortMode, loadAoDirectAutoClear, saveAoDirectAutoClear, saveLastKnownPosition, loadLastKnownPosition, activityDisplayName, lesArbeidslisteForOverforing } from './storage.js?v=v1.60.17';
 import { setStatus, setLocationStatus, showToast, showOfflineNotAvailableDialog, haversine, MODE_SPLASH_DURATION_MS } from './ui.js?v=v1.60.17';
-import { t } from './i18n.js';
+import { t, applyTranslations } from './i18n.js';
 import { DEFAULT_MAP_CENTER, setAoSiteSuggestions, initLocation, openMap, openMapPage, updateCreateSiteBtnVisibility, initCreateSite } from './location.js?v=v1.60.17';
 // Versjonert import: observations.js sitt eget innhold (ikke bare hvilke
 // eksporter den har) endret seg vesentlig i dag (speciesDisplayName-bruk i
@@ -1619,6 +1619,21 @@ function setupOfflineModeToggle() {
 
 // Synkroniser knappen umiddelbart ved modul-evaluering (før DOMContentLoaded)
 updateOfflineModeUI();
+// Statisk data-i18n-markup i index.html (nav-lenker, modaler, placeholders) -
+// må kjøres selv ved første lasting, ikke bare ved et senere språkbytte.
+applyTranslations();
+
+// De elementene over som er EGEN-styrt av app-tilstand i tillegg til språk
+// (AO-badge, modus-pille, nettverksmodus-knapp, kart-knapp) eies av sine egne
+// oppdateringsfunksjoner (allerede t()-baserte) - data-i18n ville kjempet med
+// dem om state endret seg mens siden stod i et annet språk. Kjør dem på nytt
+// her i stedet, slik at et språkbytte også oppdaterer DEM riktig.
+document.addEventListener('i18n:language-changed', () => {
+  updateAoDirectVisibility();
+  updateModeUI();
+  updateOfflineModeUI();
+  updateMapBtnVisibility();
+});
 
 // Gjenopprettet fra bfcache (tilbake-knappen) eller vanlig navigasjon —
 // les innlogging og nettverksmodus på nytt så badge og modusvelger aldri er utdatert.
