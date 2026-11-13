@@ -7,7 +7,9 @@ import { createAoSite, ensureAoTokens, fetchAoSitesCached, fetchAoSitesByBounds,
 import { mergeAoSitesWithPrivateCache, isPrivateSite, shouldShowOthersPrivateSites, DEFAULT_MAP_CENTER } from './location.js?v=v1.60.17';
 import { saveLastKnownPosition, loadLastKnownPosition } from './storage.js?v=v1.60.17';
 import { haversine } from './utils.js';
-import { t, getLanguage } from './i18n.js';
+import { t, getLanguage, applyTranslations } from './i18n.js';
+
+applyTranslations(); // statisk data-i18n-markup i map.html (back-lenke, FAB, opprett-panel)
 // Versjonert import: HARD avhengighet til navngitte eksporter i en modul som
 // er ny her. Samme begrunnelse som location.js-importen over.
 import {
@@ -2179,3 +2181,12 @@ refreshMapOfflineStorageStats();
 }
 
 startMapUI();
+
+// toggle-labels-btn (tekst/tittel) og toggle-offline-markers-btn eies av
+// anvendVisning()/updateOfflineMarkersVisibility(), ikke statisk data-i18n-
+// markup - de leser allerede aktivt språk via t()/tFor(), men må kjøres på
+// nytt for at et språkbytte skal vises uten en full sideoppfriskning.
+document.addEventListener('i18n:language-changed', () => {
+  anvendVisning();
+  updateOfflineMarkersVisibility(showOfflineMarkers);
+});

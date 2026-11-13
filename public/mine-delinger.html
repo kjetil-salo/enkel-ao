@@ -44,10 +44,10 @@
     <script src="/js/theme.js"></script>
     <div class="shell">
       <header>
-        <h1>🔗 Mine delinger</h1>
-        <a href="/" class="back-link">← Tilbake</a>
+        <h1 data-i18n="delinger.heading">🔗 Mine delinger</h1>
+        <a href="/" class="back-link" data-i18n="settings.back_link">← Tilbake</a>
       </header>
-      <p class="ingress">
+      <p class="ingress" data-i18n="delinger.ingress">
         Delinger du har laget fra denne enheten. Lagres bare lokalt — appen har ingen
         egen konto, så en deling laget på en annen enhet vises ikke her.
       </p>
@@ -57,6 +57,10 @@
     <script type="module">
       import { hentMineDelinger, glemDeling, openShareDialog } from '/js/share.js';
       import { loadObservations } from '/js/storage.js';
+      import { t, applyTranslations } from '/js/i18n.js';
+
+      document.title = t('delinger.title');
+      applyTranslations();
 
       const MND = ['januar', 'februar', 'mars', 'april', 'mai', 'juni',
         'juli', 'august', 'september', 'oktober', 'november', 'desember'];
@@ -90,21 +94,19 @@
         const delinger = hentMineDelinger();
 
         if (!delinger.length) {
-          listeEl.innerHTML = `<div class="tom">
-            Ingen delinger ennå.<br>
-            Bruk «🔗 Del funnene» på hovedsiden for å lage din første.
-          </div>`;
+          listeEl.innerHTML = `<div class="tom">${t('delinger.empty')}</div>`;
           return;
         }
 
         listeEl.innerHTML = delinger.map((d, idx) => {
           const utlopt = erUtlopt(d);
           const slug = tekst(d.slug);
-          const tittel = d.displayName ? tekst(d.displayName) : (formatDato(d.dato) || 'Deling');
-          const antall = d.obsCount ? `${d.obsCount} observasjon${d.obsCount !== 1 ? 'er' : ''}` : '';
+          const tittel = d.displayName ? tekst(d.displayName) : (formatDato(d.dato) || t('delinger.default_title'));
+          const antallOrd = d.obsCount === 1 ? t('observations.word_singular') : t('observations.word_plural');
+          const antall = d.obsCount ? `${d.obsCount} ${antallOrd}` : '';
           const statusHtml = utlopt
-            ? '<span class="status utlopt-badge">Utløpt</span>'
-            : `<span class="status aktiv">Aktiv${d.expiresTs ? ' · til ' + formatUtloper(d.expiresTs) : ''}</span>`;
+            ? `<span class="status utlopt-badge">${t('delinger.status_expired')}</span>`
+            : `<span class="status aktiv">${t('delinger.status_active')}${d.expiresTs ? ' · ' + t('delinger.status_until', { date: formatUtloper(d.expiresTs) }) : ''}</span>`;
           return `
             <div class="deling ${utlopt ? 'utlopt' : ''}">
               <div class="deling-head">
@@ -121,6 +123,7 @@
       }
 
       render();
+      document.addEventListener('i18n:language-changed', render);
 
       listeEl.addEventListener('click', async (e) => {
         const oppdaterIdx = e.target.dataset && e.target.dataset.oppdater;

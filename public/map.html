@@ -893,14 +893,14 @@
     </div>
   </div>
 
-  <a href="/" class="back-btn">← Tilbake</a>
+  <a href="/" class="back-btn" data-i18n="settings.back_link">← Tilbake</a>
   <!-- Tre trinn: Alt → Skjul navn → Skjul alt → Alt. Teksten settes av
        map.js (knappetekst() i kart-visning.js) og beskriver hva NESTE trykk
        gjør; verdien her er bare det første trinnet før JS har kjørt. -->
   <button type="button" class="back-btn" id="toggle-labels-btn" style="top:76px;right:10px;left:auto;" title="Trykk for å skjule navn, så alle lokaliteter — nyttig for å zoome inn der det er tett">🏷️ Skjul navn</button>
   <div style="position:absolute;top:122px;right:10px;z-index:1000;display:flex;gap:6px;align-items:center;">
     <!-- Listeikon for nedlastede offline-områder (kun synlig når områdevalg er åpent) -->
-    <button type="button" class="back-btn" id="offline-areas-list-btn" style="display:none;position:static;padding:8px 12px;font-size:16px;min-width:44px;min-height:44px;justify-content:center;" title="Vis nedlastede offline-områder" aria-label="Vis nedlastede offline-områder">
+    <button type="button" class="back-btn" id="offline-areas-list-btn" style="display:none;position:static;padding:8px 12px;font-size:16px;min-width:44px;min-height:44px;justify-content:center;" title="Vis nedlastede offline-områder" aria-label="Vis nedlastede offline-områder" data-i18n-attr="title:map.areas_list_btn,aria-label:map.areas_list_btn">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <line x1="8" y1="6" x2="21" y2="6"></line>
         <line x1="8" y1="12" x2="21" y2="12"></line>
@@ -910,7 +910,7 @@
         <line x1="3" y1="18" x2="3.01" y2="18"></line>
       </svg>
     </button>
-    <button type="button" class="back-btn" id="toggle-offline-area-btn" style="position:static;" title="Velg område på kartet for offline-bruk">📦 Offline-område</button>
+    <button type="button" class="back-btn" id="toggle-offline-area-btn" style="position:static;" title="Velg område på kartet for offline-bruk" data-i18n-attr="title:map.select_area_title">📦 Offline-område</button>
   </div>
   <button type="button" class="back-btn" id="toggle-offline-markers-btn" style="display:none;top:174px;right:10px;left:auto;" title="Skjul eller vis lokalitetsmarkører i offline-modus">📍 Skjul lokaliteter</button>
 
@@ -936,7 +936,7 @@
   <div class="offline-download-modal-backdrop" id="downloaded-areas-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="downloaded-areas-title" style="display:none;">
     <div class="offline-download-modal" style="max-width:440px;text-align:left;max-height:85vh;display:flex;flex-direction:column;padding:18px 20px;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;border-bottom:1px solid #e2e8f0;padding-bottom:10px;">
-        <h3 id="downloaded-areas-title" style="margin:0;font-size:17px;font-weight:700;color:#0f172a;display:flex;align-items:center;gap:6px;">
+        <h3 id="downloaded-areas-title" style="margin:0;font-size:17px;font-weight:700;color:#0f172a;display:flex;align-items:center;gap:6px;" data-i18n="map.downloaded_areas_title">
           📦 Nedlastede områder
         </h3>
         <button type="button" class="close-offline-panel-btn" id="close-downloaded-areas-btn" aria-label="Lukk" title="Lukk">✕</button>
@@ -971,15 +971,15 @@
   </div>
 
   <!-- Ny lokasjon: FAB, hint og avbryt -->
-  <button class="add-site-fab" id="add-site-fab" style="display: none;" title="Opprett ny lokasjon">+</button>
-  <div class="pin-drop-hint" id="pin-drop-hint">Trykk på kartet for å plassere lokasjon</div>
+  <button class="add-site-fab" id="add-site-fab" style="display: none;" title="Opprett ny lokasjon" data-i18n-attr="title:map.create_site_heading">+</button>
+  <div class="pin-drop-hint" id="pin-drop-hint" data-i18n="map.pin_drop_hint">Trykk på kartet for å plassere lokasjon</div>
   <button class="cancel-pin-btn" id="cancel-pin-btn">Avbryt</button>
 
   <!-- Opprett-lokasjon-panel (bottom sheet) -->
   <div class="create-site-panel" id="create-site-panel">
-    <h3>Opprett ny lokasjon</h3>
-    <label for="new-site-name">Navn</label>
-    <input type="text" id="new-site-name" placeholder="Navn på lokalitet" />
+    <h3 data-i18n="map.create_site_heading">Opprett ny lokasjon</h3>
+    <label for="new-site-name" data-i18n="map.new_site_name_label">Navn</label>
+    <input type="text" id="new-site-name" placeholder="Navn på lokalitet" data-i18n-attr="placeholder:map.new_site_name_placeholder" />
     <label for="new-site-accuracy">Nøyaktighet</label>
     <select id="new-site-accuracy">
       <option value="0">Punktobservasjon</option>
