@@ -2,8 +2,9 @@
  * Observasjons-modul for validering, lagring og aktivitets-pills
  */
 
-import { defaultCoObservers, loadActivityPills, speciesDisplayName } from './storage.js?v=v1.60.17';
+import { defaultCoObservers, loadActivityPills, speciesDisplayName, activityDisplayName, activityBokmalName } from './storage.js?v=v1.60.17';
 import { showToast } from './ui.js';
+import { t } from './i18n.js';
 import { toLocalISOString } from './utils.js';
 import { resolveVisitIdForNewObservation, getVisitTimeSpan, isVisitLocked, visitExists } from './visits.js';
 import { celebrateRareFind } from './celebrate.js';
@@ -75,19 +76,19 @@ function getActivePills() {
 export function commitObservation(state, dom, callbacks) {
   const place = (dom.placeInput && dom.placeInput.value.trim()) || state.currentPlaceName.trim();
   if (!place) {
-    showToast('Du må fylle inn sted!');
+    showToast(t('observations.validation.place'));
     if (dom.placeInput) dom.placeInput.focus();
     return;
   }
   if (!state.selectedSpecies) {
-    showToast('Du må velge art!');
+    showToast(t('observations.validation.species'));
     dom.input.focus();
     return;
   }
   const raw = dom.countInput.value.trim();
   const num = parseInt(raw, 10);
   if (!raw || isNaN(num) || num <= 0) {
-    showToast('Du må fylle inn antall!');
+    showToast(t('observations.validation.count'));
     dom.countInput.focus();
     return;
   }
@@ -96,11 +97,11 @@ export function commitObservation(state, dom, callbacks) {
   if (dom.activitySelect && !dom.activitySelect.disabled) {
     const opt = dom.activitySelect.options[dom.activitySelect.selectedIndex];
     if (opt && opt.text && opt.text.trim()) {
-      activity = opt.text.trim();
+      activity = activityBokmalName(opt.text.trim());
     }
   }
   if (!activity || activity === '') {
-    showToast('Du må velge aktivitet!');
+    showToast(t('observations.validation.activity'));
     dom.activitySelect.focus();
     return;
   }
@@ -348,14 +349,15 @@ export function renderActivityPills(dom, commitFn) {
   dom.activityPillsEl.innerHTML = '';
 
   getActivePills().forEach(p => {
-    const label = p.label;
+    const label = p.label; // kanonisk bokmål-navn, lagret i innstillingene
+    const translatedLabel = activityDisplayName(label);
     const short = (p.short || '').trim();
-    const display = short || label;
+    const display = short || translatedLabel;
 
     const pill = document.createElement('div');
     pill.className = 'activity-pill';
     pill.textContent = display;
-    if (display !== label) pill.title = label; // fullt navn ved forkortelse
+    if (display !== translatedLabel) pill.title = translatedLabel; // fullt navn ved forkortelse
     pill.role = 'button';
     pill.addEventListener('click', () => {
       // Ignorer klikk dersom brukeren dro linjen for å scrolle
@@ -363,9 +365,11 @@ export function renderActivityPills(dom, commitFn) {
         return;
       }
       if (dom.activitySelect) {
-        // Match på fullt navn – kortnavnet er kun visning
+        // Match på verdi hvis pillen har en (sikrest), ellers kanonisk
+        // bokmål-navn uansett hvilket språk <option>-teksten vises på.
         for (let i = 0; i < dom.activitySelect.options.length; i++) {
-          if (dom.activitySelect.options[i].text === label) {
+          const opt = dom.activitySelect.options[i];
+          if ((p.value && opt.value === p.value) || activityBokmalName(opt.text.trim()) === label) {
             dom.activitySelect.selectedIndex = i;
             break;
           }

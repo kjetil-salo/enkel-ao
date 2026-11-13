@@ -97,4 +97,9 @@ export default {
   'main.offline_dialog.body': '{navn} krev nettverkstilkopling og kan ikkje opnast medan du er i offline-modus.',
   'main.offline_mode_activated': '📴 Offline-modus aktivert ({count} lagra lokalitetar)',
   'main.hybrid_mode_activated': '🔄 Hybrid-modus aktivert (lokalt mellomlager fyrst)',
+
+  'observations.validation.place': 'Du må fylla inn stad!',
+  'observations.validation.species': 'Du må velja art!',
+  'observations.validation.count': 'Du må fylla inn antal!',
+  'observations.validation.activity': 'Du må velja aktivitet!',
 };
