@@ -206,6 +206,41 @@ describe('openMapPage', () => {
     openMapPage({ lat: 59.9, lon: 10.7 }, [], value);
     expect(readMapData().sizeMeters).toBe(1000);
   });
+
+  it('skal fortsatt navigere til /map.html og lagre posisjon uten sites dersom localStorage er full (QuotaExceededError)', () => {
+    let calls = 0;
+    const origSetItem = localStorage.setItem;
+    localStorage.setItem = vi.fn((key, val) => {
+      if (key === 'mapData') {
+        calls++;
+        if (calls === 1) {
+          throw new DOMException('QuotaExceededError', 'QuotaExceededError');
+        }
+      }
+      localStorageStore[key] = String(val);
+    });
+
+    try {
+      openMapPage({ lat: 58.78, lon: 5.62, accuracy: 10 }, [{ id: 1, name: 'Orrevatnet', lat: 58.78, lon: 5.62 }], 1200);
+      expect(window.location.href).toBe('/map.html');
+      const saved = readMapData();
+      expect(saved.userPosition.lat).toBe(58.78);
+      expect(saved.sites).toEqual([]);
+      expect(saved.sizeMeters).toBe(1200);
+    } finally {
+      localStorage.setItem = origSetItem;
+    }
+  });
+
+  it('filtrerer til nærområdet når sites er en stor offline-dump, slik at localStorage ikke overfylles', () => {
+    const far = { id: 2, name: 'Langt borte', lat: 70, lon: 25 };
+    const near = { id: 3, name: 'Like ved', lat: 58.781, lon: 5.621 };
+    const manySites = [far, near, ...Array.from({ length: 250 }, (_, i) => ({ id: 100 + i, name: `Fyll ${i}`, lat: 70, lon: 25 }))];
+    openMapPage({ lat: 58.78, lon: 5.62, accuracy: 10 }, manySites, 1000);
+    const saved = readMapData();
+    expect(saved.sites.some((s) => s.id === near.id)).toBe(true);
+    expect(saved.sites.some((s) => s.id === far.id)).toBe(false);
+  });
 });
 
 // ─── mergeAoSitesWithPrivateCache ───────────────────────────────
