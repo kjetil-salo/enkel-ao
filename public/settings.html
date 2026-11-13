@@ -861,13 +861,28 @@
         }
       }
 
+      // <option>-tekstene i select-ene er ikke statisk data-i18n-markup (de
+      // bygges fra activities.json ved innlasting) - oversett dem på nytt ved
+      // språkbytte. Bevisst IKKE et nytt kall til initActivityPillsConfig():
+      // den er en engangs-initialisering (legger til rader FRA LAGRING uten
+      // å tømme beholderen først, og fester dragover/drop/klikk-lytrene på
+      // nytt hver gang) - et andre kall dobler radene og listenerne, og siden
+      // addPillRow lagrer underveis, forsterket det seg for hvert språkbytte
+      // (meldt fra Kjetil: nær 20 piller i stedet for 4-8, 13.11.2026).
+      function relabelActivityPillOptions(container) {
+        const labelByValue = new Map(availableActivities.map((a) => [a.value, a.label]));
+        container.querySelectorAll('.pill-config-row select').forEach((select) => {
+          Array.from(select.options).forEach((opt) => {
+            const nbLabel = labelByValue.get(opt.value);
+            if (nbLabel) opt.textContent = activityDisplayName(nbLabel);
+          });
+        });
+      }
+
       // Kjør init når siden lastes
       initActivityPillsConfig();
-      // <option>-tekstene i select-ene er ikke statisk data-i18n-markup (de
-      // bygges fra activities.json ved innlasting) - bygg dem på nytt ved
-      // språkbytte, ellers blir aktivitetsnavnene stående i gammelt språk.
       document.addEventListener('i18n:language-changed', () => {
-        initActivityPillsConfig();
+        relabelActivityPillOptions(document.getElementById('activity-pills-config'));
         refreshOfflineStorageStats();
       });
     </script>
