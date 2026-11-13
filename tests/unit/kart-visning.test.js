@@ -52,6 +52,10 @@ describe('knappetekst', () => {
     expect(new Set(tekster).size).toBe(VISNINGER.length);
     tekster.forEach((t) => expect(t.length).toBeGreaterThan(0));
   });
+
+  it('bruker nynorsk når lang er nn', () => {
+    expect(knappetekst('alt', 'nn')).toContain('Skjul namn');
+  });
 });
 
 describe('knappetittel', () => {
@@ -66,6 +70,10 @@ describe('knappetittel', () => {
   it('har en egen tittel for hver tilstand', () => {
     const titler = VISNINGER.map(knappetittel);
     expect(new Set(titler).size).toBe(VISNINGER.length);
+  });
+
+  it('bruker nynorsk når lang er nn', () => {
+    expect(knappetittel('alt', 'nn')).toBe('Skjul namna på lokalitetane');
   });
 });
 

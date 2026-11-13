@@ -14,6 +14,7 @@
  * Rene funksjoner uten DOM eller Leaflet, så de kan enhetstestes — selve
  * koblingen mot kartlagene ligger i map.js.
  */
+import { tFor, DEFAULT_LANGUAGE } from './i18n.js';
 
 /** @typedef {'alt'|'kun-pins'|'ingen'} Visning */
 
@@ -35,28 +36,32 @@ export function nesteVisning(visning) {
 /**
  * Knappeteksten beskriver hva NESTE trykk gjør, ikke tilstanden man står i.
  * @param {Visning} visning
+ * @param {'nb'|'nn'} [lang] - map.js henter og gir gjeldende språk; uten det
+ *   (bl.a. eksisterende tester) brukes bokmål - en ren funksjon skal ikke
+ *   lese localStorage/globals selv for å avgjøre språk.
  * @returns {string}
  */
-export function knappetekst(visning) {
-  if (visning === 'alt') return '🏷️ Skjul navn';
-  if (visning === 'kun-pins') return '🙈 Skjul alt';
-  return '👁️ Vis alt';
+export function knappetekst(visning, lang = DEFAULT_LANGUAGE) {
+  if (visning === 'alt') return tFor(lang, 'kart.visning.knapp.skjul_navn');
+  if (visning === 'kun-pins') return tFor(lang, 'kart.visning.knapp.skjul_alt');
+  return tFor(lang, 'kart.visning.knapp.vis_alt');
 }
 
 /**
  * Hjelpetekst (`title`) for knappen. Må følge teksten: i 'ingen' VISER neste
  * trykk alt, og en fast tittel ville lovet det motsatte ved hover på PC.
  * @param {Visning} visning
+ * @param {'nb'|'nn'} [lang]
  * @returns {string}
  */
-export function knappetittel(visning) {
+export function knappetittel(visning, lang = DEFAULT_LANGUAGE) {
   if (visning === 'alt') {
-    return 'Skjul navnene på lokalitetene';
+    return tFor(lang, 'kart.visning.tittel.skjul_navn');
   }
   if (visning === 'kun-pins') {
-    return 'Skjul alle lokalitetene, så du ser kartet og får zoomet inn';
+    return tFor(lang, 'kart.visning.tittel.skjul_alt');
   }
-  return 'Vis lokalitetene med navn igjen';
+  return tFor(lang, 'kart.visning.tittel.vis_alt');
 }
 
 /** Skal de permanente navne-tooltipene være åpne? */

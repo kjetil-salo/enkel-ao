@@ -7,6 +7,7 @@ import { createAoSite, ensureAoTokens, fetchAoSitesCached, fetchAoSitesByBounds,
 import { mergeAoSitesWithPrivateCache, isPrivateSite, shouldShowOthersPrivateSites, DEFAULT_MAP_CENTER } from './location.js?v=v1.60.17';
 import { saveLastKnownPosition, loadLastKnownPosition } from './storage.js?v=v1.60.17';
 import { haversine } from './utils.js';
+import { t, getLanguage } from './i18n.js';
 // Versjonert import: HARD avhengighet til navngitte eksporter i en modul som
 // er ny her. Samme begrunnelse som location.js-importen over.
 import {
@@ -107,7 +108,7 @@ const sizeMeters = (typeof data.sizeMeters === 'number' && data.sizeMeters > 0) 
 const missingLocationBanner = document.getElementById('missing-location-banner');
 if (missingLocationBanner) {
   if (!isUserPositionAvailable) {
-    missingLocationBanner.textContent = 'Din posisjon er ikke tilgjengelig';
+    missingLocationBanner.textContent = t('map.banner.no_position');
     missingLocationBanner.style.display = 'block';
   } else {
     missingLocationBanner.style.display = 'none';
@@ -726,10 +727,10 @@ function anvendVisning() {
   sistePolygonLag.forEach((polygon) => polygon.bringToFront());
 
   if (toggleLabelsBtn) {
-    toggleLabelsBtn.textContent = knappetekst(visning);
+    toggleLabelsBtn.textContent = knappetekst(visning, getLanguage());
     // Tittelen må følge teksten: i «skjul alt»-tilstanden VISER neste trykk
     // alt, og en fast tittel ville lovet det motsatte ved hover på PC.
-    toggleLabelsBtn.title = knappetittel(visning);
+    toggleLabelsBtn.title = knappetittel(visning, getLanguage());
   }
 }
 
@@ -754,8 +755,8 @@ function setVisning(nyVisning) {
 
 applyLabelsVisibilityDom();
 if (toggleLabelsBtn) {
-  toggleLabelsBtn.textContent = knappetekst(visning);
-  toggleLabelsBtn.title = knappetittel(visning);
+  toggleLabelsBtn.textContent = knappetekst(visning, getLanguage());
+  toggleLabelsBtn.title = knappetittel(visning, getLanguage());
   toggleLabelsBtn.addEventListener('click', () => setVisning(nesteVisning(visning)));
 }
 
@@ -874,12 +875,12 @@ function recenterToGps() {
         else map.setView([fallback.lat, fallback.lon], Math.max(map.getZoom(), 13), { animate: true });
       }
       if (missingLocationBanner) {
-        missingLocationBanner.textContent = 'Kunne ikke hente fersk posisjon. Sjekk GPS-signal/tillatelse.';
+        missingLocationBanner.textContent = t('map.banner.gps_failed');
         missingLocationBanner.style.display = 'block';
         updateBannerAndOfflinePanelLayout();
         setTimeout(() => {
           missingLocationBanner.style.display = isUserPositionAvailable ? 'none' : 'block';
-          if (!isUserPositionAvailable) missingLocationBanner.textContent = 'Din posisjon er ikke tilgjengelig';
+          if (!isUserPositionAvailable) missingLocationBanner.textContent = t('map.banner.no_position');
           updateBannerAndOfflinePanelLayout();
         }, 4000);
       }
@@ -897,8 +898,8 @@ const downloadModalOkBtnEl = document.getElementById('offline-download-modal-ok-
 
 function openDownloadModal(publicCount, privateCount, alreadyDownloaded = false, totalTiles = 0, failedTiles = 0) {
   let message = alreadyDownloaded
-    ? `${publicCount} offentlige og ${privateCount} private lokaliteter, samt ${totalTiles} kartfliser for området, er allerede lagret for offline-bruk.`
-    : `${publicCount} offentlige og ${privateCount} private lokaliteter, og ${totalTiles} kartfliser, er nå lastet ned og lagret.`;
+    ? t('map.offline.saved_already', { public: publicCount, private: privateCount, tiles: totalTiles })
+    : t('map.offline.downloaded_now', { public: publicCount, private: privateCount, tiles: totalTiles });
   
   if (failedTiles > 0) {
     message += `\n\nOBS: ${failedTiles} av ${totalTiles} kartfliser kunne ikke lastes ned. Dette skjer oftest hvis OpenStreetMap har gitt deg en midlertidig sperre (IP-ban) for å beskytte serverne sine.\n\nTIPS: Åpne kartmenyen (nede til venstre), bytt til "Kartverket Topo" og prøv å laste ned på nytt!`;
@@ -1084,7 +1085,7 @@ function renderSites(sitesToRender, { fitToBounds = false } = {}) {
       const siteIdStr = site.id != null ? String(site.id) : '';
       let popupHtml = `<strong>${displayName}</strong>`;
       if (distStr) popupHtml += `<br>Avstand: ${distStr}`;
-      popupHtml += `<br><br><button onclick="selectLocation(${escapeHtml(JSON.stringify(siteName))}, ${escapeHtml(JSON.stringify(siteIdStr))})">Velg denne lokaliteten</button>`;
+      popupHtml += `<br><br><button onclick="selectLocation(${escapeHtml(JSON.stringify(siteName))}, ${escapeHtml(JSON.stringify(siteIdStr))})">${t('map.site.select_button')}</button>`;
 
       const siteShapeLayers = [];
       const hasPolygon = !!(site.raw && site.raw.isPolygon && site.raw.polygonCoordinates && site.raw.polygonCoordinates.length > 0);
@@ -1210,7 +1211,7 @@ async function hentOgTegnLokaliteter(center, seq) {
   const bounds = createCenteredBounds(center.lat, center.lng, diameter, diameter);
   const egneLokaliteter = () => filterSitesInBounds(getCachedPrivateSites(), bounds)
     .map((site) => ({ ...site, isMine: true, isPrivate: true }));
-  lokalitetsstatus?.replaceChildren('Henter lokaliteter …');
+  lokalitetsstatus?.replaceChildren(t('map.fetching_sites'));
   try {
     const { sites: bboxSites } = await fetchLocationsWithNetworkMode(center.lat, center.lng, AUTO_FETCH_RADIUS_M, {
       ensureTokens: ensureAoTokens, fetchOnline: fetchAoSitesCached, persistOpportunistic: true,
@@ -1389,10 +1390,10 @@ if (createBtn) createBtn.addEventListener('click', async () => {
   try {
     const loggedIn = await ensureAoTokens();
     if (!loggedIn) { showPanelStatus('Innlogging feilet.', true); createBtn.disabled = false; return; }
-    showPanelStatus('Oppretter lokasjon...', false);
+    showPanelStatus(t('map.create_site.creating'), false);
     const result = await createAoSite(name, latlng.lat, latlng.lng, parseInt(accuracySelect.value));
     if (result.success) {
-      showPanelStatus(result.message || 'Lokasjon opprettet!', false);
+      showPanelStatus(result.message || t('map.create_site.created'), false);
       if (dropMarker) { map.removeLayer(dropMarker); dropMarker = null; }
       removeAccuracyCircle();
       addNewSiteMarker(name, latlng.lat, latlng.lng, result.siteId);
@@ -1496,7 +1497,11 @@ function updateOfflineMarkersVisibility(visible) {
     if (map.hasLayer(siteLayerGroup)) map.removeLayer(siteLayerGroup);
     labelMarkers.forEach((m) => { if (map.hasLayer(m)) map.removeLayer(m); });
   }
-  if (toggleOfflineMarkersBtn) toggleOfflineMarkersBtn.textContent = visible ? '📍 Skjul lokaliteter' : '📍 Vis lokaliteter';
+  if (toggleOfflineMarkersBtn) toggleOfflineMarkersBtn.textContent = offlineMarkersBtnText(visible);
+}
+
+function offlineMarkersBtnText(visible) {
+  return visible ? t('map.offline.toggle_markers.hide') : t('map.offline.toggle_markers.show');
 }
 
 function formatKm(meters) { return (meters / 1000).toFixed(1).replace('.', ','); }
@@ -1742,7 +1747,7 @@ function enterOfflineSelectMode() {
 
   if (toggleOfflineBtn) toggleOfflineBtn.textContent = '✕ Lukk områdevalg';
   if (offlineAreasListBtn) offlineAreasListBtn.style.display = 'flex';
-  if (toggleOfflineMarkersBtn) { toggleOfflineMarkersBtn.style.display = 'flex'; toggleOfflineMarkersBtn.textContent = showOfflineMarkers ? '📍 Skjul lokaliteter' : '📍 Vis lokaliteter'; }
+  if (toggleOfflineMarkersBtn) { toggleOfflineMarkersBtn.style.display = 'flex'; toggleOfflineMarkersBtn.textContent = offlineMarkersBtnText(showOfflineMarkers); }
   if (offlinePanel) offlinePanel.style.display = 'block';
   refreshMapOfflineStorageStats();
   updateBannerAndOfflinePanelLayout();
@@ -1810,7 +1815,7 @@ if (cancelOfflineBtn) cancelOfflineBtn.addEventListener('click', exitOfflineSele
 const tileDownloadProgressEl = document.getElementById('tile-download-progress');
 const tileDownloadProgressTextEl = document.getElementById('tile-download-progress-text');
 
-function setTileDownloadProgressVisible(visible, text = 'Laster ned kartfliser...', percent = null) {
+function setTileDownloadProgressVisible(visible, text = t('map.offline.downloading_tiles'), percent = null) {
   if (mapTopProgressEl) {
     if (visible) {
       if (mapTopProgressTextEl) mapTopProgressTextEl.textContent = text;
@@ -1872,9 +1877,9 @@ async function startOfflineAreaDownload() {
   if (checkBtnEl) checkBtnEl.disabled = true;
   if (downloadOfflineBtn) {
     downloadOfflineBtn.disabled = true;
-    downloadOfflineBtn.textContent = 'Laster ned lokaliteter …';
+    downloadOfflineBtn.textContent = t('map.offline.downloading_locations');
   }
-  setTileDownloadProgressVisible(true, 'Laster ned lokaliteter …', 10);
+  setTileDownloadProgressVisible(true, t('map.offline.downloading_locations'), 10);
 
   try {
     const existingOfflineSites = await getOfflineLocationsInBounds(targetBounds).catch(() => []);
@@ -1932,16 +1937,17 @@ async function startOfflineAreaDownload() {
     let failedCount = 0;
 
     if (tilesAlreadyDownloaded) {
-      if (downloadOfflineBtn) downloadOfflineBtn.textContent = 'Kartfliser er allerede lagret';
+      if (downloadOfflineBtn) downloadOfflineBtn.textContent = t('map.offline.tiles_already_saved');
     } else {
-      setTileDownloadProgressVisible(true, `Laster ned kartfliser... (0/${tilesToDownload.length})`, 25);
+      setTileDownloadProgressVisible(true, `${t('map.offline.downloading_tiles')} (0/${tilesToDownload.length})`, 25);
       const result = await downloadTilesInBatches(tilesToDownload, {
         batchSize: MAX_TILE_BATCH_SIZE,
         cacheName: MAP_TILE_CACHE_NAME,
         onProgress: ({ completed, total }) => {
           const pct = total > 0 ? 25 + (completed / total) * 70 : 50;
-          setTileDownloadProgressVisible(true, `Laster ned kartfliser (${completed}/${total}) …`, pct);
-          if (downloadOfflineBtn) downloadOfflineBtn.textContent = `Laster ned kartfliser (${completed}/${total}) …`;
+          const progressText = `${t('map.offline.downloading_tiles_short')} (${completed}/${total}) …`;
+          setTileDownloadProgressVisible(true, progressText, pct);
+          if (downloadOfflineBtn) downloadOfflineBtn.textContent = progressText;
         },
       });
       failedCount = result.failed || 0;
