@@ -282,16 +282,16 @@
     <script src="/js/theme.js"></script>
     <div class="shell">
       <header>
-        <h1>📤 Tidligere sendt</h1>
-        <a href="/" class="back-link">← Tilbake</a>
+        <h1 data-i18n="sendt.heading">📤 Tidligere sendt</h1>
+        <a href="/" class="back-link" data-i18n="settings.back_link">← Tilbake</a>
       </header>
-      <p class="ingress">
+      <p class="ingress" data-i18n="sendt.ingress">
         Funnene dine hos Artsobservasjoner, og kvitteringen for det du har publisert
         fra denne enheten.
       </p>
 
-      <h2>🔭 Mine funn på Artsobservasjoner</h2>
-      <p class="seksjon-info">
+      <h2 data-i18n="sendt.ao_heading">🔭 Mine funn på Artsobservasjoner</h2>
+      <p class="seksjon-info" data-i18n-html="sendt.ao_info">
         Alt du er med på hos Artsobservasjoner, hentet derfra — så lista er lik på alle
         enhetene dine. <a href="/help.html#tidligere-sendt">Slik virker den</a>.
       </p>
@@ -306,20 +306,20 @@
         <button id="ao-oppdater" class="btn-liten">↻ Oppdater</button>
         <label class="filter-pille">
           <input type="checkbox" id="ao-bare-uten-bilde" />
-          <span>Bare uten bilde</span>
+          <span data-i18n="sendt.only_without_image">Bare uten bilde</span>
         </label>
       </div>
       <div id="ko-varsel" class="ko-varsel" hidden></div>
     <div id="ao-liste"></div>
 
-      <h2>📱 Sendt fra denne enheten</h2>
-      <p class="seksjon-info">
+      <h2 data-i18n="sendt.local_heading">📱 Sendt fra denne enheten</h2>
+      <p class="seksjon-info" data-i18n="sendt.local_info">
         Lokal kvittering for det du har publisert de siste 7 dagene. Virker uten nett
         og uten innlogging.
       </p>
       <div id="liste"></div>
 
-      <footer>
+      <footer data-i18n-html="sendt.footer">
         Skal du rette et funn, gjør du det på
         <a href="https://www.artsobservasjoner.no/User/MyPages" target="_blank" rel="noopener">Mine sider hos Artsobservasjoner</a>.
       </footer>
@@ -356,7 +356,7 @@
             <label for="em-art">Art</label>
             <div class="em-art-valgt" id="em-art-valgt">
               <span id="em-art-navn"></span>
-              <button type="button" class="btn-liten" id="em-art-bytt">Bytt art</button>
+              <button type="button" class="btn-liten" id="em-art-bytt" data-i18n="sendt.change_species">Bytt art</button>
             </div>
             <input type="text" id="em-art" placeholder="Søk etter art …"
                    autocomplete="off" hidden />
@@ -366,7 +366,7 @@
           <div class="em-sjelden" id="em-sjelden" hidden role="alert"></div>
 
           <div class="em-rad">
-            <label for="em-antall">Antall</label>
+            <label for="em-antall" data-i18n="index.em.count_label">Antall</label>
             <input type="number" id="em-antall" min="1" step="1" inputmode="numeric" />
           </div>
 
@@ -408,7 +408,7 @@
             <div class="bare-mus"><strong>Dra bildet hit</strong></div>
             <div class="bare-mus dropsone-eller">eller</div>
             <div class="dropsone-knapper">
-              <button type="button" class="btn-liten primar" id="bm-fil">📁 Velg fil</button>
+              <button type="button" class="btn-liten primar" id="bm-fil" data-i18n="sendt.pick_file">📁 Velg fil</button>
               <button type="button" class="btn-liten skjult" id="bm-lim">📋 Lim inn</button>
             </div>
             <p class="dropsone-hint bare-mus">Du kan også lime inn med ⌘V / Ctrl+V</p>
@@ -447,7 +447,7 @@
           <div class="kvittering">
             <div class="kvittering-ikon">🖼️</div>
             <p id="bm-kvittering-tekst"></p>
-            <button type="button" class="btn-liten primar" id="bm-en-til">➕ Legg til ett til</button>
+            <button type="button" class="btn-liten primar" id="bm-en-til" data-i18n="sendt.add_one_more">➕ Legg til ett til</button>
           </div>
         </div>
 
@@ -460,8 +460,24 @@
     </div>
 
     <script type="module">
-      import { loadSentBatches, loadObservations, saveObservations, SENT_MAX_DAYS } from '/js/storage.js';
+      import { loadSentBatches, loadObservations, saveObservations, SENT_MAX_DAYS, activityDisplayName, activityBokmalName } from '/js/storage.js';
       import { openShareDialog } from '/js/share.js';
+      // Alias tr (ikke t): denne filen har allerede en lokal `const t = hentTokens();`
+      // inne i lastAoFunn() - et import med samme navn ville vært forvirrende å lese,
+      // selv om selve skoperingen er trygg.
+      import { t as tr, applyTranslations } from '/js/i18n.js';
+
+      applyTranslations();
+      document.title = tr('sendt.title');
+      Array.from(document.querySelectorAll('#ao-dager option')).forEach((opt) => {
+        opt.textContent = tr('sendt.days_option', { n: opt.value });
+      });
+      document.addEventListener('i18n:language-changed', () => {
+        document.title = tr('sendt.title');
+        Array.from(document.querySelectorAll('#ao-dager option')).forEach((opt) => {
+          opt.textContent = tr('sendt.days_option', { n: opt.value });
+        });
+      });
       // Importene er versjonert: photo-picker.js har fått ny dropZone-støtte, og
       // bilde-editor.js har fått `settSkygger` og `settZoom`/`vedVisningsendring`
       // (v1.59.7). En cachet gammel kopi ville gitt TypeError i det slideren eller
@@ -528,7 +544,7 @@
       }
 
       function renderFunn(funn) {
-        const detaljer = [funn.time, funn.activity].filter(Boolean).join(' · ');
+        const detaljer = [funn.time, activityDisplayName(funn.activity)].filter(Boolean).join(' · ');
         const advarsel = funn.triggeredRules
           ? `<div class="advarsel">⚠️ Artsobservasjoner har en merknad til dette funnet:
              ${tekst(funn.triggeredRules)}</div>`
@@ -536,9 +552,9 @@
         // Knappen blir stående også etter første bilde: AO tillater inntil 10 per
         // funn, og en fugl fortjener gjerne både nærbilde og habitatbilde. Merket
         // ved siden av forteller at det alt ligger noe der.
-        const harMerke = funn.hasImage ? '<span class="har-bilde">🖼️ Har bilde</span>' : '';
+        const harMerke = funn.hasImage ? `<span class="har-bilde">${tr('sendt.has_image')}</span>` : '';
         const bildeknapp = `<button class="btn-liten ${funn.hasImage ? '' : 'primar'}"
-          data-bilde="${attr(funn.sightingId)}">${funn.hasImage ? '➕ Legg til ett til' : '📷 Legg til bilde'}</button>`;
+          data-bilde="${attr(funn.sightingId)}">${funn.hasImage ? tr('sendt.add_one_more') : tr('sendt.add_image')}</button>`;
 
         // Bilder kan alle involverte legge til, men bare rapportøren kan endre
         // funnet. AO skjuler selv «Endre» for andre, så vi speiler den regelen i
@@ -572,11 +588,7 @@
       async function lastAoFunn() {
         const t = hentTokens();
         if (!t.loginToken || !t.authCookie) {
-          aoListeEl.innerHTML = `<div class="beskjed">
-            Du er ikke innlogget på Artsobservasjoner i appen.
-            <a href="/settings.html">Legg inn brukernavn og passord i innstillinger</a>,
-            så henter vi funnene dine herfra.
-          </div>`;
+          aoListeEl.innerHTML = `<div class="beskjed">${tr('sendt.not_logged_in')}</div>`;
           return;
         }
 
@@ -691,11 +703,11 @@
         const synlige = bareUtenBilde ? funnCache.filter((f) => !f.hasImage) : funnCache;
 
         const sammendrag = `<p class="sammendrag">${funnCache.length} funn
-          ${utenBilde ? `· <strong>${utenBilde}</strong> uten bilde` : '· alle har bilde'}</p>`;
+          ${utenBilde ? `· <strong>${utenBilde}</strong> ${tr('sendt.without_image')}` : tr('sendt.all_have_image')}</p>`;
 
         if (!synlige.length) {
           aoListeEl.innerHTML = sammendrag + `<div class="tom">
-            Alle funnene i dette tidsrommet har bilde.
+            ${tr('sendt.all_in_period_have_image')}
           </div>`;
           return;
         }
@@ -734,7 +746,7 @@
         if (!el) return;
         const utenBilde = funnCache.filter((f) => !f.hasImage).length;
         el.innerHTML = `${funnCache.length} funn ${utenBilde
-          ? `· <strong>${utenBilde}</strong> uten bilde` : '· alle har bilde'}`;
+          ? `· <strong>${utenBilde}</strong> ${tr('sendt.without_image')}` : tr('sendt.all_have_image')}`;
       }
 
       function settStatus(sightingId, melding, type) {
@@ -814,13 +826,13 @@
         if (!funn || !rad) return;
         const knapp = rad.querySelector('[data-bilde]');
         if (knapp) {
-          knapp.textContent = '➕ Legg til ett til';
+          knapp.textContent = tr('sendt.add_one_more');
           knapp.classList.remove('primar');
         }
         if (!rad.querySelector('.har-bilde')) {
           const merke = document.createElement('span');
           merke.className = 'har-bilde';
-          merke.textContent = '🖼️ Har bilde';
+          merke.textContent = tr('sendt.has_image');
           rad.querySelector('.funn-handling').prepend(merke);
         }
       }
@@ -1183,7 +1195,7 @@
 
         emAntall.value = res.quantity || '';
         emAktivitet.innerHTML = (res.activityOptions || [])
-          .map((o) => `<option value="${attr(o.id)}">${tekst(o.navn)}</option>`).join('');
+          .map((o) => `<option value="${attr(o.id)}">${tekst(activityDisplayName(o.navn))}</option>`).join('');
         if (res.activityId) emAktivitet.value = res.activityId;
 
         // Det vi IKKE endrer her skal stå synlig, så ingen tror det er glemt.
@@ -1202,7 +1214,7 @@
         if (!emOkt) return;
         const antall = String(emAntall.value || '').trim();
         if (!antall || Number(antall) < 1) {
-          emSettStatus('Antall må være minst 1.', 'feil');
+          emSettStatus(tr('sendt.count_min_1'), 'feil');
           emAntall.focus();
           return;
         }
@@ -1214,9 +1226,10 @@
         if (antall !== String(emOkt.opprinneligAntall)) endringer.quantity = antall;
         if (emAktivitet.value && emAktivitet.value !== String(emOkt.opprinneligAktivitet)) {
           endringer.activity_id = emAktivitet.value;
-          // Navnet sendes med så serveren kan BEKREFTE endringen mot AO etterpå.
+          // Navnet sendes med så serveren kan BEKREFTE endringen mot AO etterpå -
+          // MÅ være kanonisk bokmål uansett visningsspråk, se activityBokmalName().
           endringer.activity_navn =
-            emAktivitet.options[emAktivitet.selectedIndex].textContent.trim();
+            activityBokmalName(emAktivitet.options[emAktivitet.selectedIndex].textContent.trim());
         }
 
         emLagre.disabled = true;
@@ -1466,6 +1479,11 @@
       dagerEl.addEventListener('change', lastAoFunn);
       oppdaterEl.addEventListener('click', lastAoFunn);
       lastAoFunn();
+      // AO-lista er allerede hentet og ligger i funnCache - en ny AO-tur for
+      // bare et språkbytte ville vært unødvendig tregt (5-12 sek, se over).
+      document.addEventListener('i18n:language-changed', () => {
+        if (funnCache.length) tegnListe();
+      });
       // Kjører parallelt med funn-lista: et etterlatt upublisert funn er noe
       // brukeren bør se med én gang, ikke etter 5-12 sekunders henting.
       sjekkKo();
@@ -1485,7 +1503,7 @@
           const rader = iGruppe.map(o => {
             const navn = (o.species && o.species.taxonName) || '';
             const tid = (o.timestamp || '').slice(11, 16);
-            const detaljer = [o.activity, o.age, o.gender].filter(Boolean).join(' · ');
+            const detaljer = [activityDisplayName(o.activity), o.age, o.gender].filter(Boolean).join(' · ');
             return `<li><span class="antall">${tekst(o.count || '')}</span> ${tekst(navn)}
               <span class="detalj">${tid ? ' – ' + tekst(tid) : ''}${detaljer ? ' · ' + tekst(detaljer) : ''}</span></li>`;
           }).join('');
@@ -1512,19 +1530,21 @@
       const batches = loadSentBatches();
       const listeEl = document.getElementById('liste');
 
-      if (!batches.length) {
-        // Loggen kan ikke fylles bakover — funn sendt før denne funksjonen fantes
-        // ble aldri lagret. Si det, i stedet for å påstå at ingenting er sendt.
-        listeEl.innerHTML = `<div class="tom">
-          Ingen kvitteringer her ennå.<br>
-          Neste gang du publiserer til Artsobservasjoner, dukker den opp — og blir
-          liggende i ${SENT_MAX_DAYS} dager.
-          <br><br><span style="font-size:0.85em;opacity:0.75;">
-          Funn du sendte før denne funksjonen kom, er ikke med.</span>
-        </div>`;
-      } else {
-        listeEl.innerHTML = batches.map(renderBatch).join('');
+      // Egen funksjon (ikke bare kjørt rett ned) slik at et språkbytte kan
+      // tegne listen på nytt uten å feste klikk-lytteren en gang til.
+      function tegnLokalListe() {
+        if (!batches.length) {
+          // Loggen kan ikke fylles bakover — funn sendt før denne funksjonen fantes
+          // ble aldri lagret. Si det, i stedet for å påstå at ingenting er sendt.
+          listeEl.innerHTML = `<div class="tom">${tr('sendt.no_receipts_yet', { days: SENT_MAX_DAYS })}</div>`;
+        } else {
+          listeEl.innerHTML = batches.map(renderBatch).join('');
+        }
+      }
+      tegnLokalListe();
+      document.addEventListener('i18n:language-changed', tegnLokalListe);
 
+      if (batches.length) {
         listeEl.addEventListener('click', (e) => {
           const delIdx = e.target.dataset && e.target.dataset.del;
           const kopierIdx = e.target.dataset && e.target.dataset.kopier;
