@@ -19,6 +19,7 @@ import { resolveVisitIdForNewObservation } from './visits.js';
 import { hentAktivFellestur, settAktivFellestur, forlatFellestur, hentMittNavn, settMittNavn } from './fellestur-client.js';
 import { showToast } from './ui.js';
 import { attachAoObserverAutocomplete } from './ao-observer-autocomplete.js';
+import { t } from './i18n.js';
 
 const POLL_MS = 12000;
 
@@ -232,16 +233,14 @@ function visOppstartsfeil(melding, kanProveIgjen = false) {
 
 function turStatusHtml(tur) {
   if (erUbekreftet(tur)) {
-    return `<div class="tur-advarsel" role="status"><strong>⚠️ Ekstern tur er ikke bekreftet</strong>
-      <p>Vi har ikke mottatt hendelser fra Feltlogg på kode ${tekst(tur.kode)}.
-      Turen kan finnes der uten funn, eller koden kan være feil eller ikke i bruk.
-      Kontroller koden med den som startet turen.</p></div>`;
+    return `<div class="tur-advarsel" role="status"><strong>${t('fellestur.unconfirmed.title')}</strong>
+      <p>${t('fellestur.unconfirmed.body', { kode: tekst(tur.kode) })}</p></div>`;
   }
   if (tur.opprinnelse === 'ekstern') {
-    return '<p class="tur-kilde">Fant en ekstern tur – vi har mottatt hendelser fra Feltlogg eller en annen tilkoblet app.</p>';
+    return `<p class="tur-kilde">${t('fellestur.found_external')}</p>`;
   }
-  return `<p class="tur-kilde">Fant turen i Enkel-AO.${tur.eksternBekreftet
-    ? ' Vi har også mottatt hendelser fra Feltlogg eller en annen tilkoblet app.' : ''}</p>`;
+  return `<p class="tur-kilde">${t('fellestur.found_locally')}${tur.eksternBekreftet
+    ? ` ${t('fellestur.found_locally.also_external')}` : ''}</p>`;
 }
 
 function renderIkkeFunnet() {
@@ -296,11 +295,11 @@ function renderAktivTur() {
   const mittNavn = hentMittNavn();
 
   const mittNavnHtml = innlogget
-    ? `<p class="obs-meta">Innlogget på AO som <strong>${tekst(aoBrukernavn)}</strong> — dette navnet brukes på det du registrerer.</p>`
-    : `<label for="mitt-navn">Ditt navn (valgfritt, vises kun til de andre i gruppa)</label>
-       <input type="text" id="mitt-navn" value="${tekst(mittNavn)}" maxlength="40" placeholder="F.eks. Kjetil">
-       <p class="obs-meta">Ikke innlogget på AO på denne enheten — du kan likevel registrere funn i fellesturen,
-         men den som til slutt henter inn og sender til AO må være innlogget (⚙️ Innstillinger).</p>`;
+    ? `<p class="obs-meta">${t('fellestur.logged_in_as', { navn: `<strong>${tekst(aoBrukernavn)}</strong>` })}</p>`
+    : `<label for="mitt-navn">${t('fellestur.name_label')}</label>
+       <input type="text" id="mitt-navn" value="${tekst(mittNavn)}" maxlength="40" placeholder="${t('fellestur.name_placeholder')}">
+       <p class="obs-meta">${t('fellestur.not_logged_in_hint')}</p>`;
+  const kopierTekst = t('fellestur.copy_link_button');
 
   app.innerHTML = `
     <div class="kort">
@@ -308,32 +307,30 @@ function renderAktivTur() {
       <div id="tur-kilde-status" aria-live="polite">${turStatusHtml(tur)}</div>
       <div id="avsluttet-varsel"></div>
       <div class="rad-btn">
-        <button class="btn liten" id="btn-kopier">🔗 Kopier delbar lenke</button>
+        <button class="btn liten" id="btn-kopier">${kopierTekst}</button>
       </div>
       ${tur.navn ? `<p><strong>${tekst(tur.navn)}</strong></p>` : ''}
 
       <div class="rad-btn">
-        <a class="btn primar" href="/" style="text-decoration:none;text-align:center;flex:1;">➕ Registrer på hovedsiden</a>
+        <a class="btn primar" href="/" style="text-decoration:none;text-align:center;flex:1;">${t('fellestur.register_on_main')}</a>
       </div>
-      <p class="obs-meta">Alt du registrerer på hovedsiden mens denne fellesturen er aktiv (se bjelken øverst der),
-        havner automatisk i loggen under — hele det vanlige skjemaet med artsøk og stedssøk virker som normalt.</p>
+      <p class="obs-meta">${t('fellestur.register_on_main.desc')}</p>
 
-      <label>Medobservatører (krediteres når turen sendes til AO)</label>
+      <label>${t('fellestur.coobservers_label')}</label>
       <div class="medobs-liste" id="medobs-liste"></div>
       <div class="medobs-legg-til">
-        <input type="text" id="medobs-nytt-navn" placeholder="Legg til navn…" maxlength="40">
+        <input type="text" id="medobs-nytt-navn" placeholder="${t('fellestur.coobservers_add_placeholder')}" maxlength="40">
         <button class="btn liten" id="btn-medobs-legg-til">+ Legg til</button>
       </div>
 
       ${mittNavnHtml}
 
-      <p class="obs-meta" style="margin-top:14px;"><strong>Ferdig med turen?</strong> Bruk knappen under — den
-        henter alle oppføringene i loggen inn i din lokale liste, klar til å sendes til AO fra hovedsiden.</p>
+      <p class="obs-meta" style="margin-top:14px;">${t('fellestur.finished_hint')}</p>
       <div class="rad-btn">
-        <button class="btn primar" id="btn-send-ao" style="flex:1;">📤 Send inn listen og avslutt fellestur</button>
+        <button class="btn primar" id="btn-send-ao" style="flex:1;">${t('fellestur.send_and_finish_button')}</button>
       </div>
       <div class="rad-btn">
-        <button class="btn liten" id="btn-forlat">Forlat uten å sende inn</button>
+        <button class="btn liten" id="btn-forlat">${t('fellestur.leave_button')}</button>
       </div>
     </div>
 
@@ -341,7 +338,7 @@ function renderAktivTur() {
       <h2>Loggen (${tur.observasjoner.length})</h2>
       <div>
         <button class="nye-badge" id="btn-nye" style="display:none;"></button>
-        <button class="btn liten" id="btn-oppdater-na">🔄 Oppdater nå</button>
+        <button class="btn liten" id="btn-oppdater-na">${t('fellestur.update_now_button')}</button>
       </div>
     </div>
     <div id="obs-liste"></div>
@@ -365,9 +362,9 @@ function renderAktivTur() {
     try {
       await navigator.clipboard.writeText(url);
       document.getElementById('btn-kopier').textContent = '✅ Kopiert!';
-      setTimeout(() => { document.getElementById('btn-kopier').textContent = '🔗 Kopier delbar lenke'; }, 1500);
+      setTimeout(() => { document.getElementById('btn-kopier').textContent = kopierTekst; }, 1500);
     } catch (_) {
-      prompt('Kopier lenken manuelt:', url);
+      prompt(t('fellestur.copy_link_prompt'), url);
     }
   });
 
@@ -387,7 +384,7 @@ function renderMedobsListe() {
   const wrap = document.getElementById('medobs-liste');
   const navn = state.tur.medobservatorer || [];
   if (!navn.length) {
-    wrap.innerHTML = '<span class="obs-meta">Ingen satt ennå</span>';
+    wrap.innerHTML = `<span class="obs-meta">${t('fellestur.no_coobservers')}</span>`;
     return;
   }
   wrap.innerHTML = navn.map((n, i) =>
