@@ -6,7 +6,7 @@
 
 // Versjonert: bilde-rediger-modal.js er ny, og drar i sin tur inn bilde-editor.js.
 // Se «Versjonering» i CLAUDE.md — en stale kopi her ville tatt hele velgeren.
-import { apneBildeRedigering } from './bilde-rediger-modal.js?v=v1.60.17';
+import { apneBildeRedigering } from './bilde-rediger-modal.js?v=v1.60.18';
 
 const MAX_SIDE = 1600;
 

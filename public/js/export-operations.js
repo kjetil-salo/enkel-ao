@@ -5,7 +5,7 @@
 import { toCsv } from './observations.js';
 import { flashButton, showToast } from './ui.js';
 import { appendSentBatch, loadAoDirectAutoClear } from './storage.js';
-import { t } from './i18n.js';
+import { t } from './i18n.js?v=v1.60.18';
 import { isOfflineMode } from './offline-db.js';
 import { hentAktivFellestur } from './fellestur-client.js';
 import { aktivInnhentetListe } from './arbeidsliste-lokal.js';
