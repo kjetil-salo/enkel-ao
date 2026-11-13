@@ -1406,8 +1406,24 @@ class Handler(SimpleHTTPRequestHandler):
             kapasitet.release()
 
     def _arbeidsliste_samme_opprinnelse(self):
-        if self.headers.get('Sec-Fetch-Site') in ('cross-site', 'same-site'):
-            return False
+        """Kom forespørselen fra appen selv?
+
+        `Sec-Fetch-Site` avgjør når nettleseren oppgir den. Headeren settes av
+        nettleseren og kan ikke overstyres av en side, så `same-origin` (og
+        `none`, altså adresselinja) ER appen selv.
+
+        Origin mot Host er fallback for klienter uten `Sec-Fetch-*`, og kan
+        IKKE stå alene: bak en proxy er Host ikke nødvendigvis den verten
+        brukeren skrev inn. Målt i prod 13.11.2026 så serveren
+        `Host: ao-pi.efugl.no` mens nettleseren sendte
+        `Origin: https://ao.efugl.no` — hver eneste POST (innlogging, lagring,
+        sletting) ble avvist med 403, mens GET-ene slapp gjennom fordi
+        nettlesere ikke sender Origin på dem. Funksjonen så derfor levende ut
+        helt til man trykket «Bruk AO-innlogging».
+        """
+        sted = self.headers.get('Sec-Fetch-Site')
+        if sted:
+            return sted in ('same-origin', 'none')
         origin = self.headers.get('Origin')
         if origin is None:
             return True

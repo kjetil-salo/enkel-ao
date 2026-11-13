@@ -119,6 +119,26 @@ def test_kryssopprinnelse_og_bodygrense(api, monkeypatch, caplog):
     assert 'Access-Control-Allow-Origin' not in svar.headers
 
 
+def test_sec_fetch_site_avgjor_foran_omskrevet_host(api):
+    """Bak en proxy kan Host være omskrevet, og da lyver Origin-mot-Host-sjekken.
+
+    Prod 13.11.2026: Cloudflare ga serveren `Host: ao-pi.efugl.no` mens
+    nettleseren sendte `Origin: https://ao.efugl.no`. Nettleserens egen
+    `Sec-Fetch-Site` vet bedre, og kan ikke settes av en fremmed side.
+    """
+    url, _, login, _ = api
+    bak_proxy = {'Origin': 'https://ao.efugl.no', 'Sec-Fetch-Site': 'same-origin'}
+    assert requests.post(url + '/innlogging', headers=bak_proxy,
+                         json={'username': 'A', 'password': 'testpassord'}, timeout=5).ok
+    assert login.called
+
+    # En fremmed side når ikke inn selv om den forfalsker Origin til å matche Host.
+    vert = url.split('/api/')[0].removeprefix('http://')
+    for site in ('cross-site', 'same-site'):
+        forfalsket = {'Origin': f'http://{vert}', 'Sec-Fetch-Site': site}
+        assert requests.get(url, headers=forfalsket, timeout=5).status_code == 403
+
+
 def test_brukerbeskjed_ved_ao_feil_og_lagerfeil(api, monkeypatch):
     url, lager, _, profil = api
     profil.side_effect = None
