@@ -111,16 +111,19 @@ export function setLanguage(code) {
 }
 
 /**
- * Oversett en nøkkel til aktivt språk. Mangler nøkkelen i aktivt språk,
- * brukes bokmål som fallback; mangler den der også, logges en advarsel og
- * selve nøkkelen returneres - en synlig "ukno.key" i grensesnittet er langt
- * lettere å oppdage i test/felt enn en stille tom streng.
+ * Oversett en nøkkel til et EKSPLISITT språk, uten å lese getLanguage(). For
+ * rene funksjoner som selv tar språk som parameter (f.eks. kart-visning.js
+ * sin knappetekst()/knappetittel()) - slik forblir de testbare uten
+ * localStorage/DOM, i stedet for at hver av dem skriver sin egen lokale
+ * erNynorsk(lang)-variant. t() under er bekvemmelighetsvarianten som leser
+ * aktivt språk selv.
+ * @param {string} lang
  * @param {string} key
  * @param {Record<string, string|number>} [vars] - enkel {navn}-interpolasjon
  * @returns {string}
  */
-export function t(key, vars) {
-  const dict = DICTIONARIES[getLanguage()] || DICTIONARIES[DEFAULT_LANGUAGE];
+export function tFor(lang, key, vars) {
+  const dict = DICTIONARIES[lang] || DICTIONARIES[DEFAULT_LANGUAGE];
   let text = (dict && dict[key]) ?? DICTIONARIES[DEFAULT_LANGUAGE][key];
 
   if (text === undefined) {
@@ -138,11 +141,28 @@ export function t(key, vars) {
 }
 
 /**
+ * Oversett en nøkkel til aktivt språk (getLanguage()). Mangler nøkkelen i
+ * aktivt språk, brukes bokmål som fallback; mangler den der også, logges en
+ * advarsel og selve nøkkelen returneres - en synlig "ukjent.key" i
+ * grensesnittet er langt lettere å oppdage i test/felt enn en stille tom
+ * streng.
+ * @param {string} key
+ * @param {Record<string, string|number>} [vars]
+ * @returns {string}
+ */
+export function t(key, vars) {
+  return tFor(getLanguage(), key, vars);
+}
+
+/**
  * Sett tekst/attributter fra data-i18n-markup under `root` til aktivt språk.
  * Kjøres automatisk av setLanguage(), og bør også kjøres én gang ved
  * sideinnlasting (f.eks. fra main.js) for at startspråket skal vises riktig.
  *
  * - `data-i18n="nøkkel"` setter textContent
+ * - `data-i18n-html="nøkkel"` setter innerHTML - KUN for de få nøklene som
+ *   bevisst inneholder enkel, utvikler-skrevet markup (en lenke, <strong>) -
+ *   aldri for noe som inneholder brukerinnhold eller interpolerte variabler
  * - `data-i18n-attr="placeholder:nøkkel,title:annen.nøkkel"` setter
  *   attributter i stedet for textContent (kommaseparert liste av par)
  * @param {Document|Element} [root]
@@ -153,6 +173,10 @@ export function applyTranslations(root) {
 
   scope.querySelectorAll('[data-i18n]').forEach((el) => {
     el.textContent = t(el.getAttribute('data-i18n'));
+  });
+
+  scope.querySelectorAll('[data-i18n-html]').forEach((el) => {
+    el.innerHTML = t(el.getAttribute('data-i18n-html'));
   });
 
   scope.querySelectorAll('[data-i18n-attr]').forEach((el) => {

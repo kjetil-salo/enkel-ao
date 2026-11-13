@@ -94,6 +94,14 @@ describe('applyTranslations()', () => {
     expect(document.querySelector('span').textContent).toBe('Språk');
   });
 
+  it('setter innerHTML fra data-i18n-html', () => {
+    document.body.innerHTML = '<p data-i18n-html="settings.ao_login.desc2"></p>';
+    i18n.setLanguage('nb');
+    const link = document.querySelector('p a');
+    expect(link).not.toBeNull();
+    expect(link.href).toContain('artsobservasjoner.no');
+  });
+
   it('setter attributter fra data-i18n-attr', () => {
     document.body.innerHTML = '<input data-i18n-attr="placeholder:settings.language.label,title:settings.language.nn" />';
     i18n.setLanguage('nb');

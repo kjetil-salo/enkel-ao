@@ -173,36 +173,41 @@
     <script src="/js/theme.js"></script>
     <div class="settings-card" style="background:linear-gradient(145deg,rgba(15,23,42,0.96),rgba(15,23,42,0.92));border-radius:10px;border:1px solid rgba(148,163,184,0.12);box-shadow:0 12px 28px rgba(15,23,42,0.72),0 0 0 1px rgba(15,23,42,0.9);padding:24px 32px 24px 32px;overflow:visible;backdrop-filter:blur(14px);">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-        <h2 style="margin:0;">Innstillinger</h2>
-        <a href="/" style="color:#3b82f6;text-decoration:none;font-size:0.9rem;padding:6px 12px;border-radius:8px;">← Tilbake</a>
+        <h2 style="margin:0;" data-i18n="settings.title">Innstillinger</h2>
+        <a href="/" style="color:#3b82f6;text-decoration:none;font-size:0.9rem;padding:6px 12px;border-radius:8px;" data-i18n="settings.back_link">← Tilbake</a>
       </div>
 
       <div class="settings-row" style="flex-direction: column; align-items: flex-start; gap: 10px;">
-        <span class="settings-label">Tema</span>
+        <span class="settings-label" data-i18n="settings.language.label">Språk</span>
+        <div class="theme-seg" id="lang-seg" role="radiogroup" aria-label="Språk"></div>
+      </div>
+
+      <div class="settings-row" style="flex-direction: column; align-items: flex-start; gap: 10px;">
+        <span class="settings-label" data-i18n="settings.theme.label">Tema</span>
         <div class="theme-seg" id="theme-seg" role="radiogroup" aria-label="Tema">
           <button type="button" class="theme-seg-btn" data-theme-value="dark" role="radio" aria-checked="false">🌙 Mørkt</button>
           <button type="button" class="theme-seg-btn" data-theme-value="light" role="radio" aria-checked="false">☀️ Lyst</button>
           <button type="button" class="theme-seg-btn" data-theme-value="clean" role="radio" aria-checked="false">⬜ Clean</button>
         </div>
       </div>
-      <div style="font-size:0.92em;color:var(--muted,#aaa);margin-bottom:18px;">
+      <div style="font-size:0.92em;color:var(--muted,#aaa);margin-bottom:18px;" data-i18n="settings.theme.desc">
         Lyst er standard. Clean er et rent, monokromt tema uten fargeaksenter – enklest å lese i sterkt sollys.
       </div>
 
       <div class="settings-row">
-        <span class="settings-label">Vis andres private lokasjoner</span>
+        <span class="settings-label" data-i18n="settings.private_sites.label">Vis andres private lokasjoner</span>
         <label class="switch">
           <input type="checkbox" id="show-private-sites-on-map" />
           <span class="slider"></span>
         </label>
       </div>
-      <div style="font-size:0.92em;color:var(--muted,#aaa);margin-bottom:18px;">
+      <div style="font-size:0.92em;color:var(--muted,#aaa);margin-bottom:18px;" data-i18n="settings.private_sites.desc">
         Viser andres private lokasjoner på kartet og i lokasjonsforslaget. Av som standard – i tettbygde strøk blir det ellers uoversiktlig. Dine egne lokaliteter vises alltid.
       </div>
 
       <div id="storage-management-section" style="margin-top:8px;margin-bottom:22px;padding:16px 0;border-top:1px solid rgba(148,163,184,0.12);border-bottom:1px solid rgba(148,163,184,0.12);">
-        <h3 style="margin:0 0 4px 0;font-size:1em;color:var(--text,#e5e7eb);">Lagring / Offline-data</h3>
-        <p style="font-size:0.82em;color:var(--muted,#aaa);margin:0 0 10px 0;">
+        <h3 style="margin:0 0 4px 0;font-size:1em;color:var(--text,#e5e7eb);" data-i18n="settings.storage.heading">Lagring / Offline-data</h3>
+        <p style="font-size:0.82em;color:var(--muted,#aaa);margin:0 0 10px 0;" data-i18n="settings.storage.desc">
           Oversikt over lagrede lokaliteter og kartfliser på denne enheten. Du kan oppdatere dine lagrede
           offline-områder med ferske lokaliteter og manglende kartfliser, eller tømme alt offline-innhold.
         </p>
@@ -211,11 +216,11 @@
           Laster lagringsoversikt …
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          <button type="button" id="sync-offline-areas-btn"
+          <button type="button" id="sync-offline-areas-btn" data-i18n="settings.storage.sync_btn"
             style="padding:10px 16px;border-radius:8px;border:none;background:#3b82f6;color:white;font-size:0.95em;cursor:pointer;">
             🔄 Synkroniser offline-områder
           </button>
-          <button type="button" id="clear-offline-data-btn"
+          <button type="button" id="clear-offline-data-btn" data-i18n="settings.storage.clear_btn"
             style="padding:10px 16px;border-radius:8px;border:1px solid rgba(239,68,68,0.45);background:transparent;color:#ef4444;font-size:0.95em;cursor:pointer;">
             🗑️ Slett offline-data
           </button>
@@ -227,8 +232,8 @@
       </div>
 
       <div class="settings-row" style="flex-direction: column; align-items: flex-start; gap: 12px;">
-        <span class="settings-label">Aktivitets-hurtigknapper (0-8)</span>
-        <div style="font-size:0.92em;color:var(--muted,#aaa);margin-bottom:8px;">
+        <span class="settings-label" data-i18n="settings.pills.heading">Aktivitets-hurtigknapper (0-8)</span>
+        <div style="font-size:0.92em;color:var(--muted,#aaa);margin-bottom:8px;" data-i18n="settings.pills.desc">
           Velg hvilke aktiviteter som vises som hurtigknapper. Maks 8. Dra i symbolet ⠿ for å endre rekkefølgen.
           Skriv eventuelt et kort navn (maks 5 tegn) i «Kort»-feltet for mer kompakte knapper – tomt felt viser fullt navn.
         </div>
@@ -242,15 +247,15 @@
                   style="padding: 8px 16px; background: var(--accent); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.95em;">
             + Legg til aktivitet
           </button>
-          <button id="suggest-short-names"
+          <button id="suggest-short-names" data-i18n="settings.pills.suggest_btn"
                   style="padding: 8px 16px; background: transparent; color: var(--text); border: 1px solid var(--accent); border-radius: 6px; cursor: pointer; font-size: 0.95em;">
             Foreslå forkortelser
           </button>
-          <button id="save-activity-pills"
+          <button id="save-activity-pills" data-i18n="settings.pills.save_btn"
                   style="padding: 8px 16px; background: var(--accent); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.95em;">
             💾 Lagre
           </button>
-          <span id="pills-saved-indicator"
+          <span id="pills-saved-indicator" data-i18n="settings.pills.saved_indicator"
                 style="align-self: center; font-size: 0.9em; color: #22c55e; opacity: 0; transition: opacity 0.25s;">
             ✓ Lagret
           </span>
@@ -258,50 +263,37 @@
       </div>
 
       <div class="settings-row">
-        <span class="settings-label">Tving offline arts-søk</span>
+        <span class="settings-label" data-i18n="settings.force_offline.label">Tving offline arts-søk</span>
         <label class="switch">
           <input type="checkbox" id="force-offline-species" />
           <span class="slider"></span>
         </label>
       </div>
-      <div style="font-size:0.92em;color:var(--muted,#aaa);margin-bottom:18px;">
+      <div style="font-size:0.92em;color:var(--muted,#aaa);margin-bottom:18px;" data-i18n="settings.force_offline.desc">
         Når denne er på, brukes kun den lokale artslisten (ingen søk mot Artsobservasjoner).
       </div>
 
-      <div class="settings-row">
-        <span class="settings-label">Nynorske artsnavn</span>
-        <label class="switch">
-          <input type="checkbox" id="show-nynorsk" />
-          <span class="slider"></span>
-        </label>
-      </div>
-      <div style="font-size:0.92em;color:var(--muted,#aaa);margin-bottom:18px;">
-        Viser nynorsk artsnavn i søkeresultater og i lista over registrerte observasjoner,
-        der det finnes. Selve registreringen som sendes til Artsobservasjoner er likevel
-        alltid bokmål, uansett denne innstillingen.
-      </div>
-
       <div style="margin-top:24px;padding-top:18px;border-top:1px solid rgba(148,163,184,0.12);">
-        <h3 style="margin:0 0 4px 0;font-size:1em;color:var(--text,#e5e7eb);">AO-innlogging</h3>
-        <p style="font-size:0.82em;color:var(--muted,#aaa);margin:0 0 14px 0;">
+        <h3 style="margin:0 0 4px 0;font-size:1em;color:var(--text,#e5e7eb);" data-i18n="settings.ao_login.heading">AO-innlogging</h3>
+        <p style="font-size:0.82em;color:var(--muted,#aaa);margin:0 0 14px 0;" data-i18n-html="settings.ao_login.desc1">
           Logg inn med Artsobservasjoner-kontoen din for å publisere funn direkte fra appen.
           Brukernavn og passord sendes kun videre til Artsobservasjoner.no — de lagres <strong>aldri</strong> på serveren,
           bare lokalt i nettleseren din så du slipper å logge inn hver gang.
           Du velger selv: lagre passordet for direkte publisering, eller la det stå tomt og bruk «Kopier &amp; åpne AO-import» i stedet.
           Du kan tømme feltene når som helst.
         </p>
-        <p style="font-size:0.82em;color:var(--muted,#aaa);margin:0 0 14px 0;">
+        <p style="font-size:0.82em;color:var(--muted,#aaa);margin:0 0 14px 0;" data-i18n-html="settings.ao_login.desc2">
           Har du ikke AO-bruker?
           <a href="https://www.artsobservasjoner.no/UserAccount" target="_blank" rel="noopener"
             style="color:#3b82f6;text-decoration:underline;">Opprett gratis konto på Artsobservasjoner.no ↗</a>
         </p>
         <div style="margin-bottom:12px;">
-          <label for="ao-username" style="display:block;font-size:0.88em;color:var(--muted,#aaa);margin-bottom:4px;">Brukernavn</label>
-          <input type="text" id="ao-username" autocomplete="username" placeholder="ditt_brukernavn"
+          <label for="ao-username" style="display:block;font-size:0.88em;color:var(--muted,#aaa);margin-bottom:4px;" data-i18n="settings.ao_login.username_label">Brukernavn</label>
+          <input type="text" id="ao-username" autocomplete="username" placeholder="ditt_brukernavn" data-i18n-attr="placeholder:settings.ao_login.username_placeholder"
             style="width:100%;padding:10px 12px;border-radius:8px;border:1px solid rgba(148,163,184,0.3);background:rgba(15,23,42,0.8);color:var(--text,#e5e7eb);font-size:16px;box-sizing:border-box;" />
         </div>
         <div>
-          <label for="ao-password" style="display:block;font-size:0.88em;color:var(--muted,#aaa);margin-bottom:4px;">Passord</label>
+          <label for="ao-password" style="display:block;font-size:0.88em;color:var(--muted,#aaa);margin-bottom:4px;" data-i18n="settings.ao_login.password_label">Passord</label>
           <div style="position:relative;">
             <input type="password" id="ao-password" autocomplete="current-password" placeholder="••••••••"
               style="width:100%;padding:10px 40px 10px 12px;border-radius:8px;border:1px solid rgba(148,163,184,0.3);background:rgba(15,23,42,0.8);color:var(--text,#e5e7eb);font-size:16px;box-sizing:border-box;" />
@@ -309,25 +301,25 @@
               style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--muted,#aaa);font-size:1.1em;padding:4px;">👁️</button>
           </div>
         </div>
-        <button type="button" id="test-ao-login"
+        <button type="button" id="test-ao-login" data-i18n="settings.ao_login.login_btn"
           style="margin-top:14px;width:100%;padding:10px;border-radius:8px;border:none;background:#3b82f6;color:white;font-size:1em;cursor:pointer;">
           🔐 Logg inn
         </button>
         <div id="ao-login-status" style="display:none;margin-top:8px;padding:10px;border-radius:8px;font-size:0.85em;"></div>
-        <button type="button" id="clear-ao-login"
+        <button type="button" id="clear-ao-login" data-i18n="settings.ao_login.clear_btn"
           style="display:none;margin-top:10px;width:100%;padding:9px;border-radius:8px;border:1px solid rgba(239,68,68,0.35);background:transparent;color:var(--muted,#aaa);font-size:0.92em;cursor:pointer;">
           🚪 Fjern innlogging fra denne enheten
         </button>
       </div>
 
       <div style="margin-top:24px;padding-top:18px;border-top:1px solid rgba(148,163,184,0.12);">
-        <h3 style="margin:0 0 4px 0;font-size:1em;color:var(--text,#e5e7eb);">Oppdatering</h3>
-        <p style="font-size:0.82em;color:var(--muted,#aaa);margin:0 0 14px 0;">
+        <h3 style="margin:0 0 4px 0;font-size:1em;color:var(--text,#e5e7eb);" data-i18n="settings.update.heading">Oppdatering</h3>
+        <p style="font-size:0.82em;color:var(--muted,#aaa);margin:0 0 14px 0;" data-i18n="settings.update.desc">
           Appen sjekker selv etter ny versjon, men det kan ta litt tid før den slår gjennom –
           spesielt hvis appen har stått åpen lenge. Trykk her for å tvinge fram nyeste versjon
           med en gang, i stedet for å lukke og åpne appen på nytt. Nedlastede offline-kartfliser bevares.
         </p>
-        <button type="button" id="force-update-btn"
+        <button type="button" id="force-update-btn" data-i18n="settings.update.btn"
           style="padding:10px 16px;border-radius:8px;border:none;background:#3b82f6;color:white;font-size:0.95em;cursor:pointer;">
           🔄 Hent nyeste versjon
         </button>
@@ -352,21 +344,21 @@
       </div>
 
       <div style="margin-top:24px;padding-top:18px;border-top:1px solid rgba(148,163,184,0.12);">
-        <h3 style="margin:0 0 4px 0;font-size:1em;color:var(--text,#e5e7eb);">Sikkerhetskopi</h3>
-        <p style="font-size:0.82em;color:var(--muted,#aaa);margin:0 0 14px 0;">
+        <h3 style="margin:0 0 4px 0;font-size:1em;color:var(--text,#e5e7eb);" data-i18n="settings.backup.heading">Sikkerhetskopi</h3>
+        <p style="font-size:0.82em;color:var(--muted,#aaa);margin:0 0 14px 0;" data-i18n-html="settings.backup.desc">
           Observasjonene dine lagres bare i denne nettleseren. Last ned en sikkerhetskopi (JSON-fil)
           før du tømmer nettleserdata eller bytter enhet – og gjenopprett den ved behov.
           Gjenoppretting <strong>erstatter</strong> lista som ligger i appen nå.
         </p>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          <button type="button" id="backup-download"
+          <button type="button" id="backup-download" data-i18n="settings.backup.download_btn"
             style="padding:10px 16px;border-radius:8px;border:none;background:#3b82f6;color:white;font-size:0.95em;cursor:pointer;">
             ⬇️ Last ned sikkerhetskopi
           </button>
-          <button type="button" id="backup-innhentet" class="btn" style="display:none;">
+          <button type="button" id="backup-innhentet" class="btn" style="display:none;" data-i18n="settings.backup.innhentet_btn">
             Last ned innhentet liste
           </button>
-          <button type="button" id="backup-restore"
+          <button type="button" id="backup-restore" data-i18n="settings.backup.restore_btn"
             style="padding:10px 16px;border-radius:8px;border:1px solid rgba(148,163,184,0.3);background:transparent;color:var(--text,#e5e7eb);font-size:0.95em;cursor:pointer;">
             ⬆️ Gjenopprett fra fil
           </button>
@@ -376,14 +368,14 @@
       </div>
 
       <div style="margin-top:24px;padding-top:20px;border-top:1px solid rgba(148,163,184,0.12);">
-        <h3 style="margin:0 0 4px 0;font-size:1em;color:var(--text,#e5e7eb);">Tilbakemelding</h3>
-        <p style="margin:0 0 10px 0;color:var(--muted,#9ca3af);font-size:0.85em;">Fant du en feil, eller har du et ønske? Vi vil gjerne høre fra deg.</p>
-        <a href="/feedback.html"
+        <h3 style="margin:0 0 4px 0;font-size:1em;color:var(--text,#e5e7eb);" data-i18n="settings.feedback.heading">Tilbakemelding</h3>
+        <p style="margin:0 0 10px 0;color:var(--muted,#9ca3af);font-size:0.85em;" data-i18n="settings.feedback.desc">Fant du en feil, eller har du et ønske? Vi vil gjerne høre fra deg.</p>
+        <a href="/feedback.html" data-i18n="settings.feedback.btn"
           style="display:inline-block;padding:10px 16px;border-radius:8px;border:1px solid rgba(148,163,184,0.3);background:transparent;color:var(--text,#e5e7eb);font-size:0.95em;text-decoration:none;">💬 Gi tilbakemelding</a>
       </div>
 
       <div style="margin-top:32px;text-align:center;">
-        <a href="/" style="color:#3b82f6;text-decoration:none;font-size:1.05em;">← Tilbake</a>
+        <a href="/" style="color:#3b82f6;text-decoration:none;font-size:1.05em;" data-i18n="settings.back_link">← Tilbake</a>
       </div>
     </div>
 
@@ -433,7 +425,7 @@
     <script type="module">
       import { fjernOverforingssesjon } from './js/arbeidsliste-sesjon.js';
       import { apneInnhentetListe, lagreInnhentetKopi, lesInnhentetListe, lukkInnhentetListe } from './js/arbeidsliste-lokal.js';
-      import { loadActivityPills, saveActivityPills, ACTIVITY_SHORT_SUGGESTIONS, loadNynorskArtsnavn, saveNynorskArtsnavn } from './js/storage.js?v=v1.60.17';
+      import { loadActivityPills, saveActivityPills, ACTIVITY_SHORT_SUGGESTIONS, activityDisplayName, activityBokmalName } from './js/storage.js?v=v1.60.17';
       import { loadActivities, fetchAoSitesByBounds, hasActiveAoLogin, ensureAoTokens, getCachedPrivateSites } from './js/api.js?v=v1.60.17';
       import { shouldShowOthersPrivateSites } from './js/location.js?v=v1.60.17';
       import {
@@ -442,14 +434,33 @@
         clearAllOfflineData,
         clearAppCachesPreservingMapTiles,
       } from './js/offline-db.js?v=v1.60.17';
+      import { t, getLanguage, setLanguage, getAvailableLanguages, applyTranslations } from './js/i18n.js';
 
       // Service Worker registreres og modus synkroniseres av offline-db.js (importert over).
 
-      const nynorskCb = document.getElementById('show-nynorsk');
-      nynorskCb.checked = loadNynorskArtsnavn();
-      nynorskCb.addEventListener('change', () => {
-        saveNynorskArtsnavn(nynorskCb.checked);
-      });
+      // --- Språk ---
+      const langSeg = document.getElementById('lang-seg');
+      function renderLangSeg() {
+        const current = getLanguage();
+        langSeg.innerHTML = '';
+        getAvailableLanguages().forEach(({ code, label }) => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'theme-seg-btn';
+          btn.dataset.langValue = code;
+          btn.setAttribute('role', 'radio');
+          btn.setAttribute('aria-checked', code === current ? 'true' : 'false');
+          btn.textContent = label;
+          btn.addEventListener('click', () => {
+            setLanguage(code); // kjører selv applyTranslations() for data-i18n-markup
+            renderLangSeg();
+            document.title = t('settings.page_title');
+          });
+          langSeg.appendChild(btn);
+        });
+      }
+      renderLangSeg();
+      document.title = t('settings.page_title');
 
       // --- Lagring / Offline-data ---
       const storageStatsEl = document.getElementById('offline-storage-stats');
@@ -475,13 +486,11 @@
         if (!storageStatsEl) return;
         try {
           const stats = await getOfflineStorageStats();
-          const areaPart =
-            stats.areasCount > 0
-              ? ` (${stats.areasCount} offline-område${stats.areasCount === 1 ? '' : 'r'})`
-              : '';
-          storageStatsEl.textContent = `Lagret lokalt: ca. ${stats.locationsCount} lokaliteter${areaPart} og ${stats.tilesCount} kartfliser.`;
+          const areaOrd = stats.areasCount === 1 ? t('settings.storage.area_word_singular') : t('settings.storage.area_word_plural');
+          const areaPart = stats.areasCount > 0 ? t('settings.storage.area_part', { count: stats.areasCount, ord: areaOrd }) : '';
+          storageStatsEl.textContent = t('settings.storage.stats', { n: stats.locationsCount, area: areaPart, tiles: stats.tilesCount });
         } catch {
-          storageStatsEl.textContent = 'Lagret lokalt: 0 lokaliteter og 0 kartfliser.';
+          storageStatsEl.textContent = t('settings.storage.stats_empty');
         }
       }
 
@@ -757,7 +766,7 @@
         availableActivities.forEach(activity => {
           const option = document.createElement('option');
           option.value = activity.value;
-          option.textContent = activity.label;
+          option.textContent = activityDisplayName(activity.label);
           if (pill && pill.value === activity.value) {
             option.selected = true;
           }
@@ -812,7 +821,7 @@
           const shortInput = row.querySelector('.pill-short-input');
           const selectedOption = select.options[select.selectedIndex];
           const pill = {
-            label: selectedOption.textContent,
+            label: activityBokmalName(selectedOption.textContent),
             value: selectedOption.value
           };
           const short = (shortInput.value || '').trim().slice(0, 5);
@@ -843,17 +852,24 @@
           addBtn.disabled = true;
           addBtn.style.opacity = '0.5';
           addBtn.style.cursor = 'not-allowed';
-          addBtn.textContent = '+ Maks 8 aktiviteter';
+          addBtn.textContent = t('settings.pills.max_reached');
         } else {
           addBtn.disabled = false;
           addBtn.style.opacity = '1';
           addBtn.style.cursor = 'pointer';
-          addBtn.textContent = '+ Legg til aktivitet';
+          addBtn.textContent = t('settings.pills.add_btn');
         }
       }
 
       // Kjør init når siden lastes
       initActivityPillsConfig();
+      // <option>-tekstene i select-ene er ikke statisk data-i18n-markup (de
+      // bygges fra activities.json ved innlasting) - bygg dem på nytt ved
+      // språkbytte, ellers blir aktivitetsnavnene stående i gammelt språk.
+      document.addEventListener('i18n:language-changed', () => {
+        initActivityPillsConfig();
+        refreshOfflineStorageStats();
+      });
     </script>
     <script>
       // Tema (segmentert velger: mørkt / lyst / clean)
@@ -948,14 +964,14 @@
         if (!username || !password) {
           loginStatus.style.display = 'block';
           loginStatus.style.cssText = `display:block;margin-top:8px;padding:10px;border-radius:8px;font-size:0.85em;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);color:${_sc('error')};`;
-          loginStatus.textContent = '❌ Fyll inn brukernavn og passord først';
+          loginStatus.textContent = t('settings.ao_login.fill_in_first');
           return;
         }
 
         testLoginBtn.disabled = true;
-        testLoginBtn.textContent = '⏳ Logger inn...';
+        testLoginBtn.textContent = t('settings.ao_login.logging_in');
         loginStatus.style.cssText = `display:block;margin-top:8px;padding:10px;border-radius:8px;font-size:0.85em;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.3);color:${_sc('info')};`;
-        loginStatus.textContent = '⏳ Kobler til Artsobservasjoner...';
+        loginStatus.textContent = t('settings.ao_login.connecting');
 
         try {
           const resp = await fetch('/api/ao-login', {
@@ -982,9 +998,9 @@
             localStorage.removeItem('ao_private_sites');
 
             loginStatus.style.cssText = `display:block;margin-top:8px;padding:10px;border-radius:8px;font-size:0.85em;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);color:${_sc('success')};`;
-            loginStatus.textContent = `✅ Innlogget! Bruker-ID: ${result.userId}`;
+            loginStatus.textContent = t('settings.ao_login.success', { id: result.userId });
           } else {
-            throw new Error(result.error || 'Innlogging feilet');
+            throw new Error(result.error || t('settings.ao_login.failed'));
           }
         } catch (e) {
           loginStatus.style.cssText = `display:block;margin-top:8px;padding:10px;border-radius:8px;font-size:0.85em;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);color:${_sc('error')};`;
@@ -1018,7 +1034,7 @@
         aoUsernameInput.value = '';
         aoPasswordInput.value = '';
         loginStatus.style.cssText = `display:block;margin-top:8px;padding:10px;border-radius:8px;font-size:0.85em;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.3);color:${_sc('info')};`;
-        loginStatus.textContent = 'ℹ️ Innlogging fjernet fra denne enheten';
+        loginStatus.textContent = t('settings.ao_login.cleared');
         updateClearLoginVisibility();
       });
 
@@ -1179,7 +1195,8 @@
         a.remove();
         URL.revokeObjectURL(url);
         const n = payload.observations.length;
-        showBackupStatus(`✅ Lastet ned sikkerhetskopi med ${n} observasjon${n === 1 ? '' : 'er'}.`, 'success');
+        const nOrd = n === 1 ? t('observations.word_singular') : t('observations.word_plural');
+        showBackupStatus(t('settings.backup.downloaded', { n, ord: nOrd }), 'success');
       }
 
       backupDownloadBtn.addEventListener('click', () => {
@@ -1188,7 +1205,7 @@
           if (!Array.isArray(payload?.observations)) throw new Error();
           lastNedBackup(payload);
         } catch {
-          showBackupStatus('Kunne ikke lese den lokale lista.', 'error');
+          showBackupStatus(t('settings.backup.cannot_read_local'), 'error');
         }
       });
 
@@ -1207,7 +1224,7 @@
           const { observations, ...overforing } = lesInnhentetListe();
           lastNedBackup({ version: 1, observations, overforing });
         } catch {
-          showBackupStatus('Kunne ikke lese den innhentede lista.', 'error');
+          showBackupStatus(t('settings.backup.cannot_read_innhentet'), 'error');
         }
       });
 
@@ -1225,7 +1242,7 @@
             if (parsed && parsed.type === 'observations-backup' && parsed.data) payload = parsed.data;
             else if (parsed && Array.isArray(parsed.observations)) payload = parsed;
             if (!payload || !Array.isArray(payload.observations)) {
-              showBackupStatus('❌ Ugyldig fil – fant ingen observasjoner.', 'error');
+              showBackupStatus(t('settings.backup.invalid_file'), 'error');
               return;
             }
             const count = payload.observations.length;
@@ -1233,28 +1250,29 @@
               const { eier, kopiId, lagretTs } = payload.overforing;
               if (!/^ao:[1-9][0-9]{0,19}$/.test(eier) || !/^[a-f0-9]{32}$/.test(kopiId)
                   || !Number.isFinite(lagretTs) || !count) {
-                showBackupStatus('Filen har ugyldig kontoinformasjon for den innhentede lista.', 'error');
+                showBackupStatus(t('settings.backup.invalid_account_info'), 'error');
                 return;
               }
-              if (!confirm(`Gjenopprette ${count} observasjoner som innhentet liste? Den lokale lista bevares.`)) return;
+              if (!confirm(t('settings.backup.confirm_restore_innhentet', { count }))) return;
               try {
                 await apneInnhentetListe(() => lagreInnhentetKopi({ id: kopiId, lagretTs }, payload.observations, eier));
                 lukkInnhentetListe();
                 oppdaterBackupInnhentet();
-                showBackupStatus('Innhentet liste gjenopprettet. Åpne den fra ⋯-menyen.', 'success');
+                showBackupStatus(t('settings.backup.restored_innhentet'), 'success');
               } catch (feil) {
                 showBackupStatus(feil.message, 'error');
               }
               return;
             }
             const existing = currentObsCount();
-            if (!confirm(`Gjenopprette ${count} observasjon${count === 1 ? '' : 'er'}? Dette erstatter de ${existing} som ligger i appen nå.`)) {
+            const countOrd = count === 1 ? t('observations.word_singular') : t('observations.word_plural');
+            if (!confirm(t('settings.backup.confirm_restore', { count, ord: countOrd, existing }))) {
               return;
             }
             localStorage.setItem(OBS_KEY, JSON.stringify({ version: 1, observations: payload.observations }));
-            showBackupStatus(`✅ Gjenopprettet ${count} observasjon${count === 1 ? '' : 'er'}. Gå tilbake til appen for å se dem.`, 'success');
+            showBackupStatus(t('settings.backup.restored', { count, ord: countOrd }), 'success');
           } catch (e) {
-            showBackupStatus('❌ Kunne ikke lese fila. Er det en gyldig JSON-sikkerhetskopi?', 'error');
+            showBackupStatus(t('settings.backup.cannot_read_file'), 'error');
           } finally {
             backupFileInput.value = ''; // tillat ny gjenoppretting av samme fil
           }
