@@ -1,5 +1,12 @@
 # TODO
 
+## 43. Øk maks antall medobservatører fra 10 til 20 (2026-11-13)
+
+`MEDOBS_MAX = 10` i `public/js/coobserver-picker.js` setter grensen for hvor
+mange medobservatører som kan velges på én observasjon. Trolig et enkelt
+tall å bumpe til 20 — verifiser at ingenting annet (AO sin egen grense,
+lagringsformat) er avhengig av 10 før det gjøres.
+
 ## 42. Overfør arbeidslista fra mobil til Mac (2026-11-11)
 
 **Høyeste prioritet.** La en observatør lagre arbeidslista fra mobilen som en
