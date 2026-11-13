@@ -36,6 +36,7 @@ const STATIC_ASSETS = [
 '/js/header-plass.js',
 '/img/nyhet-offline-kart.jpg',
 '/img/espen.jpg',
+'/img/nyhet-nynorsk.jpg',
 '/js/api.js',
 '/js/i18n.js',
 '/js/i18n/nb.js',

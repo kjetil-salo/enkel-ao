@@ -21,64 +21,27 @@ const MAX_VISIBLE = 4;
 
 export const CURRENT_NEWS_SPLASH = {
   enabled: true,
-  // Ny id: nyheten fra 6. november skal vises på nytt sammen med
-  // sikkerhetspunktet, slik at ingen mister offline-nyheten fordi de rakk å
-  // lukke den. Punktene under er de samme, bortsett fra det første.
-  id: 'november-2026-sikkerhet-og-offline-v1',
+  id: 'november-2026-nynorsk-v1',
   items: [
     {
-      title: '🔐 Du må nok logge inn på Artsobservasjoner én gang til',
-      body: 'Vi har tettet noen sikkerhetshull i måten appen tar vare på '
-        + 'AO-innloggingen din. Derfor kan appen spørre om brukernavn og passord på nytt — '
-        + 'én gang på hver enhet du bruker den på. Har du lagret innloggingen under '
-        + 'Innstillinger, ordner appen det stort sett selv. '
-        + 'Observasjonene i lista di blir ikke berørt av dette. '
-        + 'Hullene ble funnet av Vegard Hanssen, som leste gjennom koden på eget initiativ '
-        + 'og sendte rettelsene — samme vei som Espens forbedringer kom inn.',
-      link: {
-        href: '/changelog.html',
-        text: 'Hva som ble rettet',
-      },
-    },
-    {
-      title: '🗺️ Kartet virker nå uten dekning',
-      body: 'Last ned kartet og lokalitetene for området du skal til mens du har nett — '
-        + 'så har du dem med deg når dekningen forsvinner. Du finner det under '
-        + '«📦 Offline-område» på kartsiden: dra opp området du skal gå i, og trykk last ned. '
-        + 'Velgeren viser hvor mange megabyte det blir før du starter. Øverst i appen har du '
-        + 'fått en bryter med tre stillinger — Online, Hybrid og Offline — der Hybrid henter '
-        + 'fra nett når det går og fra det nedlastede når det ikke gjør det.',
+      title: '📖 Nynorsk',
+      body: 'Appen finnes nå på nynorsk, i tillegg til bokmål. Velg under '
+        + '⚙️ Innstillinger → Språk — hele appen bytter med en gang: søket, '
+        + 'registreringen, meldingene og hele hjelpesiden.',
       image: {
-        src: '/img/nyhet-offline-kart.jpg',
-        alt: 'Illustrasjon: fuglekikker med kikkert på en knaus over en kystlinje, '
-          + 'med høydekurver tegnet i himmelen.',
+        src: '/img/nyhet-nynorsk.jpg',
+        alt: 'Illustrasjon av Espen Bore Hollund og Ivar Aasen side om side, '
+          + 'med norsk fjellandskap og en fugl i bakgrunnen.',
       },
     },
     {
-      title: '🙌 Dette er i all hovedsak Espen sin versjon',
-      body: 'Espen Bore Hollund har bygget hele offline-delen, og det stopper ikke der: '
-        + 'kartet åpner seg nå med en gang i stedet for å vente på GPS, du har fått en knapp '
-        + 'for å sentrere på deg selv, appen hopper rett ned til artsfeltet når du har valgt '
-        + 'sted, og du kan ha åtte aktivitetsknapper i stedet for seks — og dra dem i den '
-        + 'rekkefølgen du vil under Innstillinger. I tillegg kommer en rekke mindre ting vi '
-        + 'ikke lister opp her. Enkel-AO er åpen kildekode, og dette er akkurat slik det '
-        + 'er ment å virke: koden ligger ute, og den som savner noe kan bygge det og sende '
-        + 'det tilbake.',
-      avatar: {
-        src: '/img/espen.jpg',
-        alt: 'Portrett av Espen Bore Hollund',
-      },
-    },
-    {
-      // Slått sammen fra to punkter: MAX_VISIBLE er 4, og sikkerhetspunktet
-      // måtte inn uten at noe av offline-nyheten forsvant i stillhet.
-      title: '👁️ Ryddigere kart, og artsgrupper i søket',
-      body: 'På steder som Lista lå markørene så tett at de dekket hele kartet. Nå samles de '
-        + 'i bobler med et tall i, som deler seg etter hvert som du zoomer inn. '
-        + 'Og søker du «måke» får du gråmåke og fiskemåke øverst som før — men nederst i '
-        + 'lista ligger nå også «ub. grå-/sildemåke» og «måkefamilien», som du kan sende inn '
-        + 'når fuglen ikke lot seg bestemme sikkert. Det gjelder de fleste artsgruppene: '
-        + 'ender, meiser, troster, ugler.',
+      title: '🙌 Dette er Espen sitt verk',
+      body: 'Espen Bore Hollund bygde den første nynorsk-versjonen av appen '
+        + 'og oversatte alt innholdet selv, side for side — språkvelgeren '
+        + 'du ser i dag bygger videre på koden hans. Enkel-AO er åpen '
+        + 'kildekode, og dette er akkurat slik det er ment å virke: koden '
+        + 'ligger ute, og den som savner noe kan bygge det og sende det '
+        + 'tilbake.',
     },
   ],
 };
