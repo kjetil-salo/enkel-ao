@@ -5,6 +5,9 @@ import { hentAktivFellestur } from './fellestur-client.js';
 import { lastSpeil, lagreSpeilOgSynk, hentTurMedobservatorer } from './fellestur-sync.js';
 import { translateDedicatedSubspeciesToNynorsk } from './species-matcher.js?v=v1.60.17';
 import { aktivInnhentetListe, lagreEndringerIInnhentetListe, lesInnhentetListe } from './arbeidsliste-lokal.js';
+import { getLanguage, setLanguage, isNynorsk } from './i18n.js?v=v1.60.17';
+
+export { isNynorsk };
 
 const STORAGE_KEY = 'fugleobservasjoner_v1';
 const MEDOBS_KEY = 'medobs_list_v1';
@@ -13,7 +16,6 @@ const ACTIVITY_PILLS_KEY = 'activityPills_v1';
 const SENT_KEY = 'sent_observations_v1';
 const LOCATION_SORT_KEY = 'location_sort_mode_v1';
 const AO_DIRECT_AUTO_CLEAR_KEY = 'ao_direct_auto_clear_v1';
-const NYNORSK_ARTSNAVN_KEY = 'nynorsk_artsnavn_v1';
 export const LAST_KNOWN_POSITION_KEY = 'ao_last_known_position_v1';
 
 /**
@@ -347,21 +349,42 @@ export function loadAoDirectAutoClear() {
 }
 
 /**
+ * Lagre valgt appspråk ('nb'/'nn'). Tynn re-eksport av i18n.js sin
+ * setLanguage() - all språklagring skjer der nå, se
+ * docs/i18n-arkitektur-analyse.md. Beholdt her under samme navn som
+ * speciesDisplayName()/activityDisplayName() allerede importeres fra, og
+ * fordi eksisterende kallsteder (species-search.js) fortsatt bruker den
+ * boolske varianten for det smale art-spesifikke valget.
+ * @param {'nb'|'nn'|boolean} lang
+ */
+export function saveLanguage(lang) {
+  setLanguage(lang === true || lang === '1' ? 'nn' : lang === false || lang === '0' ? 'nb' : lang);
+}
+
+/**
+ * Last valgt appspråk ('nb'/'nn'). Tynn re-eksport av i18n.js sin
+ * getLanguage().
+ * @returns {'nb'|'nn'}
+ */
+export function loadLanguage() {
+  return getLanguage();
+}
+
+/**
  * Lagre om nynorske artsnavn skal brukes som visningsnavn i artssøket (kun
  * offline-lista, se docs/ for kildeanalyse). Rent visuelt - endrer ALDRI
  * hvilket navn som faktisk lagres/sendes til AO ved publisering (det er
  * alltid bokmål, jf. observations.js sin CSV-eksport og speciesDisplayName()
  * under, som holder disse to bevisst atskilt).
+ *
+ * Delegerer til samme språkvalg som resten av appen (setLanguage()) - et
+ * eget, atskilt flagg for "nynorske artsnavn" ga tidligere en app som kunne
+ * stå i bokmål med nynorske artsnavn, en kombinasjon ingen UI-tekst noensinne
+ * tilbød å velge og som derfor bare var en kilde til forvirring.
  * @param {boolean} value
  */
 export function saveNynorskArtsnavn(value) {
-  if (!window.localStorage) return;
-
-  try {
-    window.localStorage.setItem(NYNORSK_ARTSNAVN_KEY, value ? '1' : '0');
-  } catch (e) {
-    console.warn('Kunne ikke lagre nynorsk-valg', e);
-  }
+  setLanguage(value ? 'nn' : 'nb');
 }
 
 /**
@@ -369,13 +392,7 @@ export function saveNynorskArtsnavn(value) {
  * @returns {boolean}
  */
 export function loadNynorskArtsnavn() {
-  if (!window.localStorage) return false;
-
-  try {
-    return window.localStorage.getItem(NYNORSK_ARTSNAVN_KEY) === '1';
-  } catch (e) {
-    return false;
-  }
+  return isNynorsk();
 }
 
 /**
@@ -419,6 +436,132 @@ export function speciesDisplayName(species, userLanguage = undefined) {
     }
   }
   return species.taxonName || species.nameNob || species.norwegian || '';
+}
+
+/**
+ * Nynorsk-oversettelse av AO-aktivitetskodene fra public/data/activities.json.
+ * Nøkkel er det kanoniske bokmål-navnet AO selv bruker, verdi er
+ * nynorsk-visningsnavnet - samme retning som speciesDisplayName() over.
+ */
+export const ACTIVITY_NYNORSK_MAP = {
+  'Stasjonær': 'Stasjonær',
+  'Rastende': 'Rastande',
+  'Overflygende': 'Overflygande',
+  'Næringssøkende': 'Næringssøkjande',
+  'Ved fôring': 'Ved fôring',
+  'Trekkende': 'Trekkjande',
+  'Sang/spill, ikke hekking': 'Song/spel, ikkje hekking',
+  'Lokkelyd, øvrige lyder': 'Lokkelyd, andre lydar',
+  'Revir, ikke hekking': 'Revir, ikkje hekking',
+  'Trekkende mot N': 'Trekkjande mot N',
+  'Trekkende mot NØ': 'Trekkjande mot NA',
+  'Trekkende mot Ø': 'Trekkjande mot A',
+  'Trekkende mot SØ': 'Trekkjande mot SA',
+  'Trekkende mot S': 'Trekkjande mot S',
+  'Trekkende mot SV': 'Trekkjande mot SV',
+  'Trekkende mot V': 'Trekkjande mot V',
+  'Trekkende mot NV': 'Trekkjande mot NV',
+  'Permanent revir': 'Permanent revir',
+  'Sang/spill i hekketid og passende hekkebiotop': 'Song/spel i hekketid og passande hekkebiotop',
+  'Observasjon i hekketid, passende biotop': 'Observasjon i hekketid, passande biotop',
+  'Par i passende hekkebiotop': 'Par i passande hekkebiotop',
+  'Paring/kurtise på mulig hekkeplass': 'Paring/kurtise på mogleg hekkeplass',
+  'Reirbygging': 'Reirbygging',
+  'Reirbesøk?': 'Reirbesøk?',
+  'Besøker bebodd reir': 'Besøkjer bebodd reir',
+  'Reir i bruk': 'Reir i bruk',
+  'Rugende': 'Rugande',
+  'Rugeflekker': 'Rugeflekkar',
+  'Reir med egg eller unger': 'Reir med egg eller ungar',
+  'Reir, unger hørt': 'Reir, ungar høyrt',
+  'Mat til unger': 'Mat til ungar',
+  'Bar ekskrementpose': 'Bar ekskrementpose',
+  'Unger utenfor reir, ikke utvokste': 'Ungar utanfor reir, ikkje utvaksne',
+  'Eggeskall': 'Eggeskall',
+  'Brukt reir': 'Brukt reir',
+  'Engstelig adferd, indikasjon på hekking': 'Engsteleg åtferd, indikasjon på hekking',
+  'Avledningsmanøver': 'Avleiingsmanøver',
+  'Mislykket hekking': 'Mislykka hekking',
+  'Ringmerket': 'Ringmerkt',
+  'Individmerket (kontroll)': 'Individmerkt (kontroll)',
+  'Trekkforsøk': 'Trekkforsøk',
+  'Syk': 'Sjuk',
+  'Død - kollisjon med kraftledning': 'Daud - kollisjon med kraftleidning',
+  'Død - kollisjon med vindturbin': 'Daud - kollisjon med vindturbin',
+  'Død - kollisjon med vindu': 'Daud - kollisjon med vindauge',
+  'Død - kollisjon med fyr': 'Daud - kollisjon med fyr',
+  'Død - kollisjon med fly': 'Daud - kollisjon med fly',
+  'Død - kollisjon med gjerde': 'Daud - kollisjon med gjerde',
+  'Drept av elektrokusjon (strømslag)': 'Drepen av elektrokusjon (straumslag)',
+  'Drept av olje': 'Drepen av olje',
+  'Trafikkdrept': 'Trafikkdrepen',
+  'Garndød': 'Garndaud',
+  'Skadet av fiskeredskap': 'Skadd av fiskereiskap',
+  'Drept av predator': 'Drepen av predator',
+  'Død av sykdom/sult': 'Daud av sjukdom/sult',
+  'Skutt/avlivet': 'Skoten/avliva',
+  'Død - ukjent dødsårsak': 'Daud - ukjend dødsårsak',
+  'Ferske spor': 'Ferske spor',
+  'Eldre spor': 'Eldre spor',
+  'Fersk møkk': 'Fersk møkk',
+  'Eldre møkk': 'Eldre møkk',
+  // Eldre aliaser og hurtigknapper som ikke følger activities.json 1:1.
+  'Stationær': 'Stasjonær',
+  'Overflyvende': 'Overflygande',
+  'Syngende': 'Syngjande',
+  'Spill/sang': 'Spel/song',
+  'Sang/spill': 'Song/spel',
+  'Reir med unger eller hørt unger': 'Reir med ungar eller høyrt ungar',
+};
+
+const ACTIVITY_BOKMAL_MAP = (() => {
+  const rev = {};
+  for (const [nb, nn] of Object.entries(ACTIVITY_NYNORSK_MAP)) {
+    if (!rev[nn]) rev[nn] = nb;
+  }
+  // Noen nynorsk-verdier er identiske med flere bokmål-nøkler (f.eks.
+  // 'Stasjonær' for både 'Stasjonær' og 'Stationær') - sikre at identitet
+  // slår alias, og at Ø/NØ/SØ-retningene mapper til hovedformen.
+  rev['Stasjonær'] = 'Stasjonær';
+  rev['Overflygande'] = 'Overflygende';
+  rev['Trekkjande mot Ø'] = 'Trekkende mot Ø';
+  rev['Trekkjande mot NØ'] = 'Trekkende mot NØ';
+  rev['Trekkjande mot SØ'] = 'Trekkende mot SØ';
+  return rev;
+})();
+
+/**
+ * Visningsnavn for en AO-aktivitetskode, etter aktivt språk (eller
+ * `userLanguage` hvis gitt - samme mønster som speciesDisplayName()).
+ * Engelsk har i dag ingen egen oversettelse og faller derfor tilbake til det
+ * kanoniske bokmål-navnet, nøyaktig som et nynorsk-navn ville falt tilbake
+ * til bokmål ved en manglende nøkkel i ACTIVITY_NYNORSK_MAP.
+ * @param {string} label
+ * @param {string} [userLanguage]
+ * @returns {string}
+ */
+export function activityDisplayName(label, userLanguage) {
+  if (!label) return '';
+  const lang = userLanguage !== undefined ? userLanguage : getLanguage();
+  if (lang === 'nn') {
+    const trimmed = label.trim();
+    return ACTIVITY_NYNORSK_MAP[label] || ACTIVITY_NYNORSK_MAP[trimmed] || label;
+  }
+  return activityBokmalName(label);
+}
+
+/**
+ * Konverterer et eventuelt nynorsk aktivitetsnavn tilbake til det kanoniske
+ * bokmål-navnet AO forventer. Brukes når en <option> sin viste tekst er
+ * oversatt, men verdien som lagres/sendes må være AO-formen - se
+ * activityDisplayName() over for motsatt retning.
+ * @param {string} label
+ * @returns {string}
+ */
+export function activityBokmalName(label) {
+  if (!label) return '';
+  const trimmed = label.trim();
+  return ACTIVITY_BOKMAL_MAP[label] || ACTIVITY_BOKMAL_MAP[trimmed] || label;
 }
 
 /**
