@@ -5,7 +5,7 @@
  * som også brukes av registrerings-modalen (✎ Flere felt i ②).
  */
 import { saveObservations, lastSaveError, activityDisplayName, activityBokmalName } from './storage.js';
-import { initPhotoPicker } from './photo-picker.js?v=v1.60.19';
+import { initPhotoPicker } from './photo-picker.js?v=v1.60.20';
 import { initCoObserverPicker } from './coobserver-picker.js';
 import { isoToDate, isoToTime, updateDateTimeInIso } from './datetime-helpers.js';
 

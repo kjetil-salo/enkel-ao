@@ -465,7 +465,7 @@
       // Alias tr (ikke t): denne filen har allerede en lokal `const t = hentTokens();`
       // inne i lastAoFunn() - et import med samme navn ville vært forvirrende å lese,
       // selv om selve skoperingen er trygg.
-      import { t as tr, applyTranslations } from '/js/i18n.js?v=v1.60.19';
+      import { t as tr, applyTranslations } from '/js/i18n.js?v=v1.60.20';
 
       applyTranslations();
       document.title = tr('sendt.title');
@@ -483,9 +483,9 @@
       // (v1.59.7). En cachet gammel kopi ville gitt TypeError i det slideren eller
       // zoomen brukes — eller SyntaxError som stopper hele denne modulen. Se
       // «Versjonering» i CLAUDE.md (v1.53.15).
-      import { initPhotoPicker } from '/js/photo-picker.js?v=v1.60.19';
-      import { lagBildeEditor } from '/js/bilde-editor.js?v=v1.60.19';
-      import { loggInnMedLagretLegitimasjon } from '/js/api.js?v=v1.60.19';
+      import { initPhotoPicker } from '/js/photo-picker.js?v=v1.60.20';
+      import { lagBildeEditor } from '/js/bilde-editor.js?v=v1.60.20';
+      import { loggInnMedLagretLegitimasjon } from '/js/api.js?v=v1.60.20';
 
       const MND = ['januar', 'februar', 'mars', 'april', 'mai', 'juni',
         'juli', 'august', 'september', 'oktober', 'november', 'desember'];

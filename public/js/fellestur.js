@@ -19,7 +19,7 @@ import { resolveVisitIdForNewObservation } from './visits.js';
 import { hentAktivFellestur, settAktivFellestur, forlatFellestur, hentMittNavn, settMittNavn } from './fellestur-client.js';
 import { showToast } from './ui.js';
 import { attachAoObserverAutocomplete } from './ao-observer-autocomplete.js';
-import { t, applyTranslations } from './i18n.js?v=v1.60.19';
+import { t, applyTranslations } from './i18n.js?v=v1.60.20';
 
 applyTranslations(); // oversetter statisk data-i18n-markup i fellestur.html (back-link, ingress)
 

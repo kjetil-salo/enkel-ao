@@ -7,7 +7,7 @@
     <link rel="icon" href="/favicon.png" type="image/png" />
     <link rel="apple-touch-icon" href="/icon-192.png" />
     <link rel="manifest" href="/manifest.json">
-    <link rel="stylesheet" href="style.css?v=v1.60.19" />
+    <link rel="stylesheet" href="style.css?v=v1.60.20" />
       <style>
         .settings-card {
           background: var(--card-bg, #111827);
@@ -425,16 +425,16 @@
     <script type="module">
       import { fjernOverforingssesjon } from './js/arbeidsliste-sesjon.js';
       import { apneInnhentetListe, lagreInnhentetKopi, lesInnhentetListe, lukkInnhentetListe } from './js/arbeidsliste-lokal.js';
-      import { loadActivityPills, saveActivityPills, ACTIVITY_SHORT_SUGGESTIONS, activityDisplayName, activityBokmalName } from './js/storage.js?v=v1.60.19';
-      import { loadActivities, fetchAoSitesByBounds, hasActiveAoLogin, ensureAoTokens, getCachedPrivateSites } from './js/api.js?v=v1.60.19';
-      import { shouldShowOthersPrivateSites } from './js/location.js?v=v1.60.19';
+      import { loadActivityPills, saveActivityPills, ACTIVITY_SHORT_SUGGESTIONS, activityDisplayName, activityBokmalName } from './js/storage.js?v=v1.60.20';
+      import { loadActivities, fetchAoSitesByBounds, hasActiveAoLogin, ensureAoTokens, getCachedPrivateSites } from './js/api.js?v=v1.60.20';
+      import { shouldShowOthersPrivateSites } from './js/location.js?v=v1.60.20';
       import {
         getOfflineStorageStats,
         syncOfflineAreas,
         clearAllOfflineData,
         clearAppCachesPreservingMapTiles,
-      } from './js/offline-db.js?v=v1.60.19';
-      import { t, getLanguage, setLanguage, getAvailableLanguages, applyTranslations } from './js/i18n.js?v=v1.60.19';
+      } from './js/offline-db.js?v=v1.60.20';
+      import { t, getLanguage, setLanguage, getAvailableLanguages, applyTranslations } from './js/i18n.js?v=v1.60.20';
 
       // Service Worker registreres og modus synkroniseres av offline-db.js (importert over).
 
@@ -887,7 +887,16 @@
         refreshOfflineStorageStats();
       });
     </script>
-    <script>
+    <script type="module">
+      // Egen modul-blokk (ikke den over): bruker t(), fjernOverforingssesjon() og
+      // innhentet-liste-funksjonene, som alle er navngitte modul-eksporter og derfor
+      // ikke synlige fra en vanlig <script> uten egen import. Nøyaktig det som manglet
+      // her og ga «ReferenceError» på AO-innlogging og sikkerhetskopi-knappene
+      // (rapportert 14.11.2026, v1.60.19).
+      import { t } from './js/i18n.js?v=v1.60.20';
+      import { fjernOverforingssesjon } from './js/arbeidsliste-sesjon.js';
+      import { apneInnhentetListe, lagreInnhentetKopi, lesInnhentetListe, lukkInnhentetListe } from './js/arbeidsliste-lokal.js';
+
       // Tema (segmentert velger: mørkt / lyst / clean)
       const THEMES = ['dark', 'light', 'clean'];
       const themeSeg = document.getElementById('theme-seg');

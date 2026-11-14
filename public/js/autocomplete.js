@@ -5,7 +5,7 @@
 import { getNetworkMode, getAllOfflineLocations } from './offline-db.js';
 import { haversine } from './utils.js';
 // Versjonert import: hard avhengighet til en navngitt eksport.
-import { loggInnMedLagretLegitimasjon } from './api.js?v=v1.60.19';
+import { loggInnMedLagretLegitimasjon } from './api.js?v=v1.60.20';
 
 // Serveren kan ikke lenger fornye en sesjon på brukernavn alene — passordet er
 // bundet til logintokenet (v1.60.18), og rader lagret før bindingen er fjernet.

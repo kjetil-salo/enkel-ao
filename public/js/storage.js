@@ -3,9 +3,9 @@
  */
 import { hentAktivFellestur } from './fellestur-client.js';
 import { lastSpeil, lagreSpeilOgSynk, hentTurMedobservatorer } from './fellestur-sync.js';
-import { translateDedicatedSubspeciesToNynorsk } from './species-matcher.js?v=v1.60.19';
+import { translateDedicatedSubspeciesToNynorsk } from './species-matcher.js?v=v1.60.20';
 import { aktivInnhentetListe, lagreEndringerIInnhentetListe, lesInnhentetListe } from './arbeidsliste-lokal.js';
-import { getLanguage, setLanguage, isNynorsk } from './i18n.js?v=v1.60.19';
+import { getLanguage, setLanguage, isNynorsk } from './i18n.js?v=v1.60.20';
 
 export { isNynorsk };
 
