@@ -13,6 +13,8 @@
  * konfigen bevisst endres.
  */
 
+import { t, isNynorsk } from './i18n.js?v=v1.60.20';
+
 const COOKIE_NAME = 'enkelAoNewsRead';
 export const STORAGE_KEY = 'enkelAoNewsRead';
 
@@ -25,30 +27,37 @@ export const CURRENT_NEWS_SPLASH = {
   items: [
     {
       title: '📖 Nynorsk',
+      titleKey: 'news.item0.title',
       body: 'Appen finnes nå på nynorsk, i tillegg til bokmål. Velg under '
         + '⚙️ Innstillinger → Språk — hele appen bytter med en gang: søket, '
         + 'registreringen, meldingene og hele hjelpesiden.',
+      bodyKey: 'news.item0.body',
       image: {
         src: '/img/nyhet-nynorsk.jpg',
         alt: 'Illustrasjon av Espen Bore Hollund og Ivar Aasen side om side, '
           + 'med norsk fjellandskap og en fugl i bakgrunnen.',
+        altKey: 'news.item0.image_alt',
       },
     },
     {
       title: '💻 Rakk du ikke å sende inn før du kom hjem?',
+      titleKey: 'news.item1.title',
       body: 'Lagre en privat kopi av arbeidslista fra ⋯-menyen på mobilen '
         + 'før du legger den fra deg. Hjemme åpner du samme meny på Mac '
         + 'eller PC, logger inn med samme AO-konto, og henter listen inn '
         + 'der — klar til å se gjennom funnene før du publiserer.',
+      bodyKey: 'news.item1.body',
     },
     {
       title: '🙌 Dette er Espen sitt verk',
+      titleKey: 'news.item2.title',
       body: 'Espen Bore Hollund bygde den første nynorsk-versjonen av appen '
         + 'og oversatte alt innholdet selv, side for side — språkvelgeren '
         + 'du ser i dag bygger videre på koden hans. Enkel-AO er åpen '
         + 'kildekode, og dette er akkurat slik det er ment å virke: koden '
         + 'ligger ute, og den som savner noe kan bygge det og sende det '
         + 'tilbake.',
+      bodyKey: 'news.item2.body',
     },
   ],
 };
@@ -116,10 +125,12 @@ function createNewsSplash(items) {
 
   const title = document.createElement('h2');
   title.id = 'news-splash-title';
-  title.textContent = 'Nytt i Enkel-AO';
+  title.textContent = t('news.heading');
 
   const list = document.createElement('div');
   list.className = 'news-splash-list';
+
+  const useNn = isNynorsk();
 
   items.forEach((item) => {
     const row = document.createElement('div');
@@ -144,17 +155,17 @@ function createNewsSplash(items) {
       img.style.height = 'auto';
       img.style.display = 'block';
       img.src = item.image.src;
-      img.alt = item.image.alt || '';
+      img.alt = (useNn && item.image.altKey ? t(item.image.altKey) : item.image.alt) || '';
       // Ikke la et manglende bilde etterlate et tomt hull i panelet.
       img.addEventListener('error', () => img.remove());
       row.appendChild(img);
     }
 
     const itemTitle = document.createElement('strong');
-    itemTitle.textContent = item.title;
+    itemTitle.textContent = useNn && item.titleKey ? t(item.titleKey) : item.title;
 
     const body = document.createElement('p');
-    body.textContent = item.body;
+    body.textContent = useNn && item.bodyKey ? t(item.bodyKey) : item.body;
 
     // Et lite, rundt portrett ved siden av tittelen — for et punkt som handler
     // om en person. Bevisst atskilt fra `image`, som er full bredde: en
@@ -210,7 +221,7 @@ function createNewsSplash(items) {
   const button = document.createElement('button');
   button.type = 'button';
   button.className = 'news-splash-button';
-  button.textContent = 'Skjønner';
+  button.textContent = t('news.dismiss');
   button.addEventListener('click', () => {
     markNewsRead(CURRENT_NEWS_SPLASH.id);
     overlay.remove();
@@ -219,7 +230,7 @@ function createNewsSplash(items) {
   const changelog = document.createElement('a');
   changelog.className = 'news-splash-link';
   changelog.href = '/changelog.html';
-  changelog.textContent = 'Se endringslogg';
+  changelog.textContent = t('news.changelog');
 
   panel.appendChild(title);
   panel.appendChild(list);
@@ -237,14 +248,14 @@ function createNewsSplash(items) {
   const hint = document.createElement('button');
   hint.type = 'button';
   hint.className = 'news-splash-scroll-hint';
-  hint.setAttribute('aria-label', 'Bla ned for mer');
+  hint.setAttribute('aria-label', t('news.scroll_aria'));
   // Tegnet chevron, ikke et Unicode-tegn: «⌄» rendrer spinkelt og ulikt på tvers
   // av plattformer, og ble nesten usynlig mot uttoningen.
   hint.innerHTML = '<span class="news-splash-scroll-knapp" aria-hidden="true">'
     + '<svg width="22" height="14" viewBox="0 0 22 14" fill="none">'
     + '<path d="M3 3 L11 11 L19 3" stroke="currentColor" stroke-width="3" '
     + 'stroke-linecap="round" stroke-linejoin="round"/></svg></span>'
-    + '<span class="news-splash-scroll-tekst">Mer under</span>';
+    + `<span class="news-splash-scroll-tekst">${t('news.scroll_text')}</span>`;
   hint.addEventListener('click', () => {
     panel.scrollBy({ top: panel.clientHeight * 0.8, behavior: 'smooth' });
   });

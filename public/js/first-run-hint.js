@@ -9,6 +9,7 @@
  */
 
 import { loadObservations } from './storage.js';
+import { t } from './i18n.js?v=v1.60.20';
 
 export const HINT_ID = 'start-with-location-v1';
 const COOKIE_NAME = 'enkelAoHintRead';
@@ -82,29 +83,29 @@ function showHint() {
   bubble.className = 'coachmark-bubble';
   bubble.setAttribute('role', 'dialog');
   bubble.setAttribute('aria-modal', 'true');
-  bubble.setAttribute('aria-label', 'Slik kommer du i gang');
+  bubble.setAttribute('aria-label', t('first_run.aria_label'));
 
   const title = document.createElement('strong');
   title.className = 'coachmark-title';
-  title.textContent = '👋 Start her';
+  title.textContent = t('first_run.title');
 
   const body = document.createElement('p');
   body.className = 'coachmark-body';
-  body.textContent = 'Enkel-AO hjelper deg å registrere fugleobservasjoner i felt og sende dem til Artsobservasjoner. Velg lokasjon først — trykk «Hent lokasjoner». Deretter kan du søke etter art.';
+  body.textContent = t('first_run.body');
 
   const more = document.createElement('p');
   more.className = 'coachmark-body';
   more.style.marginTop = '6px';
   const moreLink = document.createElement('a');
   moreLink.href = 'help.html';
-  moreLink.textContent = '📖 Les mer om hvordan appen fungerer';
+  moreLink.textContent = t('first_run.read_more');
   moreLink.style.color = '#3b82f6';
   more.appendChild(moreLink);
 
   const button = document.createElement('button');
   button.type = 'button';
   button.className = 'coachmark-button';
-  button.textContent = 'Skjønner';
+  button.textContent = t('first_run.dismiss');
 
   bubble.appendChild(title);
   bubble.appendChild(body);

@@ -19,9 +19,26 @@ import { resolveVisitIdForNewObservation } from './visits.js';
 import { hentAktivFellestur, settAktivFellestur, forlatFellestur, hentMittNavn, settMittNavn } from './fellestur-client.js';
 import { showToast } from './ui.js';
 import { attachAoObserverAutocomplete } from './ao-observer-autocomplete.js';
-import { t, applyTranslations } from './i18n.js?v=v1.60.20';
+import { t, applyTranslations, isNynorsk } from './i18n.js?v=v1.60.20';
+import { activityDisplayName } from './i18n.js';
+import { translateDedicatedSubspeciesToNynorsk } from './species-matcher.js?v=v1.60.20';
 
 applyTranslations(); // oversetter statisk data-i18n-markup i fellestur.html (back-link, ingress)
+
+function visArtNavnFellestur(species) {
+  if (!species) return '';
+  if (typeof species === 'string') return species;
+  if (isNynorsk()) {
+    const nno = species.nameNno || species.nynorsk;
+    if (nno) return nno;
+    const nob = species.taxonName || species.nameNob || species.norwegian || '';
+    if (nob) {
+      const trans = translateDedicatedSubspeciesToNynorsk(nob);
+      if (trans && trans.toLowerCase() !== nob.toLowerCase()) return trans;
+    }
+  }
+  return species.taxonName || species.nameNob || species.norwegian || '';
+}
 
 const POLL_MS = 12000;
 
@@ -84,9 +101,9 @@ async function apiPost(path, body) {
 async function hentTur(kode) {
   const r = await fetch(`/api/fellestur?kode=${encodeURIComponent(kode)}`);
   if (r.status === 404) return null;
-  if (!r.ok) throw new Error('Kunne ikke sjekke turkoden');
+  if (!r.ok) throw new Error(t('fellestur.check_failed_error'));
   const data = await r.json();
-  if (!data.ok) throw new Error('Uventet svar ved sjekk av turkode');
+  if (!data.ok) throw new Error(t('fellestur.unexpected_reply'));
   return data;
 }
 
@@ -96,8 +113,8 @@ function renderValg() {
   app.innerHTML = `
     <div class="kort">
       <div class="valg">
-        <button class="valg-btn" id="btn-start">🆕<br>Start ny fellestur</button>
-        <button class="valg-btn" id="btn-bli-med">🔑<br>Bli med (har kode)</button>
+        <button class="valg-btn" id="btn-start">🆕<br>${t('fellestur.start_new')}</button>
+        <button class="valg-btn" id="btn-bli-med">🔑<br>${t('fellestur.join_code')}</button>
       </div>
       <div id="skjema-omrade"></div>
     </div>`;
@@ -110,10 +127,10 @@ function renderStartSkjema() {
   const omrade = document.getElementById('skjema-omrade');
   const iDag = new Date().toLocaleDateString('nb-NO', { day: 'numeric', month: 'long' });
   omrade.innerHTML = `
-    <label for="tur-navn">Turnavn (valgfritt)</label>
-    <input type="text" id="tur-navn" placeholder="Tur ${tekst(iDag)}" maxlength="100">
+    <label for="tur-navn">${t('fellestur.trip_name_label')}</label>
+    <input type="text" id="tur-navn" placeholder="${t('fellestur.trip_name_placeholder', { date: tekst(iDag) })}" maxlength="100">
     <div class="rad-btn">
-      <button class="btn primar" id="btn-opprett">Start fellestur</button>
+      <button class="btn primar" id="btn-opprett">${t('fellestur.start_btn')}</button>
     </div>
     <div class="feilmelding" id="feil" style="display:none;"></div>`;
 
@@ -124,7 +141,7 @@ function renderStartSkjema() {
     if (!ok || !data.kode) {
       e.target.disabled = false;
       const feil = document.getElementById('feil');
-      feil.textContent = 'Kunne ikke starte fellesturen — prøv igjen om litt.';
+      feil.textContent = t('fellestur.start_failed');
       feil.style.display = 'block';
       return;
     }
@@ -137,11 +154,11 @@ function renderStartSkjema() {
 function renderBliMedSkjema() {
   const omrade = document.getElementById('skjema-omrade');
   omrade.innerHTML = `
-    <label for="tur-kode">Kode fra den som startet turen</label>
-    <input type="text" id="tur-kode" placeholder="F.EKS. 48213" maxlength="5" inputmode="numeric"
+    <label for="tur-kode">${t('fellestur.code_label')}</label>
+    <input type="text" id="tur-kode" placeholder="${t('fellestur.code_placeholder')}" maxlength="5" inputmode="numeric"
            style="letter-spacing:0.1em;">
     <div class="rad-btn">
-      <button class="btn primar" id="btn-bli-med-send">Sjekk kode og bli med</button>
+      <button class="btn primar" id="btn-bli-med-send">${t('fellestur.check_join_btn')}</button>
     </div>
     <div class="feilmelding" id="feil" style="display:none;"></div>`;
 
@@ -155,14 +172,14 @@ function renderBliMedSkjema() {
     const kode = kodeInput.value.trim().toUpperCase();
     if (!/^[0-9]{5}$/.test(kode)) {
       const feil = document.getElementById('feil');
-      feil.textContent = 'Koden skal være 5 siffer.';
+      feil.textContent = t('fellestur.code_invalid');
       feil.style.display = 'block';
       return;
     }
     settKodeIUrl(kode);
     state.kode = kode;
     document.getElementById('btn-bli-med-send').disabled = true;
-    document.getElementById('btn-bli-med-send').textContent = 'Sjekker kode…';
+    document.getElementById('btn-bli-med-send').textContent = t('fellestur.checking_code');
     await lastOgVisAktivTur();
   });
 }
@@ -173,7 +190,7 @@ async function lastOgVisAktivTur() {
   const kode = state.kode;
   const oppslag = ++state.oppslag;
   if (!/^[0-9]{5}$/.test(kode || '')) {
-    visOppstartsfeil('Koden skal være 5 siffer.');
+    visOppstartsfeil(t('fellestur.code_invalid'));
     return;
   }
   let tur;
@@ -181,7 +198,7 @@ async function lastOgVisAktivTur() {
     tur = await hentTur(kode);
   } catch (_) {
     if (oppslag !== state.oppslag || kode !== state.kode) return;
-    visOppstartsfeil('Kunne ikke sjekke turkoden. Kontroller nettforbindelsen og prøv igjen.', true);
+    visOppstartsfeil(t('fellestur.check_failed_network'), true);
     return;
   }
   if (oppslag !== state.oppslag || kode !== state.kode) return;
@@ -226,8 +243,8 @@ function visOppstartsfeil(melding, kanProveIgjen = false) {
   app.innerHTML = `<div class="kort">
     <p class="feilmelding" role="alert">${tekst(melding)}</p>
     <div class="rad-btn">
-      ${kanProveIgjen ? '<button class="btn primar" id="btn-prov-igjen">Prøv igjen</button>' : ''}
-      <button class="btn" id="btn-tilbake">Endre kode</button>
+      ${kanProveIgjen ? `<button class="btn primar" id="btn-prov-igjen">${t('fellestur.try_again')}</button>` : ''}
+      <button class="btn" id="btn-tilbake">${t('fellestur.change_code')}</button>
     </div></div>`;
   document.getElementById('btn-tilbake').addEventListener('click', tilbakeTilKodevalg);
   document.getElementById('btn-prov-igjen')?.addEventListener('click', lastOgVisAktivTur);
@@ -249,16 +266,14 @@ function renderIkkeFunnet() {
   app.innerHTML = `
     <div class="kort">
       <div class="tur-advarsel" role="alert">
-        <strong>⚠️ Vi kan ikke bekrefte turkode ${tekst(state.kode)}</strong>
-        <p>Vi fant ingen bekreftet tur i Enkel-AO eller i hendelsene vi har mottatt fra Feltlogg.</p>
-        <p>Turen kan være opprettet i Feltlogg uten at noen funn er sendt hit ennå.
-        Koden kan også være feil, utløpt eller ikke i bruk noe sted.</p>
-        <p>Du kan bli med likevel. Kontroller selv koden med den som startet turen –
-        en tom logg bekrefter ikke at turen finnes i Feltlogg.</p>
+        <strong>${t('fellestur.not_found.title', { kode: tekst(state.kode) })}</strong>
+        <p>${t('fellestur.not_found.p1')}</p>
+        <p>${t('fellestur.not_found.p2')}</p>
+        <p>${t('fellestur.not_found.p3')}</p>
       </div>
       <div class="rad-btn">
-        <button class="btn primar" id="btn-bli-med-likevel">Bli med likevel</button>
-        <button class="btn" id="btn-tilbake">Endre kode</button>
+        <button class="btn primar" id="btn-bli-med-likevel">${t('fellestur.join_anyway')}</button>
+        <button class="btn" id="btn-tilbake">${t('fellestur.change_code')}</button>
       </div>
       <p class="feilmelding" id="feil" role="alert" hidden></p>
     </div>`;
@@ -268,20 +283,20 @@ function renderIkkeFunnet() {
     const tilbake = document.getElementById('btn-tilbake');
     btn.disabled = true;
     tilbake.disabled = true;
-    btn.textContent = 'Kobler til…';
+    btn.textContent = t('fellestur.connecting');
     try {
       const { ok, data } = await apiPost('/api/fellestur-bli-med', {
         kode: state.kode, godtaUbekreftet: true,
       });
-      if (!ok || !data.ok) throw new Error(data.error || 'Kunne ikke koble til turen. Prøv igjen.');
+      if (!ok || !data.ok) throw new Error(data.error || t('fellestur.connect_failed'));
       visAktivTur(data);
     } catch (err) {
       const feil = document.getElementById('feil');
-      feil.textContent = err.message || 'Kunne ikke koble til turen. Prøv igjen.';
+      feil.textContent = err.message || t('fellestur.connect_failed');
       feil.hidden = false;
       btn.disabled = false;
       tilbake.disabled = false;
-      btn.textContent = 'Bli med likevel';
+      btn.textContent = t('fellestur.join_anyway');
     }
   });
 }
@@ -322,7 +337,7 @@ function renderAktivTur() {
       <div class="medobs-liste" id="medobs-liste"></div>
       <div class="medobs-legg-til">
         <input type="text" id="medobs-nytt-navn" placeholder="${t('fellestur.coobservers_add_placeholder')}" maxlength="40">
-        <button class="btn liten" id="btn-medobs-legg-til">+ Legg til</button>
+        <button class="btn liten" id="btn-medobs-legg-til">${t('index.medobs.add_button')}</button>
       </div>
 
       ${mittNavnHtml}
@@ -337,7 +352,7 @@ function renderAktivTur() {
     </div>
 
     <div class="liste-header">
-      <h2>Loggen (${tur.observasjoner.length})</h2>
+      <h2>${t('fellestur.log_heading', { n: tur.observasjoner.length })}</h2>
       <div>
         <button class="nye-badge" id="btn-nye" style="display:none;"></button>
         <button class="btn liten" id="btn-oppdater-na">${t('fellestur.update_now_button')}</button>
@@ -363,7 +378,7 @@ function renderAktivTur() {
     const url = `${location.origin}/fellestur.html?kode=${state.kode}`;
     try {
       await navigator.clipboard.writeText(url);
-      document.getElementById('btn-kopier').textContent = '✅ Kopiert!';
+      document.getElementById('btn-kopier').textContent = t('fellestur.copied');
       setTimeout(() => { document.getElementById('btn-kopier').textContent = kopierTekst; }, 1500);
     } catch (_) {
       prompt(t('fellestur.copy_link_prompt'), url);
@@ -373,7 +388,7 @@ function renderAktivTur() {
   document.getElementById('btn-oppdater-na').addEventListener('click', () => oppdaterFraServer(true));
   document.getElementById('btn-send-ao').addEventListener('click', sendTilArbeidsliste);
   document.getElementById('btn-forlat').addEventListener('click', () => {
-    if (!confirm('Forlate fellesturen på denne enheten UTEN å hente inn og sende loggen? Loggen består uansett, og du kan bli med igjen med samme kode.')) return;
+    if (!confirm(t('fellestur.leave_confirm'))) return;
     forlatFellestur();
     stopPolling();
     const url = new URL(location.origin + '/fellestur.html');
@@ -389,8 +404,9 @@ function renderMedobsListe() {
     wrap.innerHTML = `<span class="obs-meta">${t('fellestur.no_coobservers')}</span>`;
     return;
   }
+  const fjernTekst = tekst(t('index.common.remove'));
   wrap.innerHTML = navn.map((n, i) =>
-    `<span class="medobs-chip">${tekst(n && typeof n === 'object' ? n.name : n)} <button data-fjern="${i}" title="Fjern">✕</button></span>`
+    `<span class="medobs-chip">${tekst(n && typeof n === 'object' ? n.name : n)} <button data-fjern="${i}" title="${fjernTekst}" aria-label="${fjernTekst}">✕</button></span>`
   ).join('');
   wrap.querySelectorAll('[data-fjern]').forEach((btn) => {
     btn.addEventListener('click', async () => {
@@ -446,14 +462,13 @@ function oppdaterAvsluttetVarsel() {
     return;
   }
   const tid = state.tur.avsluttetTs ? formatKlokkeslett(state.tur.avsluttetTs) : '';
+  const tidStr = tid ? t('fellestur.ended_at_time', { tid: tekst(tid) }) : '';
   el.innerHTML = `
     <div style="background:rgba(239,68,68,0.15);border:2px solid #ef4444;border-radius:10px;
                 padding:12px 14px;margin:10px 0;">
-      <p style="margin:0 0 4px;font-size:1.05em;font-weight:700;color:#ef4444;">🛑 Turen er avsluttet</p>
+      <p style="margin:0 0 4px;font-size:1.05em;font-weight:700;color:#ef4444;">${t('fellestur.ended_heading')}</p>
       <p style="margin:0;font-size:0.9em;">
-        <strong>${tekst(navn)}</strong> har hentet loggen inn i sin lokale liste${tid ? ' kl. ' + tekst(tid) : ''}
-        og sender den (eller har allerede sendt) til AO.
-        <strong>Ikke registrer flere funn eller send selv</strong> — si fra til ${tekst(navn)} hvis noe mangler.
+        ${t('fellestur.ended_body', { navn: tekst(navn), tid: tidStr })}
       </p>
     </div>`;
 }
@@ -465,22 +480,24 @@ function renderObsListe() {
   const obs = [...state.tur.observasjoner].sort((a, b) => b.created_ts - a.created_ts);
 
   if (!obs.length) {
-    listeEl.innerHTML = '<div class="tom">Ingen oppføringer ennå — registrer på hovedsiden for å komme i gang!</div>';
+    listeEl.innerHTML = `<div class="tom">${t('fellestur.log_empty')}</div>`;
     return;
   }
 
+  const slettTekst = tekst(t('index.common.delete'));
   listeEl.innerHTML = obs.map((o) => {
-    const artNavn = (o.species && o.species.taxonName) || '';
+    const artNavn = visArtNavnFellestur(o.species);
+    const aktNavn = o.activity ? activityDisplayName(o.activity) : '';
     return `
     <div class="obs-rad" data-id="${o.id}">
       <div class="obs-art">
         <div class="obs-art-navn">${tekst(artNavn)}</div>
-        <div class="obs-meta">${tekst(o.placeName || '')}${o.placeName && o.activity ? ' · ' : ''}${tekst(o.activity || '')}
+        <div class="obs-meta">${tekst(o.placeName || '')}${o.placeName && aktNavn ? ' · ' : ''}${tekst(aktNavn)}
           · ${formatKlokkeslett(o.created_ts)}${o.registrert_av ? ' · ' + tekst(o.registrert_av) : ''}</div>
       </div>
       <input type="number" class="obs-antall" min="0" value="${o.count != null ? o.count : ''}"
              data-antall-id="${o.id}">
-      <button class="obs-slett" data-slett-id="${o.id}" title="Slett">🗑️</button>
+      <button class="obs-slett" data-slett-id="${o.id}" title="${slettTekst}" aria-label="${slettTekst}">🗑️</button>
     </div>`;
   }).join('');
 
@@ -508,12 +525,12 @@ function renderObsListe() {
   listeEl.querySelectorAll('[data-slett-id]').forEach((btn) => {
     btn.addEventListener('click', async () => {
       const id = btn.dataset.slettId;
-      if (!confirm('Slette denne oppføringen?')) return;
+      if (!confirm(t('fellestur.delete_entry_confirm'))) return;
       try {
         const { ok, data } = await apiPost('/api/fellestur-sync', { kode: state.kode, deletes: [id] });
         if (ok && data.ok) {
           oppdaterFraSyncSvar(data);
-          document.querySelector('.liste-header h2').textContent = `Loggen (${state.tur.observasjoner.length})`;
+          document.querySelector('.liste-header h2').textContent = t('fellestur.log_heading', { n: state.tur.observasjoner.length });
         } else {
           varsleRedigeringFeilet();
         }
@@ -530,7 +547,7 @@ function renderObsListe() {
  * den ikke var det. Vis den samme røde toasten synken bruker på hovedsiden.
  */
 function varsleRedigeringFeilet() {
-  showToast('Fikk ikke lagret endringen — sjekk nettet og prøv igjen', { raw: true, borderColor: '#f87171', duration: 3000 });
+  showToast(t('fellestur.edit_failed_toast'), { raw: true, borderColor: '#f87171', duration: 3000 });
 }
 
 /** Radens obs-felt uten server-metadata — grunnlaget for en ny upsert. */
@@ -573,7 +590,7 @@ async function oppdaterFraServer(manuell) {
   try {
     tur = await hentTur(kode);
   } catch (_) {
-    if (statusEl) statusEl.textContent = 'Kunne ikke oppdatere loggen – prøver igjen.';
+    if (statusEl) statusEl.textContent = t('fellestur.poll_failed');
     return;
   }
   if (state.kode !== kode || document.getElementById('poll-status') !== statusEl) return;
@@ -591,7 +608,7 @@ async function oppdaterFraServer(manuell) {
   if (manuell || nyeIder.length === 0) {
     renderMedobsListe();
     renderObsListe();
-    document.querySelector('.liste-header h2').textContent = `Loggen (${tur.observasjoner.length})`;
+    document.querySelector('.liste-header h2').textContent = t('fellestur.log_heading', { n: tur.observasjoner.length });
     const badge = document.getElementById('btn-nye');
     badge.style.display = 'none';
     state.nyeSidenSist = 0;
@@ -600,12 +617,12 @@ async function oppdaterFraServer(manuell) {
     // badge de kan trykke for å hente inn de nye.
     const badge = document.getElementById('btn-nye');
     state.nyeSidenSist += nyeIder.length;
-    badge.textContent = `🔔 ${state.nyeSidenSist} nye`;
+    badge.textContent = t('fellestur.new_entries_badge', { n: state.nyeSidenSist });
     badge.style.display = 'inline-block';
     badge.onclick = () => {
       renderMedobsListe();
       renderObsListe();
-      document.querySelector('.liste-header h2').textContent = `Loggen (${tur.observasjoner.length})`;
+      document.querySelector('.liste-header h2').textContent = t('fellestur.log_heading', { n: tur.observasjoner.length });
       badge.style.display = 'none';
       state.nyeSidenSist = 0;
     };
@@ -613,7 +630,7 @@ async function oppdaterFraServer(manuell) {
 
   if (statusEl) {
     const na = new Date().toLocaleTimeString('nb-NO', { hour: '2-digit', minute: '2-digit' });
-    statusEl.textContent = `Sist oppdatert ${na}`;
+    statusEl.textContent = t('fellestur.last_updated', { tid: na });
   }
 }
 
@@ -628,17 +645,17 @@ function medobsPadded(navn) {
 async function sendTilArbeidsliste() {
   const tur = state.tur;
   if (!tur.observasjoner.length) {
-    alert('Fellesturen er tom — ingenting å hente inn.');
+    alert(t('fellestur.empty_trip_alert'));
     return;
   }
   // Denne handlingen er starten på AO-innsending (arbeidslista blir sendt
   // videre derfra) — den som gjør dette må faktisk kunne fullføre det, ikke
   // bare parkere loggen lokalt hos noen som uansett ikke kan sende den.
   if (!erInnloggetMotAo()) {
-    alert('Du må være innlogget på Artsobservasjoner for å hente inn og sende denne loggen — logg inn under ⚙️ Innstillinger, eller la en annen i gruppa som er innlogget gjøre dette.');
+    alert(t('fellestur.login_required_alert'));
     return;
   }
-  if (!confirm(`Hente alle ${tur.observasjoner.length} oppføringer inn i din lokale liste, og forlate fellesturen?`)) {
+  if (!confirm(t('fellestur.confirm_take_all', { n: tur.observasjoner.length }))) {
     return;
   }
 
@@ -646,7 +663,7 @@ async function sendTilArbeidsliste() {
   // sendt (unngår at navigasjonen videre kutter forespørselen), men blokkerer
   // aldri selve innhentingen om varselet skulle feile pga. dårlig dekning.
   // Se oppdaterAvsluttetVarsel() for hvordan dette vises hos de andre.
-  await apiPost('/api/fellestur-oppdater', { kode: state.kode, avsluttetAv: hentMittNavn() || 'Noen' }).catch(() => {});
+  await apiPost('/api/fellestur-oppdater', { kode: state.kode, avsluttetAv: hentMittNavn() || t('fellestur.someone') }).catch(() => {});
 
   // Forlat FØRST: loadObservations()/saveObservations() ruter til det delte
   // speilet så lenge en fellestur er aktiv (samme bryter som hovedsiden
@@ -688,11 +705,11 @@ async function sendTilArbeidsliste() {
 
   const lagretOk = saveObservations(eksisterende);
   if (!lagretOk) {
-    alert('Kunne ikke lagre i arbeidslista på denne enheten (full lagringsplass?). Prøv å slette gamle bilder/observasjoner og forsøk igjen.');
+    alert(t('fellestur.save_failed_alert'));
     return;
   }
 
-  if (confirm('Lagt til i arbeidslista! Gå dit nå for å gå gjennom og sende til AO?')) {
+  if (confirm(t('fellestur.confirm_go_to_list'))) {
     location.href = '/';
   }
 }

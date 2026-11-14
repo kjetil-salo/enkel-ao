@@ -92,50 +92,60 @@
   <script src="/js/theme.js"></script>
 
   <div class="fb-card">
-    <h2 style="margin:0 0 4px;">💬 Gi tilbakemelding</h2>
-    <p class="fb-lead">
+    <h2 style="margin:0 0 4px;" data-i18n="feedback.heading">💬 Gi tilbakemelding</h2>
+    <p class="fb-lead" data-i18n="feedback.lead">
       Meld fra om en feil eller foreslå en forbedring. Du får et saksnummer som kvittering.
     </p>
 
     <form id="fb-form">
-      <label class="fb-label" for="fb-type">Hva gjelder det?</label>
+      <label class="fb-label" for="fb-type" data-i18n="feedback.type_label">Hva gjelder det?</label>
       <select id="fb-type" class="fb-select">
-        <option value="feil">🐛 Feil / noe virker ikke</option>
-        <option value="ønske">💡 Ønske / forslag</option>
-        <option value="annet">💬 Annet</option>
+        <option value="feil" data-i18n="feedback.type_bug">🐛 Feil / noe virker ikke</option>
+        <option value="ønske" data-i18n="feedback.type_wish">💡 Ønske / forslag</option>
+        <option value="annet" data-i18n="feedback.type_other">💬 Annet</option>
       </select>
 
-      <label class="fb-label" for="fb-message">Melding</label>
+      <label class="fb-label" for="fb-message" data-i18n="feedback.message_label">Melding</label>
       <textarea id="fb-message" class="fb-textarea" maxlength="4000"
-        placeholder="Beskriv feilen eller ønsket så godt du kan …"></textarea>
+        placeholder="Beskriv feilen eller ønsket så godt du kan …"
+        data-i18n-attr="placeholder:feedback.message_placeholder"></textarea>
 
-      <label class="fb-label" for="fb-email">Din e-post <span class="fb-optional">(valgfritt)</span></label>
+      <label class="fb-label" for="fb-email" data-i18n-html="feedback.email_label">Din e-post <span class="fb-optional">(valgfritt)</span></label>
       <input id="fb-email" class="fb-input" type="email" autocomplete="email"
-        placeholder="navn@eksempel.no" maxlength="200" />
-      <div class="fb-hint">Fyll inn hvis du vil at vi kan svare deg. Vi deler den aldri.</div>
+        placeholder="navn@eksempel.no" maxlength="200"
+        data-i18n-attr="placeholder:feedback.email_placeholder" />
+      <div class="fb-hint" data-i18n="feedback.email_hint">Fyll inn hvis du vil at vi kan svare deg. Vi deler den aldri.</div>
 
       <!-- Honeypot mot bots — la stå tomt -->
       <div class="fb-hp" aria-hidden="true">
         <label>La dette feltet stå tomt<input type="text" id="fb-website" tabindex="-1" autocomplete="off" /></label>
       </div>
 
-      <button type="submit" id="fb-submit" class="fb-submit">Send inn</button>
+      <button type="submit" id="fb-submit" class="fb-submit" data-i18n="feedback.submit_btn">Send inn</button>
       <div id="fb-error"></div>
     </form>
 
     <div id="fb-result">
       <p style="font-size:2.2em;margin:8px 0;">✅</p>
-      <p style="margin:0;">Takk! Tilbakemeldingen er registrert.</p>
-      <p class="fb-hint" style="margin:16px 0 4px;">Ditt saksnummer:</p>
+      <p style="margin:0;" data-i18n="feedback.success_text">Takk! Tilbakemeldingen er registrert.</p>
+      <p class="fb-hint" style="margin:16px 0 4px;" data-i18n="feedback.case_label">Ditt saksnummer:</p>
       <div id="fb-case"></div>
-      <p class="fb-hint">Ta vare på dette hvis du vil følge opp saken senere.</p>
+      <p class="fb-hint" data-i18n="feedback.case_hint">Ta vare på dette hvis du vil følge opp saken senere.</p>
     </div>
 
-    <a href="/" class="fb-back">← Tilbake til appen</a>
+    <a href="/" class="fb-back" data-i18n="feedback.back_link">← Tilbake til appen</a>
   </div>
 
   <script type="module">
     import { VERSION } from './js/version.js';
+    import { t, applyTranslations } from './js/i18n.js?v=v1.60.20';
+
+    document.title = t('feedback.page_title');
+    applyTranslations();
+    document.addEventListener('i18n:language-changed', () => {
+      document.title = t('feedback.page_title');
+      applyTranslations();
+    });
 
     const form = document.getElementById('fb-form');
     const submitBtn = document.getElementById('fb-submit');
@@ -147,13 +157,13 @@
 
       const message = document.getElementById('fb-message').value.trim();
       if (!message) {
-        errorEl.textContent = 'Skriv en melding før du sender.';
+        errorEl.textContent = t('feedback.empty_error');
         errorEl.style.display = 'block';
         return;
       }
 
       submitBtn.disabled = true;
-      submitBtn.textContent = 'Sender …';
+      submitBtn.textContent = t('feedback.submitting');
 
       try {
         const res = await fetch('/api/feedback', {
@@ -169,7 +179,7 @@
         });
         const data = await res.json().catch(() => ({}));
         if (!res.ok || !data.ok) {
-          throw new Error(data.error || 'Noe gikk galt. Prøv igjen senere.');
+          throw new Error(data.error || t('feedback.generic_error'));
         }
         document.getElementById('fb-case').textContent = data.caseNo || '';
         form.style.display = 'none';
@@ -178,7 +188,7 @@
         errorEl.textContent = err.message;
         errorEl.style.display = 'block';
         submitBtn.disabled = false;
-        submitBtn.textContent = 'Send inn';
+        submitBtn.textContent = t('feedback.submit_btn');
       }
     });
   </script>

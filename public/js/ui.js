@@ -247,8 +247,8 @@ export function setLocationStatus(locDot, locText, mode, text) {
  * @param {string} [melding='Denne funksjonen krever nettverkstilkobling og kan ikke brukes mens du er i offline-modus.']
  */
 export function showOfflineNotAvailableDialog(
-  tittel = 'Ikke tilgjengelig i offline-modus!',
-  melding = 'Denne funksjonen krever nettverkstilkobling og kan ikke brukes mens du er i offline-modus.'
+  tittel = t('main.offline_dialog.title'),
+  melding = t('main.offline_dialog.body_default')
 ) {
   // Fjern eventuell eksisterende dialog først
   const eksisterende = document.getElementById('offline-not-available-modal');

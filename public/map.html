@@ -889,7 +889,7 @@
     <div class="map-top-progress-bar" id="map-top-progress-bar"></div>
     <div class="map-top-progress-badge">
       <span class="tile-download-spinner" aria-hidden="true"></span>
-      <span id="map-top-progress-text">Laster ned...</span>
+      <span id="map-top-progress-text" data-i18n="map.offline.downloading_initial">Laster ned...</span>
     </div>
   </div>
 
@@ -897,7 +897,7 @@
   <!-- Tre trinn: Alt → Skjul navn → Skjul alt → Alt. Teksten settes av
        map.js (knappetekst() i kart-visning.js) og beskriver hva NESTE trykk
        gjør; verdien her er bare det første trinnet før JS har kjørt. -->
-  <button type="button" class="back-btn" id="toggle-labels-btn" style="top:76px;right:10px;left:auto;" title="Trykk for å skjule navn, så alle lokaliteter — nyttig for å zoome inn der det er tett">🏷️ Skjul navn</button>
+  <button type="button" class="back-btn" id="toggle-labels-btn" style="top:76px;right:10px;left:auto;" title="Trykk for å skjule navn, så alle lokaliteter — nyttig for å zoome inn der det er tett" data-i18n="kart.visning.knapp.skjul_navn" data-i18n-attr="title:kart.visning.tittel.skjul_navn">🏷️ Skjul navn</button>
   <div style="position:absolute;top:122px;right:10px;z-index:1000;display:flex;gap:6px;align-items:center;">
     <!-- Listeikon for nedlastede offline-områder (kun synlig når områdevalg er åpent) -->
     <button type="button" class="back-btn" id="offline-areas-list-btn" style="display:none;position:static;padding:8px 12px;font-size:16px;min-width:44px;min-height:44px;justify-content:center;" title="Vis nedlastede offline-områder" aria-label="Vis nedlastede offline-områder" data-i18n-attr="title:map.areas_list_btn,aria-label:map.areas_list_btn">
@@ -910,14 +910,14 @@
         <line x1="3" y1="18" x2="3.01" y2="18"></line>
       </svg>
     </button>
-    <button type="button" class="back-btn" id="toggle-offline-area-btn" style="position:static;" title="Velg område på kartet for offline-bruk" data-i18n-attr="title:map.select_area_title">📦 Offline-område</button>
+    <button type="button" class="back-btn" id="toggle-offline-area-btn" style="position:static;" title="Velg område på kartet for offline-bruk" data-i18n="map.offline.area_btn" data-i18n-attr="title:map.select_area_title">📦 Offline-område</button>
   </div>
-  <button type="button" class="back-btn" id="toggle-offline-markers-btn" style="display:none;top:174px;right:10px;left:auto;" title="Skjul eller vis lokalitetsmarkører i offline-modus">📍 Skjul lokaliteter</button>
+  <button type="button" class="back-btn" id="toggle-offline-markers-btn" style="display:none;top:174px;right:10px;left:auto;" title="Skjul eller vis lokalitetsmarkører i offline-modus" data-i18n="map.offline.toggle_markers.hide" data-i18n-attr="title:map.offline.toggle_markers_title">📍 Skjul lokaliteter</button>
 
   <div id="map"></div>
 
   <!-- Flytende GPS-sentreringsknapp (re-fetch og sentrer kartet på GPS) -->
-  <button type="button" class="gps-recenter-btn" id="gps-recenter-btn" title="Sentrer på min posisjon (GPS)" aria-label="Sentrer på min posisjon">
+  <button type="button" class="gps-recenter-btn" id="gps-recenter-btn" title="Sentrer på min posisjon (GPS)" aria-label="Sentrer på min posisjon" data-i18n-attr="title:map.offline.recenter_title,aria-label:map.offline.recenter_aria">
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
       <circle cx="12" cy="12" r="7"></circle>
       <line x1="12" y1="1" x2="12" y2="4"></line>
@@ -939,7 +939,7 @@
         <h3 id="downloaded-areas-title" style="margin:0;font-size:17px;font-weight:700;color:#0f172a;display:flex;align-items:center;gap:6px;" data-i18n="map.downloaded_areas_title">
           📦 Nedlastede områder
         </h3>
-        <button type="button" class="close-offline-panel-btn" id="close-downloaded-areas-btn" aria-label="Lukk" title="Lukk">✕</button>
+        <button type="button" class="close-offline-panel-btn" id="close-downloaded-areas-btn" aria-label="Lukk" title="Lukk" data-i18n-attr="aria-label:index.common.close,title:index.common.close">✕</button>
       </div>
       <div id="downloaded-areas-list" style="overflow-y:auto;display:flex;flex-direction:column;gap:8px;max-height:60vh;padding-right:2px;">
         <!-- Fylles dynamisk -->
@@ -951,18 +951,18 @@
   <div id="map-clear-offline-confirm-modal" role="dialog" aria-modal="true" aria-labelledby="map-clear-offline-confirm-title"
     style="display:none;position:fixed;inset:0;z-index:3500;background:rgba(2,6,23,0.75);backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:16px;">
     <div style="background:#ffffff;color:#0f172a;border:2px solid #ef4444;border-radius:14px;max-width:400px;width:100%;padding:20px;box-shadow:0 20px 40px rgba(0,0,0,0.45);">
-      <h3 id="map-clear-offline-confirm-title" style="margin:0 0 10px 0;font-size:17px;color:#dc2626;">
+      <h3 id="map-clear-offline-confirm-title" style="margin:0 0 10px 0;font-size:17px;color:#dc2626;" data-i18n="map.areas.clear_confirm_title">
         ⚠️ Slett offline-data?
       </h3>
-      <p style="margin:0 0 16px 0;font-size:14px;line-height:1.45;color:#1e293b;">
+      <p style="margin:0 0 16px 0;font-size:14px;line-height:1.45;color:#1e293b;" data-i18n="map.areas.clear_confirm_text">
         Er du sikker på at du vil slette alle nedlastede lokaliteter og kartlag? Dette kan ikke angres.
       </p>
       <div style="display:flex;gap:10px;justify-content:flex-end;">
-        <button type="button" id="map-clear-offline-cancel-btn"
+        <button type="button" id="map-clear-offline-cancel-btn" data-i18n="common.cancel"
           style="padding:9px 14px;border-radius:8px;border:1px solid #cbd5e1;background:#f8fafc;color:#334155;font-size:14px;font-weight:500;cursor:pointer;">
           Avbryt
         </button>
-        <button type="button" id="map-clear-offline-confirm-btn"
+        <button type="button" id="map-clear-offline-confirm-btn" data-i18n="map.areas.clear_confirm_btn"
           style="padding:9px 14px;border-radius:8px;border:none;background:#dc2626;color:#ffffff;font-weight:600;font-size:14px;cursor:pointer;">
           Ja, slett offline-data
         </button>
@@ -973,16 +973,16 @@
   <!-- Ny lokasjon: FAB, hint og avbryt -->
   <button class="add-site-fab" id="add-site-fab" style="display: none;" title="Opprett ny lokasjon" data-i18n-attr="title:map.create_site_heading">+</button>
   <div class="pin-drop-hint" id="pin-drop-hint" data-i18n="map.pin_drop_hint">Trykk på kartet for å plassere lokasjon</div>
-  <button class="cancel-pin-btn" id="cancel-pin-btn">Avbryt</button>
+  <button class="cancel-pin-btn" id="cancel-pin-btn" data-i18n="common.cancel">Avbryt</button>
 
   <!-- Opprett-lokasjon-panel (bottom sheet) -->
   <div class="create-site-panel" id="create-site-panel">
     <h3 data-i18n="map.create_site_heading">Opprett ny lokasjon</h3>
     <label for="new-site-name" data-i18n="map.new_site_name_label">Navn</label>
     <input type="text" id="new-site-name" placeholder="Navn på lokalitet" data-i18n-attr="placeholder:map.new_site_name_placeholder" />
-    <label for="new-site-accuracy">Nøyaktighet</label>
+    <label for="new-site-accuracy" data-i18n="index.create_site.accuracy_label">Nøyaktighet</label>
     <select id="new-site-accuracy">
-      <option value="0">Punktobservasjon</option>
+      <option value="0" data-i18n="map.create_site.point_obs">Punktobservasjon</option>
       <option value="25">25 m</option>
       <option value="50" selected>50 m</option>
       <option value="100">100 m</option>
@@ -990,8 +990,8 @@
       <option value="500">500 m</option>
     </select>
     <div class="panel-buttons">
-      <button class="btn-cancel" id="panel-cancel-btn">Avbryt</button>
-      <button class="btn-create" id="panel-create-btn">Opprett</button>
+      <button class="btn-cancel" id="panel-cancel-btn" data-i18n="common.cancel">Avbryt</button>
+      <button class="btn-create" id="panel-create-btn" data-i18n="common.create">Opprett</button>
     </div>
     <div class="panel-status" id="panel-status"></div>
   </div>

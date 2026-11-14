@@ -9,6 +9,9 @@
  * Se docs/deling-av-observasjoner-plan.md.
  */
 
+import { t } from './i18n.js?v=v1.60.20';
+import { speciesDisplayName } from './storage.js';
+
 const NAME_KEY = 'shareDisplayName_v1';
 const SHARES_KEY = 'myShares_v1';
 
@@ -187,25 +190,29 @@ function visResultat(box, overlay, url, record, erOppdatering, bilderFalt) {
   huskDeling(record);
   const { slug, deleteKey } = record;
 
+  const bilderVarselTekst = bilderFalt === 1
+    ? t('share.photos_dropped_one')
+    : t('share.photos_dropped_many', { n: bilderFalt });
+
   const bilderVarsel = bilderFalt > 0
     ? `<p style="margin:0 0 10px 0;padding:8px 10px;border-radius:8px;background:rgba(251,191,36,0.12);color:#fbbf24;font-size:0.8em;line-height:1.4;">
-        ⚠️ ${bilderFalt} bilde${bilderFalt !== 1 ? 'r' : ''} kunne ikke bli med i delingen (for stort, eller nettleseren fikk ikke behandlet det). Resten er delt som normalt.
+        ${bilderVarselTekst}
       </p>`
     : '';
 
   box.innerHTML = `
-    <h3 style="margin:0 0 12px 0;font-size:1.05em;">${erOppdatering ? '🔄 Delingen er oppdatert' : '🔗 Lenken er klar'}</h3>
+    <h3 style="margin:0 0 12px 0;font-size:1.05em;">${erOppdatering ? t('share.result.updated') : t('share.result.ready')}</h3>
     ${bilderVarsel}
     <input id="share-url" readonly value="${url}"
       style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--border,rgba(148,163,184,0.25));background:var(--card-bg);color:var(--text);font-size:16px;box-sizing:border-box;" />
     <p style="margin:10px 0 16px 0;font-size:0.8em;color:var(--muted);line-height:1.4;">
-      Alle som har lenken kan se den. Den slutter å virke etter 14 dager.
+      ${t('share.result.expiry')}
     </p>
     <div style="display:flex;gap:8px;justify-content:space-between;align-items:center;">
-      <button type="button" id="share-withdraw" style="${knappSekundaer}color:var(--muted);">Trekk tilbake</button>
+      <button type="button" id="share-withdraw" style="${knappSekundaer}color:var(--muted);">${t('share.result.withdraw')}</button>
       <div style="display:flex;gap:8px;">
-        <button type="button" id="share-close" style="${knappSekundaer}">Lukk</button>
-        <button type="button" id="share-copy" style="${knappPrimaer}">Kopier lenke</button>
+        <button type="button" id="share-close" style="${knappSekundaer}">${t('index.common.close')}</button>
+        <button type="button" id="share-copy" style="${knappPrimaer}">${t('share.result.copy_link')}</button>
       </div>
     </div>`;
 
@@ -219,7 +226,7 @@ function visResultat(box, overlay, url, record, erOppdatering, bilderFalt) {
       urlInput.select();
       document.execCommand('copy');
     }
-    e.target.textContent = 'Kopiert!';
+    e.target.textContent = t('share.result.copied');
   });
 
   box.querySelector('#share-withdraw').addEventListener('click', async (e) => {
@@ -232,11 +239,11 @@ function visResultat(box, overlay, url, record, erOppdatering, bilderFalt) {
       });
       if (!r.ok) throw new Error();
       glemDeling(slug);
-      box.innerHTML = '<p style="margin:0;font-size:0.95em;">Delingen er trukket tilbake. Lenken virker ikke lenger.</p>';
+      box.innerHTML = `<p style="margin:0;font-size:0.95em;">${t('share.result.withdrawn')}</p>`;
       setTimeout(() => overlay.remove(), 1800);
     } catch (_) {
       e.target.disabled = false;
-      e.target.textContent = 'Kunne ikke trekke tilbake';
+      e.target.textContent = t('share.result.withdraw_failed');
     }
   });
 }
@@ -254,7 +261,7 @@ export function openShareDialog(observations, existing = null) {
   const skjulte = observations.filter((o) => o.hideUntil).length;
   const delbare = observations.filter((o) => !o.hideUntil);
   if (!delbare.length) {
-    alert('Alle observasjonene er merket «skjul til dato» og kan ikke deles.');
+    alert(t('share.all_hidden_alert'));
     return;
   }
 
@@ -264,13 +271,13 @@ export function openShareDialog(observations, existing = null) {
   const lagretNavn = localStorage.getItem(NAME_KEY) || '';
 
   const rader = delbare.map((obs, i) => {
-    const navn = (obs.species && obs.species.taxonName) || '';
+    const navn = (obs.species && (speciesDisplayName(obs.species) || obs.species.taxonName)) || '';
     const tid = (obs.timestamp || '').slice(11, 16);
     const sted = obs.placeName || '';
     const fotoHtml = obs.photo ? `
         <label style="display:flex;align-items:center;gap:6px;margin:4px 0 0 30px;font-size:0.78em;color:var(--muted);cursor:pointer;">
           <img src="${obs.photo}" style="width:32px;height:32px;object-fit:cover;border-radius:6px;flex-shrink:0;" alt="" />
-          <input type="checkbox" data-photo-idx="${i}" checked style="margin:0;" /> Del bilde
+          <input type="checkbox" data-photo-idx="${i}" checked style="margin:0;" /> ${t('share.dialog.share_photo')}
         </label>` : '';
     return `
       <div style="padding:8px 0;border-bottom:1px solid var(--border,rgba(148,163,184,0.15));">
@@ -286,24 +293,27 @@ export function openShareDialog(observations, existing = null) {
       </div>`;
   }).join('');
 
-  const knappTekst = erOppdatering ? 'Oppdater' : 'Lag lenke';
+  const knappTekst = erOppdatering ? t('share.dialog.update_btn') : t('share.dialog.create_btn');
+  const skjulteTekst = skjulte === 1
+    ? t('share.dialog.hidden_omitted_one')
+    : t('share.dialog.hidden_omitted_many', { n: skjulte });
 
   box.innerHTML = `
-    <h3 style="margin:0 0 4px 0;font-size:1.05em;">${erOppdatering ? '🔄 Oppdater delingen' : '🔗 Del funnene'}</h3>
+    <h3 style="margin:0 0 4px 0;font-size:1.05em;">${erOppdatering ? t('share.dialog.update_heading') : t('share.dialog.create_heading')}</h3>
     <p style="margin:0 0 14px 0;font-size:0.8em;color:var(--muted);line-height:1.35;">
-      ${erOppdatering ? 'Samme lenke fortsetter å virke — innholdet erstattes. ' : ''}
-      ${dato ? `Forhåndsvalgt: ${dato}. ` : ''}Hak av det du vil dele.
-      ${skjulte ? `<br>${skjulte} skjult${skjulte !== 1 ? 'e' : ''} observasjon${skjulte !== 1 ? 'er' : ''} er utelatt.` : ''}
+      ${erOppdatering ? t('share.dialog.update_note') : ''}
+      ${dato ? t('share.dialog.preselected', { date: dato }) : ''}${t('share.dialog.check_instruction')}
+      ${skjulte ? `<br>${skjulteTekst}` : ''}
     </p>
-    <label style="font-size:0.8em;color:var(--muted);display:block;margin-bottom:4px;">Vist som</label>
-    <input id="share-name" placeholder="Navnet ditt" maxlength="40" value="${lagretNavn.replace(/"/g, '&quot;')}"
+    <label style="font-size:0.8em;color:var(--muted);display:block;margin-bottom:4px;">${t('share.dialog.shown_as')}</label>
+    <input id="share-name" placeholder="${t('share.dialog.name_placeholder').replace(/"/g, '&quot;')}" maxlength="40" value="${lagretNavn.replace(/"/g, '&quot;')}"
       style="width:100%;padding:8px;border-radius:8px;border:1px solid var(--border,rgba(148,163,184,0.25));background:var(--card-bg);color:var(--text);font-size:16px;box-sizing:border-box;margin-bottom:12px;" />
     <div id="share-list" style="max-height:38vh;overflow-y:auto;margin-bottom:14px;">${rader}</div>
     <p style="margin:0 0 14px 0;font-size:0.75em;color:var(--muted);line-height:1.35;">
-      Posisjon deles aldri — kun lokalitetsnavn. Alle med lenken kan se den, og den slutter å virke etter 14 dager.
+      ${t('share.dialog.privacy_note')}
     </p>
     <div style="display:flex;gap:8px;justify-content:flex-end;">
-      <button type="button" id="share-cancel" style="${knappSekundaer}">Avbryt</button>
+      <button type="button" id="share-cancel" style="${knappSekundaer}">${t('index.common.cancel')}</button>
       <button type="button" id="share-create" style="${knappPrimaer}">${knappTekst}</button>
     </div>`;
 
@@ -313,7 +323,7 @@ export function openShareDialog(observations, existing = null) {
     const valgteIdx = [...box.querySelectorAll('#share-list input[data-idx]:checked')]
       .map((cb) => Number(cb.dataset.idx));
     if (!valgteIdx.length) {
-      alert('Velg minst én observasjon.');
+      alert(t('share.dialog.select_one_alert'));
       return;
     }
 
@@ -327,7 +337,7 @@ export function openShareDialog(observations, existing = null) {
     const epost = !navn && lagretAoBruker.includes('@') ? lagretAoBruker : '';
 
     e.target.disabled = true;
-    e.target.textContent = erOppdatering ? 'Oppdaterer…' : 'Lager lenke…';
+    e.target.textContent = erOppdatering ? t('share.dialog.updating_btn') : t('share.dialog.creating_btn');
     try {
       // Nedskaler bare bildene som faktisk skal deles — resten strippes helt
       // fra det som sendes (ikke bare skjules på siden etterpå). Feiler
@@ -364,7 +374,7 @@ export function openShareDialog(observations, existing = null) {
       });
       const result = await resp.json();
       if (!resp.ok || !result.ok) {
-        throw new Error(result.error || (erOppdatering ? 'Kunne ikke oppdatere delingen' : 'Kunne ikke lage lenke'));
+        throw new Error(result.error || (erOppdatering ? t('share.update_failed') : t('share.create_failed')));
       }
 
       const slug = result.slug;

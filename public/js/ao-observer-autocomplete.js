@@ -13,6 +13,8 @@
  * .medobs-ac-spinner/.ac-fav/.ac-city (se index.html for definisjonen).
  */
 
+import { t } from './i18n.js?v=v1.60.20';
+
 function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 }
@@ -75,14 +77,14 @@ export function attachAoObserverAutocomplete(inp, onSelect) {
 
     clearTimeout(acDebounce);
     acDebounce = setTimeout(async () => {
-      dropdown.innerHTML = '<div class="medobs-ac-spinner">Søker…</div>';
+      dropdown.innerHTML = `<div class="medobs-ac-spinner">${t('index.common.searching')}</div>`;
       dropdown.classList.add('show');
       acActiveIndex = -1;
 
       const results = await searchObservers(query);
       dropdown.innerHTML = '';
       if (results.length === 0) {
-        dropdown.innerHTML = '<div class="medobs-ac-spinner">Ingen treff</div>';
+        dropdown.innerHTML = `<div class="medobs-ac-spinner">${t('index.common.no_hits')}</div>`;
         return;
       }
       results.sort((a, b) => (b.isCoObserver ? 1 : 0) - (a.isCoObserver ? 1 : 0));

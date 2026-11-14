@@ -1,6 +1,8 @@
 import { isOfflineMode } from './offline-db.js';
 import { hentAktivFellestur } from './fellestur-client.js';
 import { lesArbeidslisteForOverforing, lesPrivatArbeidsliste, speciesDisplayName } from './storage.js?v=v1.60.20';
+import { activityDisplayName, genderDisplayName } from './storage.js';
+import { t, getLanguage } from './i18n.js?v=v1.60.20';
 import {
   aktivInnhentetListe, apneInnhentetListe, lagreInnhentetKopi,
   lesInnhentetListe, lukkInnhentetListe,
@@ -11,27 +13,43 @@ import {
 } from './arbeidsliste-sesjon.js';
 
 function tidspunkt(ts) {
-  return new Date(ts * 1000).toLocaleString('nb-NO', { dateStyle: 'short', timeStyle: 'short' });
+  const locale = getLanguage() === 'nn' ? 'nn-NO' : 'nb-NO';
+  return new Date(ts * 1000).toLocaleString(locale, { dateStyle: 'short', timeStyle: 'short' });
 }
 
 function oppsummer(kopi) {
-  if (!kopi) return 'Ingen lagret kopi. Lagre lista fra enheten du registrerte på.';
+  if (!kopi) return t('arbeidsliste.no_copy');
   const periode = kopi.fraDato === kopi.tilDato ? kopi.fraDato : [kopi.fraDato, kopi.tilDato].filter(Boolean).join('–');
-  return [`${kopi.antall} observasjoner`, kopi.kilde, periode, `lagret ${tidspunkt(kopi.lagretTs)}`].filter(Boolean).join(' · ');
+  const obsOrd = kopi.antall === 1 ? t('observations.word_singular') : t('observations.word_plural');
+  return [
+    `${kopi.antall} ${obsOrd}`,
+    kopi.kilde,
+    periode,
+    t('arbeidsliste.summary_saved_at', { tid: tidspunkt(kopi.lagretTs) }),
+  ].filter(Boolean).join(' · ');
 }
 
 function beskrivObservasjon(obs) {
   const rad = document.createElement('li');
   const navn = speciesDisplayName(obs.species) || obs.species?.scientificName ||
-    obs.species?.scientificNameHtml?.replace(/<[^>]+>/g, '') || 'Ukjent art';
+    obs.species?.scientificNameHtml?.replace(/<[^>]+>/g, '') || t('common.unknown_species');
   const art = document.createElement('strong');
-  art.textContent = `${navn} · ${obs.count ?? 'Ukjent antall'}`;
+  art.textContent = `${navn} · ${obs.count ?? t('arbeidsliste.unknown_count')}`;
   rad.append(art);
   const tid = obs.timestamp?.replace('T', ' ');
   const til = obs.tilKlokkeslett?.replace('T', ' ');
-  const detaljer = [obs.placeName, tid, til && `til ${til}`, obs.activity, obs.age, obs.gender,
-    obs.hideUntil && `Skjult til ${obs.hideUntil}`, obs.sentTs && 'Allerede merket som sendt',
-    obs.comment, obs.privateComment && `Privat kommentar: ${obs.privateComment}`].filter(Boolean);
+  const detaljer = [
+    obs.placeName,
+    tid,
+    til && t('arbeidsliste.to_time', { til }),
+    obs.activity && activityDisplayName(obs.activity),
+    obs.age,
+    obs.gender && genderDisplayName(obs.gender),
+    obs.hideUntil && t('arbeidsliste.hidden_until', { date: obs.hideUntil }),
+    obs.sentTs && t('arbeidsliste.already_sent'),
+    obs.comment,
+    obs.privateComment && t('arbeidsliste.private_comment', { text: obs.privateComment }),
+  ].filter(Boolean);
   if (detaljer.length) {
     const tekst = document.createElement('p');
     tekst.textContent = detaljer.join(' · ');
@@ -39,11 +57,11 @@ function beskrivObservasjon(obs) {
   }
   if (obs.photo?.startsWith('data:image/jpeg;base64,')) {
     const bilde = document.createElement('img');
-    bilde.alt = `Bilde av ${navn}`;
+    bilde.alt = t('arbeidsliste.image_alt', { navn });
     bilde.loading = 'lazy';
     bilde.addEventListener('error', () => {
       const tekst = document.createElement('p');
-      tekst.textContent = 'Bildet kunne ikke vises.';
+      tekst.textContent = t('arbeidsliste.image_error');
       bilde.replaceWith(tekst);
     }, { once: true });
     bilde.src = obs.photo;
@@ -95,7 +113,7 @@ export function initArbeidslisteOverforing({ synligeFunn, listeEndret, varsle, s
     taInn.hidden = !aktivPaServer || !sesjon || !vistKopi;
     for (const knapp of handlinger) knapp.disabled = Boolean(jobb);
     info.textContent = sesjon ? oppsummer(kopi) : '';
-    kontoInfo.textContent = sesjon ? `AO-konto: ${sesjon.alias}` : '';
+    kontoInfo.textContent = sesjon ? t('arbeidsliste.account_prefix', { alias: sesjon.alias }) : '';
   }
 
   function oppdaterLokalt() {
@@ -103,7 +121,7 @@ export function initArbeidslisteOverforing({ synligeFunn, listeEndret, varsle, s
     try {
       const innhentet = aktivInnhentetListe();
       lokal.hidden = !innhentet && !lesInnhentetListe();
-      lokal.textContent = innhentet ? 'Vis lista fra denne enheten' : 'Åpne innhentet liste';
+      lokal.textContent = innhentet ? t('index.menu.local_show') : t('index.menu.local_open');
     } catch {
       lokal.hidden = true;
     }
@@ -117,7 +135,7 @@ export function initArbeidslisteOverforing({ synligeFunn, listeEndret, varsle, s
         throw new DOMException('Kontokonteksten er endret.', 'AbortError');
       }
       if (brukSesjon && lesOverforingssesjon()?.token !== brukSesjon.token) {
-        const feil = new Error('Logg inn på nytt for å fortsette overføringen.');
+        const feil = new Error(t('arbeidsliste.relogin_required'));
         feil.status = 401;
         throw feil;
       }
@@ -133,7 +151,7 @@ export function initArbeidslisteOverforing({ synligeFunn, listeEndret, varsle, s
     const data = await svar.json().catch(() => null);
     kontrollerKontekst();
     if (!svar.ok || !data || data.error) {
-      const feil = new Error(data?.error || 'Kunne ikke kontakte serveren. Prøv igjen.');
+      const feil = new Error(data?.error || t('arbeidsliste.server_unreachable'));
       feil.status = svar.status;
       throw feil;
     }
@@ -143,7 +161,7 @@ export function initArbeidslisteOverforing({ synligeFunn, listeEndret, varsle, s
   function brukNett(tekst, handling) {
     if (jobb) return;
     if (isOfflineMode() || navigator.onLine === false) {
-      status.textContent = 'Overføring krever nett. Velg Hybrid eller Online og prøv igjen.';
+      status.textContent = t('arbeidsliste.requires_network');
       return;
     }
     const aktivJobb = new AbortController();
@@ -158,9 +176,9 @@ export function initArbeidslisteOverforing({ synligeFunn, listeEndret, varsle, s
         visKopi();
       }
       if (feil.name === 'QuotaExceededError') {
-        status.textContent = 'Denne enheten har for lite lagringsplass. Serverkopien er beholdt.';
+        status.textContent = t('arbeidsliste.quota_exceeded');
       } else if (feil instanceof TypeError) {
-        status.textContent = 'Kunne ikke kontakte serveren. Kontroller nettet og prøv igjen.';
+        status.textContent = t('arbeidsliste.check_network');
       } else {
         status.textContent = feil.message;
       }
@@ -187,31 +205,31 @@ export function initArbeidslisteOverforing({ synligeFunn, listeEndret, varsle, s
     kopi = null;
     visKopi();
     dialog.showModal();
-    brukNett('Sjekker overføring …', async (signal) => {
+    brukNett(t('arbeidsliste.checking_transfer'), async (signal) => {
       const { aktiv } = await api('/status', signal, { medSesjon: false });
       aktivPaServer = aktiv;
       if (!aktiv) {
-        status.textContent = 'Listeoverføring er midlertidig utilgjengelig.';
+        status.textContent = t('arbeidsliste.unavailable');
         return;
       }
       if (sesjon) {
         await lastMetadata(signal);
         if (vilHente) await lastForhandsvisning(signal);
       }
-      status.textContent = sesjon ? '' : 'Logg inn med samme AO-konto på begge enhetene.';
+      status.textContent = sesjon ? '' : t('arbeidsliste.login_same_account');
     });
   }
 
   function bekreftPrivatListe() {
-    if (hentAktivFellestur()) throw new Error('Kopier først fellesturen til privat liste fra Fellestur-siden.');
+    if (hentAktivFellestur()) throw new Error(t('arbeidsliste.copy_fellestur_first'));
     return bekreftLagretListe();
   }
 
   function bekreftLagretListe() {
-    if (sendingPagar()) throw new Error('Vent til den pågående AO-sendingen er ferdig.');
+    if (sendingPagar()) throw new Error(t('arbeidsliste.wait_sending'));
     const lagret = lesArbeidslisteForOverforing();
     if (JSON.stringify(lagret) !== JSON.stringify(synligeFunn())) {
-      throw new Error('Den synlige lista har endringer som mangler i lokal lagring. Ta vare på dem og prøv igjen.');
+      throw new Error(t('arbeidsliste.unsaved_changes'));
     }
     return lagret;
   }
@@ -231,10 +249,10 @@ export function initArbeidslisteOverforing({ synligeFunn, listeEndret, varsle, s
     lukkMeny(hent);
     visDialog(true);
   });
-  loggInn.addEventListener('click', () => brukNett('Bekrefter AO-kontoen …', async (signal) => {
+  loggInn.addEventListener('click', () => brukNett(t('arbeidsliste.confirming_account'), async (signal) => {
     const konto = kontoKontekst();
     const password = localStorage.getItem('ao_password');
-    if (!konto.brukernavn || !password) throw new Error('Legg inn AO-innloggingen i Innstillinger først.');
+    if (!konto.brukernavn || !password) throw new Error(t('arbeidsliste.login_in_settings'));
     const body = JSON.stringify({ username: konto.brukernavn, password });
     const data = await api('/innlogging', signal, { medSesjon: false, body });
     if (!data.sesjon || !lagreOverforingssesjon(data.sesjon, konto)) return;
@@ -243,16 +261,17 @@ export function initArbeidslisteOverforing({ synligeFunn, listeEndret, varsle, s
     if (vilHente) await lastForhandsvisning(signal);
     status.textContent = '';
   }));
-  lagre.addEventListener('click', () => brukNett('Lagrer privat kopi …', async (signal) => {
+  lagre.addEventListener('click', () => brukNett(t('arbeidsliste.saving_copy'), async (signal) => {
     const observations = bekreftPrivatListe();
-    if (!observations.length) throw new Error('Arbeidslista er tom.');
+    if (!observations.length) throw new Error(t('arbeidsliste.list_empty'));
     const lokalMetadata = aktivInnhentetListe();
-    if (lokalMetadata && lokalMetadata.eier !== sesjon.eier) throw new Error('Logg inn med AO-kontoen som eier lista.');
+    if (lokalMetadata && lokalMetadata.eier !== sesjon.eier) throw new Error(t('arbeidsliste.wrong_owner'));
+    const kilde = matchMedia('(pointer: coarse)').matches ? t('arbeidsliste.source_mobile') : t('arbeidsliste.source_desktop');
     const pakke = { liste: { schemaVersion: 1, observations },
-      kilde: matchMedia('(pointer: coarse)').matches ? 'Mobil' : 'Datamaskin', erstatter: kopi?.id ?? null };
+      kilde, erstatter: kopi?.id ?? null };
     const grunnlag = JSON.stringify(pakke);
     if (!forsok || forsok.grunnlag !== grunnlag) {
-      if (kopi && !confirm(`Erstatte kopien fra ${tidspunkt(kopi.lagretTs)} for ${sesjon.alias}?`)) {
+      if (kopi && !confirm(t('arbeidsliste.confirm_replace', { tid: tidspunkt(kopi.lagretTs), alias: sesjon.alias }))) {
         status.textContent = '';
         return;
       }
@@ -279,21 +298,24 @@ export function initArbeidslisteOverforing({ synligeFunn, listeEndret, varsle, s
     } catch {
       endret = true;
     }
-    status.textContent = `Lagret for henting på en annen enhet. ${oppsummer(kvittering)}.${endret ? ' Nyere lokale endringer venter på lagring.' : ''}`;
+    status.textContent = t('arbeidsliste.saved_for_fetch', {
+      summary: oppsummer(kvittering),
+      pending: endret ? t('arbeidsliste.pending_changes') : '',
+    });
     try {
       await lastMetadata(signal);
-      if (kopi?.id !== kvittering.id) status.textContent = 'Lagringen ble bekreftet. Serveren viser nå gjeldende status for kontoen.';
+      if (kopi?.id !== kvittering.id) status.textContent = t('arbeidsliste.saved_confirmed');
     } catch {
       // Lagringskvitteringen gjelder selv om oppdatering av serverstatus feiler.
     }
   }));
-  forhåndsvis.addEventListener('click', () => brukNett('Henter forhåndsvisning …', async (signal) => {
+  forhåndsvis.addEventListener('click', () => brukNett(t('arbeidsliste.fetching_preview'), async (signal) => {
     await lastMetadata(signal);
     await lastForhandsvisning(signal);
     status.textContent = '';
   }));
-  slett.addEventListener('click', () => brukNett('Sletter serverkopien …', async (signal) => {
-    if (!kopi || !confirm('Slette den private serverkopien? Lokale lister beholdes.')) {
+  slett.addEventListener('click', () => brukNett(t('arbeidsliste.deleting_copy'), async (signal) => {
+    if (!kopi || !confirm(t('arbeidsliste.confirm_delete_copy'))) {
       status.textContent = '';
       return;
     }
@@ -305,13 +327,13 @@ export function initArbeidslisteOverforing({ synligeFunn, listeEndret, varsle, s
     }
     kopi = null;
     visKopi();
-    status.textContent = 'Serverkopien er slettet.';
+    status.textContent = t('arbeidsliste.copy_deleted');
   }));
-  taInn.addEventListener('click', () => brukNett('Sjekker kopien …', async (signal) => {
+  taInn.addEventListener('click', () => brukNett(t('arbeidsliste.checking_copy'), async (signal) => {
     if (!vistKopi) return;
     function bekreftTomListe() {
       if (bekreftPrivatListe().length || lesPrivatArbeidsliste().length || aktivInnhentetListe()) {
-        throw new Error('Arbeidslista må være tom. Ta vare på den via Sikkerhetskopi i Innstillinger før du henter inn.');
+        throw new Error(t('arbeidsliste.must_be_empty'));
       }
     }
     bekreftTomListe();
@@ -330,7 +352,7 @@ export function initArbeidslisteOverforing({ synligeFunn, listeEndret, varsle, s
     });
     listeEndret();
     dialog.close();
-    varsle('Kopien er hentet inn i Lista di.');
+    varsle(t('arbeidsliste.fetched_toast'));
   }));
 
   lokal.addEventListener('click', async () => {

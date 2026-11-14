@@ -113,7 +113,7 @@
                  ikoner. Tre hoder sier dessuten «gruppe», som er hele poenget
                  med en fellestur. SVG arver currentColor, så den følger
                  muted→accent på hover slik emoji-naboene ikke gjør. -->
-            <a href="/fellestur.html" id="fellestur-header-btn" aria-label="Fellestur – registrer sammen med andre i én delt logg" style="color: var(--muted); text-decoration: none; font-size: 1.2rem; padding: 4px 8px; border-radius: 8px; transition: all 0.2s; display: flex; align-items: center;" title="Fellestur – registrer sammen med andre i én delt logg" onmouseover="this.style.color='var(--accent)'; this.style.background='var(--accent-soft)'" onmouseout="this.style.color='var(--muted)'; this.style.background='transparent'"><svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="3.4"/><path d="M5.8 20v-1.2A4.2 4.2 0 0 1 10 14.6h4a4.2 4.2 0 0 1 4.2 4.2V20"/><circle cx="4.2" cy="9.8" r="2.1"/><path d="M1.4 19.4v-1a3.4 3.4 0 0 1 2.5-3.3"/><circle cx="19.8" cy="9.8" r="2.1"/><path d="M22.6 19.4v-1a3.4 3.4 0 0 0-2.5-3.3"/></svg></a>
+            <a href="/fellestur.html" id="fellestur-header-btn" aria-label="Fellestur – registrer sammen med andre i én delt logg" data-i18n-attr="aria-label:main.fellestur.header_btn,title:main.fellestur.header_btn" style="color: var(--muted); text-decoration: none; font-size: 1.2rem; padding: 4px 8px; border-radius: 8px; transition: all 0.2s; display: flex; align-items: center;" title="Fellestur – registrer sammen med andre i én delt logg" onmouseover="this.style.color='var(--accent)'; this.style.background='var(--accent-soft)'" onmouseout="this.style.color='var(--muted)'; this.style.background='transparent'"><svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="3.4"/><path d="M5.8 20v-1.2A4.2 4.2 0 0 1 10 14.6h4a4.2 4.2 0 0 1 4.2 4.2V20"/><circle cx="4.2" cy="9.8" r="2.1"/><path d="M1.4 19.4v-1a3.4 3.4 0 0 1 2.5-3.3"/><circle cx="19.8" cy="9.8" r="2.1"/><path d="M22.6 19.4v-1a3.4 3.4 0 0 0-2.5-3.3"/></svg></a>
             <a href="/help.html" aria-label="Hjelp" data-i18n-attr="aria-label:index.help_link,title:index.help_link" style="color: var(--muted); text-decoration: none; font-size: 1.2rem; padding: 4px 8px; border-radius: 8px; transition: all 0.2s; display: flex; align-items: center;" title="Hjelp" onmouseover="this.style.color='var(--accent)'; this.style.background='var(--accent-soft)'" onmouseout="this.style.color='var(--muted)'; this.style.background='transparent'">📖</a>
             <a href="/settings.html" aria-label="Innstillinger" data-i18n-attr="aria-label:settings.title,title:settings.title" style="color: var(--muted); text-decoration: none; font-size: 1.2rem; padding: 4px 8px; border-radius: 8px; transition: all 0.2s; display: flex; align-items: center;" title="Innstillinger" onmouseover="this.style.color='var(--accent)'; this.style.background='var(--accent-soft)'" onmouseout="this.style.color='var(--muted)'; this.style.background='transparent'">⚙️</a>
             <!-- ⋯ står sist i raden, der en overflytsmeny hører hjemme: den
@@ -122,10 +122,10 @@
                  overtar innholdet deres, og den er da siste element uansett. -->
             <details class="header-menu" id="header-menu">
               <summary aria-label="Meny" title="Meny" data-i18n-attr="aria-label:index.menu,title:index.menu"><span aria-hidden="true">⋯</span></summary>
-              <nav class="header-menu-links" aria-label="Hovedmeny">
-                <button type="button" id="arbeidsliste-overfor" hidden>Fortsett på en annen enhet</button>
-                <button type="button" id="arbeidsliste-hent">Hent liste fra en annen enhet</button>
-                <button type="button" id="arbeidsliste-lokal" hidden>Åpne innhentet liste</button>
+              <nav class="header-menu-links" aria-label="Hovedmeny" data-i18n-attr="aria-label:main.menu_nav_aria">
+                <button type="button" id="arbeidsliste-overfor" hidden data-i18n="main.menu.continue_other_device">Fortsett på en annen enhet</button>
+                <button type="button" id="arbeidsliste-hent" data-i18n="main.menu.fetch_other_device">Hent liste fra en annen enhet</button>
+                <button type="button" id="arbeidsliste-lokal" hidden data-i18n="index.menu.local_open">Åpne innhentet liste</button>
                 <a href="/fellestur.html" data-i18n="main.nav.fellestur">Fellestur</a>
                 <a href="/help.html" data-i18n="index.help_link">Hjelp</a>
                 <a href="/settings.html" data-i18n="settings.title">Innstillinger</a>
@@ -216,10 +216,10 @@
         <!-- Vises kun når en fellestur er aktiv på denne enheten -->
         <div id="fellestur-banner" style="display:none;flex-direction:column;gap:6px;background:var(--accent-soft);border:1px solid var(--accent);border-radius:10px;padding:8px 12px;margin-bottom:10px;font-size:0.85em;">
           <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
-            <span>👥 På fellestur: <strong id="fellestur-banner-navn"></strong> — det du registrerer havner i den delte loggen</span>
+            <span>👥 <span data-i18n="main.fellestur.banner_title">På fellestur:</span> <strong id="fellestur-banner-navn"></strong> <span data-i18n="index.fellestur_banner.suffix">— det du registrerer havner i den delte loggen</span></span>
             <span style="display:flex;gap:10px;align-items:center;white-space:nowrap;">
-              <a href="/fellestur.html" style="color:var(--accent);text-decoration:none;font-weight:600;">Se logg</a>
-              <button type="button" id="fellestur-forlat-btn" style="background:none;border:none;color:var(--muted);text-decoration:underline;cursor:pointer;font-size:1em;padding:0;">Forlat</button>
+              <a href="/fellestur.html" style="color:var(--accent);text-decoration:none;font-weight:600;" data-i18n="index.fellestur_banner.view_log">Se logg</a>
+              <button type="button" id="fellestur-forlat-btn" style="background:none;border:none;color:var(--muted);text-decoration:underline;cursor:pointer;font-size:1em;padding:0;" data-i18n="index.fellestur_banner.leave">Forlat</button>
             </span>
           </div>
           <div id="fellestur-avsluttet-varsel" style="display:none;color:#f87171;font-weight:600;"></div>
@@ -232,7 +232,7 @@
             <span id="loc-pinned-name" class="loc-pinned-name"></span>
             <span id="loc-pinned-visit" class="loc-pinned-visit" style="display:none;"></span>
           </button>
-          <button type="button" id="loc-pinned-map-btn" class="loc-pinned-map-btn" aria-label="Åpne kart" title="Åpne kart">🗺️</button>
+          <button type="button" id="loc-pinned-map-btn" class="loc-pinned-map-btn" aria-label="Åpne kart" title="Åpne kart" data-i18n-attr="aria-label:main.map_btn.open_title,title:main.map_btn.open_title">🗺️</button>
           <button type="button" id="loc-change-btn" class="loc-change-btn" data-i18n="index.loc.change_btn">Bytt lokasjon</button>
         </div>
 
@@ -274,7 +274,7 @@
                 .row .icon-btn { height:34px !important; }
               }
             </style>
-            <button class="icon-btn" id="loc-map-btn" aria-label="Åpne kart" title="Åpne kart" style="font-size:1.5em;padding:6px 10px;border:2px solid var(--accent);border-radius:8px;background:var(--accent-soft);color:var(--text);height:38px;min-width:46px;transition:all 0.2s;box-shadow:0 2px 8px rgba(59,130,246,0.10);">🗺️<span id="loc-map-btn-label" style="font-size:0.8rem;font-weight:600;margin-left:6px;vertical-align:middle;">Kart</span></button>
+            <button class="icon-btn" id="loc-map-btn" aria-label="Åpne kart" title="Åpne kart" data-i18n-attr="aria-label:main.map_btn.open_title,title:main.map_btn.open_title" style="font-size:1.5em;padding:6px 10px;border:2px solid var(--accent);border-radius:8px;background:var(--accent-soft);color:var(--text);height:38px;min-width:46px;transition:all 0.2s;box-shadow:0 2px 8px rgba(59,130,246,0.10);">🗺️<span id="loc-map-btn-label" data-i18n="main.map_select.label" style="font-size:0.8rem;font-weight:600;margin-left:6px;vertical-align:middle;">Kart</span></button>
             <button class="icon-btn" id="create-site-btn" aria-label="Opprett ny AO-lokasjon" title="Opprett ny AO-lokasjon" data-i18n-attr="aria-label:index.create_site.btn_title,title:index.create_site.btn_title" style="font-size:1.3em;padding:6px 10px;border:2px solid var(--accent);border-radius:8px;background:var(--accent-soft);color:var(--text);height:38px;min-width:46px;transition:all 0.2s;display:none;box-shadow:0 2px 8px rgba(59,130,246,0.10);">➕</button>
           </div>
           <div id="radius-row" class="radius-row" style="display:none;">
@@ -291,10 +291,10 @@
             />
             <span id="ao-size-value" class="radius-value">1 km</span>
           </div>
-          <div class="loc-sort-row" id="loc-sort-row" role="radiogroup" aria-label="Sortering av lokasjonsforslag" style="display:none;">
-            <span class="loc-sort-label">Sortering</span>
-            <button type="button" id="loc-sort-standard" class="loc-sort-btn" role="radio" aria-checked="true" title="Gruppert etter type: egne private, superlokasjon, offentlig, andres private — nærmest først innad i hver gruppe" data-i18n-attr="title:index.loc.sort_standard_title">Gruppert</button>
-            <button type="button" id="loc-sort-avstand" class="loc-sort-btn" role="radio" aria-checked="false" title="Kun avstand, uansett type lokasjon" data-i18n-attr="title:index.loc.sort_distance_title">Avstand</button>
+          <div class="loc-sort-row" id="loc-sort-row" role="radiogroup" aria-label="Sortering av lokasjonsforslag" data-i18n-attr="aria-label:index.loc.sort_aria" style="display:none;">
+            <span class="loc-sort-label" data-i18n="index.loc.sort_label">Sortering</span>
+            <button type="button" id="loc-sort-standard" class="loc-sort-btn" role="radio" aria-checked="true" title="Gruppert etter type: egne private, superlokasjon, offentlig, andres private — nærmest først innad i hver gruppe" data-i18n="index.loc.sort_grouped" data-i18n-attr="title:index.loc.sort_standard_title">Gruppert</button>
+            <button type="button" id="loc-sort-avstand" class="loc-sort-btn" role="radio" aria-checked="false" title="Kun avstand, uansett type lokasjon" data-i18n="index.loc.sort_distance" data-i18n-attr="title:index.loc.sort_distance_title">Avstand</button>
           </div>
           <div class="row" style="margin-top:10px;position:relative;">
             <!-- AO-lokasjoner custom dropdown (kun div) -->
@@ -308,6 +308,7 @@
               autocapitalize="off"
               spellcheck="false"
               placeholder="F.eks. Osen, Herdla …"
+              data-i18n-attr="placeholder:index.loc.place_placeholder"
             />
             <div class="result-empty" id="ao-sites" style="display:none; margin-top:4px;"></div>
           </div>
@@ -315,19 +316,19 @@
         </fieldset>
 
         <fieldset class="section-main section-observasjon" style="margin:0 0 16px 0;padding:0 6px 12px 6px;box-sizing:border-box;">
-          <legend>② Registrer art</legend>
+          <legend data-i18n="index.species.legend">② Registrer art</legend>
           <!-- TODO: Skjul status-raden til søk faktisk pågår. Vis kun når brukeren har begynt å skrive (>0 tegn). -->
           <div class="status-row" style="display:none;">
             <div class="status-left">
               <span class="status-dot" id="status-dot"></span>
-              <span id="status-text">Klar for søk</span>
+              <span id="status-text" data-i18n="species.status.ready">Klar for søk</span>
             </div>
-            <div class="badge" id="result-count">0 treff</div>
+            <div class="badge" id="result-count" data-i18n="species.hits_zero">0 treff</div>
           </div>
 
           <div id="art-antall-row" style="display:flex;gap:8px;margin-top:10px;align-items:flex-end;">
             <div style="flex:1;min-width:0;">
-              <label for="search" style="display:block;">Art</label>
+              <label for="search" style="display:block;" data-i18n="index.species.label">Art</label>
               <div class="input-wrap" style="display:flex;align-items:center;gap:8px;">
                 <span class="search-icon">🔍</span>
                 <input
@@ -371,12 +372,12 @@
                 <input type="checkbox" id="include-subtaxa" style="margin:0 4px 0 0;vertical-align:middle;" />
                 <span data-i18n="index.show_subtaxa">Vis underarter</span>
               </label>
-              <span id="subtaxa-offline-warning" style="display:none;font-size:0.75em;color:#eab308;line-height:1;">
+              <span id="subtaxa-offline-warning" style="display:none;font-size:0.75em;color:#eab308;line-height:1;" data-i18n="index.species.subtaxa_warning_short">
                 ⚠️ Ikke i offline
               </span>
             </div>
             <div style="width:80px;flex-shrink:0;">
-              <label style="font-size:0.75em;color:#b0b0b0;display:flex;align-items:center;gap:2px;user-select:none;margin:0;" title="Legger automatisk til kommentaren «Estimert antal»">
+              <label style="font-size:0.75em;color:#b0b0b0;display:flex;align-items:center;gap:2px;user-select:none;margin:0;" title="Legger automatisk til kommentaren «Estimert antal»" data-i18n-attr="title:index.species.approx_title">
                 <input type="checkbox" id="count-estimated" style="margin:0 2px 0 0;vertical-align:middle;" />
                 ca
               </label>
@@ -386,7 +387,7 @@
           <div class="results-anchor">
             <div class="results" id="results" role="listbox" aria-label="Arter" data-i18n-attr="aria-label:index.results_aria"></div>
           </div>
-          <div class="result-empty" id="empty-msg" style="display:none;">Ingen treff ennå. Skriv minst 2 tegn.</div>
+          <div class="result-empty" id="empty-msg" style="display:none;" data-i18n="index.species.empty_msg">Ingen treff ennå. Skriv minst 2 tegn.</div>
           <div class="rarity-warning" id="rarity-warning" style="display:none;" role="status" aria-live="polite">
             <span class="rarity-warning-icon">⚠️</span>
             <div class="rarity-warning-text">
@@ -396,9 +397,9 @@
           </div>
           <div class="row" style="margin-top:12px;display:flex;gap:8px;">
             <div style="flex:1;">
-              <label for="age" style="font-size:0.8em;color:var(--muted);">Alder</label>
+              <label for="age" style="font-size:0.8em;color:var(--muted);" data-i18n="index.species.age_label">Alder</label>
               <select id="age" disabled style="width:100%;">
-                <option value="">Ikke oppgitt</option>
+                <option value="" data-i18n="index.common.not_specified">Ikke oppgitt</option>
                 <option value="Adult">Adult</option>
                 <option value="Egg">Egg</option>
                 <option value="Pulli">Pulli</option>
@@ -425,18 +426,18 @@
               </select>
             </div>
             <div style="flex:1;">
-              <label for="gender" style="font-size:0.8em;color:var(--muted);">Kjønn</label>
+              <label for="gender" style="font-size:0.8em;color:var(--muted);" data-i18n="index.species.gender_label">Kjønn</label>
               <select id="gender" disabled style="width:100%;">
-                <option value="">Ikke oppgitt</option>
+                <option value="" data-i18n="index.common.not_specified">Ikke oppgitt</option>
                 <option value="Hann">Hann</option>
-                <option value="Hunn">Hunn</option>
-                <option value="Hunnfarget">Hunnfarget</option>
+                <option value="Hunn" data-i18n="index.common.gender_hunn">Hunn</option>
+                <option value="Hunnfarget" data-i18n="index.common.gender_hunnfarget">Hunnfarget</option>
                 <option value="I par">I par</option>
               </select>
             </div>
           </div>
           <div class="row" style="margin-top:12px;margin-bottom:4px;">
-            <label>Aktivitet</label>
+            <label data-i18n="index.species.activity_label">Aktivitet</label>
             <div id="activity-pills" class="activity-pills"></div>
             <div class="activity-input-row section-aktivitet">
               <select id="activity" disabled></select>
@@ -445,6 +446,7 @@
                 id="activity-submit"
                 class="activity-submit-btn"
                 title="Registrer observasjon (Enter)"
+                data-i18n-attr="title:index.activity_submit_title"
                 disabled
               >
                 ✓
@@ -473,18 +475,18 @@
 
           <!-- Dato/tid-felt for etterregistreringsmodus (skjult som default) -->
           <div class="row datetime-fields" id="datetime-fields" style="display:none;">
-            <label class="datetime-title">Dato og tid</label>
+            <label class="datetime-title" data-i18n="index.datetime.heading">Dato og tid</label>
             <div class="datetime-grid">
               <div class="datetime-field datetime-date-field">
                 <input type="date" id="obs-date" />
               </div>
               <div class="datetime-field">
-                <label for="obs-time">Fra</label>
-                <input type="time" id="obs-time" placeholder="Valgfri" />
+                <label for="obs-time" data-i18n="observations.time_modal.from">Fra</label>
+                <input type="time" id="obs-time" placeholder="Valgfri" data-i18n-attr="placeholder:index.datetime.optional" />
               </div>
               <div class="datetime-field">
-                <label for="obs-time-to">Til</label>
-                <input type="time" id="obs-time-to" placeholder="Valgfri" />
+                <label for="obs-time-to" data-i18n="observations.time_modal.to">Til</label>
+                <input type="time" id="obs-time-to" placeholder="Valgfri" data-i18n-attr="placeholder:index.datetime.optional" />
               </div>
             </div>
           </div>
@@ -494,12 +496,12 @@
 
         <div class="tablet-list-column">
         <fieldset class="section-main section-liste">
-          <legend>③ Lista di<span id="obs-list-count"></span></legend>
+          <legend><span data-i18n="index.list.legend">③ Lista di</span><span id="obs-list-count"></span></legend>
           <div class="obs-list" id="obs-list"></div>
         </fieldset>
 
         <fieldset class="section-main section-handlinger">
-          <legend>④ Send inn</legend>
+          <legend data-i18n="index.send.legend">④ Send inn</legend>
           <p id="fellestur-sperre-hint" style="display:none;font-size:0.85em;color:var(--muted);margin:0 0 10px;line-height:1.4;">
             <span id="fellestur-sperre-before" data-i18n="index.fellestur_sperre.before">👥 Du er på en fellestur — sending til AO gjøres samlet av én person via</span>
             <a id="fellestur-sperre-link" href="/fellestur.html" style="color:var(--accent);" data-i18n="index.fellestur_sperre.link">Fellestur-siden</a>
@@ -513,9 +515,9 @@
               <div id="ao-queue-hint" style="display:none;margin-bottom:8px;padding:8px 10px;border-radius:8px;font-size:0.82rem;line-height:1.4;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.3);"></div>
               <button class="btn btn-primary-action" id="ao-direct-btn" disabled>
                 <span>📡</span>
-                <span>Publiser til AO</span>
+                <span data-i18n="index.send.publish_ao">Publiser til AO</span>
               </button>
-              <label style="font-size:0.8em;color:#b0b0b0;display:flex;align-items:center;gap:4px;user-select:none;margin:6px 0 0;" title="Hopper over spørsmålet om å tømme lista, og tømmer den automatisk med en gang sendingen er bekreftet vellykket">
+              <label style="font-size:0.8em;color:#b0b0b0;display:flex;align-items:center;gap:4px;user-select:none;margin:6px 0 0;" title="Hopper over spørsmålet om å tømme lista, og tømmer den automatisk med en gang sendingen er bekreftet vellykket" data-i18n-attr="title:index.send.auto_clear_title">
                 <input type="checkbox" id="ao-direct-auto-clear" style="margin:0 2px 0 0;vertical-align:middle;" />
                 <span data-i18n="index.ao_direct_auto_clear">Tøm listen automatisk ved vellykket sending</span>
               </label>
@@ -543,7 +545,7 @@
         <div style="margin-top:8px;text-align:center;">
           <button class="btn btn-danger-muted" id="clear-btn" disabled style="font-size:0.75em;border:none;background:transparent;color:var(--muted);">
             <span>🗑️</span>
-            <span>Tøm liste</span>
+            <span data-i18n="index.send.clear_btn">Tøm liste</span>
           </button>
         </div>
         </div><!-- /tablet-list-column -->
@@ -583,7 +585,7 @@
         navigator.serviceWorker.register(`/sw.js?v=${VERSION}`).catch(() => {});
       }
     </script>
-    <footer class="footer-credit">Versjon <span id="version"></span>  |  <a href="/changelog.html" style="color:var(--accent);text-decoration:none;">Endringslogg</a>  |  <a href="/feedback.html" style="color:var(--accent);text-decoration:none;">Gi tilbakemelding</a>  |  © 2026 Kjetil Salomonsen</footer>
+    <footer class="footer-credit"><span data-i18n="index.footer.version">Versjon</span> <span id="version"></span>  |  <a href="/changelog.html" style="color:var(--accent);text-decoration:none;" data-i18n="index.footer.changelog">Endringslogg</a>  |  <a href="/feedback.html" style="color:var(--accent);text-decoration:none;" data-i18n="index.footer.feedback">Gi tilbakemelding</a>  |  © 2026 Kjetil Salomonsen</footer>
     <script type="module">
       const VERSION = 'v1.60.20';
       document.getElementById('version').textContent = VERSION;
@@ -597,7 +599,7 @@
           <thead>
             <tr>
               <th id="medobs-th-navn" style="text-align:left;padding:6px 4px;font-size:0.8em;color:var(--muted);" data-i18n="index.medobs.th_navn">Navn</th>
-              <th id="medobs-th-aktiv" style="width:50px;text-align:center;padding:6px 4px;font-size:0.8em;color:var(--muted);">Aktiv</th>
+              <th id="medobs-th-aktiv" style="width:50px;text-align:center;padding:6px 4px;font-size:0.8em;color:var(--muted);" data-i18n="index.medobs.th_active" data-i18n-attr="title:index.medobs.th_active_title">Aktiv</th>
               <th style="width:32px;"></th>
             </tr>
           </thead>
@@ -709,14 +711,14 @@
 
           clearTimeout(acDebounce);
           acDebounce = setTimeout(async () => {
-            dropdown.innerHTML = '<div class="medobs-ac-spinner">Søker…</div>';
+            dropdown.innerHTML = `<div class="medobs-ac-spinner">${t('common.searching')}</div>`;
             dropdown.classList.add('show');
             acActiveIdx = -1;
 
             const results = await searchObservers(query);
             dropdown.innerHTML = '';
             if (results.length === 0) {
-              dropdown.innerHTML = '<div class="medobs-ac-spinner">Ingen treff</div>';
+              dropdown.innerHTML = `<div class="medobs-ac-spinner">${t('common.no_hits')}</div>`;
               return;
             }
             results.sort((a, b) => (b.isCoObserver ? 1 : 0) - (a.isCoObserver ? 1 : 0));
@@ -779,7 +781,7 @@
               <input type="checkbox" data-i="${i}" ${it.active ? 'checked' : ''} style="width:20px;height:20px;" />
             </td>
             <td style="text-align:center;padding:4px 0;">
-              <button type="button" data-i="${i}" aria-label="Fjern person" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1.1em;padding:4px 5px;border-radius:5px;line-height:1;" title="Fjern">✕</button>
+              <button type="button" data-i="${i}" aria-label="${esc(t('observations.medobs.remove_person_aria'))}" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1.1em;padding:4px 5px;border-radius:5px;line-height:1;" title="${esc(t('index.medobs.remove_title'))}">✕</button>
             </td>`;
           tbody.appendChild(tr);
         });
@@ -832,17 +834,17 @@
       applyAllBtn.addEventListener('click', () => {
         const list = load();
         const active = list.filter(m => m.active && m.name.trim()).map(m => m.name.trim());
-        if (active.length === 0) { alert('Ingen aktive medobservatører valgt.'); return; }
+        if (active.length === 0) { alert(t('observations.medobs.none_active_short')); return; }
 
         const obsKey = 'fugleobservasjoner_v1';
         const raw = localStorage.getItem(obsKey);
-        if (!raw) { alert('Ingen observasjoner funnet.'); return; }
+        if (!raw) { alert(t('observations.medobs.none_obs_short')); return; }
 
         const payload = JSON.parse(raw);
         const obs = payload.observations || [];
-        if (obs.length === 0) { alert('Ingen observasjoner funnet.'); return; }
+        if (obs.length === 0) { alert(t('observations.medobs.none_obs_short')); return; }
 
-        if (!confirm(`Legg til ${active.join(', ')} på alle ${obs.length} obs?`)) return;
+        if (!confirm(t('observations.medobs.applied_confirm', { list: active.join(', '), n: obs.length }))) return;
 
         const coObs = Array(10).fill('');
         active.forEach((n, i) => { if (i < 10) coObs[i] = n; });
@@ -850,7 +852,7 @@
         payload.observations = obs;
         localStorage.setItem(obsKey, JSON.stringify(payload));
 
-        applyAllBtn.textContent = `Oppdatert ${obs.length} obs!`;
+        applyAllBtn.textContent = t('index.medobs.applied_btn', { n: obs.length, ord: 'obs' });
         applyAllBtn.style.background = '#22c55e';
         setTimeout(() => { applyAllBtn.textContent = t('index.medobs.apply_all'); applyAllBtn.style.background = ''; }, 2500);
       });
@@ -922,9 +924,9 @@
               <button type="button" id="extra-photo-paste-btn" class="btn-ghost skjult" style="flex:1;" data-i18n="index.common.paste">📋 Lim inn</button>
             </div>
             <div id="extra-photo-preview-wrap" style="display:none;margin-top:8px;">
-              <img id="extra-photo-preview" style="max-width:100%;border-radius:8px;display:block;" alt="Valgt bilde" />
+              <img id="extra-photo-preview" style="max-width:100%;border-radius:8px;display:block;" alt="Valgt bilde" data-i18n-attr="alt:index.extra.photo_alt" />
               <div style="display:flex;gap:8px;margin-top:6px;">
-                <button type="button" id="extra-photo-edit-btn" class="btn-ghost" style="flex:1;">✂️ Beskjær og juster</button>
+                <button type="button" id="extra-photo-edit-btn" class="btn-ghost" style="flex:1;" data-i18n="index.extra.photo_crop">✂️ Beskjær og juster</button>
                 <button type="button" id="extra-photo-remove-btn" class="btn-ghost" data-i18n="index.extra.photo_remove">Fjern bilde</button>
               </div>
             </div>
@@ -1025,19 +1027,19 @@
          coobserver-picker.js (delt med ✎ Flere felt-modalen over). -->
     <div id="observation-edit-modal" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,0.5);align-items:center;justify-content:center;">
       <div style="background:var(--card-bg);border-radius:12px;padding:20px;max-width:440px;width:92%;box-shadow:0 8px 32px rgba(0,0,0,0.3);max-height:88vh;overflow-y:auto;">
-        <h3 style="margin:0 0 12px 0;font-size:1.1em;">✎ Rediger observasjon</h3>
+        <h3 style="margin:0 0 12px 0;font-size:1.1em;" data-i18n="index.em.heading">✎ Rediger observasjon</h3>
         <form id="em-form">
-          <label style="display:block;color:var(--muted);font-size:0.85em;margin:8px 0 0 0;">Art
+          <label style="display:block;color:var(--muted);font-size:0.85em;margin:8px 0 0 0;"><span data-i18n="index.species.label">Art</span>
             <input id="em-species" type="text" required style="width:100%;margin-top:4px;padding:8px;border-radius:8px;border:1px solid rgba(148,163,184,0.15);background:rgba(255,255,255,0.02);color:var(--text);box-sizing:border-box;" />
           </label>
           <label style="display:block;color:var(--muted);font-size:0.85em;margin:8px 0 0 0;"><span data-i18n="index.em.count_label">Antall</span>
             <input id="em-count" type="number" min="1" required style="width:100%;margin-top:4px;padding:8px;border-radius:8px;border:1px solid rgba(148,163,184,0.15);background:rgba(255,255,255,0.02);color:var(--text);box-sizing:border-box;" />
           </label>
-          <label style="display:block;color:var(--muted);font-size:0.85em;margin:8px 0 0 0;">Aktivitet
+          <label style="display:block;color:var(--muted);font-size:0.85em;margin:8px 0 0 0;"><span data-i18n="index.species.activity_label">Aktivitet</span>
             <select id="em-activity" style="width:100%;margin-top:4px;padding:8px;border-radius:8px;border:1px solid rgba(148,163,184,0.15);background:rgba(255,255,255,0.02);color:var(--text);box-sizing:border-box;"></select>
           </label>
           <div style="display:flex;gap:8px;">
-            <label style="display:block;flex:1;color:var(--muted);font-size:0.85em;margin:8px 0 0 0;">Alder
+            <label style="display:block;flex:1;color:var(--muted);font-size:0.85em;margin:8px 0 0 0;"><span data-i18n="index.species.age_label">Alder</span>
               <select id="em-age" style="width:100%;margin-top:4px;padding:8px;border-radius:8px;border:1px solid rgba(148,163,184,0.15);background:rgba(255,255,255,0.02);color:var(--text);box-sizing:border-box;">
                 <option value="" data-i18n="index.common.not_specified">Ikke oppgitt</option>
                 <option value="Adult">Adult</option>
@@ -1052,7 +1054,7 @@
                 <option value="7K">7K</option><option value="7K+">7K+</option><option value="7K-">7K-</option>
               </select>
             </label>
-            <label style="display:block;flex:1;color:var(--muted);font-size:0.85em;margin:8px 0 0 0;">Kjønn
+            <label style="display:block;flex:1;color:var(--muted);font-size:0.85em;margin:8px 0 0 0;"><span data-i18n="index.species.gender_label">Kjønn</span>
               <select id="em-gender" style="width:100%;margin-top:4px;padding:8px;border-radius:8px;border:1px solid rgba(148,163,184,0.15);background:rgba(255,255,255,0.02);color:var(--text);box-sizing:border-box;">
                 <option value="" data-i18n="index.common.not_specified">Ikke oppgitt</option>
                 <option value="Hann">Hann</option>
@@ -1065,14 +1067,14 @@
           <label style="display:block;color:var(--muted);font-size:0.85em;margin:8px 0 0 0;"><span data-i18n="index.em.place_label">Sted</span>
             <input id="em-place" type="text" style="width:100%;margin-top:4px;padding:8px;border-radius:8px;border:1px solid rgba(148,163,184,0.15);background:rgba(255,255,255,0.02);color:var(--text);box-sizing:border-box;" />
           </label>
-          <label style="display:block;color:var(--muted);font-size:0.85em;margin:8px 0 0 0;">Dato
+          <label style="display:block;color:var(--muted);font-size:0.85em;margin:8px 0 0 0;"><span data-i18n="index.datetime.date_label">Dato</span>
             <input id="em-date" type="date" style="width:100%;margin-top:4px;padding:8px;border-radius:8px;border:1px solid rgba(148,163,184,0.15);background:rgba(255,255,255,0.02);color:var(--text);box-sizing:border-box;" />
           </label>
           <div style="display:flex;gap:8px;">
-            <label style="display:block;flex:1;color:var(--muted);font-size:0.85em;margin:8px 0 0 0;">Fra klokkeslett
+            <label style="display:block;flex:1;color:var(--muted);font-size:0.85em;margin:8px 0 0 0;"><span data-i18n="index.em.from_time_label">Fra klokkeslett</span>
               <input id="em-time-from" type="time" style="width:100%;margin-top:4px;padding:8px;border-radius:8px;border:1px solid rgba(148,163,184,0.15);background:rgba(255,255,255,0.02);color:var(--text);box-sizing:border-box;" />
             </label>
-            <label style="display:block;flex:1;color:var(--muted);font-size:0.85em;margin:8px 0 0 0;">Til klokkeslett
+            <label style="display:block;flex:1;color:var(--muted);font-size:0.85em;margin:8px 0 0 0;"><span data-i18n="index.em.to_time_label">Til klokkeslett</span>
               <input id="em-time-to" type="time" style="width:100%;margin-top:4px;padding:8px;border-radius:8px;border:1px solid rgba(148,163,184,0.15);background:rgba(255,255,255,0.02);color:var(--text);box-sizing:border-box;" />
             </label>
           </div>
@@ -1117,9 +1119,9 @@
             <button type="button" id="em-photo-paste-btn" class="btn-ghost skjult" style="flex:1;" data-i18n="index.common.paste">📋 Lim inn</button>
           </div>
           <div id="em-photo-preview-wrap" style="display:none;margin-top:8px;">
-            <img id="em-photo-preview" style="max-width:100%;border-radius:8px;display:block;" alt="Valgt bilde" />
+            <img id="em-photo-preview" style="max-width:100%;border-radius:8px;display:block;" alt="Valgt bilde" data-i18n-attr="alt:index.extra.photo_alt" />
             <div style="display:flex;gap:8px;margin-top:6px;">
-              <button type="button" id="em-photo-edit-btn" class="btn-ghost" style="flex:1;">✂️ Beskjær og juster</button>
+              <button type="button" id="em-photo-edit-btn" class="btn-ghost" style="flex:1;" data-i18n="index.extra.photo_crop">✂️ Beskjær og juster</button>
               <button type="button" id="em-photo-remove-btn" class="btn-ghost" data-i18n="index.extra.photo_remove">Fjern bilde</button>
             </div>
           </div>
@@ -1131,12 +1133,12 @@
           <div id="em-medobs-picker" style="display:flex;flex-direction:column;gap:6px;"></div>
           <div style="display:flex;gap:6px;margin-top:6px;">
             <input id="em-medobs-new-name" type="text" placeholder="Legg til navn…" autocomplete="off" data-i18n-attr="placeholder:index.medobs.name_placeholder_add" style="flex:1;padding:8px;border-radius:8px;border:1px solid rgba(148,163,184,0.15);background:rgba(255,255,255,0.02);color:var(--text);box-sizing:border-box;" />
-            <button type="button" id="em-medobs-new-add-btn" class="btn-ghost" style="flex-shrink:0;">Legg til</button>
+            <button type="button" id="em-medobs-new-add-btn" class="btn-ghost" style="flex-shrink:0;" data-i18n="common.add">Legg til</button>
           </div>
 
           <div style="margin-top:16px;display:flex;gap:8px;justify-content:flex-end;">
             <button type="button" id="em-cancel-btn" style="padding:8px 16px;border:1px solid var(--border);border-radius:6px;background:transparent;color:var(--text);cursor:pointer;font-size:0.9em;" data-i18n="index.common.close">Lukk</button>
-            <button type="submit" style="padding:8px 16px;border:1px solid rgba(59,130,246,1);border-radius:6px;background:#3b82f6;color:white;cursor:pointer;font-size:0.9em;">Lagre</button>
+            <button type="submit" style="padding:8px 16px;border:1px solid rgba(59,130,246,1);border-radius:6px;background:#3b82f6;color:white;cursor:pointer;font-size:0.9em;" data-i18n="common.save">Lagre</button>
           </div>
         </form>
       </div>
@@ -1162,32 +1164,32 @@
         </select>
         <div id="create-site-status" style="display:none;padding:8px;margin-bottom:12px;border-radius:6px;font-size:0.85em;"></div>
         <div style="display:flex;gap:8px;justify-content:flex-end;">
-          <button id="create-site-cancel" style="padding:8px 16px;border:1px solid var(--border);border-radius:6px;background:transparent;color:var(--text);cursor:pointer;font-size:0.9em;">Avbryt</button>
-          <button id="create-site-submit" style="padding:8px 16px;border:none;border-radius:6px;background:var(--accent);color:white;cursor:pointer;font-size:0.9em;font-weight:500;">Opprett</button>
+          <button id="create-site-cancel" style="padding:8px 16px;border:1px solid var(--border);border-radius:6px;background:transparent;color:var(--text);cursor:pointer;font-size:0.9em;" data-i18n="common.cancel">Avbryt</button>
+          <button id="create-site-submit" style="padding:8px 16px;border:none;border-radius:6px;background:var(--accent);color:white;cursor:pointer;font-size:0.9em;font-weight:500;" data-i18n="common.create">Opprett</button>
         </div>
       </div>
     </div>
     <dialog id="arbeidsliste-dialog" class="arbeidsliste-dialog" aria-labelledby="arbeidsliste-tittel">
       <form method="dialog" class="arbeidsliste-dialoghode">
-        <h2 id="arbeidsliste-tittel">Overfør arbeidslista</h2>
-        <button class="btn" value="lukk">Lukk</button>
+        <h2 id="arbeidsliste-tittel" data-i18n="index.arbeidsliste.title">Overfør arbeidslista</h2>
+        <button class="btn" value="lukk" data-i18n="index.common.close">Lukk</button>
       </form>
       <p id="arbeidsliste-konto"></p>
       <p id="arbeidsliste-info"></p>
       <p id="arbeidsliste-status" role="status"></p>
       <div class="arbeidsliste-knapper">
-        <button type="button" class="btn" id="arbeidsliste-logg-inn">Bruk AO-innlogging</button>
-        <a class="btn" id="arbeidsliste-innstillinger" href="/settings.html">Innstillinger</a>
-        <button type="button" class="btn" id="arbeidsliste-lagre" hidden>Lagre privat kopi</button>
-        <button type="button" class="btn" id="arbeidsliste-forhandsvis" hidden>Forhåndsvis kopien</button>
-        <button type="button" class="btn" id="arbeidsliste-slett" hidden>Slett serverkopien</button>
+        <button type="button" class="btn" id="arbeidsliste-logg-inn" data-i18n="index.arbeidsliste.use_ao_login">Bruk AO-innlogging</button>
+        <a class="btn" id="arbeidsliste-innstillinger" href="/settings.html" data-i18n="index.arbeidsliste.settings">Innstillinger</a>
+        <button type="button" class="btn" id="arbeidsliste-lagre" hidden data-i18n="index.arbeidsliste.save_private_copy">Lagre privat kopi</button>
+        <button type="button" class="btn" id="arbeidsliste-forhandsvis" hidden data-i18n="index.arbeidsliste.preview_copy">Forhåndsvis kopien</button>
+        <button type="button" class="btn" id="arbeidsliste-slett" hidden data-i18n="index.arbeidsliste.delete_server_copy">Slett serverkopien</button>
       </div>
-      <p id="arbeidsliste-advarsel" hidden>
+      <p id="arbeidsliste-advarsel" hidden data-i18n="arbeidsliste.warn_other_device">
         Lista finnes fortsatt på den andre enheten. Sjekk om funn allerede er sendt og publiser fra én enhet.
         Når du henter inn lista, blir den lagret i denne nettleseren og kan åpnes her uten nett.
       </p>
       <ul id="arbeidsliste-rader" class="arbeidsliste-rader"></ul>
-      <button type="button" class="btn btn-primary-action" id="arbeidsliste-ta-inn" hidden>Hent inn i Lista di</button>
+      <button type="button" class="btn btn-primary-action" id="arbeidsliste-ta-inn" hidden data-i18n="index.arbeidsliste.take_into_list">Hent inn i Lista di</button>
     </dialog>
 
   </body>

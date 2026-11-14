@@ -519,9 +519,6 @@ const ACTIVITY_BOKMAL_MAP = (() => {
   for (const [nb, nn] of Object.entries(ACTIVITY_NYNORSK_MAP)) {
     if (!rev[nn]) rev[nn] = nb;
   }
-  // Noen nynorsk-verdier er identiske med flere bokmål-nøkler (f.eks.
-  // 'Stasjonær' for både 'Stasjonær' og 'Stationær') - sikre at identitet
-  // slår alias, og at Ø/NØ/SØ-retningene mapper til hovedformen.
   rev['Stasjonær'] = 'Stasjonær';
   rev['Overflygande'] = 'Overflygende';
   rev['Trekkjande mot Ø'] = 'Trekkende mot Ø';
@@ -530,16 +527,6 @@ const ACTIVITY_BOKMAL_MAP = (() => {
   return rev;
 })();
 
-/**
- * Visningsnavn for en AO-aktivitetskode, etter aktivt språk (eller
- * `userLanguage` hvis gitt - samme mønster som speciesDisplayName()).
- * Engelsk har i dag ingen egen oversettelse og faller derfor tilbake til det
- * kanoniske bokmål-navnet, nøyaktig som et nynorsk-navn ville falt tilbake
- * til bokmål ved en manglende nøkkel i ACTIVITY_NYNORSK_MAP.
- * @param {string} label
- * @param {string} [userLanguage]
- * @returns {string}
- */
 export function activityDisplayName(label, userLanguage) {
   if (!label) return '';
   const lang = userLanguage !== undefined ? userLanguage : getLanguage();
@@ -550,18 +537,20 @@ export function activityDisplayName(label, userLanguage) {
   return activityBokmalName(label);
 }
 
-/**
- * Konverterer et eventuelt nynorsk aktivitetsnavn tilbake til det kanoniske
- * bokmål-navnet AO forventer. Brukes når en <option> sin viste tekst er
- * oversatt, men verdien som lagres/sendes må være AO-formen - se
- * activityDisplayName() over for motsatt retning.
- * @param {string} label
- * @returns {string}
- */
 export function activityBokmalName(label) {
   if (!label) return '';
   const trimmed = label.trim();
   return ACTIVITY_BOKMAL_MAP[label] || ACTIVITY_BOKMAL_MAP[trimmed] || label;
+}
+
+export function genderDisplayName(gender, lang) {
+  if (!gender) return '';
+  const activeLang = lang !== undefined ? lang : getLanguage();
+  if (activeLang === 'nn') {
+    if (gender === 'Hunn') return 'Ho';
+    if (gender === 'Hunnfarget') return 'Hofarga';
+  }
+  return gender;
 }
 
 /**

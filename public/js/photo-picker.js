@@ -7,6 +7,7 @@
 // Versjonert: bilde-rediger-modal.js er ny, og drar i sin tur inn bilde-editor.js.
 // Se «Versjonering» i CLAUDE.md — en stale kopi her ville tatt hele velgeren.
 import { apneBildeRedigering } from './bilde-rediger-modal.js?v=v1.60.20';
+import { t } from './i18n.js?v=v1.60.20';
 
 const MAX_SIDE = 1600;
 
@@ -34,10 +35,10 @@ export function downscaleImage(file) {
         canvas.getContext('2d').drawImage(img, 0, 0, width, height);
         resolve(canvas.toDataURL('image/jpeg', 0.85));
       };
-      img.onerror = () => reject(new Error('Kunne ikke lese bildet'));
+      img.onerror = () => reject(new Error(t('bilde.read_image_error')));
       img.src = reader.result;
     };
-    reader.onerror = () => reject(new Error('Kunne ikke lese filen'));
+    reader.onerror = () => reject(new Error(t('bilde.read_file_error')));
     reader.readAsDataURL(file);
   });
 }
@@ -91,7 +92,7 @@ export function initPhotoPicker(els, isActive, onChange) {
       show(dataUrl);
     } catch (e) {
       console.warn('Kunne ikke lese bildet', e);
-      alert('Kunne ikke lese bildet — prøv et annet.');
+      alert(t('bilde.read_error_alert'));
     }
   }
 
@@ -145,13 +146,13 @@ export function initPhotoPicker(els, isActive, onChange) {
         items = await navigator.clipboard.read();
       } catch (e) {
         console.warn('navigator.clipboard.read() feilet:', e.name, e.message);
-        const arsak = e.name === 'NotAllowedError' ? 'tillatelse nektet' : e.name || 'ukjent feil';
-        alert(`Fikk ikke tilgang til utklippstavla (${arsak}) — velg bildet fra fil i stedet.`);
+        const arsak = e.name === 'NotAllowedError' ? t('bilde.clipboard_denied') : e.name || t('sendt.edit_modal.unknown_error');
+        alert(t('bilde.clipboard_no_access', { reason: arsak }));
         return;
       }
 
       for (const element of items) {
-        const type = element.types.find((t) => t.startsWith('image/'));
+        const type = element.types.find((tp) => tp.startsWith('image/'));
         if (!type) {
           console.warn('Utklippstavle-element uten bilde-type, fant:', element.types);
           continue;
@@ -162,12 +163,12 @@ export function initPhotoPicker(els, isActive, onChange) {
           return;
         } catch (e) {
           console.warn('Fant bilde-type på utklippstavla, men klarte ikke hente den:', type, e.name, e.message);
-          alert(`Fant et bilde på utklippstavla, men klarte ikke hente det (${e.name || 'ukjent feil'}) — velg bildet fra fil i stedet.`);
+          alert(t('bilde.clipboard_read_failed', { reason: e.name || t('sendt.edit_modal.unknown_error') }));
           return;
         }
       }
       console.warn('Utklippstavla hadde ingen elementer med bilde-type');
-      alert('Fant ikke noe bilde på utklippstavla — velg bildet fra fil i stedet.');
+      alert(t('bilde.clipboard_no_image'));
     });
   }
 
@@ -196,7 +197,7 @@ export function initPhotoPicker(els, isActive, onChange) {
       if (fil) {
         handlePickedFile(fil);
       } else {
-        alert('Det du slapp var ikke et bilde — prøv en JPEG eller PNG.');
+        alert(t('bilde.drop_not_image'));
       }
     });
   }

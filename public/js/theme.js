@@ -51,4 +51,25 @@
   if (document.documentElement) {
     document.documentElement.lang = checkIsNynorsk() ? 'nn' : 'nb';
   }
+
+  // Tøm utdaterte ?v=v1.60.20-oppføringer fra Service Worker-cachen én gang
+  // slik at oppdaterte ES-moduler hentes ferskt fra serveren.
+  try {
+    var purgeKey = 'ao_sw_cache_purge_nn_v1';
+    if (
+      typeof localStorage !== 'undefined' &&
+      !localStorage.getItem(purgeKey) &&
+      typeof caches !== 'undefined' &&
+      caches &&
+      typeof caches.delete === 'function'
+    ) {
+      localStorage.setItem(purgeKey, '1');
+      caches.delete('fugleobs-v216').then(function(deleted) {
+        if (deleted && typeof window !== 'undefined' && window.location && typeof window.location.reload === 'function') {
+          window.location.reload();
+        }
+      }).catch(function() {});
+    }
+  } catch (e) {}
 })();
+

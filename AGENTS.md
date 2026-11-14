@@ -31,9 +31,11 @@ og her står bare en peker.
 
 ## Harde regler
 
-- **Norsk bokmål** i kode-kommentarer, commit-meldinger, dokumentasjon og all
-  UI-tekst. Aldri nynorsk i koden — appen *viser* nynorske artsnavn som en
-  funksjon, men er selv skrevet på bokmål.
+- **Norsk bokmål** er hovedspråket i appen og skal brukes i kode-kommentarer,
+  commit-meldinger, dokumentasjon og koden ellers. Appen *viser* både artsnavn
+  og all annen UI-tekst på nynorsk som en funksjon når brukeren velger nynorsk
+  (`public/js/i18n/nn.js`), men selve kodebasen og standardtekstene er skrevet
+  på bokmål.
 - **Ingen `Co-Authored-By`** i commit-meldinger.
 - **Hold diffen så liten som oppgaven tillater.** Én PR løser én ting. Rør
   ikke filer oppgaven ikke handler om.

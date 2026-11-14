@@ -37,6 +37,7 @@ export async function loadOfflineSpecies() {
   if (offlineSpecies) return offlineSpecies;
   const resp = await fetch('/data/norske_arter.json');
   offlineSpecies = await resp.json();
+  buildSpeciesMetaIndexFromList(offlineSpecies);
   return offlineSpecies;
 }
 
@@ -46,6 +47,8 @@ function getDefaultUserLanguage(explicitLanguage) {
   }
   if (typeof window !== 'undefined' && window.localStorage) {
     try {
+      const appLang = (window.localStorage.getItem('app_language_v1') || '').trim().toLowerCase();
+      if (appLang === 'nn' || appLang === 'nb') return appLang;
       return window.localStorage.getItem('nynorsk_artsnavn_v1') === '1' ? 'nn' : 'nb';
     } catch {
       return 'nb';
@@ -219,14 +222,13 @@ async function buildLatinToNynorskIndex() {
   return index;
 }
 
-async function buildSpeciesMetaIndex() {
+function buildSpeciesMetaIndexFromList(list) {
   if (speciesMetaIndex) return speciesMetaIndex;
-  const list = await loadOfflineSpecies();
   const byLatin = new Map();
   const byNob = new Map();
   const byId = new Map();
 
-  for (const art of list) {
+  for (const art of list || []) {
     const latin = art.latin || art.latinName;
     const nob = art.norwegian || art.nameNob;
     const artId = art.id ?? art.taxonId;
@@ -288,6 +290,12 @@ async function buildSpeciesMetaIndex() {
   return speciesMetaIndex;
 }
 
+async function buildSpeciesMetaIndex() {
+  if (speciesMetaIndex) return speciesMetaIndex;
+  const list = await loadOfflineSpecies();
+  return buildSpeciesMetaIndexFromList(list);
+}
+
 /**
  * Slå opp nynorsk artsnavn for et vitenskapelig navn (case-insensitiv eksakt
  * match). AOs eget søk har aldri nynorsk-data selv - denne brukes til å
@@ -322,14 +330,13 @@ export async function getNynorskByLatin(latinName) {
 }
 
 /**
- * Hent lokal metadata (nynorsk, parentId, isSub og antallFunn) for ein art eller underart
- * basert på vitskapleg namn eller bokmålsnamn.
+ * Synkront oppslag i lokal artsmetadata (forutsetter at loadOfflineSpecies() er ferdig,
+ * eller faller tilbake til regelbasert nynorsk-oversettelse for dedikerte underarter).
  * @param {string} [latinName]
  * @param {string} [norwegianName]
- * @returns {Promise<{id?: number, taxonId?: number, parentId?: number|string, isSub?: boolean, nameNob?: string|null, nameNno?: string|null, nynorsk: string|null, antallFunn?: number}>}
+ * @returns {{id?: number, taxonId?: number, parentId?: number|string, isSub?: boolean, nameNob?: string|null, nameNno?: string|null, nynorsk: string|null, antallFunn?: number}}
  */
-export async function getSpeciesMeta(latinName, norwegianName) {
-  const { byLatin, byNob, byId } = await buildSpeciesMetaIndex();
+export function getSpeciesMetaSync(latinName, norwegianName) {
   const cleanLatin = (latinName || '')
     .replace(/<[^>]+>/g, '')
     .replace(/\b(?:subsp|ssp)\.?\b/gi, ' ')
@@ -338,98 +345,101 @@ export async function getSpeciesMeta(latinName, norwegianName) {
     .toLowerCase();
   const cleanNob = (norwegianName || '').trim().toLowerCase();
 
-  const latinWords = cleanLatin.split(/\s+/).filter(Boolean);
-  const parentLatinKey = latinWords.length >= 2 ? `${latinWords[0]} ${latinWords[1]}` : '';
-  const parentNobKey = cleanNob.includes(', underarten')
-    ? cleanNob.split(', underarten')[0].trim()
-    : '';
+  if (speciesMetaIndex) {
+    const { byLatin, byNob, byId } = speciesMetaIndex;
+    const latinWords = cleanLatin.split(/\s+/).filter(Boolean);
+    const parentLatinKey = latinWords.length >= 2 ? `${latinWords[0]} ${latinWords[1]}` : '';
+    const parentNobKey = cleanNob.includes(', underarten')
+      ? cleanNob.split(', underarten')[0].trim()
+      : '';
 
-  const resolveParentMeta = (hitParentId) =>
-    (hitParentId !== undefined && hitParentId !== null && byId.get(String(hitParentId))) ||
-    (parentLatinKey && byLatin.get(parentLatinKey)) ||
-    (parentNobKey && byNob.get(parentNobKey)) ||
-    null;
+    const resolveParentMeta = (hitParentId) =>
+      (hitParentId !== undefined && hitParentId !== null && byId.get(String(hitParentId))) ||
+      (parentLatinKey && byLatin.get(parentLatinKey)) ||
+      (parentNobKey && byNob.get(parentNobKey)) ||
+      null;
 
-  let hit = null;
-  if (cleanLatin) {
-    hit = byLatin.get(cleanLatin) || null;
-  }
-  if (!hit && cleanNob) {
-    hit = byNob.get(cleanNob) || null;
-  }
+    let hit = null;
+    if (cleanLatin) {
+      hit = byLatin.get(cleanLatin) || null;
+    }
+    if (!hit && cleanNob) {
+      hit = byNob.get(cleanNob) || null;
+    }
 
-  if (hit) {
-    if (hit.isSub && norwegianName) {
-      const parentMeta = resolveParentMeta(hit.parentId);
-      const derivedNno = deriveSubspeciesNynorskName(
-        {
-          taxonName: norwegianName,
-          nameNob: hit.nameNob,
-          nameNno: hit.nameNno,
-          latinName: latinName || hit.latinName,
-        },
-        parentMeta
-      );
-      if (derivedNno) {
-        return {
-          ...hit,
-          nameNno: derivedNno,
-          nynorsk: derivedNno,
-        };
+    if (hit) {
+      if (hit.isSub && norwegianName) {
+        const parentMeta = resolveParentMeta(hit.parentId);
+        const derivedNno = deriveSubspeciesNynorskName(
+          {
+            taxonName: norwegianName,
+            nameNob: hit.nameNob,
+            nameNno: hit.nameNno,
+            latinName: latinName || hit.latinName,
+          },
+          parentMeta
+        );
+        if (derivedNno) {
+          return {
+            ...hit,
+            nameNno: derivedNno,
+            nynorsk: derivedNno,
+          };
+        }
+      } else if (!hit.nameNno && (hit.nameNob || norwegianName)) {
+        const trans = translateDedicatedSubspeciesToNynorsk(hit.nameNob || norwegianName);
+        if (trans && trans.toLowerCase() !== (hit.nameNob || norwegianName).toLowerCase()) {
+          return {
+            ...hit,
+            nameNno: trans,
+            nynorsk: trans,
+          };
+        }
       }
-    } else if (!hit.nameNno && (hit.nameNob || norwegianName)) {
-      const trans = translateDedicatedSubspeciesToNynorsk(hit.nameNob || norwegianName);
-      if (trans && trans.toLowerCase() !== (hit.nameNob || norwegianName).toLowerCase()) {
+      return hit;
+    }
+
+    // Fallback for underarter fra AO som ikke ligger direkte i norske_arter.json
+    const isSubFromInput =
+      /\b(?:subsp|ssp)\b/i.test(latinName || '') ||
+      /,\s*underarten\s+/i.test(norwegianName || '') ||
+      (latinWords.length >= 3 && !/\s+x\s+/i.test(latinName || ''));
+
+    if (isSubFromInput) {
+      const parentMeta = resolveParentMeta(null);
+      if (parentMeta) {
+        const derivedNno = deriveSubspeciesNynorskName(
+          {
+            taxonName: norwegianName || '',
+            nameNob: norwegianName || '',
+            latinName: latinName || '',
+          },
+          parentMeta
+        );
+        const derivedNob = deriveSubspeciesBokmalName(
+          {
+            taxonName: norwegianName || '',
+            nameNob: norwegianName || '',
+            latinName: latinName || '',
+          },
+          parentMeta
+        );
         return {
-          ...hit,
-          nameNno: trans,
-          nynorsk: trans,
+          id: undefined,
+          taxonId: undefined,
+          parentId: parentMeta.taxonId ?? parentMeta.id,
+          isSub: true,
+          nameNob: derivedNob || norwegianName || null,
+          nameNno: derivedNno || null,
+          nynorsk: derivedNno || null,
+          antallFunn: undefined,
         };
       }
     }
-    return hit;
   }
 
-  // Fallback for underartar frå AO som ikkje ligg direkte i norske_arter.json
-  const isSubFromInput =
-    /\b(?:subsp|ssp)\b/i.test(latinName || '') ||
-    /,\s*underarten\s+/i.test(norwegianName || '') ||
-    (latinWords.length >= 3 && !/\s+x\s+/i.test(latinName || ''));
-
-  if (isSubFromInput) {
-    const parentMeta = resolveParentMeta(null);
-    if (parentMeta) {
-      const derivedNno = deriveSubspeciesNynorskName(
-        {
-          taxonName: norwegianName || '',
-          nameNob: norwegianName || '',
-          latinName: latinName || '',
-        },
-        parentMeta
-      );
-      const derivedNob = deriveSubspeciesBokmalName(
-        {
-          taxonName: norwegianName || '',
-          nameNob: norwegianName || '',
-          latinName: latinName || '',
-        },
-        parentMeta
-      );
-      return {
-        id: undefined,
-        taxonId: undefined,
-        parentId: parentMeta.taxonId ?? parentMeta.id,
-        isSub: true,
-        nameNob: derivedNob || norwegianName || null,
-        nameNno: derivedNno || null,
-        nynorsk: derivedNno || null,
-        antallFunn: undefined,
-      };
-    }
-  }
-
-  // Dersom det er eit dedikert underartsnamn eller hybrid som ikkje hadde treff i indeksen,
-  // omset eventuelle bokmålsord (t.d. "sørlig" -> "sørleg")
+  // Hvis det er et dedikert underartsnavn eller hybrid som ikke hadde treff i indeksen,
+  // oversett eventuelle bokmålsord (f.eks. "sørlig" -> "sørleg")
   if (norwegianName) {
     const translated = translateDedicatedSubspeciesToNynorsk(norwegianName);
     if (translated && translated.toLowerCase() !== cleanNob) {
@@ -443,6 +453,18 @@ export async function getSpeciesMeta(latinName, norwegianName) {
   }
 
   return { nynorsk: null, antallFunn: undefined };
+}
+
+/**
+ * Hent lokal metadata (nynorsk, parentId, isSub og antallFunn) for en art eller underart
+ * basert på vitenskapelig navn eller bokmålsnavn.
+ * @param {string} [latinName]
+ * @param {string} [norwegianName]
+ * @returns {Promise<{id?: number, taxonId?: number, parentId?: number|string, isSub?: boolean, nameNob?: string|null, nameNno?: string|null, nynorsk: string|null, antallFunn?: number}>}
+ */
+export async function getSpeciesMeta(latinName, norwegianName) {
+  await buildSpeciesMetaIndex();
+  return getSpeciesMetaSync(latinName, norwegianName);
 }
 
 /**

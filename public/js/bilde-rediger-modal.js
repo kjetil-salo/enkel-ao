@@ -14,6 +14,7 @@
 // Versjonert: `settZoom`/`vedVisningsendring` er nye i v1.59.9, og en cachet
 // gammel bilde-editor.js ville gitt TypeError i det zoomknappen brukes.
 import { lagBildeEditor } from './bilde-editor.js?v=v1.60.20';
+import { t, applyTranslations } from './i18n.js?v=v1.60.20';
 
 // Samme kvalitet som photo-picker.js bruker på et nyvalgt bilde, så en tur innom
 // redigeringen ikke er et skjult kvalitetstap for den som bare ville beskjære.
@@ -28,31 +29,30 @@ function bygg() {
   lag.id = 'bilde-rediger-lag';
   lag.hidden = true;
   lag.innerHTML = `
-    <div class="brl-kort" role="dialog" aria-modal="true" aria-label="Beskjær og juster bilde">
+    <div class="brl-kort" role="dialog" aria-modal="true" aria-label="${t('bilde.edit_aria')}" data-i18n-attr="aria-label:bilde.edit_aria">
       <div class="brl-topp">
-        <strong>Beskjær og juster</strong>
-        <button type="button" class="brl-lukk" data-brl="avbryt" aria-label="Lukk">×</button>
+        <strong data-i18n="bilde.edit_heading">${t('bilde.edit_heading')}</strong>
+        <button type="button" class="brl-lukk" data-brl="avbryt" aria-label="${t('index.medobs.close_aria')}" title="${t('index.medobs.close_aria')}" data-i18n-attr="aria-label:index.medobs.close_aria,title:index.medobs.close_aria">×</button>
       </div>
       <div class="brl-lerret"><canvas data-brl="lerret"></canvas></div>
-      <p class="brl-hint">Dra i hjørnene for å beskjære, eller inni for å flytte utsnittet.
-        Visningen zoomer inn på utsnittet når du slipper.</p>
+      <p class="brl-hint" data-i18n="sendt.image_modal.edit_hint">${t('sendt.image_modal.edit_hint')}</p>
       <div class="brl-skyv">
-        <label for="brl-eksponering">Eksponering</label>
+        <label for="brl-eksponering" data-i18n="sendt.image_modal.exposure">${t('sendt.image_modal.exposure')}</label>
         <input type="range" id="brl-eksponering" data-brl="eksponering"
                min="-100" max="100" value="0" step="5" />
         <output data-brl="eksponering-verdi" for="brl-eksponering">0</output>
-        <label for="brl-skygger">Mørke partier</label>
+        <label for="brl-skygger" data-i18n="sendt.image_modal.shadows">${t('sendt.image_modal.shadows')}</label>
         <input type="range" id="brl-skygger" data-brl="skygger"
                min="0" max="100" value="0" step="5" />
         <output data-brl="skygger-verdi" for="brl-skygger">0</output>
       </div>
       <div class="brl-verktoy">
-        <button type="button" class="btn-ghost" data-brl="zoom" hidden>⤢ Vis hele bildet</button>
-        <button type="button" class="btn-ghost" data-brl="nullstill">↺ Tilbakestill</button>
+        <button type="button" class="btn-ghost" data-brl="zoom" hidden>${t('sendt.image_modal.show_full')}</button>
+        <button type="button" class="btn-ghost" data-brl="nullstill" data-i18n="sendt.image_modal.reset">${t('sendt.image_modal.reset')}</button>
       </div>
       <div class="brl-bunn">
-        <button type="button" class="btn-ghost" data-brl="avbryt">Avbryt</button>
-        <button type="button" class="brl-primar" data-brl="bruk">Bruk bildet</button>
+        <button type="button" class="btn-ghost" data-brl="avbryt" data-i18n="index.common.cancel">${t('index.common.cancel')}</button>
+        <button type="button" class="brl-primar" data-brl="bruk" data-i18n="bilde.use_photo">${t('bilde.use_photo')}</button>
       </div>
     </div>`;
   document.body.appendChild(lag);
@@ -71,7 +71,7 @@ function bygg() {
   // når editoren zoomer av seg selv etter et dra.
   editor.vedVisningsendring(({ zoomet, kanZoome }) => {
     zoomKnapp.hidden = !kanZoome;
-    zoomKnapp.textContent = zoomet ? '⤢ Vis hele bildet' : '🔍 Zoom til utsnitt';
+    zoomKnapp.textContent = zoomet ? t('sendt.image_modal.show_full') : t('sendt.image_modal.zoom_crop');
     zoomKnapp.dataset.zoomet = zoomet ? '1' : '';
   });
 
@@ -111,7 +111,14 @@ function bygg() {
     }
   }, true);
 
-  lag.__brl = { eksp, ekspVerdi, skyg, skygVerdi };
+  document.addEventListener('i18n:language-changed', () => {
+    if (lag) {
+      applyTranslations(lag);
+      zoomKnapp.textContent = zoomKnapp.dataset.zoomet ? t('sendt.image_modal.show_full') : t('sendt.image_modal.zoom_crop');
+    }
+  });
+
+  lag.__brl = { eksp, ekspVerdi, skyg, skygVerdi, zoomKnapp };
 }
 
 function nullstillSkyv() {
@@ -136,6 +143,7 @@ function lukk(resultat) {
 export async function apneBildeRedigering(dataUrl) {
   if (!dataUrl) return null;
   if (!lag) bygg();
+  else applyTranslations(lag);
 
   // En åpen redigering som ikke er avsluttet skal ikke bli hengende som en
   // Promise ingen løser — avbryt den før en ny tar over.

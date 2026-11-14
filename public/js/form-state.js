@@ -3,10 +3,8 @@
  */
 
 import { checkRarity } from './rarity.js';
-
-// Placeholder i art-feltet forklarer hvorfor det er låst før lokasjon er valgt.
-const SEARCH_PLACEHOLDER_LOCKED = 'Velg lokasjon først ↑';
-const SEARCH_PLACEHOLDER_READY = 'Skriv artsnavn her …';
+import { t } from './i18n.js?v=v1.60.20';
+import { activityBokmalName } from './storage.js';
 
 export function updateSectionStates(state, dom) {
   const hasLocation = !!(dom.placeInput && dom.placeInput.value.trim());
@@ -15,7 +13,9 @@ export function updateSectionStates(state, dom) {
     dom.sectionObservasjon.classList.toggle('dimmed', !hasLocation);
     dom.input.disabled = !hasLocation;
     // Selvforklarende låst tilstand: feltet forteller hva som mangler.
-    dom.input.placeholder = hasLocation ? SEARCH_PLACEHOLDER_READY : SEARCH_PLACEHOLDER_LOCKED;
+    dom.input.placeholder = hasLocation
+      ? t('index.search_placeholder')
+      : t('index.search_placeholder_locked');
     dom.countInput.disabled = !hasLocation || !state.selectedSpecies;
     dom.activitySelect.disabled = !hasLocation || !state.selectedSpecies || !dom.countInput.value.trim();
     dom.activitySubmitBtn.disabled = dom.activitySelect.disabled;
@@ -40,7 +40,7 @@ export function updateSectionStates(state, dom) {
       const lastActivity = localStorage.getItem('lastActivity');
       if (lastActivity && dom.activitySelect) {
         for (let i = 0; i < dom.activitySelect.options.length; i++) {
-          if (dom.activitySelect.options[i].text === lastActivity) {
+          if (activityBokmalName(dom.activitySelect.options[i].text.trim()) === lastActivity) {
             dom.activitySelect.selectedIndex = i;
             break;
           }

@@ -171,6 +171,10 @@ export function applyTranslations(root) {
   const scope = root || (typeof document !== 'undefined' ? document : null);
   if (!scope || typeof scope.querySelectorAll !== 'function') return;
 
+  if (!root && typeof document !== 'undefined' && document.documentElement) {
+    document.documentElement.lang = getLanguage();
+  }
+
   scope.querySelectorAll('[data-i18n]').forEach((el) => {
     el.textContent = t(el.getAttribute('data-i18n'));
   });
@@ -189,6 +193,21 @@ export function applyTranslations(root) {
 }
 
 /**
+ * Visningsnavn for kjønn (Hunn/Hunnfarget -> Ho/Hofarga på nynorsk).
+ * Kaller-verdier som lagres og sendes til AO skal alltid forbli kanonisk bokmål.
+ * @param {string} gender
+ * @param {string} [lang]
+ * @returns {string}
+ */
+export function genderDisplayName(gender, lang) {
+  if (!gender) return '';
+  const activeLang = lang || getLanguage();
+  if (gender === 'Hunn') return tFor(activeLang, 'index.common.gender_hunn');
+  if (gender === 'Hunnfarget') return tFor(activeLang, 'index.common.gender_hunnfarget');
+  return gender;
+}
+
+/**
  * Språkene appen faktisk har en ordbok for, i visningsrekkefølge - brukes av
  * settings.html til å bygge språkvelgeren fra denne ene listen i stedet for
  * å hardkode alternativene der også.
@@ -196,4 +215,120 @@ export function applyTranslations(root) {
  */
 export function getAvailableLanguages() {
   return SUPPORTED_LANGUAGES.map((code) => ({ code, label: t(`settings.language.${code}`) }));
+}
+
+/**
+ * Nynorsk-oversettelse av AO-aktivitetskodene fra public/data/activities.json.
+ * Nøkkel er det kanoniske bokmål-navnet AO selv bruker, verdi er
+ * nynorsk-visningsnavnet.
+ */
+export const ACTIVITY_NYNORSK_MAP = {
+  'Stasjonær': 'Stasjonær',
+  'Rastende': 'Rastande',
+  'Overflygende': 'Overflygande',
+  'Næringssøkende': 'Næringssøkjande',
+  'Ved fôring': 'Ved fôring',
+  'Trekkende': 'Trekkjande',
+  'Sang/spill, ikke hekking': 'Song/spel, ikkje hekking',
+  'Lokkelyd, øvrige lyder': 'Lokkelyd, andre lydar',
+  'Revir, ikke hekking': 'Revir, ikkje hekking',
+  'Trekkende mot N': 'Trekkjande mot N',
+  'Trekkende mot NØ': 'Trekkjande mot NA',
+  'Trekkende mot Ø': 'Trekkjande mot A',
+  'Trekkende mot SØ': 'Trekkjande mot SA',
+  'Trekkende mot S': 'Trekkjande mot S',
+  'Trekkende mot SV': 'Trekkjande mot SV',
+  'Trekkende mot V': 'Trekkjande mot V',
+  'Trekkende mot NV': 'Trekkjande mot NV',
+  'Permanent revir': 'Permanent revir',
+  'Sang/spill i hekketid og passende hekkebiotop': 'Song/spel i hekketid og passande hekkebiotop',
+  'Observasjon i hekketid, passende biotop': 'Observasjon i hekketid, passande biotop',
+  'Par i passende hekkebiotop': 'Par i passande hekkebiotop',
+  'Paring/kurtise på mulig hekkeplass': 'Paring/kurtise på mogleg hekkeplass',
+  'Reirbygging': 'Reirbygging',
+  'Reirbesøk?': 'Reirbesøk?',
+  'Besøker bebodd reir': 'Besøkjer bebodd reir',
+  'Reir i bruk': 'Reir i bruk',
+  'Rugende': 'Rugande',
+  'Rugeflekker': 'Rugeflekkar',
+  'Reir med egg eller unger': 'Reir med egg eller ungar',
+  'Reir, unger hørt': 'Reir, ungar høyrt',
+  'Mat til unger': 'Mat til ungar',
+  'Bar ekskrementpose': 'Bar ekskrementpose',
+  'Unger utenfor reir, ikke utvokste': 'Ungar utanfor reir, ikkje utvaksne',
+  'Eggeskall': 'Eggeskall',
+  'Brukt reir': 'Brukt reir',
+  'Engstelig adferd, indikasjon på hekking': 'Engsteleg åtferd, indikasjon på hekking',
+  'Avledningsmanøver': 'Avleiingsmanøver',
+  'Mislykket hekking': 'Mislykka hekking',
+  'Ringmerket': 'Ringmerkt',
+  'Individmerket (kontroll)': 'Individmerkt (kontroll)',
+  'Trekkforsøk': 'Trekkforsøk',
+  'Syk': 'Sjuk',
+  'Død - kollisjon med kraftledning': 'Daud - kollisjon med kraftleidning',
+  'Død - kollisjon med vindturbin': 'Daud - kollisjon med vindturbin',
+  'Død - kollisjon med vindu': 'Daud - kollisjon med vindauge',
+  'Død - kollisjon med fyr': 'Daud - kollisjon med fyr',
+  'Død - kollisjon med fly': 'Daud - kollisjon med fly',
+  'Død - kollisjon med gjerde': 'Daud - kollisjon med gjerde',
+  'Drept av elektrokusjon (strømslag)': 'Drepen av elektrokusjon (straumslag)',
+  'Drept av olje': 'Drepen av olje',
+  'Trafikkdrept': 'Trafikkdrepen',
+  'Garndød': 'Garndaud',
+  'Skadet av fiskeredskap': 'Skadd av fiskereiskap',
+  'Drept av predator': 'Drepen av predator',
+  'Død av sykdom/sult': 'Daud av sjukdom/sult',
+  'Skutt/avlivet': 'Skoten/avliva',
+  'Død - ukjent dødsårsak': 'Daud - ukjend dødsårsak',
+  'Ferske spor': 'Ferske spor',
+  'Eldre spor': 'Eldre spor',
+  'Fersk møkk': 'Fersk møkk',
+  'Eldre møkk': 'Eldre møkk',
+  'Stationær': 'Stasjonær',
+  'Overflyvende': 'Overflygande',
+  'Syngende': 'Syngjande',
+  'Spill/sang': 'Spel/song',
+  'Sang/spill': 'Song/spel',
+  'Reir med unger eller hørt unger': 'Reir med ungar eller høyrt ungar',
+};
+
+const ACTIVITY_BOKMAL_MAP = (() => {
+  const rev = {};
+  for (const [nbVal, nnVal] of Object.entries(ACTIVITY_NYNORSK_MAP)) {
+    if (!rev[nnVal]) rev[nnVal] = nbVal;
+  }
+  rev['Stasjonær'] = 'Stasjonær';
+  rev['Overflygande'] = 'Overflygende';
+  rev['Trekkjande mot Ø'] = 'Trekkende mot Ø';
+  rev['Trekkjande mot NØ'] = 'Trekkende mot NØ';
+  rev['Trekkjande mot SØ'] = 'Trekkende mot SØ';
+  return rev;
+})();
+
+/**
+ * Visningsnavn for en AO-aktivitetskode, etter aktivt språk (eller `userLanguage`).
+ * @param {string} label
+ * @param {string} [userLanguage]
+ * @returns {string}
+ */
+export function activityDisplayName(label, userLanguage) {
+  if (!label) return '';
+  const lang = userLanguage !== undefined ? userLanguage : getLanguage();
+  if (lang === 'nn') {
+    const trimmed = label.trim();
+    return ACTIVITY_NYNORSK_MAP[label] || ACTIVITY_NYNORSK_MAP[trimmed] || label;
+  }
+  return activityBokmalName(label);
+}
+
+/**
+ * Konverterer et eventuelt nynorsk aktivitetsnavn tilbake til det kanoniske
+ * bokmål-navnet AO forventer.
+ * @param {string} label
+ * @returns {string}
+ */
+export function activityBokmalName(label) {
+  if (!label) return '';
+  const trimmed = label.trim();
+  return ACTIVITY_BOKMAL_MAP[label] || ACTIVITY_BOKMAL_MAP[trimmed] || label;
 }

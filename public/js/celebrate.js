@@ -7,6 +7,8 @@
  * toasten som må være diskré fordi den vises på hver eneste art.
  */
 
+import { t } from './i18n.js?v=v1.60.20';
+
 const EMOJI = ['🎉', '✨', '🎆', '⭐', '💫'];
 const PIECE_COUNT = 50;
 const CLEANUP_MS = 3000;
@@ -45,7 +47,9 @@ function spawnBanner(speciesName) {
   const banner = document.createElement('div');
   banner.className = 'rarity-celebration-banner';
   banner.setAttribute('aria-hidden', 'true');
-  banner.textContent = speciesName ? `🎉 Sjeldent funn: ${speciesName}!` : '🎉 Sjeldent funn!';
+  banner.textContent = speciesName
+    ? t('celebrate.rare_find', { art: speciesName })
+    : t('celebrate.rare_find_generic');
   document.body.appendChild(banner);
   setTimeout(() => banner.remove(), CLEANUP_MS);
 }

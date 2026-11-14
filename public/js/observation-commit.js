@@ -147,11 +147,11 @@ export function commitObservation(state, dom, callbacks) {
   // skjemaet frem i tid mens man etterregistrerte inn i et besøk, ble
   // registreringen ellers avvist for en tid som aldri kom til å bli brukt.
   if (isAfterMode && new Date(timestamp) > now) {
-    showToast('Fra-tidspunkt er frem i tid — AO underkjenner observasjonen');
+    showToast(t('observations.edit.from_future_ao'));
     return;
   }
   if (tilKlokkeslett && new Date(tilKlokkeslett) > now) {
-    showToast('Til-tidspunkt er frem i tid — AO underkjenner observasjonen');
+    showToast(t('observations.edit.to_future_ao'));
     return;
   }
 
@@ -212,7 +212,7 @@ export function commitObservation(state, dom, callbacks) {
     // Rent kosmetisk — skal aldri kunne kaste og ta med seg selve lagringen
     // av observasjonen (unshift/saveState) lenger ned i funksjonen.
     try {
-      celebrateRareFind(obs.species.taxonName);
+      celebrateRareFind(speciesDisplayName(obs.species) || obs.species.taxonName);
       celebratedRareFind = true;
     } catch (e) {
       // ignorer - fyrverkeriet er ikke kritisk

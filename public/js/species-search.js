@@ -11,6 +11,7 @@ import {
   searchSpecies,
 } from './species_offline.js?v=v1.60.20';
 import { speciesDisplayName, loadNynorskArtsnavn } from './storage.js?v=v1.60.20';
+import { t, getLanguage } from './i18n.js?v=v1.60.20';
 
 export { searchSpecies };
 
@@ -29,7 +30,7 @@ export function renderResults(state, dom) {
   dom.resultsEl.innerHTML = '';
 
   if (!state.currentResults.length) {
-    dom.resultCount.textContent = '0 treff';
+    dom.resultCount.textContent = t('species.hits_zero');
     return;
   }
 
@@ -46,7 +47,7 @@ export function renderResults(state, dom) {
 
     const nameSpan = document.createElement('span');
     nameSpan.className = 'result-name';
-    nameSpan.textContent = speciesDisplayName(item) || item.norwegian || '(ukjent navn)';
+    nameSpan.textContent = speciesDisplayName(item) || item.norwegian || t('species.unknown_name');
     row.appendChild(nameSpan);
 
     if (item.scientificName || item.latin) {
@@ -71,7 +72,7 @@ export function renderResults(state, dom) {
     dom.resultsEl.appendChild(div);
   });
 
-  dom.resultCount.textContent = `${state.currentResults.length} treff`;
+  dom.resultCount.textContent = t('species.hits_count', { n: state.currentResults.length });
 }
 
 export function chooseItem(index, state, dom, callbacks) {
@@ -243,8 +244,8 @@ export async function fetchResults(term, state, dom, callbacks) {
     state.activeIndex = -1;
     renderResults(state, dom);
     dom.emptyMsgEl.style.display = q.length ? 'block' : 'none';
-    if (!q.length) dom.emptyMsgEl.textContent = 'Ingen treff ennå. Skriv minst 2 tegn.';
-    else dom.emptyMsgEl.textContent = 'Skriv litt mer for å få treff.';
+    if (!q.length) dom.emptyMsgEl.textContent = t('index.species.empty_msg');
+    else dom.emptyMsgEl.textContent = t('species.status.type_more_hits');
     return;
   }
 
@@ -252,7 +253,7 @@ export async function fetchResults(term, state, dom, callbacks) {
 
   const forceOffline = localStorage.getItem('forceOfflineSpecies') === '1';
   const includeSubtaxa = Boolean(document.getElementById('include-subtaxa')?.checked);
-  const userLanguage = loadNynorskArtsnavn() ? 'nn' : 'nb';
+  const userLanguage = getLanguage() === 'nn' || loadNynorskArtsnavn() ? 'nn' : 'nb';
 
   function visOfflineTreff(offline, tomMelding) {
     state.currentResults = offline.map((s) => ({
@@ -269,7 +270,7 @@ export async function fetchResults(term, state, dom, callbacks) {
     renderResults(state, dom);
     dom.emptyMsgEl.style.display = state.currentResults.length ? 'none' : 'block';
     if (!state.currentResults.length) dom.emptyMsgEl.textContent = tomMelding;
-    callbacks.updateStatus('idle', 'Klar for søk');
+    callbacks.updateStatus('idle', t('species.status.ready'));
   }
 
   // Den lokale artslista er primærkilden. Den ligger allerede på enheten
@@ -295,11 +296,11 @@ export async function fetchResults(term, state, dom, callbacks) {
   // staging 30.10.2026, der lokalsøket så ut til å ikke virke fordi edge
   // fortsatt leverte forrige bygg av akkurat denne fila. Bump versjonen.
   if (forceOffline) {
-    visOfflineTreff([], 'Ingen treff i offline-listen.');
+    visOfflineTreff([], t('species.status.offline_list_no_hits'));
     return;
   }
 
-  callbacks.updateStatus('loading', 'Søker i Artsobservasjoner …');
+  callbacks.updateStatus('loading', t('species.status.searching_ao'));
 
   function withTimeout(promise, ms) {
     return Promise.race([
@@ -349,10 +350,10 @@ export async function fetchResults(term, state, dom, callbacks) {
 
     if (!state.currentResults.length) {
       dom.emptyMsgEl.style.display = 'block';
-      dom.emptyMsgEl.textContent = 'Ingen treff fra Artsobservasjoner.';
+      dom.emptyMsgEl.textContent = t('species.status.ao_no_hits');
     }
 
-    callbacks.updateStatus('idle', 'Klar for søk');
+    callbacks.updateStatus('idle', t('species.status.ready'));
   } catch (err) {
     const serverNede = err instanceof TypeError;
     console.warn(
@@ -375,20 +376,20 @@ export async function fetchResults(term, state, dom, callbacks) {
     renderResults(state, dom);
 
     const settingsLenke =
-      '<a href="/settings.html" style="color:#3b82f6;text-decoration:underline;">⚙️ Innstillinger</a>';
+      `<a href="/settings.html" style="color:#3b82f6;text-decoration:underline;">${t('species.banner.settings_btn')}</a>`;
     let årsak;
     if (serverNede) {
-      årsak = 'Ingen kontakt med server';
+      årsak = t('species.banner.no_server');
     } else if (!navigator.onLine) {
-      årsak = 'Du er offline';
+      årsak = t('species.banner.offline');
     } else {
-      årsak = 'AO svarer ikke';
+      årsak = t('species.banner.ao_no_reply');
     }
-    const statusHtml = årsak + ' — bruker lokal artsliste — ' + settingsLenke;
+    const statusHtml = årsak + t('species.banner.using_local') + settingsLenke;
     callbacks.updateStatus('error', årsak, statusHtml);
     if (!state.currentResults.length) {
       dom.emptyMsgEl.style.display = 'block';
-      dom.emptyMsgEl.textContent = 'Ingen treff i lokal artsliste.';
+      dom.emptyMsgEl.textContent = t('species.status.offline_no_hits');
     }
   }
 }

@@ -115,15 +115,19 @@
               </div>
               <a class="lenke" href="/d/${slug}" target="_blank" rel="noopener">${location.origin}/d/${slug}</a>
               <div class="knapper">
-                <button class="btn-liten primar" data-oppdater="${idx}" ${utlopt ? 'disabled' : ''}>🔄 Oppdater</button>
-                <button class="btn-liten" data-trekk="${idx}">🗑️ Trekk tilbake</button>
+                <button class="btn-liten primar" data-oppdater="${idx}" ${utlopt ? 'disabled' : ''}>${t('delinger.update_btn')}</button>
+                <button class="btn-liten" data-trekk="${idx}">${t('delinger.withdraw_btn')}</button>
               </div>
             </div>`;
         }).join('');
       }
 
       render();
-      document.addEventListener('i18n:language-changed', render);
+      document.addEventListener('i18n:language-changed', () => {
+        document.title = t('delinger.title');
+        applyTranslations();
+        render();
+      });
 
       listeEl.addEventListener('click', async (e) => {
         const oppdaterIdx = e.target.dataset && e.target.dataset.oppdater;
@@ -135,7 +139,7 @@
           if (!d) return;
           const observations = loadObservations();
           if (!observations.length) {
-            alert('Arbeidslista er tom på denne enheten — ingenting å oppdatere delingen med.');
+            alert(t('delinger.empty_list_alert'));
             return;
           }
           openShareDialog(observations, { slug: d.slug, deleteKey: d.deleteKey });
@@ -155,7 +159,7 @@
           const delinger = hentMineDelinger();
           const d = delinger[Number(trekkIdx)];
           if (!d) return;
-          if (!confirm('Trekke tilbake denne delingen? Lenken slutter å virke med en gang.')) return;
+          if (!confirm(t('delinger.confirm_withdraw'))) return;
 
           e.target.disabled = true;
           try {
@@ -171,7 +175,7 @@
             render();
           } catch (_) {
             e.target.disabled = false;
-            alert('Kunne ikke trekke tilbake — prøv igjen om litt.');
+            alert(t('delinger.withdraw_error'));
           }
         }
       });
