@@ -3,6 +3,7 @@
  */
 
 import { defaultCoObservers, loadMedobs, speciesDisplayName, activityDisplayName, activityBokmalName } from './storage.js?v=v1.60.20';
+import { genderDisplayName } from './storage.js';
 import { showToast } from './ui.js';
 import { t } from './i18n.js?v=v1.60.20';
 import { toLocalISOString } from './utils.js';
@@ -40,12 +41,12 @@ function showTimeModal(groupItems, defaultFra, defaultTil, groupName, observatio
         <input type="time" id="time-modal-fra" style="width:100%;padding:8px;border-radius:8px;border:1px solid var(--border,rgba(148,163,184,0.25));background:var(--card-bg);color:var(--text);font-size:16px;box-sizing:border-box;" />
       </div>
       <div style="flex:1;">
-        <label style="font-size:0.8em;color:var(--muted);display:block;margin-bottom:4px;">Til</label>
+        <label style="font-size:0.8em;color:var(--muted);display:block;margin-bottom:4px;">${t('observations.time_modal.to')}</label>
         <input type="time" id="time-modal-til" style="width:100%;padding:8px;border-radius:8px;border:1px solid var(--border,rgba(148,163,184,0.25));background:var(--card-bg);color:var(--text);font-size:16px;box-sizing:border-box;" />
       </div>
     </div>
     <div style="display:flex;gap:8px;justify-content:flex-end;">
-      <button type="button" id="time-modal-cancel" style="padding:8px 16px;border:1px solid var(--border,rgba(148,163,184,0.25));border-radius:6px;background:transparent;color:var(--text);cursor:pointer;font-size:0.9em;">Avbryt</button>
+      <button type="button" id="time-modal-cancel" style="padding:8px 16px;border:1px solid var(--border,rgba(148,163,184,0.25));border-radius:6px;background:transparent;color:var(--text);cursor:pointer;font-size:0.9em;">${t('common.cancel')}</button>
       <button type="button" id="time-modal-apply" style="padding:8px 16px;border:none;border-radius:6px;background:var(--accent,#3b82f6);color:white;cursor:pointer;font-size:0.9em;font-weight:500;">${t('observations.time_modal.apply')}</button>
     </div>
   `;
@@ -158,7 +159,7 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
       idx = groups.length;
       indexByKey.set(visitKey, idx);
       groups.push({
-        key: (obs.placeName && obs.placeName.trim()) || 'Uten stedsnavn',
+        key: (obs.placeName && obs.placeName.trim()) || t('observations.no_place_name'),
         visitKey,
         items: [],
       });
@@ -388,7 +389,7 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
         if (obs.rarityWarning.header) titleParts.push(obs.rarityWarning.header);
         if (obs.rarityWarning.body) titleParts.push(obs.rarityWarning.body);
         rarityMerke.title = titleParts.join('\n');
-        rarityMerke.setAttribute('aria-label', `Sjeldenhetsvarsel: ${obs.rarityWarning.header || obs.rarityWarning.body}`);
+        rarityMerke.setAttribute('aria-label', t('observations.badge.rarity_aria_warn', { text: obs.rarityWarning.header || obs.rarityWarning.body }));
         primaryLine.appendChild(rarityMerke);
       }
       // Skjul-merke (øye med strek) rett etter arten/aktiviteten på hovedlinja,
@@ -401,7 +402,7 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
         const badge = document.createElement('span');
         badge.className = 'obs-hide-badge';
         badge.innerHTML = '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
-        badge.title = `Skjult for offentligheten til ${full}. Ingen andre kan se funnet. Endre via blyant-ikonet.`;
+        badge.title = t('observations.badge.hidden_until_full', { date: full });
         primaryLine.appendChild(badge);
       }
       // Allerede publisert til AO. Lista tømmes ikke automatisk etter sending, så
@@ -410,8 +411,8 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
         const sendtMerke = document.createElement('span');
         sendtMerke.className = 'obs-sent-badge';
         sendtMerke.textContent = '✓';
-        sendtMerke.title = 'Allerede sendt til Artsobservasjoner';
-        sendtMerke.setAttribute('aria-label', 'Allerede sendt til Artsobservasjoner');
+        sendtMerke.title = t('observations.badge.sent_check_title');
+        sendtMerke.setAttribute('aria-label', t('observations.badge.sent_check_aria'));
         primaryLine.appendChild(sendtMerke);
       }
       // Viser at det er lagt inn en kommentar (offentlig og/eller privat) —
@@ -421,10 +422,10 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
         kommentarMerke.className = 'obs-comment-badge';
         kommentarMerke.textContent = '💬';
         const titleParts = [];
-        if (obs.comment) titleParts.push(`Kommentar: ${obs.comment}`);
-        if (obs.privateComment) titleParts.push(`Privat kommentar: ${obs.privateComment}`);
+        if (obs.comment) titleParts.push(t('observations.badge.comment_title', { comment: obs.comment }));
+        if (obs.privateComment) titleParts.push(t('observations.badge.private_comment_title', { comment: obs.privateComment }));
         kommentarMerke.title = titleParts.join('\n');
-        kommentarMerke.setAttribute('aria-label', 'Kommentar lagt inn');
+        kommentarMerke.setAttribute('aria-label', t('observations.badge.comment_added_aria'));
         primaryLine.appendChild(kommentarMerke);
       }
       primaryTd.appendChild(primaryLine);
@@ -432,7 +433,7 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
       // Underlinje: kun alder/kjønn, og kun når noe faktisk er satt.
       const subParts = [];
       if (obs.age) subParts.push(obs.age);
-      if (obs.gender) subParts.push(obs.gender);
+      if (obs.gender) subParts.push(genderDisplayName(obs.gender));
       if (subParts.length) {
         const subline = document.createElement('div');
         subline.className = 'obs-subline';
@@ -643,7 +644,7 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
       const editBtn = document.createElement('button');
       editBtn.className = 'edit-obs-btn';
       editBtn.textContent = '✏️';
-      editBtn.title = 'Rediger observasjon';
+      editBtn.title = t('observations.edit_obs_title');
       editBtn.addEventListener('click', () => {
         if (globalIndex === -1) return;
         openEditModal(observations, globalIndex, () => {
@@ -657,7 +658,7 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
       const deleteBtn = document.createElement('button');
       deleteBtn.className = 'delete-obs-btn';
       deleteBtn.textContent = '🗑️';
-      deleteBtn.title = 'Slett observasjon';
+      deleteBtn.title = t('observations.delete_obs_title');
       deleteBtn.style.marginLeft = '4px';
       deleteBtn.addEventListener('click', () => {
         if (globalIndex === -1) return;
@@ -665,7 +666,7 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
         // Lagre slettet observasjon og posisjon for undo
         const deletedObs = observations[globalIndex];
         const deletedIndex = globalIndex;
-        const speciesName = (deletedObs.species && speciesDisplayName(deletedObs.species)) || 'Observasjon';
+        const speciesName = (deletedObs.species && speciesDisplayName(deletedObs.species)) || t('observations.fallback_species');
 
         // Fjern fra array
         observations.splice(globalIndex, 1);

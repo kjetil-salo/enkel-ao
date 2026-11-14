@@ -80,32 +80,37 @@
   <body>
     <script src="/js/theme.js"></script>
     <div class="card">
-      <h2>Medobservatører</h2>
+      <h2 data-i18n="medobs.heading">Medobservatører</h2>
       <div>
         <table id="medobs-table">
           <thead>
             <tr>
-              <th style="text-align:left">Navn</th>
-              <th style="width:50px;text-align:center" title="Aktiv i dag">Aktiv</th>
+              <th style="text-align:left" data-i18n="medobs.col_name">Navn</th>
+              <th style="width:50px;text-align:center" title="Aktiv i dag" data-i18n="medobs.col_active" data-i18n-attr="title:medobs.col_active_title">Aktiv</th>
               <th style="width:36px">&nbsp;</th>
             </tr>
           </thead>
           <tbody></tbody>
         </table>
         <button type="button" id="medobs-add-btn" class="medobs-add-btn">
-          <span style="font-size:1.1em;font-weight:bold">+</span> Legg til person
+          <span style="font-size:1.1em;font-weight:bold">+</span> <span data-i18n="medobs.add_person">Legg til person</span>
         </button>
         <div style="margin-top:16px;text-align:right;display:flex;gap:8px;justify-content:flex-end;">
-          <button type="button" id="apply-to-all-btn" class="btn">
+          <button type="button" id="apply-to-all-btn" class="btn" data-i18n="medobs.apply_to_all">
             Legg til på alle observasjoner
           </button>
         </div>
       </div>
 
-      <p style="margin-top:18px" class="muted">Når du har lagret, vil valgte medobservatører legges automatisk på nye observasjoner.</p>
-      <p><a href="/" class="btn-ghost">Tilbake</a></p>
+      <p style="margin-top:18px" class="muted" data-i18n="medobs.hint">Når du har lagret, vil valgte medobservatører legges automatisk på nye observasjoner.</p>
+      <p><a href="/" class="btn-ghost" data-i18n="medobs.back">Tilbake</a></p>
     </div>
-    <script>
+    <script type="module">
+      import { t, applyTranslations } from './js/i18n.js?v=v1.60.20';
+
+      document.title = t('medobs.page_title');
+      applyTranslations();
+
       const KEY = 'medobs_list_v1';
 
       function todayStr() {
@@ -201,14 +206,14 @@
 
           clearTimeout(acDebounce);
           acDebounce = setTimeout(async () => {
-            dropdown.innerHTML = '<div class="medobs-ac-spinner">Søker…</div>';
+            dropdown.innerHTML = `<div class="medobs-ac-spinner">${t('index.common.searching')}</div>`;
             dropdown.classList.add('show');
             acActiveIndex = -1;
 
             const results = await searchObservers(query);
             dropdown.innerHTML = '';
             if (results.length === 0) {
-              dropdown.innerHTML = '<div class="medobs-ac-spinner">Ingen treff</div>';
+              dropdown.innerHTML = `<div class="medobs-ac-spinner">${t('index.common.no_hits')}</div>`;
               return;
             }
 
@@ -292,16 +297,17 @@
 
         if (list.length === 0) {
           const tr = document.createElement('tr');
-          tr.innerHTML = `<td colspan="3" style="color:var(--muted);font-size:0.92em;padding:12px 6px">Ingen medobservatører lagt til ennå.</td>`;
+          tr.innerHTML = `<td colspan="3" style="color:var(--muted);font-size:0.92em;padding:12px 6px">${t('index.medobs.empty')}</td>`;
           tbody.appendChild(tr);
         }
 
         list.forEach((it, i) => {
           const tr = document.createElement('tr');
+          const removeName = escapeHtml(it.name) || t('medobs.row_fallback');
           tr.innerHTML = `
-            <td><input class="medobs-name" data-i="${i}" value="${escapeHtml(it.name)}" autocomplete="off" placeholder="Navn…" style="width:100%" /></td>
+            <td><input class="medobs-name" data-i="${i}" value="${escapeHtml(it.name)}" autocomplete="off" placeholder="${escapeHtml(t('index.medobs.name_placeholder'))}" style="width:100%" /></td>
             <td style="text-align:center"><input type="checkbox" class="medobs-active" data-i="${i}" ${it.active ? 'checked' : ''} /></td>
-            <td style="text-align:center"><button type="button" class="medobs-remove-btn" data-i="${i}" title="Fjern" aria-label="Fjern ${escapeHtml(it.name) || 'rad'}">✕</button></td>
+            <td style="text-align:center"><button type="button" class="medobs-remove-btn" data-i="${i}" title="${escapeHtml(t('index.common.remove'))}" aria-label="${escapeHtml(t('medobs.remove_aria', { name: removeName }))}">✕</button></td>
           `;
           tbody.appendChild(tr);
         });
@@ -383,12 +389,13 @@
         // Sett innhold
         toast.innerHTML = '';
         const textSpan = document.createElement('span');
-        textSpan.textContent = `${count} observasjon${count !== 1 ? 'er' : ''} oppdatert`;
+        const obsWord = count === 1 ? t('observations.word_singular') : t('observations.word_plural');
+        textSpan.textContent = t('observations.medobs.updated_toast', { n: count, ord: obsWord });
         toast.appendChild(textSpan);
 
         // Legg til undo-knapp
         const undoBtn = document.createElement('button');
-        undoBtn.textContent = 'Angre';
+        undoBtn.textContent = t('observations.undo');
         undoBtn.style.cssText = `
           background: rgba(255,255,255,0.2);
           border: 1px solid rgba(255,255,255,0.3);
@@ -433,7 +440,7 @@
 
           // Valider at vi har aktive medobservatører
           if (activeObservers.length === 0) {
-            alert('Ingen aktive medobservatører valgt. Huk av for minst én medobservatør i listen.');
+            alert(t('medobs.none_active_alert'));
             return;
           }
 
@@ -441,7 +448,7 @@
           const obsKey = 'fugleobservasjoner_v1';
           const raw = localStorage.getItem(obsKey);
           if (!raw) {
-            alert('Ingen observasjoner funnet.');
+            alert(t('observations.medobs.none_obs_short'));
             return;
           }
 
@@ -449,13 +456,14 @@
           const observations = payload.observations || [];
 
           if (observations.length === 0) {
-            alert('Ingen observasjoner funnet.');
+            alert(t('observations.medobs.none_obs_short'));
             return;
           }
 
           // Vis bekreftelsesdialog
           const observerList = activeObservers.join(', ');
-          const confirmMsg = `Legg til følgende medobservatører på alle ${observations.length} observasjon${observations.length !== 1 ? 'er' : ''}?\n\n${observerList}`;
+          const obsWord = observations.length === 1 ? t('observations.word_singular') : t('observations.word_plural');
+          const confirmMsg = `${t('medobs.apply_confirm', { count: observations.length, ord: obsWord })}\n\n${observerList}`;
           const ok = window.confirm(confirmMsg);
           if (!ok) return;
 
@@ -483,9 +491,9 @@
           // Vis suksessmelding på knapp
           const btn = document.getElementById('apply-to-all-btn');
           if (btn) {
-            const originalText = btn.textContent;
+            const originalText = t('medobs.apply_to_all');
             btn.style.background = '#22c55e';
-            btn.textContent = `Oppdatert ${observations.length} observasjon${observations.length !== 1 ? 'er' : ''}!`;
+            btn.textContent = t('observations.medobs.updated_btn', { n: observations.length, ord: obsWord });
             btn.disabled = true;
 
             // Tilbakestill knapp etter 3 sekunder
@@ -506,9 +514,9 @@
               // Visuell feedback på knapp
               const btn = document.getElementById('apply-to-all-btn');
               if (btn) {
-                const originalText = 'Legg til på alle observasjoner';
+                const originalText = t('medobs.apply_to_all');
                 btn.style.background = '#3b82f6';
-                btn.textContent = 'Angret!';
+                btn.textContent = t('observations.medobs.undone_btn');
                 btn.disabled = true;
 
                 setTimeout(() => {
@@ -518,23 +526,27 @@
               }
             } catch (err) {
               console.error('Feil ved undo:', err);
-              alert('Feil ved undo: ' + err.message);
+              alert(t('observations.medobs.undo_error', { msg: err.message }));
             }
           });
 
         } catch (err) {
           console.error('Feil ved masseoppdatering:', err);
-          alert('Feil ved masseoppdatering: ' + err.message);
+          alert(t('observations.medobs.bulk_error', { msg: err.message }));
         }
       }
 
       // Event listeners
-      document.addEventListener('DOMContentLoaded', () => {
-        const applyBtn = document.getElementById('apply-to-all-btn');
-        if (applyBtn) applyBtn.addEventListener('click', applyToAllObservations);
+      const applyBtn = document.getElementById('apply-to-all-btn');
+      if (applyBtn) applyBtn.addEventListener('click', applyToAllObservations);
 
-        const addBtn = document.getElementById('medobs-add-btn');
-        if (addBtn) addBtn.addEventListener('click', () => addRow(true));
+      const addBtn = document.getElementById('medobs-add-btn');
+      if (addBtn) addBtn.addEventListener('click', () => addRow(true));
+
+      document.addEventListener('i18n:language-changed', () => {
+        document.title = t('medobs.page_title');
+        applyTranslations();
+        render();
       });
 
       render();

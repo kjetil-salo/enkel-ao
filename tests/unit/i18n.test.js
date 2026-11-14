@@ -127,3 +127,47 @@ describe('getAvailableLanguages()', () => {
     ]);
   });
 });
+
+describe('nb.js og nn.js paritet og nynorsk-kvalitet', () => {
+  it('har nøyaktig samme sett av nøkler i nb.js og nn.js', async () => {
+    const { default: nb } = await import('../../public/js/i18n/nb.js');
+    const { default: nn } = await import('../../public/js/i18n/nn.js');
+    const nbKeys = Object.keys(nb).sort();
+    const nnKeys = Object.keys(nn).sort();
+    expect(nnKeys).toEqual(nbKeys);
+  });
+
+  it('har ingen forekomster av «Lukk» eller «lukk» i nn.js (skal være «Lat att»)', async () => {
+    const { default: nn } = await import('../../public/js/i18n/nn.js');
+    const offending = Object.entries(nn).filter(([, val]) => /\blukk\b/i.test(String(val)));
+    expect(offending).toEqual([]);
+  });
+
+  it('oversetter alle eksplisitt etterspurte nynorsk-strenger riktig', () => {
+    i18n.setLanguage('nn');
+    expect(i18n.t('location.idle_hint')).toBe('Trykk «Hent lokalitetar» før registrering.');
+    expect(i18n.t('index.search_placeholder_locked')).toBe('Vel lokalitet fyrst ↑');
+    expect(i18n.t('index.search_placeholder')).toBe('Skriv artsnamn her …');
+    expect(i18n.t('observations.time_modal.from')).toBe('Frå');
+    expect(i18n.t('observations.time_modal.to')).toBe('Til');
+    expect(i18n.t('index.common.gender_hunn')).toBe('Ho');
+    expect(i18n.t('index.common.gender_hunnfarget')).toBe('Hofarga');
+    expect(i18n.t('sendt.loading')).toBe('Hentar funna dine frå Artsobservasjoner …');
+    expect(i18n.t('sendt.loading_sub')).toBe('Det kan ta nokre sekund');
+    expect(i18n.t('map.areas.empty')).toBe('Ingen nedlasta område enno.');
+    expect(i18n.t('index.common.close')).toBe('Lat att');
+    expect(i18n.t('index.medobs.close_aria')).toBe('Lat att');
+    expect(i18n.t('map.offline.close_select_btn')).toBe('✕ Lat att områdeval');
+  });
+});
+
+describe('genderDisplayName()', () => {
+  it('viser Ho og Hofarga på nynorsk mens bokmål beholder Hunn og Hunnfarget', () => {
+    expect(i18n.genderDisplayName('Hunn', 'nn')).toBe('Ho');
+    expect(i18n.genderDisplayName('Hunnfarget', 'nn')).toBe('Hofarga');
+    expect(i18n.genderDisplayName('Hann', 'nn')).toBe('Hann');
+    expect(i18n.genderDisplayName('Hunn', 'nb')).toBe('Hunn');
+    expect(i18n.genderDisplayName('Hunnfarget', 'nb')).toBe('Hunnfarget');
+  });
+});
+

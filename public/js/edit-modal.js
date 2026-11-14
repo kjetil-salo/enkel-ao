@@ -4,7 +4,9 @@
  * stedet for en egen side. Gjenbruker photo-picker.js og coobserver-picker.js,
  * som også brukes av registrerings-modalen (✎ Flere felt i ②).
  */
-import { saveObservations, lastSaveError, activityDisplayName, activityBokmalName } from './storage.js';
+import { saveObservations, lastSaveError, activityDisplayName, activityBokmalName, speciesDisplayName } from './storage.js';
+import { t, isNynorsk } from './i18n.js?v=v1.60.20';
+import { getSpeciesMeta, loadOfflineSpecies } from './species_offline.js?v=v1.60.20';
 import { initPhotoPicker } from './photo-picker.js?v=v1.60.20';
 import { initCoObserverPicker } from './coobserver-picker.js';
 import { isoToDate, isoToTime, updateDateTimeInIso } from './datetime-helpers.js';
@@ -16,6 +18,8 @@ let activitiesPromise = null;
 let currentObservations = null;
 let currentIdx = null;
 let currentOnSaved = null;
+let originalSpeciesTaxonName = '';
+let originalSpeciesDisplay = '';
 
 function isOpen() {
   return !!(els && els.modal.style.display === 'flex');
@@ -137,7 +141,24 @@ export function openEditModal(observations, index, onSaved) {
   currentIdx = index;
   currentOnSaved = onSaved;
 
-  els.species.value = (obs.species && obs.species.taxonName) || '';
+  originalSpeciesTaxonName = (obs.species && obs.species.taxonName) || '';
+  originalSpeciesDisplay = (obs.species && speciesDisplayName(obs.species)) || originalSpeciesTaxonName;
+  els.species.value = originalSpeciesDisplay;
+
+  // Berik med nynorsk hvis brukeren redigerer en gammel observasjon uten lagret nynorsk-felt
+  if (isNynorsk() && obs.species && !obs.species.nynorsk && !obs.species.nameNno && originalSpeciesTaxonName) {
+    getSpeciesMeta(obs.species.scientificName || obs.species.latin || '', originalSpeciesTaxonName)
+      .then((meta) => {
+        const nnName = meta && (meta.nynorsk || meta.nameNno);
+        if (nnName && currentObservations === observations && currentIdx === index && isOpen() && els.species.value.trim() === originalSpeciesDisplay) {
+          originalSpeciesDisplay = nnName;
+          els.species.value = nnName;
+        }
+      })
+      .catch(() => {});
+  } else if (isNynorsk()) {
+    loadOfflineSpecies().catch(() => {});
+  }
   els.count.value = obs.count != null ? obs.count : '';
   els.age.value = obs.age || '';
   els.gender.value = obs.gender || '';
@@ -165,7 +186,7 @@ export function openEditModal(observations, index, onSaved) {
   els.modal.style.display = 'flex';
 }
 
-function handleSubmit(e) {
+async function handleSubmit(e) {
   e.preventDefault();
   const obs = currentObservations && currentObservations[currentIdx];
   if (!obs) return;
@@ -178,7 +199,33 @@ function handleSubmit(e) {
   const gammelDato = (obs.timestamp || '').slice(0, 10);
 
   obs.species = obs.species || {};
-  obs.species.taxonName = els.species.value.trim();
+  const typedSpecies = els.species.value.trim();
+  if (typedSpecies === originalSpeciesDisplay && originalSpeciesTaxonName) {
+    // Artsnavnet er uendret fra åpning — behold kanonisk bokmålsnavn for AO
+    obs.species.taxonName = originalSpeciesTaxonName;
+  } else if (isNynorsk() && typedSpecies) {
+    // Slå opp om brukeren skrev et nynorsk artsnavn og konverter til kanonisk bokmål
+    let resolvedNob = typedSpecies;
+    try {
+      const list = await loadOfflineSpecies();
+      const q = typedSpecies.toLowerCase();
+      const hit = list.find((s) => (s.nynorsk || s.nameNno || '').toLowerCase() === q);
+      if (hit && (hit.norwegian || hit.nameNob)) {
+        resolvedNob = hit.norwegian || hit.nameNob;
+        obs.species.nynorsk = hit.nynorsk || hit.nameNno || typedSpecies;
+        obs.species.nameNno = obs.species.nynorsk;
+        obs.species.nameNob = resolvedNob;
+        if (hit.latin || hit.latinName) obs.species.scientificName = hit.latin || hit.latinName;
+        if (hit.id ?? hit.taxonId) {
+          obs.species.id = hit.id ?? hit.taxonId;
+          obs.species.taxonId = hit.taxonId ?? hit.id;
+        }
+      }
+    } catch (_) {}
+    obs.species.taxonName = resolvedNob;
+  } else {
+    obs.species.taxonName = typedSpecies;
+  }
   obs.count = parseInt(els.count.value, 10) || 1;
   const actOpt = els.activity.options[els.activity.selectedIndex];
   obs.activity = actOpt && actOpt.text ? activityBokmalName(actOpt.text.trim()) : '';
@@ -196,11 +243,11 @@ function handleSubmit(e) {
   // observasjon AO importerer, men aldri publiserer.
   const naa = new Date();
   if (new Date(nyTimestamp) > naa) {
-    alert('Fra-tidspunkt er frem i tid — AO underkjenner observasjonen');
+    alert(t('observations.edit.from_future_ao'));
     return;
   }
   if (nyTilKlokkeslett && new Date(nyTilKlokkeslett) > naa) {
-    alert('Til-tidspunkt er frem i tid — AO underkjenner observasjonen');
+    alert(t('observations.edit.to_future_ao'));
     return;
   }
 
@@ -243,25 +290,20 @@ function handleSubmit(e) {
   // var borte neste gang man så etter.
   if (!lagret && obs.photo) {
     const nyttBilde = typeof photoValue === 'string' && photoValue !== '';
-    const kastBildet = nyttBilde || confirm(
-      'Det er ikke plass til å lagre endringene på denne enheten.\n\n'
-      + 'Vil du fjerne bildet fra denne observasjonen for å få plass? Bildet er da borte for godt.\n\n'
-      + 'Trykk Avbryt hvis du heller vil frigjøre plass først (f.eks. tømme gamle observasjoner).');
+    const kastBildet = nyttBilde || confirm(t('observations.edit.no_space_confirm'));
     if (kastBildet) {
       delete obs.photo;
       currentObservations[currentIdx] = obs;
       lagret = saveObservations(currentObservations);
       if (lagret) {
         alert(nyttBilde
-          ? 'Bildet var for stort til å lagres på denne enheten (tom lagringsplass). Resten av endringene er lagret, men uten bildet.'
-          : 'Endringene er lagret, men bildet måtte fjernes for å få plass.');
+          ? t('observations.edit.photo_too_big')
+          : t('observations.edit.photo_removed_saved'));
       }
     }
   }
   if (!lagret) {
-    alert('Kunne ikke lagre endringene — enheten har trolig ikke nok ledig lagringsplass. '
-      + 'Prøv å tømme noen gamle observasjoner eller last ned en sikkerhetskopi og forsøk igjen.'
-      + (lastSaveError ? `\n\n(${lastSaveError})` : ''));
+    alert(t('observations.edit.save_failed_space') + (lastSaveError ? `\n\n(${lastSaveError})` : ''));
     return;
   }
 

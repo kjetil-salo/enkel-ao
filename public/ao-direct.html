@@ -404,25 +404,25 @@
       <div class="card">
         <header>
           <h1 class="title">🚀 AO Direct</h1>
-          <a href="/" class="back-link">← Tilbake</a>
+          <a href="/" class="back-link" data-i18n="settings.back_link">← Tilbake</a>
         </header>
 
-        <div class="obs-count" id="obs-count">
+        <div class="obs-count" id="obs-count" data-i18n="ao_direct.no_obs">
           Ingen observasjoner å importere
         </div>
 
         <ul class="obs-list" id="obs-list"></ul>
 
         <div class="area-field">
-          <label for="area-input">Prioriter lokaliteter i området:</label>
+          <label for="area-input" data-i18n="ao_direct.prioritize_label">Prioriter lokaliteter i området:</label>
           <div class="area-input-wrapper">
-            <input type="text" id="area-input" placeholder="Søk kommune/fylke..." autocomplete="off" />
+            <input type="text" id="area-input" placeholder="Søk kommune/fylke..." autocomplete="off" data-i18n-attr="placeholder:ao_direct.area_placeholder" />
             <div class="area-suggestions" id="area-suggestions"></div>
           </div>
           <div id="area-selected-container"></div>
         </div>
 
-        <button class="btn btn-success" id="import-btn" disabled>
+        <button class="btn btn-success" id="import-btn" disabled data-i18n="ao_direct.import_btn">
           🚀 Importer og publiser til AO
         </button>
 
@@ -431,66 +431,66 @@
         <!-- Login / Token configuration -->
         <div class="config-section">
           <div class="config-header" id="config-toggle">
-            <h3>🔑 AO-innlogging</h3>
+            <h3 data-i18n="ao_direct.login_heading">🔑 AO-innlogging</h3>
             <span class="config-toggle open" id="config-arrow">▼</span>
           </div>
           <div class="config-content open" id="config-content">
             <!-- Login form -->
             <div id="login-form-section">
-              <p style="font-size: 0.85rem; color: var(--muted); margin-bottom: 12px;">
+              <p style="font-size: 0.85rem; color: var(--muted); margin-bottom: 12px;" data-i18n="ao_direct.login_intro">
                 Logg inn med ditt AO-brukernavn og passord. Sesjonen fornyes automatisk.
               </p>
 
               <div class="token-field">
-                <label for="ao-username">Brukernavn</label>
-                <input type="text" id="ao-username" placeholder="ditt_brukernavn" autocomplete="username" />
+                <label for="ao-username" data-i18n="settings.ao.username_label">Brukernavn</label>
+                <input type="text" id="ao-username" placeholder="ditt_brukernavn" autocomplete="username" data-i18n-attr="placeholder:ao_direct.username_placeholder" />
               </div>
               <div class="token-field">
-                <label for="ao-password">Passord</label>
+                <label for="ao-password" data-i18n="settings.ao.password_label">Passord</label>
                 <div style="position: relative;">
                   <input type="password" id="ao-password" placeholder="••••••••" autocomplete="current-password" style="padding-right: 40px;" />
-                  <button type="button" id="toggle-password" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--muted); font-size: 1.1rem; padding: 4px;">👁️</button>
+                  <button type="button" id="toggle-password" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--muted); font-size: 1.1rem; padding: 4px;" title="Vis/skjul passord" aria-label="Vis/skjul passord" data-i18n-attr="title:settings.ao.toggle_password_aria,aria-label:settings.ao.toggle_password_aria">👁️</button>
                 </div>
               </div>
               <div class="token-field">
-                <label for="ao-map-user-id">Bruker-ID for kart (valgfritt, kan være annen bruker)</label>
-                <input type="number" id="ao-map-user-id" placeholder="F.eks. 290628" />
+                <label for="ao-map-user-id" data-i18n="ao_direct.map_userid_label">Bruker-ID for kart (valgfritt, kan være annen bruker)</label>
+                <input type="number" id="ao-map-user-id" placeholder="F.eks. 290628" data-i18n-attr="placeholder:ao_direct.map_userid_placeholder" />
               </div>
 
-              <button class="btn" id="login-btn" style="margin-bottom: 12px;">🔐 Logg inn</button>
-              <button class="btn" id="delete-credentials-btn" style="margin-bottom: 12px; background: transparent; border: 1px solid var(--border, #333); color: var(--muted, #888); display: none;">🗑️ Slett lagret bruker & passord</button>
+              <button class="btn" id="login-btn" style="margin-bottom: 12px;" data-i18n="settings.ao.login_button">🔐 Logg inn</button>
+              <button class="btn" id="delete-credentials-btn" style="margin-bottom: 12px; background: transparent; border: 1px solid var(--border, #333); color: var(--muted, #888); display: none;" data-i18n="ao_direct.delete_creds_btn">🗑️ Slett lagret bruker & passord</button>
 
               <p style="font-size: 0.75rem; color: var(--muted); margin-top: 8px;">
-                <a href="#" id="show-manual-tokens" style="color: var(--accent);">Manuell token-konfigurasjon →</a>
+                <a href="#" id="show-manual-tokens" style="color: var(--accent);" data-i18n="ao_direct.show_manual">Manuell token-konfigurasjon →</a>
               </p>
             </div>
 
             <!-- Manual token section (hidden by default) -->
             <div id="manual-token-section" style="display: none;">
-              <p style="font-size: 0.85rem; color: var(--muted); margin-bottom: 12px;">
+              <p style="font-size: 0.85rem; color: var(--muted); margin-bottom: 12px;" data-i18n="ao_direct.manual_intro">
                 Alternativt: Kopier tokens manuelt fra nettleseren.
               </p>
               <div class="token-field">
-                <label for="login-token">logintoken (varer 1 år)</label>
+                <label for="login-token" data-i18n="ao_direct.logintoken_label">logintoken (varer 1 år)</label>
                 <input type="text" id="login-token" placeholder="290628:1b468755c0676437..." />
               </div>
               <div class="token-field" id="auth-cookie-field">
                 <label for="auth-cookie">.ASPXAUTHNO (auth cookie)</label>
-                <input type="text" id="auth-cookie" placeholder="Hentes automatisk fra logintoken" />
+                <input type="text" id="auth-cookie" placeholder="Hentes automatisk fra logintoken" data-i18n-attr="placeholder:ao_direct.authcookie_placeholder" />
               </div>
               <div class="token-field">
-                <label for="ao-user-id">Din bruker-ID</label>
-                <input type="number" id="ao-user-id" placeholder="Ekstraheres automatisk" />
+                <label for="ao-user-id" data-i18n="ao_direct.userid_label">Din bruker-ID</label>
+                <input type="number" id="ao-user-id" placeholder="Ekstraheres automatisk" data-i18n-attr="placeholder:ao_direct.userid_placeholder" />
               </div>
 
               <div style="display: flex; gap: 8px;">
-                <button class="btn btn-small" id="save-tokens">💾 Lagre token</button>
-                <button class="btn btn-small" id="test-tokens" style="background: var(--orange);">🧪 Test</button>
-                <button class="btn btn-small" id="refresh-session" style="background: var(--green);">🔄 Refresh session</button>
+                <button class="btn btn-small" id="save-tokens" data-i18n="ao_direct.save_tokens">💾 Lagre token</button>
+                <button class="btn btn-small" id="test-tokens" style="background: var(--orange);" data-i18n="ao_direct.test_tokens">🧪 Test</button>
+                <button class="btn btn-small" id="refresh-session" style="background: var(--green);" data-i18n="ao_direct.refresh_session">🔄 Refresh session</button>
               </div>
 
               <p style="font-size: 0.75rem; color: var(--muted); margin-top: 12px;">
-                <a href="#" id="hide-manual-tokens" style="color: var(--accent);">← Tilbake til innlogging</a>
+                <a href="#" id="hide-manual-tokens" style="color: var(--accent);" data-i18n="ao_direct.hide_manual">← Tilbake til innlogging</a>
               </p>
             </div>
 
@@ -504,6 +504,13 @@
 
     <script type="module">
       import { fjernOverforingssesjon } from './js/arbeidsliste-sesjon.js';
+      import { t, applyTranslations } from './js/i18n.js?v=v1.60.20';
+      import { speciesDisplayName, activityDisplayName } from './js/storage.js';
+      import { loadOfflineSpecies, getSpeciesMetaSync } from './js/species_offline.js';
+
+      document.title = t('ao_direct.page_title');
+      applyTranslations();
+
       // Last observations fra localStorage
       let observations = [];
       try {
@@ -598,39 +605,64 @@
         }
       });
 
-      // Vis observasjoner
-      if (observations.length > 0) {
-        obsCount.textContent = `${observations.length} observasjon${observations.length !== 1 ? 'er' : ''} klar for import`;
-        importBtn.disabled = false;
+      function renderObservationsList() {
+        obsList.innerHTML = '';
+        if (observations.length > 0) {
+          const obsWord = observations.length === 1 ? t('observations.word_singular') : t('observations.word_plural');
+          obsCount.textContent = t('ao_direct.ready_count', { n: observations.length, ord: obsWord });
+          importBtn.disabled = false;
 
-        observations.forEach(obs => {
-          const li = document.createElement('li');
-          li.className = 'obs-item';
+          observations.forEach(obs => {
+            const li = document.createElement('li');
+            li.className = 'obs-item';
 
-          const species = document.createElement('div');
-          species.className = 'obs-species';
-          const speciesName = (obs.species && obs.species.taxonName)
-            ? obs.species.taxonName
-            : (obs.species || 'Ukjent art');
-          species.textContent = speciesName;
+            const species = document.createElement('div');
+            species.className = 'obs-species';
+            let speciesName = t('observations.unknown_species');
+            if (obs.species && typeof obs.species === 'object') {
+              const meta = getSpeciesMetaSync(obs.species.scientificName || obs.species.latinName || '', obs.species.taxonName || '');
+              const enriched = {
+                ...obs.species,
+                nameNno: obs.species.nameNno || obs.species.nynorsk || meta?.nameNno || meta?.nynorsk || null,
+                nynorsk: obs.species.nynorsk || obs.species.nameNno || meta?.nynorsk || meta?.nameNno || null,
+              };
+              speciesName = speciesDisplayName(enriched) || obs.species.taxonName || t('observations.unknown_species');
+            } else if (typeof obs.species === 'string' && obs.species) {
+              speciesName = obs.species;
+            }
+            species.textContent = speciesName;
 
-          const details = document.createElement('div');
-          details.className = 'obs-details';
-          const parts = [];
-          if (obs.placeName) parts.push(obs.placeName);
-          if (obs.count) parts.push(`${obs.count} ind`);
-          if (obs.activity) parts.push(obs.activity);
-          if (obs.timestamp) {
-            const d = new Date(obs.timestamp);
-            parts.push(d.toLocaleDateString('nb-NO'));
-          }
-          details.textContent = parts.join(' • ');
+            const details = document.createElement('div');
+            details.className = 'obs-details';
+            const parts = [];
+            if (obs.placeName) parts.push(obs.placeName);
+            if (obs.count) parts.push(`${obs.count} ind`);
+            if (obs.activity) parts.push(activityDisplayName(obs.activity));
+            if (obs.timestamp) {
+              const d = new Date(obs.timestamp);
+              parts.push(d.toLocaleDateString('nb-NO'));
+            }
+            details.textContent = parts.join(' • ');
 
-          li.appendChild(species);
-          li.appendChild(details);
-          obsList.appendChild(li);
-        });
+            li.appendChild(species);
+            li.appendChild(details);
+            obsList.appendChild(li);
+          });
+        } else {
+          obsCount.textContent = t('ao_direct.no_obs');
+        }
       }
+
+      renderObservationsList();
+      if (observations.length > 0) {
+        loadOfflineSpecies().then(() => renderObservationsList()).catch(() => {});
+      }
+
+      document.addEventListener('i18n:language-changed', () => {
+        document.title = t('ao_direct.page_title');
+        applyTranslations();
+        renderObservationsList();
+      });
 
       // Auto-innlogging før import
       async function ensureFreshLogin() {
@@ -639,7 +671,7 @@
         if (!username || !password) return null;
 
         statusEl.className = 'status loading';
-        statusEl.innerHTML = '<span class="spinner"></span> Logger inn på AO...';
+        statusEl.innerHTML = `<span class="spinner"></span> ${t('ao_direct.logging_in_ao')}`;
 
         const resp = await fetch('/api/ao-login', {
           method: 'POST',
@@ -648,7 +680,7 @@
         });
         const result = await resp.json();
         if (!resp.ok || !result.success) {
-          throw new Error(result.error || 'Auto-innlogging feilet');
+          throw new Error(result.error || t('ao_direct.auto_login_failed'));
         }
 
         // Oppdater lagrede tokens
@@ -669,7 +701,7 @@
 
         if (!hasCredentials && (!savedTokens.loginToken || !savedTokens.authCookie)) {
           statusEl.className = 'status error';
-          statusEl.textContent = '❌ Logg inn først!';
+          statusEl.textContent = t('ao_direct.login_first_error');
           configContent.classList.add('open');
           configArrow.classList.add('open');
           return;
@@ -685,7 +717,7 @@
           }
 
           statusEl.className = 'status loading';
-          statusEl.innerHTML = '<span class="spinner"></span> Importerer og publiserer til AO...';
+          statusEl.innerHTML = `<span class="spinner"></span> ${t('ao_direct.importing')}`;
 
           const response = await fetch('/api/ao-import', {
             method: 'POST',
@@ -702,27 +734,28 @@
 
           if (response.ok && result.success) {
             if (result.refreshedAuthCookie) {
-              const t = JSON.parse(localStorage.getItem('ao_tokens') || '{}');
-              t.authCookie = result.refreshedAuthCookie;
-              localStorage.setItem('ao_tokens', JSON.stringify(t));
+              const tObj = JSON.parse(localStorage.getItem('ao_tokens') || '{}');
+              tObj.authCookie = result.refreshedAuthCookie;
+              localStorage.setItem('ao_tokens', JSON.stringify(tObj));
             }
 
-            const publishedText = result.published ? ' og publisert' : ' (publisering venter)';
+            const publishedText = result.published ? t('ao_direct.published_suffix') : t('ao_direct.pending_suffix');
+            const obsWord = result.count === 1 ? t('observations.word_singular') : t('observations.word_plural');
             statusEl.className = 'status success';
-            statusEl.innerHTML = `✅ ${result.count} observasjon${result.count !== 1 ? 'er' : ''} importert${publishedText}!`;
+            statusEl.innerHTML = t('ao_direct.imported_status', { count: result.count, ord: obsWord, suffix: publishedText });
 
             setTimeout(() => {
-              if (confirm('Import vellykket! Vil du tømme observasjonslisten?')) {
+              if (confirm(t('ao_direct.import_clear_confirm'))) {
                 localStorage.removeItem('fugleobservasjoner_v1');
                 window.location.href = '/';
               }
             }, 1500);
           } else {
-            throw new Error(result.error || 'Ukjent feil');
+            throw new Error(result.error || t('sendt.edit_modal.unknown_error'));
           }
         } catch (error) {
           statusEl.className = 'status error';
-          statusEl.textContent = `❌ Feil: ${error.message}`;
+          statusEl.textContent = t('ao_direct.error_prefix', { msg: error.message });
           importBtn.disabled = false;
         }
       });
@@ -780,7 +813,7 @@
         if (tokenStatus) {
           tokenStatus.style.display = 'block';
           tokenStatus.className = 'token-status valid';
-          tokenStatus.textContent = '✅ Token automatisk oppdatert!';
+          tokenStatus.textContent = t('ao_direct.token_updated');
           setTimeout(() => { tokenStatus.style.display = 'none'; }, 3000);
         }
       }
@@ -819,7 +852,7 @@
         updateDeleteBtn();
         tokenStatus.style.display = 'block';
         tokenStatus.className = 'token-status valid';
-        tokenStatus.textContent = '✅ Bruker og passord slettet fra localStorage. LoginToken beholdt.';
+        tokenStatus.textContent = t('ao_direct.creds_deleted');
       });
 
       // Toggle config section
@@ -850,15 +883,15 @@
         if (!username || !password.trim()) {
           tokenStatus.style.display = 'block';
           tokenStatus.className = 'token-status invalid';
-          tokenStatus.textContent = '❌ Fyll inn brukernavn og passord';
+          tokenStatus.textContent = t('ao_direct.fill_creds');
           return;
         }
 
         loginBtn.disabled = true;
-        loginBtn.innerHTML = '<span class="spinner"></span> Logger inn...';
+        loginBtn.innerHTML = `<span class="spinner"></span> ${t('ao_direct.logging_in_btn')}`;
         tokenStatus.style.display = 'block';
         tokenStatus.className = 'token-status warning';
-        tokenStatus.textContent = '⏳ Logger inn på Artsobservasjoner...';
+        tokenStatus.textContent = t('settings.ao.logging_in');
 
         try {
           const response = await fetch('/api/ao-login', {
@@ -873,7 +906,7 @@
           try {
             result = JSON.parse(text);
           } catch (parseErr) {
-            throw new Error(`Server-feil: ${text.substring(0, 100) || 'Tom respons'}`);
+            throw new Error(t('ao_direct.server_error', { msg: text.substring(0, 100) || t('ao_direct.empty_response') }));
           }
 
           if (response.ok && result.success) {
@@ -903,17 +936,19 @@
             updateDeleteBtn();
 
             tokenStatus.className = 'token-status valid';
-            const userInfo = mapUserId ? `bruker ${result.userId} (kart: ${mapUserId})` : `bruker ${result.userId}`;
-            tokenStatus.textContent = `✅ Innlogget som ${userInfo}!`;
+            const userInfo = mapUserId
+              ? t('ao_direct.user_info_map', { id: result.userId, mapId: mapUserId })
+              : t('ao_direct.user_info', { id: result.userId });
+            tokenStatus.textContent = t('ao_direct.logged_in_as', { info: userInfo });
           } else {
-            throw new Error(result.error || 'Innlogging feilet');
+            throw new Error(result.error || t('ao_direct.login_failed'));
           }
         } catch (error) {
           tokenStatus.className = 'token-status invalid';
           tokenStatus.textContent = `❌ ${error.message}`;
         } finally {
           loginBtn.disabled = false;
-          loginBtn.innerHTML = '🔐 Logg inn';
+          loginBtn.innerHTML = t('settings.ao.login_button');
         }
       });
 
@@ -930,8 +965,8 @@
         tokenStatus.style.display = 'block';
         tokenStatus.className = 'token-status valid';
         tokenStatus.textContent = tokens.userId
-          ? `✅ Token lagret for bruker ${tokens.userId}. Varer ca. 1 år!`
-          : '✅ Token lagret lokalt';
+          ? t('ao_direct.token_saved_user', { id: tokens.userId })
+          : t('ao_direct.token_saved_local');
         setTimeout(() => { tokenStatus.style.display = 'none'; }, 4000);
       });
 
@@ -943,13 +978,13 @@
 
         if (!loginToken) {
           tokenStatus.className = 'token-status invalid';
-          tokenStatus.textContent = '❌ logintoken må fylles ut';
+          tokenStatus.textContent = t('ao_direct.logintoken_required');
           return;
         }
 
         if (!loginToken.includes(':') || loginToken.length < 20) {
           tokenStatus.className = 'token-status invalid';
-          tokenStatus.textContent = '❌ logintoken ser feil ut (forventet format: 290628:abc123...)';
+          tokenStatus.textContent = t('ao_direct.logintoken_bad_format');
           return;
         }
 
@@ -957,7 +992,7 @@
         const userId = loginToken.split(':')[0];
 
         tokenStatus.className = 'token-status valid';
-        tokenStatus.textContent = `✅ Format OK! Bruker-ID: ${userId}. Klikk "Lagre token" for å aktivere.`;
+        tokenStatus.textContent = t('ao_direct.format_ok', { id: userId });
       });
 
       // Refresh session button
@@ -969,7 +1004,7 @@
           const userId = aoUserIdInput.value.trim();
           tokenStatus.style.display = 'block';
           tokenStatus.className = 'token-status warning';
-          tokenStatus.textContent = '⏳ Prøver å fornye session...';
+          tokenStatus.textContent = t('ao_direct.refreshing_session');
           try {
             const response = await fetch('/api/ao-refresh', {
               method: 'POST',
@@ -984,17 +1019,17 @@
               tokens.authCookie = result.refreshedAuthCookie;
               localStorage.setItem('ao_tokens', JSON.stringify(tokens));
               tokenStatus.className = 'token-status valid';
-              tokenStatus.textContent = '✅ Session fornyet! Ny .ASPXAUTHNO mottatt.';
+              tokenStatus.textContent = t('ao_direct.session_refreshed');
             } else if (result.error) {
               tokenStatus.className = 'token-status invalid';
               tokenStatus.textContent = '❌ ' + result.error;
             } else {
               tokenStatus.className = 'token-status warning';
-              tokenStatus.textContent = 'ℹ️ Ingen ny session, men eksisterende token fortsatt gyldig.';
+              tokenStatus.textContent = t('ao_direct.session_valid');
             }
           } catch (e) {
             tokenStatus.className = 'token-status invalid';
-            tokenStatus.textContent = '❌ Feil ved session refresh: ' + (e.message || e);
+            tokenStatus.textContent = t('ao_direct.session_refresh_error', { msg: e.message || e });
           }
         });
       }

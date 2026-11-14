@@ -168,8 +168,8 @@
     <div class="shell">
       <div class="card">
         <header>
-          <h1 class="title">📋 Endringslogg</h1>
-          <a href="/" class="back-link">← Tilbake</a>
+          <h1 class="title" data-i18n="changelog.heading">📋 Endringslogg</h1>
+          <a href="/" class="back-link" data-i18n="settings.back_link">← Tilbake</a>
         </header>
 
         <div class="version">
@@ -1953,5 +1953,10 @@
         </div>
       </div>
     </div>
+    <script type="module">
+      import { t, applyTranslations } from './js/i18n.js?v=v1.60.20';
+      document.title = t('changelog.page_title');
+      applyTranslations();
+    </script>
   </body>
 </html>

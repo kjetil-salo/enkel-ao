@@ -19,7 +19,7 @@ import { logPageView, loadActivities, fetchAoSites, fetchAndCachePrivateSites, h
 // altså hele appen, se samme fallgruve for map.js/location.js (v1.53.15) og
 // sjekklisten i CLAUDE.md. Bump SAMTIDIG som index.html sin egen ?v=-tag for
 // main.js, hver gang storage.js får en ny eksport main.js begynner å bruke.
-import { loadObservations, saveObservations, loadAoSearchRadius, saveAoSearchRadius, loadLocationSortMode, saveLocationSortMode, loadAoDirectAutoClear, saveAoDirectAutoClear, saveLastKnownPosition, loadLastKnownPosition, activityDisplayName, lesArbeidslisteForOverforing } from './storage.js?v=v1.60.20';
+import { loadObservations, saveObservations, loadAoSearchRadius, saveAoSearchRadius, loadLocationSortMode, saveLocationSortMode, loadAoDirectAutoClear, saveAoDirectAutoClear, saveLastKnownPosition, loadLastKnownPosition, activityDisplayName, speciesDisplayName, lesArbeidslisteForOverforing } from './storage.js?v=v1.60.20';
 import { setStatus, setLocationStatus, showToast, showOfflineNotAvailableDialog, haversine, MODE_SPLASH_DURATION_MS } from './ui.js?v=v1.60.20';
 import { t, applyTranslations } from './i18n.js?v=v1.60.20';
 import { DEFAULT_MAP_CENTER, setAoSiteSuggestions, initLocation, openMap, openMapPage, updateCreateSiteBtnVisibility, initCreateSite } from './location.js?v=v1.60.20';
@@ -102,6 +102,8 @@ const appState = {
   locationSortMode: loadLocationSortMode(),
   _callbacks: null, // settes i init()
 };
+
+let loadedActivities = [];
 
 // Autocomplete cleanup-funksjon
 let autocompleteCleanup = null;
@@ -281,7 +283,7 @@ function renderAoStatusBadge(statusDot, username, hasCredentials) {
   } else {
     // Rødt leses som «noe er galt» — men å ikke være innlogget er appens
     // helt normale starttilstand. Tekst i stedet for farge fjerner tvetydigheten.
-    statusDot.textContent = 'Logg inn';
+    statusDot.textContent = t('main.ao_badge.logged_out_label');
     statusDot.title = t('main.ao_badge.logged_out_title');
     statusDot.setAttribute('aria-label', t('main.ao_badge.logged_out_aria'));
   }
@@ -345,9 +347,7 @@ function updateFellesturBanner() {
   }
   if (varselEl) {
     if (avsluttet) {
-      varselEl.innerHTML = `🛑 <strong>Turen er avsluttet:</strong> ${tekst(fellesturAvsluttetAv)} har hentet loggen
-        inn i sin lokale liste og sender den til AO. <strong>Ikke registrer flere funn eller send selv</strong> —
-        si fra til ${tekst(fellesturAvsluttetAv)} hvis noe mangler.`;
+      varselEl.innerHTML = t('main.fellestur.ended_alert_html', { navn: tekst(fellesturAvsluttetAv) });
       varselEl.style.display = 'block';
       varselEl.style.fontSize = '1em';
     } else {
@@ -378,7 +378,7 @@ function oppdaterInnsendingssperreForFellestur(aktiv) {
   [dom.aoDirectBtn, dom.copyOpenBtn, dom.shareBtn, dom.clearBtn].forEach((btn) => {
     if (!btn) return;
     btn.disabled = aktiv || !appState.observations.length;
-    btn.title = aktiv ? 'Deaktivert under fellestur — bruk 👥 Fellestur-siden for å hente inn og sende til AO' : '';
+    btn.title = aktiv ? t('main.fellestur.disabled_btn_title') : '';
   });
   if (dom.fellesturSperreHint) dom.fellesturSperreHint.style.display = aktiv ? 'block' : 'none';
   // Fellestur-sperren og tom-hinten deler plass i ④ og utelukker hverandre.
@@ -407,7 +407,7 @@ function kopierFellesturSpeilTilPrivatListeOgForlat() {
  * kopieres inn i den private arbeidslista.
  */
 function forlatFellesturMedValg() {
-  const kopier = confirm('Vil du kopiere fellestur-lista inn i din egen lokale liste før du forlater?');
+  const kopier = confirm(t('main.fellestur.confirm_copy_before_leave'));
 
   if (kopier) {
     kopierFellesturSpeilTilPrivatListeOgForlat();
@@ -474,7 +474,7 @@ async function pollFellestur() {
     loadState();
     doRenderObservations();
     updateFellesturBanner();
-    showToast('Fellesturen er utløpt eller slettet — det du hadde ble lagt i din private liste', { raw: true, borderColor: '#f59e0b', duration: 4500 });
+    showToast(t('main.fellestur.expired_toast'), { raw: true, borderColor: '#f59e0b', duration: 4500 });
     return;
   }
   if (!r.ok) return;
@@ -491,7 +491,7 @@ async function pollFellestur() {
     // midt på skjermen første gang dette oppdages, i tillegg til at banneret
     // forblir rødt resten av økta (se updateFellesturBanner()).
     if (erNyttAvsluttetVarsel) {
-      showToast(`🛑 ${fellesturAvsluttetAv} har avsluttet fellesturen og sender til AO — ikke registrer flere funn eller send selv`,
+      showToast(t('main.fellestur.ended_toast', { navn: fellesturAvsluttetAv }),
         { raw: true, borderColor: '#ef4444', duration: 6000 });
     }
   }
@@ -594,8 +594,8 @@ function oppdaterEtterregMerke() {
   const laast = isVisitLocked(appState.observations, appState.etterregVisitKey);
   merke.textContent = `${laast ? '🔒 ' : ''}↩ ${visittid(span)}`;
   merke.title = laast
-    ? 'Avsluttet besøk. Nye arter legges likevel inn her, med besøkets klokkeslett.'
-    : 'Nye arter legges inn i dette besøket og får dette klokkeslettet';
+    ? t('main.visit.merke_locked_title')
+    : t('main.visit.merke_open_title');
   merke.style.display = '';
 }
 
@@ -658,7 +658,7 @@ function expandLocation() {
   // (den nullstiller alltid aoSitesEl aller først), altså når den ferske
   // bakgrunnsdataen faktisk er klar og lista tegnes på nytt.
   if (hadCachedSites && visDropdown && dom.locBtn && dom.aoSitesEl && gpsStøttet) {
-    dom.aoSitesEl.textContent = '🔄 Henter oppdaterte lokaliteter …';
+    dom.aoSitesEl.textContent = t('main.updating_sites');
     dom.aoSitesEl.style.display = 'block';
   }
 }
@@ -1260,14 +1260,8 @@ async function init() {
   doRenderObservations();
 
   try {
-    const activities = await loadActivities();
-    activities.forEach(a => {
-      const opt = document.createElement('option');
-      opt.value = a.value;
-      opt.textContent = activityDisplayName(a.label);
-      if (a.selected) opt.selected = true;
-      dom.activitySelect.appendChild(opt);
-    });
+    loadedActivities = await loadActivities();
+    renderActivityOptions();
     renderActivityPills(dom, commitFromActivity);
   } catch (e) {
     console.error('Kunne ikke laste aktiviteter:', e);
@@ -1388,7 +1382,7 @@ function updateModeUI() {
   modePill.title = t('main.mode_pill.title');
 
   if (isAfterMode) {
-    if (modePillText) modePillText.textContent = 'Etterregistrering';
+    if (modePillText) modePillText.textContent = t('index.mode_pill.after');
     modePill.className = 'pill mode-pill after-mode';
     modePill.setAttribute('aria-label', t('main.mode_pill.aria_after'));
     datetimeFields.style.display = 'block';
@@ -1421,7 +1415,7 @@ function updateModeUI() {
     const obsTimeToInput = document.getElementById('obs-time-to');
     if (obsTimeToInput) obsTimeToInput.value = ''; // Clear "til"-tid
   } else {
-    if (modePillText) modePillText.textContent = 'Felt';
+    if (modePillText) modePillText.textContent = t('index.mode_pill.field');
     modePill.className = 'pill mode-pill field-mode';
     modePill.setAttribute('aria-label', t('main.mode_pill.aria_field'));
     datetimeFields.style.display = 'none';
@@ -1439,7 +1433,7 @@ function updateModeUI() {
     // en 430 px-skjerm.
     if (mapBtnLabel) {
       mapBtnLabel.style.display = 'inline-block';
-      mapBtnLabel.textContent = 'Kart';
+      mapBtnLabel.textContent = t('main.map_select.label');
     }
     // aoSitesDropdown styres av egen logikk
   }
@@ -1517,6 +1511,8 @@ export function updateOfflineModeUI() {
     el.setAttribute('aria-disabled', offline ? 'true' : 'false');
     if (offline) {
       el.title = t('main.nav.unavailable_offline_title', { navn });
+    } else if (el === fellesturBtn) {
+      el.title = t('main.fellestur.header_btn');
     } else {
       el.removeAttribute('title');
     }
@@ -1580,7 +1576,7 @@ function setupOfflineModeToggle() {
         });
       } catch (e) {
         console.warn('Kunne ikke laste offline-lokaliteter:', e);
-        showToast('📴 Offline-modus aktivert', {
+        showToast(t('main.offline_mode_activated_short'), {
           raw: true,
           duration: MODE_SPLASH_DURATION_MS,
         });
@@ -1609,11 +1605,26 @@ function setupOfflineModeToggle() {
         duration: MODE_SPLASH_DURATION_MS,
       });
     } else {
-      showToast('🌐 Online-modus aktivert', {
+      showToast(t('main.online_mode_activated_short'), {
         raw: true,
         duration: MODE_SPLASH_DURATION_MS,
       });
     }
+  });
+}
+
+function renderActivityOptions() {
+  if (!dom.activitySelect || !loadedActivities.length) return;
+  const selectedVal = dom.activitySelect.value;
+  dom.activitySelect.innerHTML = '';
+  loadedActivities.forEach(a => {
+    const opt = document.createElement('option');
+    opt.value = a.value;
+    opt.textContent = activityDisplayName(a.label);
+    if (selectedVal ? String(a.value) === String(selectedVal) : a.selected) {
+      opt.selected = true;
+    }
+    dom.activitySelect.appendChild(opt);
   });
 }
 
@@ -1633,6 +1644,21 @@ document.addEventListener('i18n:language-changed', () => {
   updateModeUI();
   updateOfflineModeUI();
   updateMapBtnVisibility();
+  renderActivityOptions();
+  renderActivityPills(dom, commitFromActivity);
+  doRenderObservations();
+  updateSectionStates(appState, dom);
+  updateFellesturBanner();
+  oppdaterOverforingsknapper?.();
+  if (appState.selectedSpecies && dom.input) {
+    dom.input.value = speciesDisplayName(appState.selectedSpecies);
+  }
+  if (dom.locText && (
+    dom.locText.textContent === 'Trykk «Hent lokasjoner» før registrering.'
+    || dom.locText.textContent === 'Trykk «Hent lokalitetar» før registrering.'
+  )) {
+    dom.locText.textContent = t('location.idle_hint');
+  }
 });
 
 // Gjenopprettet fra bfcache (tilbake-knappen) eller vanlig navigasjon —

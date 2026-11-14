@@ -4,8 +4,8 @@
 
 import { toCsv } from './observations.js';
 import { flashButton, showToast } from './ui.js';
-import { appendSentBatch, loadAoDirectAutoClear } from './storage.js';
-import { t } from './i18n.js?v=v1.60.20';
+import { appendSentBatch, loadAoDirectAutoClear, speciesDisplayName } from './storage.js';
+import { t, getLanguage } from './i18n.js?v=v1.60.20';
 import { isOfflineMode } from './offline-db.js';
 import { hentAktivFellestur } from './fellestur-client.js';
 import { aktivInnhentetListe } from './arbeidsliste-lokal.js';
@@ -69,9 +69,7 @@ export async function oppdaterAoKoHint(dom) {
   const vis = (count) => {
     if (!count) { hint.style.display = 'none'; return; }
     hint.style.display = 'block';
-    hint.innerHTML = `ℹ️ Det ligger ${count} funn til gjennomgang hos AO fra før. `
-      + '<b>De blir ikke publisert</b> når du sender herfra — kun dine egne funn fra denne listen.<br>'
-      + '<a href="https://www.artsobservasjoner.no/ReviewSighting" target="_blank" rel="noopener">Se hva som ligger der</a>';
+    hint.innerHTML = t('export.ao_queue_hint_html', { count });
   };
 
   // I streng Offline-modus skal det ikke gjøres bakgrunnskall mot nettverket
@@ -119,7 +117,7 @@ export function handleExport(observations, dom) {
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
-  flashButton(dom.exportBtn, 'Lastet ned!');
+  flashButton(dom.exportBtn, t('export.downloaded_flash'));
 }
 
 async function copyToClipboard(csv) {
@@ -147,7 +145,7 @@ export async function handleCopy(observations, dom) {
 
   try {
     await copyToClipboard(csv);
-    flashButton(dom.copyBtn, 'Kopiert!');
+    flashButton(dom.copyBtn, t('common.copied'));
   } catch (e) {
     console.warn('Kunne ikke kopiere CSV til utklippstavlen', e);
   }
@@ -160,7 +158,7 @@ export async function handleCopyAndOpen(observations, dom) {
   try {
     await copyToClipboard(csv);
     window.open('https://www.artsobservasjoner.no/ImportSighting', '_blank');
-    flashButton(dom.copyOpenBtn, 'Åpnet!');
+    flashButton(dom.copyOpenBtn, t('export.opened_flash'));
     fetch('/api/log-export', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'copy_open' }) }).catch(() => {});
   } catch (e) {
     console.warn('Kunne ikke kopiere CSV til utklippstavlen', e);
@@ -200,24 +198,26 @@ function _visDublettAdvarsel(antallSendt, antallTotalt, sendtTs) {
     const nye = antallTotalt - antallSendt;
     const naar = sendtTs ? new Date(sendtTs) : null;
     const naarTekst = naar && !isNaN(naar)
-      ? ` ${naar.toDateString() === new Date().toDateString() ? 'i dag' : 'tidligere'} kl. ${String(naar.getHours()).padStart(2, '0')}:${String(naar.getMinutes()).padStart(2, '0')}`
+      ? t('export.dublett2.when_prefix', {
+          dag: naar.toDateString() === new Date().toDateString() ? t('export.dublett2.when_today') : t('export.dublett2.when_earlier'),
+          tid: `${String(naar.getHours()).padStart(2, '0')}:${String(naar.getMinutes()).padStart(2, '0')}`,
+        })
       : '';
 
     const knapp = 'padding:9px 14px;border-radius:8px;font-size:0.9em;cursor:pointer;width:100%;margin-top:8px;';
     box.innerHTML = `
-      <h3 style="margin:0 0 10px 0;font-size:1.05em;">⚠️ Noen er allerede sendt</h3>
+      <h3 style="margin:0 0 10px 0;font-size:1.05em;">${t('export.dublett2.heading')}</h3>
       <p style="margin:0 0 16px 0;font-size:0.9em;line-height:1.45;">
-        ${antallSendt} av disse ${antallTotalt} ble sendt til AO${naarTekst}.
-        Sender du alt nå, blir de liggende dobbelt.
+        ${t('export.dublett2.body', { sent: antallSendt, total: antallTotalt, when: naarTekst })}
       </p>
       <button id="dub-nye" style="${knapp}border:none;background:var(--accent,#3b82f6);color:#fff;font-weight:500;">
-        Send bare ${nye === 1 ? 'den nye' : `de ${nye} nye`}
+        ${nye === 1 ? t('export.dublett2.send_one_new') : t('export.dublett2.send_many_new', { n: nye })}
       </button>
       <button id="dub-alt" style="${knapp}border:1px solid var(--border,rgba(148,163,184,0.25));background:transparent;color:var(--text);">
-        Send alt likevel
+        ${t('export.dublett2.send_all')}
       </button>
       <button id="dub-avbryt" style="${knapp}border:none;background:transparent;color:var(--muted);">
-        Avbryt
+        ${t('common.cancel')}
       </button>`;
 
     overlay.appendChild(box);
@@ -254,18 +254,17 @@ export function _visOfflineInnsendingBekreftelse(antall) {
     });
 
     const knapp = 'padding:10px 14px;border-radius:8px;font-size:0.92em;cursor:pointer;width:100%;margin-top:8px;';
-    const obsTekst = antall === 1 ? '1 observasjon' : `${antall} observasjoner`;
+    const ord = antall === 1 ? t('observations.word_singular') : t('observations.word_plural');
     box.innerHTML = `
-      <h3 style="margin:0 0 10px 0;font-size:1.05em;">📴 Du er i Offline-modus</h3>
+      <h3 style="margin:0 0 10px 0;font-size:1.05em;">${t('export.offline_confirm.title')}</h3>
       <p style="margin:0 0 16px 0;font-size:0.9em;line-height:1.45;">
-        Innsending av ${obsTekst} til Artsobservasjoner krever nettverkstilkobling.
-        Vil du tillate bruk av nettverk for denne innsendingen? Merk at mobildatakostnader kan påløpe.
+        ${t('export.offline_confirm.body', { n: antall, ord })}
       </p>
       <button type="button" id="offline-send-tillat" style="${knapp}border:none;background:var(--accent,#3b82f6);color:#fff;font-weight:600;">
-        Tillat nettverk og send inn
+        ${t('export.offline_confirm.allow')}
       </button>
       <button type="button" id="offline-send-avbryt" style="${knapp}border:1px solid var(--border,rgba(148,163,184,0.25));background:transparent;color:var(--muted);">
-        Avbryt
+        ${t('common.cancel')}
       </button>`;
 
     overlay.appendChild(box);
@@ -348,15 +347,16 @@ export async function handleDirectSend(observations, dom, callbacks) {
 
   const future = _findFutureObservation(observations);
   if (future) {
-    const navn = (future.species && future.species.taxonName) || 'En observasjon';
+    const navn = (future.species && speciesDisplayName(future.species)) || t('export.stream.future_fallback');
     dom.aoDirectStatus.style.cssText = `display:block;margin-top:8px;padding:10px;border-radius:8px;font-size:0.9rem;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);color:${_statusColor('error')};`;
-    dom.aoDirectStatus.textContent = `❌ ${navn} har tidspunkt frem i tid — AO godtar den ikke. Rett tidspunktet før du sender.`;
+    dom.aoDirectStatus.textContent = t('export.stream.future_error', { navn });
     return;
   }
 
   if (innhentet) {
-    const kopitid = new Date(innhentet.lagretTs * 1000).toLocaleString('nb-NO');
-    if (!confirm(`Lista ble kopiert ${kopitid}. Sjekk hos AO om funnene allerede er sendt fra den andre enheten. Vil du publisere fra denne enheten?`)) return;
+    const locale = getLanguage() === 'nn' ? 'nn-NO' : 'nb-NO';
+    const kopitid = new Date(innhentet.lagretTs * 1000).toLocaleString(locale);
+    if (!confirm(t('export.stream.confirm_fetched', { tid: kopitid }))) return;
   }
 
   // Allerede publiserte funn i lista → la brukeren velge før noe sendes
@@ -383,7 +383,7 @@ export async function handleDirectSend(observations, dom, callbacks) {
   }
 
   dom.aoDirectBtn.disabled = true;
-  _renderProgress(dom, 1, 3, 'Logger inn på AO…');
+  _renderProgress(dom, 1, 3, t('export.stream.logging_in'));
 
   const extraHeaders = allowOfflineBypass ? { 'X-Allow-Offline-Network': '1' } : {};
   const listeVedStart = JSON.stringify(observations);
@@ -398,10 +398,10 @@ export async function handleDirectSend(observations, dom, callbacks) {
     });
     const loginResult = await loginResp.json();
     if (!loginResp.ok || !loginResult.success) {
-      throw new Error(loginResult.error || 'Innlogging feilet');
+      throw new Error(loginResult.error || t('export.send.login_failed'));
     }
     if (innhentet && (!sammeListe() || !sammeKontoKontekst(konto))) {
-      throw new Error('Lista eller AO-kontoen ble endret. Kontroller lista før du prøver igjen.');
+      throw new Error(t('export.stream.list_changed'));
     }
 
     const tokens = JSON.parse(localStorage.getItem('ao_tokens') || '{}');
@@ -415,7 +415,8 @@ export async function handleDirectSend(observations, dom, callbacks) {
       localStorage.removeItem('ao_private_sites');
     }
 
-    _renderProgress(dom, 2, 3, `Sender ${total} observasjon${total !== 1 ? 'er' : ''} …`, 0);
+    const totalOrd = total === 1 ? t('observations.word_singular') : t('observations.word_plural');
+    _renderProgress(dom, 2, 3, t('export.stream.sending', { n: total, ord: totalOrd }), 0);
 
     awaitingImportReceipt = true;
     const importResp = await fetch('/api/ao-import-stream', {
@@ -431,14 +432,14 @@ export async function handleDirectSend(observations, dom, callbacks) {
 
     // Feil før strømmen starter (f.eks. 400-validering) kommer som vanlig JSON
     if (!importResp.ok) {
-      let msg = 'Import feilet';
+      let msg = t('export.stream.import_failed');
       try {
         const j = await importResp.json();
         msg = j.error || msg;
       } catch (_) {
         try {
-          const t = await importResp.text();
-          if (t && t.trim()) msg = t.trim();
+          const txt = await importResp.text();
+          if (txt && txt.trim()) msg = txt.trim();
         } catch (__) { /* ignorer */ }
       }
       awaitingImportReceipt = false;
@@ -450,7 +451,7 @@ export async function handleDirectSend(observations, dom, callbacks) {
 
     // Et tomt svar bekrefter aldri at AO tok imot observasjonene.
     if (importResp.status === 204 || !importResp.body) {
-      throw new Error('Sendingen kunne ikke bekreftes. Listen er beholdt. Kontroller funnene hos Artsobservasjoner før du prøver på nytt.');
+      throw new Error(t('export.stream.unconfirmed_full'));
     } else if (typeof importResp.body.getReader !== 'function') {
       // Fallback for miljøer der getReader ikke er tilgjengelig: les hele kroppen som tekst
       const fullText = await importResp.text();
@@ -462,9 +463,9 @@ export async function handleDirectSend(observations, dom, callbacks) {
         const errorEvt = [...events].reverse().find((e) => e.phase === 'error');
         if (errorEvt) {
           awaitingImportReceipt = false;
-          throw new Error(errorEvt.error || 'Import feilet');
+          throw new Error(errorEvt.error || t('export.stream.import_failed'));
         }
-        throw new Error('Import feilet');
+        throw new Error(t('export.stream.import_failed'));
       }
     } else {
       // Les SSE-strømmen og oppdater fremdrift i sanntid
@@ -495,7 +496,7 @@ export async function handleDirectSend(observations, dom, callbacks) {
           const errorEvt = [...bufferedEvents].reverse().find((e) => e.phase === 'error');
           if (errorEvt) {
             awaitingImportReceipt = false;
-            throw new Error(errorEvt.error || 'Import feilet');
+            throw new Error(errorEvt.error || t('export.stream.import_failed'));
           }
 
           throw streamErr;
@@ -515,25 +516,26 @@ export async function handleDirectSend(observations, dom, callbacks) {
           try { evt = JSON.parse(dataLine.slice(5).trim()); } catch (_) { continue; }
 
           if (evt.phase === 'importing') {
-            const t = evt.total || total;
-            const behandlet = Math.max(0, t - (evt.remaining || 0));
-            const pct = t ? Math.round((behandlet / t) * 100) : null;
-            _renderProgress(dom, 2, 3, `Behandler ${behandlet} av ${t} …`, pct);
+            const tot = evt.total || total;
+            const behandlet = Math.max(0, tot - (evt.remaining || 0));
+            const pct = tot ? Math.round((behandlet / tot) * 100) : null;
+            _renderProgress(dom, 2, 3, t('export.stream.processing', { done: behandlet, total: tot }), pct);
           } else if (evt.phase === 'uploading-images') {
-            const t = evt.total || 0;
+            const tot = evt.total || 0;
             const d = evt.done || 0;
-            const pct = t ? Math.round((d / t) * 100) : null;
-            _renderProgress(dom, 2, 3, `Laster opp bilder (${d}/${t}) …`, pct);
+            const pct = tot ? Math.round((d / tot) * 100) : null;
+            _renderProgress(dom, 2, 3, t('export.stream.uploading_images', { done: d, total: tot }), pct);
           } else if (evt.phase === 'publishing') {
-            const t = evt.total || total;
-            _renderProgress(dom, 3, 3, `Publiserer ${t} observasjon${t !== 1 ? 'er' : ''} …`, null);
+            const tot = evt.total || total;
+            const pubOrd = tot === 1 ? t('observations.word_singular') : t('observations.word_plural');
+            _renderProgress(dom, 3, 3, t('export.stream.publishing', { n: tot, ord: pubOrd }), null);
           } else if (evt.phase === 'done') {
             importResult = evt;
             streamDone = true;
             break;
           } else if (evt.phase === 'error') {
             awaitingImportReceipt = false;
-            throw new Error(evt.error || 'Import feilet');
+            throw new Error(evt.error || t('export.stream.import_failed'));
           }
         }
       }
@@ -553,7 +555,7 @@ export async function handleDirectSend(observations, dom, callbacks) {
         const errorEvt = [...bufferedEvents].reverse().find((e) => e.phase === 'error');
         if (errorEvt) {
           awaitingImportReceipt = false;
-          throw new Error(errorEvt.error || 'Import feilet');
+          throw new Error(errorEvt.error || t('export.stream.import_failed'));
         }
 
       }
@@ -563,35 +565,36 @@ export async function handleDirectSend(observations, dom, callbacks) {
       awaitingImportReceipt = false;
     }
     if (!importResult || importResult.success !== true) {
-      throw new Error((importResult && importResult.error) || 'Import feilet');
+      throw new Error((importResult && importResult.error) || t('export.stream.import_failed'));
     }
 
     if (importResult.refreshedAuthCookie && !innhentet) {
-      const t = JSON.parse(localStorage.getItem('ao_tokens') || '{}');
-      t.authCookie = importResult.refreshedAuthCookie;
-      localStorage.setItem('ao_tokens', JSON.stringify(t));
+      const tok = JSON.parse(localStorage.getItem('ao_tokens') || '{}');
+      tok.authCookie = importResult.refreshedAuthCookie;
+      localStorage.setItem('ao_tokens', JSON.stringify(tok));
     }
 
     const notPublished = importResult.notPublished || [];
     if (notPublished.length || importResult.heldBack) {
       const biter = [];
       if (importResult.count) {
-        biter.push(`✅ ${importResult.count} observasjon${importResult.count !== 1 ? 'er' : ''} publisert.`);
+        const cOrd = importResult.count === 1 ? t('observations.word_singular') : t('observations.word_plural');
+        biter.push(t('export.stream.published_count', { n: importResult.count, ord: cOrd }));
       }
       if (notPublished.length) {
         const n = notPublished.length;
-        biter.push(`⚠️ ${n} observasjon${n !== 1 ? 'er' : ''} ble <b>ikke</b> publisert, fordi `
-          + `${n !== 1 ? 'de' : 'den'} ikke kunne gjenfinnes entydig i AOs gjennomgangskø: `
-          + `<span style="opacity:.85">${notPublished.join(', ')}</span>.`);
+        biter.push(n === 1
+          ? t('export.stream.not_published_one', { list: notPublished.join(', ') })
+          : t('export.stream.not_published_many', { n, list: notPublished.join(', ') }));
       }
       if (importResult.heldBack) {
         const detaljer = importResult.heldBackDetails
           ? ` <span style="opacity:.85">${importResult.heldBackDetails}</span>` : '';
-        biter.push(`⚠️ ${importResult.heldBack} observasjon${importResult.heldBack !== 1 ? 'er' : ''} `
-          + `ble <b>ikke</b> publisert og ligger til gjennomgang på AO.${detaljer}`);
+        biter.push(importResult.heldBack === 1
+          ? t('export.stream.held_back_one', { details: detaljer })
+          : t('export.stream.held_back_many', { n: importResult.heldBack, details: detaljer }));
       }
-      biter.push('Det som ligger igjen kan publiseres manuelt: '
-        + '<a href="https://www.artsobservasjoner.no/ReviewSighting" target="_blank" rel="noopener">Åpne gjennomgang</a>');
+      biter.push(t('export.stream.manual_review'));
 
       dom.aoDirectStatus.style.cssText = `display:block;margin-top:8px;padding:10px;border-radius:8px;font-size:0.9rem;background:rgba(234,179,8,0.1);border:1px solid rgba(234,179,8,0.4);color:${_statusColor('error')};`;
       dom.aoDirectStatus.innerHTML = biter.join('<br>');
@@ -628,7 +631,7 @@ export async function handleDirectSend(observations, dom, callbacks) {
       } else {
         setTimeout(() => {
           try {
-            if (confirm('Sending vellykket! Vil du tømme observasjonslisten?')) {
+            if (confirm(t('export.send.confirm_clear'))) {
               doClearList(forventetListe);
             }
           } catch (_) {}
@@ -639,9 +642,10 @@ export async function handleDirectSend(observations, dom, callbacks) {
     const completeSuccessfulSend = (res) => {
       const count = (res && res.count) || total;
       dom.aoDirectStatus.style.cssText = `display:block;margin-top:8px;padding:10px;border-radius:8px;font-size:0.9rem;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);color:${_statusColor('success')};`;
-      let statusText = `✅ ${count} observasjon${count !== 1 ? 'er' : ''} sendt til AO!`;
+      const sentOrd = count === 1 ? t('observations.word_singular') : t('observations.word_plural');
+      let statusText = t('export.send.published_ok', { n: count, ord: sentOrd });
       if (res && res.imagesFailed && res.imagesFailed.length) {
-        statusText += ` ⚠️ Bilde ikke lastet opp for: ${res.imagesFailed.join(', ')} — observasjonen er likevel sendt, prøv å laste opp bildet på nytt direkte på AO.`;
+        statusText += t('export.stream.images_failed', { list: res.imagesFailed.join(', ') });
       }
       dom.aoDirectStatus.textContent = statusText;
       dom.aoDirectBtn.disabled = false;
@@ -665,7 +669,7 @@ export async function handleDirectSend(observations, dom, callbacks) {
   } catch (error) {
     // Brudd uten fullstendig done-kvittering er usikkert, aldri grunnlag for å tømme listen.
     const message = awaitingImportReceipt
-      ? 'Sendingen kunne ikke bekreftes. Listen er beholdt. Kontroller funnene hos Artsobservasjoner før du prøver på nytt.'
+      ? t('export.stream.unconfirmed_full')
       : error.message;
     dom.aoDirectStatus.style.cssText = `display:block;margin-top:8px;padding:10px;border-radius:8px;font-size:0.9rem;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);color:${_statusColor('error')};`;
     dom.aoDirectStatus.textContent = `❌ ${message}`;

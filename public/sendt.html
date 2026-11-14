@@ -296,14 +296,14 @@
         enhetene dine. <a href="/help.html#tidligere-sendt">Slik virker den</a>.
       </p>
       <div class="ao-topp">
-        <select id="ao-dager" class="ao-dager" aria-label="Hvor langt tilbake">
+        <select id="ao-dager" class="ao-dager" aria-label="Hvor langt tilbake" data-i18n-attr="aria-label:sendt.days_select_aria">
           <option value="2" selected>Siste 2 dager</option>
           <option value="7">Siste 7 dager</option>
           <option value="14">Siste 14 dager</option>
           <option value="30">Siste 30 dager</option>
           <option value="60">Siste 60 dager</option>
         </select>
-        <button id="ao-oppdater" class="btn-liten">↻ Oppdater</button>
+        <button id="ao-oppdater" class="btn-liten" data-i18n="sendt.refresh_btn">↻ Oppdater</button>
         <label class="filter-pille">
           <input type="checkbox" id="ao-bare-uten-bilde" />
           <span data-i18n="sendt.only_without_image">Bare uten bilde</span>
@@ -332,19 +332,19 @@
     <div id="endre-modal" class="modal-bakgrunn" hidden>
       <div class="modal" role="dialog" aria-modal="true" aria-labelledby="em-tittel">
         <div class="modal-topp">
-          <h2 id="em-tittel">Endre funn</h2>
-          <button type="button" class="lukk" id="em-lukk" aria-label="Lukk">✕</button>
+          <h2 id="em-tittel" data-i18n="sendt.edit_modal.title">Endre funn</h2>
+          <button type="button" class="lukk" id="em-lukk" aria-label="Lukk" data-i18n-attr="aria-label:index.medobs.close_aria">✕</button>
         </div>
         <p class="modal-funn" id="em-funn"></p>
 
         <div id="em-laster" class="laster">
-          <div class="spinner" role="status" aria-label="Åpner"></div>
-          <div id="em-laster-tekst">Åpner funnet hos Artsobservasjoner …</div>
-          <div class="laster-hint">Vi henter hele skjemaet derfra — det tar noen sekunder.</div>
+          <div class="spinner" role="status" aria-label="Åpner" data-i18n-attr="aria-label:sendt.edit_modal.opening"></div>
+          <div id="em-laster-tekst" data-i18n="sendt.edit_modal.opening_ao">Åpner funnet hos Artsobservasjoner …</div>
+          <div class="laster-hint" data-i18n="sendt.edit_modal.opening_sub">Vi henter hele skjemaet derfra — det tar noen sekunder.</div>
         </div>
 
         <div id="em-skjema" hidden>
-          <div class="fare" role="alert">
+          <div class="fare" role="alert" data-i18n-html="sendt.edit_modal.fare_html">
             <strong>🔴 Funnet er nå usynlig for andre</strong>
             Artsobservasjoner tar funnet ut av visning mens du endrer det. Det blir
             synlig igjen når du lagrer.
@@ -353,12 +353,13 @@
           </div>
 
           <div class="em-rad em-art-boks">
-            <label for="em-art">Art</label>
+            <label for="em-art" data-i18n="sendt.edit_modal.species_label">Art</label>
             <div class="em-art-valgt" id="em-art-valgt">
               <span id="em-art-navn"></span>
               <button type="button" class="btn-liten" id="em-art-bytt" data-i18n="sendt.change_species">Bytt art</button>
             </div>
             <input type="text" id="em-art" placeholder="Søk etter art …"
+                   data-i18n-attr="placeholder:sendt.edit_modal.species_placeholder"
                    autocomplete="off" hidden />
             <div class="em-treff" id="em-art-treff" hidden></div>
           </div>
@@ -371,7 +372,7 @@
           </div>
 
           <div class="em-rad">
-            <label for="em-aktivitet">Aktivitet</label>
+            <label for="em-aktivitet" data-i18n="sendt.edit_modal.activity_label">Aktivitet</label>
             <select id="em-aktivitet"></select>
           </div>
 
@@ -385,8 +386,8 @@
         <p class="modal-status" id="em-status"></p>
 
         <div class="modal-bunn">
-          <button type="button" class="btn-liten" id="em-avbryt">Avbryt</button>
-          <button type="button" class="btn-liten primar" id="em-lagre" disabled>Lagre og publiser</button>
+          <button type="button" class="btn-liten" id="em-avbryt" data-i18n="common.cancel">Avbryt</button>
+          <button type="button" class="btn-liten primar" id="em-lagre" disabled data-i18n="sendt.edit_modal.save_publish">Lagre og publiser</button>
         </div>
       </div>
     </div>
@@ -396,8 +397,8 @@
     <div id="bilde-modal" class="modal-bakgrunn" hidden>
       <div class="modal" role="dialog" aria-modal="true" aria-labelledby="bm-tittel">
         <div class="modal-topp">
-          <h2 id="bm-tittel">Legg til bilde</h2>
-          <button type="button" class="lukk" id="bm-lukk" aria-label="Lukk">✕</button>
+          <h2 id="bm-tittel" data-i18n="sendt.image_modal.title">Legg til bilde</h2>
+          <button type="button" class="lukk" id="bm-lukk" aria-label="Lukk" data-i18n-attr="aria-label:index.medobs.close_aria">✕</button>
         </div>
         <p class="modal-funn" id="bm-funn"></p>
 
@@ -405,13 +406,13 @@
         <div id="bm-velg">
           <div class="dropsone" id="bm-drop">
             <div class="dropsone-ikon">🖼️</div>
-            <div class="bare-mus"><strong>Dra bildet hit</strong></div>
-            <div class="bare-mus dropsone-eller">eller</div>
+            <div class="bare-mus"><strong data-i18n="sendt.image_modal.drop_text">Dra bildet hit</strong></div>
+            <div class="bare-mus dropsone-eller" data-i18n="sendt.image_modal.or">eller</div>
             <div class="dropsone-knapper">
               <button type="button" class="btn-liten primar" id="bm-fil" data-i18n="sendt.pick_file">📁 Velg fil</button>
-              <button type="button" class="btn-liten skjult" id="bm-lim">📋 Lim inn</button>
+              <button type="button" class="btn-liten skjult" id="bm-lim" data-i18n="index.common.paste">📋 Lim inn</button>
             </div>
-            <p class="dropsone-hint bare-mus">Du kan også lime inn med ⌘V / Ctrl+V</p>
+            <p class="dropsone-hint bare-mus" data-i18n="sendt.image_modal.paste_hint">Du kan også lime inn med ⌘V / Ctrl+V</p>
           </div>
           <input type="file" id="bm-fil-input" accept="image/*" style="display:none" />
           <!-- initPhotoPicker krever en forhåndsvisning; her går bildet rett videre
@@ -422,23 +423,23 @@
         <!-- Steg 2: beskjær og juster -->
         <div id="bm-rediger" hidden>
           <div class="lerret-ramme"><canvas id="bm-lerret"></canvas></div>
-          <p class="dropsone-hint">Dra i hjørnene for å beskjære, eller inni for å flytte utsnittet. Visningen zoomer inn på utsnittet når du slipper.</p>
+          <p class="dropsone-hint" data-i18n="sendt.image_modal.edit_hint">Dra i hjørnene for å beskjære, eller inni for å flytte utsnittet. Visningen zoomer inn på utsnittet når du slipper.</p>
           <div class="skyv">
-            <label for="bm-eksponering">Eksponering</label>
+            <label for="bm-eksponering" data-i18n="sendt.image_modal.exposure">Eksponering</label>
             <input type="range" id="bm-eksponering" min="-100" max="100" value="0" step="5" />
             <output id="bm-eksponering-verdi" for="bm-eksponering">0</output>
             <!-- Egen slider, ikke en del av eksponeringen: en fugl mot lys himmel
                  trenger at BARE det mørke løftes. Skrur man i stedet opp
                  eksponeringen, brenner himmelen ut før fuglen er synlig. -->
-            <label for="bm-skygger">Mørke partier</label>
+            <label for="bm-skygger" data-i18n="sendt.image_modal.shadows">Mørke partier</label>
             <input type="range" id="bm-skygger" min="0" max="100" value="0" step="5" />
             <output id="bm-skygger-verdi" for="bm-skygger">0</output>
           </div>
           <div class="modal-verktoy">
             <!-- Vises først når det faktisk er beskåret noe å zoome inn på. -->
-            <button type="button" class="btn-liten" id="bm-zoom" hidden>⤢ Vis hele bildet</button>
-            <button type="button" class="btn-liten" id="bm-nullstill">↺ Tilbakestill</button>
-            <button type="button" class="btn-liten" id="bm-bytt">🔄 Bytt bilde</button>
+            <button type="button" class="btn-liten" id="bm-zoom" hidden data-i18n="sendt.image_modal.show_full">⤢ Vis hele bildet</button>
+            <button type="button" class="btn-liten" id="bm-nullstill" data-i18n="sendt.image_modal.reset">↺ Tilbakestill</button>
+            <button type="button" class="btn-liten" id="bm-bytt" data-i18n="sendt.image_modal.change_image">🔄 Bytt bilde</button>
           </div>
         </div>
 
@@ -453,19 +454,20 @@
 
         <div class="modal-status" id="bm-status"></div>
         <div class="modal-bunn">
-          <button type="button" class="btn-liten" id="bm-avbryt">Avbryt</button>
-          <button type="button" class="btn-liten primar" id="bm-send" disabled>Last opp til AO</button>
+          <button type="button" class="btn-liten" id="bm-avbryt" data-i18n="common.cancel">Avbryt</button>
+          <button type="button" class="btn-liten primar" id="bm-send" disabled data-i18n="sendt.image_modal.upload">Last opp til AO</button>
         </div>
       </div>
     </div>
 
     <script type="module">
-      import { loadSentBatches, loadObservations, saveObservations, SENT_MAX_DAYS, activityDisplayName, activityBokmalName } from '/js/storage.js';
+      import { loadSentBatches, loadObservations, saveObservations, SENT_MAX_DAYS, activityDisplayName, activityBokmalName, speciesDisplayName, genderDisplayName } from '/js/storage.js';
       import { openShareDialog } from '/js/share.js';
       // Alias tr (ikke t): denne filen har allerede en lokal `const t = hentTokens();`
       // inne i lastAoFunn() - et import med samme navn ville vært forvirrende å lese,
       // selv om selve skoperingen er trygg.
-      import { t as tr, applyTranslations } from '/js/i18n.js?v=v1.60.20';
+      import { t as tr, applyTranslations, isNynorsk } from '/js/i18n.js?v=v1.60.20';
+      import { loadOfflineSpecies, getSpeciesMetaSync, findBokmalByNynorskTerm } from '/js/species_offline.js';
 
       applyTranslations();
       document.title = tr('sendt.title');
@@ -487,6 +489,29 @@
       import { lagBildeEditor } from '/js/bilde-editor.js?v=v1.60.20';
       import { loggInnMedLagretLegitimasjon } from '/js/api.js?v=v1.60.20';
 
+      // Forhåndslast lokal artsliste slik at nynorske artsnavn er klare med en gang.
+      const offlineSpeciesReady = loadOfflineSpecies().catch(() => []);
+
+      function berikArtObjektMedNynorsk(art) {
+        if (!art) return null;
+        if (art._speciesObj) return art._speciesObj;
+        const meta = getSpeciesMetaSync(art.scientificName || art.latinName || '', art.taxonName || '');
+        const obj = {
+          taxonName: art.taxonName || '',
+          latinName: art.scientificName || art.latinName || '',
+          nameNno: art.nameNno || art.nynorsk || meta?.nameNno || meta?.nynorsk || null,
+          nynorsk: art.nynorsk || art.nameNno || meta?.nynorsk || meta?.nameNno || null,
+        };
+        art._speciesObj = obj;
+        return obj;
+      }
+
+      function visArtNavn(art) {
+        if (!art) return '';
+        const obj = berikArtObjektMedNynorsk(art);
+        return speciesDisplayName(obj) || art.taxonName || '';
+      }
+
       const MND = ['januar', 'februar', 'mars', 'april', 'mai', 'juni',
         'juli', 'august', 'september', 'oktober', 'november', 'desember'];
 
@@ -496,8 +521,8 @@
         const klokke = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
         const idag = new Date();
         const sammeDag = d.toDateString() === idag.toDateString();
-        if (sammeDag) return `I dag kl. ${klokke}`;
-        return `${d.getDate()}. ${MND[d.getMonth()]} kl. ${klokke}`;
+        if (sammeDag) return tr('sendt.published_today', { tid: klokke });
+        return `${d.getDate()}. ${MND[d.getMonth()]} ${tr('ui.location.time_prefix')} ${klokke}`;
       }
 
       function tekst(v) {
@@ -546,7 +571,7 @@
       function renderFunn(funn) {
         const detaljer = [funn.time, activityDisplayName(funn.activity)].filter(Boolean).join(' · ');
         const advarsel = funn.triggeredRules
-          ? `<div class="advarsel">⚠️ Artsobservasjoner har en merknad til dette funnet:
+          ? `<div class="advarsel">${tr('sendt.triggered_rules_prefix')}
              ${tekst(funn.triggeredRules)}</div>`
           : '';
         // Knappen blir stående også etter første bilde: AO tillater inntil 10 per
@@ -561,16 +586,16 @@
         // stedet for å tilby noe som ville blitt avvist.
         const endre = funn.isReporter
           ? `<button class="btn-liten" data-endre="${attr(funn.sightingId)}"
-               title="Endre antall eller aktivitet. Funnet blir kort usynlig for andre mens du endrer.">✏️ Endre</button>`
+               title="${attr(tr('sendt.edit_btn_title'))}">${tr('sendt.edit_btn')}</button>`
           : '';
         const rapportor = funn.isReporter || !funn.reporter ? ''
-          : `<span class="rapportert-av">Rapportert av ${tekst(funn.reporter)}</span>`;
+          : `<span class="rapportert-av">${tekst(tr('sendt.reported_by', { navn: funn.reporter }))}</span>`;
 
         return `
           <div class="funn" id="funn-${attr(funn.sightingId)}">
             <div class="funn-hode">
               <span class="funn-art"><span class="antall">${tekst(funn.quantity)}</span>
-                ${tekst(funn.taxonName)}</span>
+                ${tekst(visArtNavn(funn))}</span>
               <span class="funn-meta">${tekst(detaljer)}</span>
             </div>
             ${rapportor ? `<div class="funn-meta">${rapportor}</div>` : ''}
@@ -578,7 +603,7 @@
             <div class="funn-handling">
               ${harMerke}
               ${bildeknapp}
-              <a class="funn-lenke" href="${attr(funn.url)}" target="_blank" rel="noopener">↗ Vis på AO</a>
+              <a class="funn-lenke" href="${attr(funn.url)}" target="_blank" rel="noopener">${tr('sendt.view_on_ao')}</a>
               ${endre}
             </div>
             <div class="rad-status" data-status="${attr(funn.sightingId)}"></div>
@@ -594,9 +619,9 @@
 
         const minSeq = ++hentSeq;
         aoListeEl.innerHTML = `<div class="laster">
-          <div class="spinner" role="status" aria-label="Henter"></div>
-          <div>Henter funnene dine fra Artsobservasjoner …</div>
-          <div class="laster-hint">Det kan ta noen sekunder</div>
+          <div class="spinner" role="status" aria-label="${attr(tr('sendt.loading_aria'))}"></div>
+          <div>${tr('sendt.loading')}</div>
+          <div class="laster-hint">${tr('sendt.loading_sub')}</div>
         </div>`;
         oppdaterEl.disabled = true;
         dagerEl.disabled = true;
@@ -627,10 +652,7 @@
           }
         } catch (e) {
           if (minSeq !== hentSeq) return;
-          aoListeEl.innerHTML = `<div class="beskjed">
-            Fikk ikke kontakt med serveren. Prøv igjen senere — kvitteringen under
-            ligger trygt på denne enheten uansett.
-          </div>`;
+          aoListeEl.innerHTML = `<div class="beskjed">${tr('sendt.server_unreachable')}</div>`;
           oppdaterEl.disabled = false;
           dagerEl.disabled = false;
           return;
@@ -644,10 +666,7 @@
         if (data.needsLogin) {
           // Hit kommer vi bare når den automatiske fornyelsen over ikke nådde fram —
           // altså når det ikke finnes lagret passord, eller AO avviste det.
-          aoListeEl.innerHTML = `<div class="beskjed">
-            Innloggingen mot Artsobservasjoner er utløpt, og vi klarte ikke å fornye den
-            automatisk. <a href="/settings.html">Sjekk brukernavn og passord i innstillinger</a>.
-          </div>`;
+          aoListeEl.innerHTML = `<div class="beskjed">${tr('sendt.login_expired_retry')}</div>`;
           return;
         }
 
@@ -655,14 +674,16 @@
 
         if (!funnCache.length) {
           aoListeEl.innerHTML = `<div class="tom">
-            Ingen funn du er med på de siste ${tekst(dagerEl.value)} dagene.
+            ${tr('sendt.none_in_period', { days: tekst(dagerEl.value) })}
           </div>`;
           return;
         }
 
+        await offlineSpeciesReady;
+        funnCache.forEach((f) => { delete f._speciesObj; });
+
         avkortetMelding = data.truncated
-          ? `<p class="seksjon-info">Viser ${funnCache.length} av ${tekst(data.total)} funn.
-             Velg et kortere tidsrom for å se alle.</p>`
+          ? `<p class="seksjon-info">${tr('sendt.truncated_msg', { shown: funnCache.length, total: tekst(data.total) })}</p>`
           : '';
         tegnListe();
       }
@@ -673,8 +694,8 @@
         const idag = new Date();
         const igar = new Date(Date.now() - 86400000);
         const somIso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-        if (iso === somIso(idag)) return `I dag · ${formatDato(iso)}`;
-        if (iso === somIso(igar)) return `I går · ${formatDato(iso)}`;
+        if (iso === somIso(idag)) return `${tr('sendt.today')} · ${formatDato(iso)}`;
+        if (iso === somIso(igar)) return `${tr('sendt.yesterday')} · ${formatDato(iso)}`;
         return formatDato(iso);
       }
 
@@ -702,7 +723,7 @@
         const utenBilde = funnCache.filter((f) => !f.hasImage).length;
         const synlige = bareUtenBilde ? funnCache.filter((f) => !f.hasImage) : funnCache;
 
-        const sammendrag = `<p class="sammendrag">${funnCache.length} funn
+        const sammendrag = `<p class="sammendrag">${funnCache.length} ${tr('sendt.funn_word')}
           ${utenBilde ? `· <strong>${utenBilde}</strong> ${tr('sendt.without_image')}` : tr('sendt.all_have_image')}</p>`;
 
         if (!synlige.length) {
@@ -725,7 +746,7 @@
             <div class="dato-gruppe">
               <h3 class="dato-overskrift">
                 <span>${tekst(datoOverskrift(dato))}</span>
-                <span class="dato-antall">${antall} funn</span>
+                <span class="dato-antall">${antall} ${tr('sendt.funn_word')}</span>
               </h3>
               ${seksjoner}
             </div>`);
@@ -745,7 +766,7 @@
         const el = aoListeEl.querySelector('.sammendrag');
         if (!el) return;
         const utenBilde = funnCache.filter((f) => !f.hasImage).length;
-        el.innerHTML = `${funnCache.length} funn ${utenBilde
+        el.innerHTML = `${funnCache.length} ${tr('sendt.funn_word')} ${utenBilde
           ? `· <strong>${utenBilde}</strong> ${tr('sendt.without_image')}` : tr('sendt.all_have_image')}`;
       }
 
@@ -781,7 +802,7 @@
       // den her — da kan de to ikke komme ut av takt når editoren zoomer selv.
       editor.vedVisningsendring(({ zoomet, kanZoome }) => {
         bmZoom.hidden = !kanZoome;
-        bmZoom.textContent = zoomet ? '⤢ Vis hele bildet' : '🔍 Zoom til utsnitt';
+        bmZoom.textContent = zoomet ? tr('sendt.image_modal.show_full') : tr('sendt.image_modal.zoom_crop');
         bmZoom.dataset.zoomet = zoomet ? '1' : '';
       });
 
@@ -816,7 +837,7 @@
           bmSkyggerVerdi.textContent = '0';
           visSteg('rediger');
         } catch (e) {
-          settModalStatus('Kunne ikke lese bildet — prøv et annet.', 'feil');
+          settModalStatus(tr('bilde.read_error_alert'), 'feil');
         }
       });
 
@@ -847,7 +868,7 @@
         bmKvitteringTekst.textContent = melding;
         bmEnTil.hidden = erFull;
         bmSend.hidden = true;
-        document.getElementById('bm-avbryt').textContent = 'Ferdig';
+        document.getElementById('bm-avbryt').textContent = tr('common.done');
       }
 
       function visSteg(steg) {
@@ -857,7 +878,7 @@
         bmRediger.hidden = !redigerer;
         bmSend.hidden = false;
         bmSend.disabled = !redigerer;
-        document.getElementById('bm-avbryt').textContent = 'Avbryt';
+        document.getElementById('bm-avbryt').textContent = tr('common.cancel');
       }
 
       function settModalStatus(melding, type) {
@@ -867,7 +888,7 @@
 
       function apneModal(funn) {
         modal.dataset.funn = funn.sightingId;
-        bmFunn.textContent = `${funn.quantity} ${funn.taxonName} · ${funn.siteName} · ${formatDato(funn.date)}`;
+        bmFunn.textContent = `${funn.quantity} ${visArtNavn(funn)} · ${funn.siteName} · ${formatDato(funn.date)}`;
         velger.resetToUntouched();
         visSteg('velg');
         settModalStatus('');
@@ -892,15 +913,15 @@
       // etterlatt ved å redigere på AOs egne sider.
 
       const koVarselEl = document.getElementById('ko-varsel');
+      let sisteKoAntall = 0;
 
       function visKoVarsel(antall) {
+        sisteKoAntall = antall || 0;
         if (!antall) { koVarselEl.hidden = true; return; }
         koVarselEl.innerHTML = `
-          <span class="ko-tekst">🔴 <strong>Du har ${tekst(antall)} funn som ikke er
-          publisert hos Artsobservasjoner.</strong> De er usynlige for andre inntil
-          de publiseres.</span>
+          <span class="ko-tekst">${tr('sendt.unpublished_banner_html', { count: tekst(antall) })}</span>
           <a class="btn-liten primar" href="https://www.artsobservasjoner.no/ReviewSighting"
-             target="_blank" rel="noopener">Publiser hos AO</a>`;
+             target="_blank" rel="noopener">${tr('sendt.unpublished_banner_btn')}</a>`;
         koVarselEl.hidden = false;
       }
 
@@ -957,7 +978,7 @@
         const ny = emOkt && emOkt.nyArt;
         emArtNavn.innerHTML = ny
           ? `<span class="em-art-ny">${tekst(ny.navn)}</span>
-             <span class="vit">(var ${tekst(emOkt.opprinneligArtNavn)})</span>`
+             <span class="vit">${tekst(tr('sendt.edit_modal.was_species', { old: emOkt.opprinneligArtNavn }))}</span>`
           : tekst(emOkt ? emOkt.opprinneligArtNavn : '');
         emArtValgt.hidden = false;
         emArt.hidden = true;
@@ -1007,7 +1028,7 @@
           const data = await r.json();
           if (minSeq !== sjeldenSeq || !data.warning) return;
           const w = data.warning;
-          emSjelden.innerHTML = `<strong>⚠️ ${tekst(w.header || 'Sjeldent funn')}</strong>`
+          emSjelden.innerHTML = `<strong>⚠️ ${tekst(w.header || tr('sendt.edit_modal.rare_default'))}</strong>`
             + tekst(w.body || '');
           emSjelden.hidden = false;
         } catch (e) {
@@ -1016,7 +1037,12 @@
       }
 
       function velgArt(treff) {
-        emOkt.nyArt = { id: treff.taxonId, navn: treff.taxonName };
+        emOkt.nyArt = {
+          id: treff.taxonId,
+          navn: visArtNavn(treff),
+          taxonName: treff.taxonName,
+          scientificName: treff.scientificName || '',
+        };
         visValgtArt();
         sjekkSjeldenhet(treff.taxonId);
       }
@@ -1031,13 +1057,13 @@
         const filtrertBort = raaListe.length - liste.length;
         if (!liste.length) {
           emArtTreff.innerHTML = filtrertBort
-            ? '<div class="tom">Bare fuglearter kan velges her.</div>'
-            : '<div class="tom">Ingen treff</div>';
+            ? `<div class="tom">${tr('sendt.edit_modal.birds_only')}</div>`
+            : `<div class="tom">${tr('common.no_hits')}</div>`;
           emArtTreff.hidden = false;
           return;
         }
         emArtTreff.innerHTML = liste.slice(0, 12).map((a, i) =>
-          `<button type="button" data-i="${i}">${tekst(a.taxonName)}
+          `<button type="button" data-i="${i}">${tekst(visArtNavn(a))}
              <span class="vit">${a.scientificNameHtml || ''}</span></button>`).join('');
         emArtTreff.hidden = false;
         emArtTreff._liste = liste;
@@ -1050,10 +1076,31 @@
         const minSeq = ++artSeq;
         artSok = setTimeout(async () => {
           try {
-            const r = await fetch(`/api/species?search=${encodeURIComponent(q)}`
-              + `&dontIncludeSubSpecies=true`).then((x) => x.json());
+            await offlineSpeciesReady;
+            const sokTermer = [q];
+            if (isNynorsk()) {
+              const bokmal = await findBokmalByNynorskTerm(q).catch(() => []);
+              for (const b of bokmal.slice(0, 3)) {
+                if (!sokTermer.some((s) => s.toLowerCase() === b.toLowerCase())) {
+                  sokTermer.push(b);
+                }
+              }
+            }
+            const svarLister = await Promise.all(sokTermer.map((term) =>
+              fetch(`/api/species?search=${encodeURIComponent(term)}&dontIncludeSubSpecies=true`)
+                .then((x) => x.json())
+                .catch(() => [])
+            ));
             if (minSeq !== artSeq) return;   // et nyere søk har gått ut
-            tegnArtstreff(Array.isArray(r) ? r : []);
+            const sett = new Map();
+            for (const arr of svarLister) {
+              if (!Array.isArray(arr)) continue;
+              for (const item of arr) {
+                const key = item.taxonId != null ? String(item.taxonId) : item.taxonName;
+                if (!sett.has(key)) sett.set(key, item);
+              }
+            }
+            tegnArtstreff([...sett.values()]);
           } catch (e) {
             if (minSeq === artSeq) emArtTreff.hidden = true;
           }
@@ -1122,21 +1169,20 @@
           }).then((x) => x.json());
           if (!r.ok) {
             okt.ryddet = false;   // ikke ryddet likevel — la brukeren prøve igjen
-            emSettStatus(r.advarsel || r.error || 'Klarte ikke publisere funnet tilbake.', 'feil');
+            emSettStatus(r.advarsel || r.error || tr('sendt.edit_modal.could_not_restore_short'), 'feil');
             return false;
           }
           return true;
         } catch (e) {
           okt.ryddet = false;
-          emSettStatus('Mistet kontakten. Funnet kan være usynlig for andre — '
-            + 'sjekk «Kontrollér funn» hos Artsobservasjoner.', 'feil');
+          emSettStatus(tr('sendt.edit_modal.lost_contact_abort'), 'feil');
           return false;
         }
       }
 
       async function emApne(funn) {
         emModal.dataset.funn = funn.sightingId;
-        emFunn.textContent = `${funn.quantity} ${funn.taxonName} · ${funn.siteName} · ${formatDato(funn.date)}`;
+        emFunn.textContent = `${funn.quantity} ${visArtNavn(funn)} · ${funn.siteName} · ${formatDato(funn.date)}`;
         emLaster.hidden = false;
         emSkjema.hidden = true;
         emKvittering.hidden = true;
@@ -1144,7 +1190,7 @@
         emArtTreff.hidden = true;
         emLagre.hidden = false;
         emLagre.disabled = true;
-        emAvbryt.textContent = 'Avbryt';
+        emAvbryt.textContent = tr('common.cancel');
         emSettStatus('');
         emModal.hidden = false;
         document.body.style.overflow = 'hidden';
@@ -1161,8 +1207,9 @@
           }).then((x) => x.json());
         } catch (e) {
           emLaster.hidden = true;
-          emSettStatus('Fikk ikke kontakt med Artsobservasjoner.', 'feil');
+          emSettStatus(tr('sendt.edit_modal.no_contact_ao'), 'feil');
           emLagre.hidden = true;
+          emAvbryt.textContent = tr('index.common.close');
           return;
         }
 
@@ -1170,12 +1217,11 @@
 
         if (!res.ok) {
           emLagre.hidden = true;
-          emAvbryt.textContent = 'Lukk';
+          emAvbryt.textContent = tr('index.common.close');
           if (res.needsLogin) {
-            emSettStatus('Sesjonen mot Artsobservasjoner er utløpt. '
-              + 'Logg inn på nytt i innstillinger.', 'feil');
+            emSettStatus(tr('sendt.edit_modal.session_expired'), 'feil');
           } else {
-            emSettStatus(res.error || 'Kunne ikke åpne funnet for endring.', 'feil');
+            emSettStatus(res.error || tr('sendt.edit_modal.could_not_open_default'), 'feil');
           }
           // Køen var ikke tom: vis det samme varselet som ved sidelast, slik at
           // brukeren har en vei videre i stedet for bare en feilmelding.
@@ -1188,7 +1234,7 @@
           id: funn.sightingId, formHtml: res.formHtml, funn: res.funn,
           csrfCookie: res.csrfCookie, ryddet: false,
           opprinneligAntall: res.quantity, opprinneligAktivitet: res.activityId,
-          opprinneligArt: res.taxonId, opprinneligArtNavn: funn.taxonName,
+          opprinneligArt: res.taxonId, opprinneligArtNavn: visArtNavn(funn),
           nyArt: null,
         };
         visValgtArt();
@@ -1200,9 +1246,11 @@
 
         // Det vi IKKE endrer her skal stå synlig, så ingen tror det er glemt.
         const f = res.funn || {};
-        emFast.textContent = `Dato, tid og lokalitet endres ikke her: `
-          + `${f.dato || ''} · ${funn.time || ''} · ${funn.siteName}. `
-          + `Bruk Artsobservasjoner for de feltene.`;
+        emFast.textContent = tr('sendt.edit_modal.fixed_fields_info', {
+          dato: f.dato || '',
+          tid: funn.time || '',
+          sted: funn.siteName || '',
+        });
 
         emSkjema.hidden = false;
         emLagre.disabled = false;
@@ -1235,8 +1283,8 @@
         emLagre.disabled = true;
         emAvbryt.disabled = true;
         emJobber(Object.keys(endringer).length
-          ? 'Lagrer og publiserer hos Artsobservasjoner …'
-          : 'Publiserer funnet tilbake …');
+          ? tr('sendt.edit_modal.saving_and_publishing')
+          : tr('sendt.edit_modal.restoring'));
 
         const t = hentTokens();
         let res;
@@ -1252,8 +1300,7 @@
         } catch (e) {
           emLagre.disabled = false;
           emAvbryt.disabled = false;
-          emSettStatus('Mistet kontakten under lagring. Funnet kan være usynlig for '
-            + 'andre — sjekk «Kontrollér funn» hos Artsobservasjoner.', 'feil');
+          emSettStatus(tr('sendt.edit_modal.lost_contact_save'), 'feil');
           return;
         }
 
@@ -1263,7 +1310,7 @@
           // Serveren har alt publisert funnet tilbake på feilstien.
           if (emOkt) emOkt.ryddet = true;
           emLagre.disabled = false;
-          emSettStatus(res.error || 'Lagringen ble avvist.', 'feil');
+          emSettStatus(res.error || tr('sendt.edit_modal.save_rejected'), 'feil');
           return;
         }
 
@@ -1276,41 +1323,40 @@
         // å lese «3 gråspurv» rett over «bekrefter: 5 individer».
         const oppdatert = funnCache.find((f) => String(f.sightingId) === String(emOkt.id));
         if (oppdatert) {
-          emFunn.textContent = `${oppdatert.quantity} ${oppdatert.taxonName} · `
+          emFunn.textContent = `${oppdatert.quantity} ${visArtNavn(oppdatert)} · `
             + `${oppdatert.siteName} · ${formatDato(oppdatert.date)}`;
         }
 
         emSkjema.hidden = true;
         emLagre.hidden = true;
-        emAvbryt.textContent = 'Ferdig';
+        emAvbryt.textContent = tr('common.done');
         emKvittering.hidden = false;
         emSettStatus('');
 
         const ao = res.ao || {};
         const lenke = `<a href="https://www.artsobservasjoner.no/Sighting/${attr(emOkt.id)}" `
-          + `target="_blank" rel="noopener">Se funnet hos Artsobservasjoner</a>`;
+          + `target="_blank" rel="noopener">${tr('sendt.edit_modal.view_at_ao')}</a>`;
 
         if (res.bekreftet === true) {
           const deler = [];
           if (endringer.taxon_id && emOkt.nyArt) deler.push(emOkt.nyArt.navn);
-          if (ao.Quantity) deler.push(`${ao.Quantity} individer`);
-          if (ao.ActivityName) deler.push(String(ao.ActivityName).toLowerCase());
+          if (ao.Quantity) deler.push(`${ao.Quantity} ${tr('sendt.edit_modal.individer_word')}`);
+          if (ao.ActivityName) deler.push(String(activityDisplayName(ao.ActivityName)).toLowerCase());
           emBekreftet.className = 'em-bekreftet';
-          emBekreftet.textContent = `✅ Artsobservasjoner bekrefter: ${deler.join(', ')}.`;
+          emBekreftet.textContent = tr('sendt.edit_modal.saved_confirmed_exact', { summary: deler.join(', ') });
         } else if (res.bekreftet === false) {
           // Et ekte avvik: AO svarte, og svaret er noe annet enn vi ba om.
           emBekreftet.className = 'em-bekreftet avvik';
-          emBekreftet.innerHTML = `⚠️ Lagringen gikk gjennom, men Artsobservasjoner `
-            + `viser noe annet enn du ba om:<br>${tekst((res.avvik || []).join('; '))}`
-            + `<br>${lenke}`;
+          emBekreftet.innerHTML = tr('sendt.edit_modal.saved_mismatch_html', {
+            diff: tekst((res.avvik || []).join('; ')),
+            link: lenke,
+          });
         } else {
           // «Vet ikke» — typisk at AOs liste ikke er oppdatert ennå. Endringen er
           // som regel lagret; vi fikk bare ikke lest den tilbake. Teksten må ikke
           // få det til å høres ut som at noe gikk galt.
           emBekreftet.className = 'em-bekreftet uvisst';
-          emBekreftet.innerHTML = `✔️ Endringen er lagret og publisert.<br>`
-            + `Vi rakk ikke lese den tilbake fra Artsobservasjoner for å dobbeltsjekke `
-            + `— lista deres er ikke alltid oppdatert med én gang.<br>${lenke}`;
+          emBekreftet.innerHTML = tr('sendt.edit_modal.saved_unverified_html', { link: lenke });
         }
       }
 
@@ -1323,8 +1369,10 @@
         if (ao && ao.ActivityName) funn.activity = ao.ActivityName;
         else if (endringer.activity_navn) funn.activity = endringer.activity_navn;
         if (endringer.taxon_id && emOkt && emOkt.nyArt) {
-          funn.taxonName = emOkt.nyArt.navn;
+          funn.taxonName = emOkt.nyArt.taxonName || emOkt.nyArt.navn;
+          if (emOkt.nyArt.scientificName) funn.scientificName = emOkt.nyArt.scientificName;
           funn.taxonId = emOkt.nyArt.id;
+          delete funn._speciesObj;
         }
 
         const rad = document.getElementById(`funn-${sightingId}`);
@@ -1334,17 +1382,17 @@
         const artEl = rad.querySelector('.funn-art');
         if (artEl) {
           artEl.innerHTML = `<span class="antall">${tekst(funn.quantity)}</span> `
-            + tekst(funn.taxonName);
+            + tekst(visArtNavn(funn));
         }
         const metaEl = rad.querySelector('.funn-meta');
-        if (metaEl) metaEl.textContent = [funn.time, funn.activity].filter(Boolean).join(' · ');
+        if (metaEl) metaEl.textContent = [funn.time, activityDisplayName(funn.activity)].filter(Boolean).join(' · ');
       }
 
       emAvbryt.addEventListener('click', async () => {
         // «Avbryt» er en handling, ikke en lukkeknapp: funnet må publiseres tilbake.
         if (!emOkt || emOkt.ryddet) { emLukkUi(); return; }
         emAvbryt.disabled = true;
-        emJobber('Publiserer funnet tilbake …');
+        emJobber(tr('sendt.edit_modal.restoring'));
         const ok = await emPubliserTilbake(false);
         emAvbryt.disabled = false;
         if (ok) emLukkUi();
@@ -1420,7 +1468,7 @@
         if (!sightingId || !editor.harBilde()) return;
 
         bmSend.disabled = true;
-        settModalStatus('Laster opp til Artsobservasjoner …');
+        settModalStatus(tr('sendt.image_modal.uploading'));
 
         try {
           const photo = editor.hentResultat();
@@ -1438,7 +1486,7 @@
           const svar = await r.json();
 
           if (!svar.ok) {
-            settModalStatus(`Bildet ble ikke lagt til: ${svar.error || 'ukjent årsak'}`, 'feil');
+            settModalStatus(tr('sendt.image_modal.not_added', { msg: svar.error || tr('sendt.image_modal.unknown_reason') }), 'feil');
             bmSend.disabled = false;
             return;
           }
@@ -1456,19 +1504,19 @@
           // kvittering — da ville vi lovet noe vi ikke har dekning for.
           const bekreftet = svar.verified !== false;
           settStatus(sightingId, bekreftet
-            ? 'Bildet er lagt til på funnet.'
-            : 'Bildet ble sendt, men vi fikk ikke bekreftet det hos Artsobservasjoner. Sjekk funnet.',
+            ? tr('sendt.image_modal.row_confirmed')
+            : tr('sendt.image_modal.row_unverified'),
             bekreftet ? 'ok' : '');
 
           // Ikke lukk: de fleste som legger på ett bilde vil legge på flere. Hvor
           // mange som ligger der nå kommer fra AO, ikke fra vår egen telling.
           const antall = svar.imageCount;
           visKvittering(antall
-            ? `Bildet er lagt til. Funnet har nå ${antall} av ${MAKS_BILDER} bilder.`
-            : 'Bildet er lagt til.',
+            ? tr('sendt.image_modal.receipt_count', { count: antall, max: MAKS_BILDER })
+            : tr('sendt.image_modal.receipt_simple'),
             antall ? antall >= MAKS_BILDER : false);
         } catch (e) {
-          settModalStatus(`Kunne ikke laste opp bildet: ${e.message}`, 'feil');
+          settModalStatus(tr('sendt.image_modal.upload_error', { msg: e.message }), 'feil');
           bmSend.disabled = false;
         }
       });
@@ -1482,6 +1530,7 @@
       // AO-lista er allerede hentet og ligger i funnCache - en ny AO-tur for
       // bare et språkbytte ville vært unødvendig tregt (5-12 sek, se over).
       document.addEventListener('i18n:language-changed', () => {
+        if (sisteKoAntall > 0) visKoVarsel(sisteKoAntall);
         if (funnCache.length) tegnListe();
       });
       // Kjører parallelt med funn-lista: et etterlatt upublisert funn er noe
@@ -1495,15 +1544,19 @@
       function renderBatch(batch, idx) {
         const obs = batch.obs || [];
         const arter = new Set(obs.map(o => (o.species && o.species.taxonName || '').toLowerCase()).filter(Boolean));
+        const artOrd = arter.size === 1
+          ? tr('observations.species_word_singular')
+          : tr('observations.species_word_plural');
 
         // Grupper på lokalitet, i den rekkefølgen de dukker opp
         const steder = [...new Set(obs.map(o => o.placeName || ''))];
         const seksjoner = steder.map(sted => {
           const iGruppe = obs.filter(o => (o.placeName || '') === sted);
           const rader = iGruppe.map(o => {
-            const navn = (o.species && o.species.taxonName) || '';
+            const artObj = o.species ? berikArtObjektMedNynorsk(o.species) : null;
+            const navn = speciesDisplayName(artObj || o.species) || (o.species && o.species.taxonName) || '';
             const tid = (o.timestamp || '').slice(11, 16);
-            const detaljer = [activityDisplayName(o.activity), o.age, o.gender].filter(Boolean).join(' · ');
+            const detaljer = [activityDisplayName(o.activity), o.age, genderDisplayName(o.gender)].filter(Boolean).join(' · ');
             return `<li><span class="antall">${tekst(o.count || '')}</span> ${tekst(navn)}
               <span class="detalj">${tid ? ' – ' + tekst(tid) : ''}${detaljer ? ' · ' + tekst(detaljer) : ''}</span></li>`;
           }).join('');
@@ -1517,12 +1570,12 @@
           <div class="batch">
             <div class="batch-head">
               <span class="batch-tid">${tekst(formatSendt(batch.ts))}</span>
-              <span class="batch-meta">${obs.length} obs · ${arter.size} art${arter.size !== 1 ? 'er' : ''}${stedTekst}</span>
+              <span class="batch-meta">${obs.length} obs · ${arter.size} ${tekst(artOrd)}${stedTekst}</span>
             </div>
             ${seksjoner}
             <div class="knapper">
-              <button class="btn-liten primar" data-del="${idx}">🔗 Del disse</button>
-              <button class="btn-liten" data-kopier="${idx}">📋 Kopier til lista</button>
+              <button class="btn-liten primar" data-del="${idx}">🔗 ${tr('sendt.local.share_these')}</button>
+              <button class="btn-liten" data-kopier="${idx}">📋 ${tr('sendt.local.copy_to_list')}</button>
             </div>
           </div>`;
       }
@@ -1542,6 +1595,12 @@
         }
       }
       tegnLokalListe();
+      if (batches.length) {
+        offlineSpeciesReady.then(() => {
+          batches.forEach((b) => (b.obs || []).forEach((o) => { if (o.species) delete o.species._speciesObj; }));
+          tegnLokalListe();
+        });
+      }
       document.addEventListener('i18n:language-changed', tegnLokalListe);
 
       if (batches.length) {
@@ -1557,14 +1616,21 @@
           if (kopierIdx != null) {
             const obs = batches[Number(kopierIdx)].obs || [];
             if (!obs.length) return;
-            if (!confirm(`Legge ${obs.length} observasjon${obs.length !== 1 ? 'er' : ''} tilbake i arbeidslista? `
-              + 'De er allerede sendt til AO — send dem bare på nytt hvis du har slettet dem der.')) return;
+            const ord = obs.length === 1
+              ? tr('sendt.local.obs_singular')
+              : tr('sendt.local.obs_plural');
+            if (!confirm(tr('sendt.local.confirm_copy_msg', {
+              count: obs.length,
+              ord,
+              plural: obs.length !== 1 ? 'er' : '',
+            }))) return;
 
             // Nytt besøk: fjern visit-koblingen så de ikke smelter sammen med gamle grupper.
             // sentTs må også bort — kopien er ment å sendes, og skal ikke utløse
             // dublett-advarselen eller vises som «✓ sendt».
             const kopier = obs.map(o => {
               const kopi = JSON.parse(JSON.stringify(o));
+              if (kopi.species) delete kopi.species._speciesObj;
               delete kopi.visitId;
               delete kopi.visitLocked;
               delete kopi.sentTs;

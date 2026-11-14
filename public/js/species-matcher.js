@@ -52,6 +52,9 @@ export function isNynorskLanguage(userLanguage) {
   if (userLanguage === undefined || userLanguage === null || userLanguage === '') {
     if (typeof window !== 'undefined' && window.localStorage) {
       try {
+        const appLang = (window.localStorage.getItem('app_language_v1') || '').trim().toLowerCase();
+        if (appLang === 'nn') return true;
+        if (appLang === 'nb') return false;
         const stored = window.localStorage.getItem('nynorsk_artsnavn_v1');
         if (stored === '1') return true;
         if (stored === '0') return false;

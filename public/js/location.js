@@ -297,7 +297,7 @@ export function setAoSiteSuggestions(sites, currentPosition, dropdown, aoSitesEl
     // Kartknapp
     const mapBtn = document.createElement('button');
     mapBtn.textContent = '🗺️';
-    mapBtn.title = 'Vis i kart';
+    mapBtn.title = t('location.show_in_map');
     mapBtn.style.cssText = `
       background: transparent;
       border: 1px solid rgba(148, 163, 184, 0.3);
@@ -357,7 +357,7 @@ export function initLocation(elements, onPositionUpdate, aoSizeMeters = 1000) {
   console.log('[initLocation] Fant #loc-btn, setter event-listener');
   
   if (!navigator.geolocation) {
-    setLocationStatus(locDot, locText, 'error', 'Ingen geolokasjon-støtte i denne nettleseren.');
+    setLocationStatus(locDot, locText, 'error', t('location.no_geoloc'));
     return;
   }
 
@@ -366,14 +366,10 @@ export function initLocation(elements, onPositionUpdate, aoSizeMeters = 1000) {
     const savedStatus = localStorage.getItem('locationStatus');
     if (savedStatus) {
       const { mode, text } = JSON.parse(savedStatus);
-      // Gjenopprett status uten å oppdatere klokkeslett. Teksten ble lagret
-      // ferdig oversatt på forrige besøk - byttes språk mellom besøk, vises
-      // den gamle teksten til neste ekte posisjonsoppdatering overskriver
-      // den. Bevisst ikke løst med en tekst-gjetting her: en stabil nøkkel
-      // ville kreve at locationStatus lagret nøkkel+variabler i stedet for
-      // ferdig tekst, et større oppsett enn dette sjeldne hjørnetilfellet er
-      // verdt (se docs/i18n-arkitektur-analyse.md).
-      if (locText) locText.textContent = text;
+      const isIdleHint = mode === 'idle'
+        || text === 'Trykk «Hent lokasjoner» før registrering.'
+        || text === 'Trykk «Hent lokalitetar» før registrering.';
+      if (locText) locText.textContent = isIdleHint ? t('location.idle_hint') : text;
       if (locDot) {
         if (mode === 'ok') {
           locDot.style.background = '#22c55e';
@@ -799,42 +795,42 @@ export function initCreateSite(getPosition, getPlaceName, onSiteCreated) {
   submitBtn.addEventListener('click', async () => {
     const name = nameInput.value.trim();
     if (!name) {
-      showStatus('Skriv inn et lokalitetsnavn', true);
+      showStatus(t('location.create.err_name'), true);
       return;
     }
 
     const pos = getPosition();
     if (!pos || !pos.lat || !pos.lon) {
-      showStatus('Ingen GPS-posisjon tilgjengelig', true);
+      showStatus(t('location.create.err_gps'), true);
       return;
     }
 
     submitBtn.disabled = true;
-    showStatus('Logger inn på AO...', false);
+    showStatus(t('location.create.err_logging_in'), false);
 
     try {
       const loggedIn = await ensureAoTokens();
       if (!loggedIn) {
-        showStatus('Innlogging feilet. Sjekk brukernavn/passord i innstillinger.', true);
+        showStatus(t('location.create.err_login_failed'), true);
         submitBtn.disabled = false;
         return;
       }
 
-      showStatus('Oppretter lokasjon...', false);
+      showStatus(t('location.create.err_creating'), false);
       const result = await createAoSite(name, pos.lat, pos.lon, parseInt(accuracySelect.value));
 
       if (result.success) {
-        showStatus(result.message || 'Lokasjon opprettet!', false);
+        showStatus(result.message || t('location.create.ok_created'), false);
         setTimeout(() => {
           closeModal();
           if (onSiteCreated) onSiteCreated(name, result.siteId > 0 ? result.siteId : null);
         }, 1500);
       } else {
-        showStatus(result.message || result.error || 'Ukjent feil', true);
+        showStatus(result.message || result.error || t('common.unknown_error'), true);
         submitBtn.disabled = false;
       }
     } catch (e) {
-      showStatus('Nettverksfeil: ' + e.message, true);
+      showStatus(t('location.create.err_network', { msg: e.message }), true);
       submitBtn.disabled = false;
     }
   });

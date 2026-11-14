@@ -6,6 +6,7 @@ import { getNetworkMode, getAllOfflineLocations } from './offline-db.js';
 import { haversine } from './utils.js';
 // Versjonert import: hard avhengighet til en navngitt eksport.
 import { loggInnMedLagretLegitimasjon } from './api.js?v=v1.60.20';
+import { t } from './i18n.js?v=v1.60.20';
 
 // Serveren kan ikke lenger fornye en sesjon på brukernavn alene — passordet er
 // bundet til logintokenet (v1.60.18), og rader lagret før bindingen er fjernet.
@@ -122,7 +123,7 @@ export function initAutocomplete(placeInput, onSelect, getPosition = null) {
         color: var(--muted);
         font-size: 0.9em;
       ">
-        🔍 Søker etter lokaliteter...
+        ${t('autocomplete.searching_sites')}
       </div>
     `;
     dropdown.style.display = 'block';
@@ -213,7 +214,7 @@ export function initAutocomplete(placeInput, onSelect, getPosition = null) {
           if (data.auth_expired) fornyInnloggingEnGang();
           const hint = document.createElement('div');
           hint.style.cssText = 'padding: 8px 12px; font-size: 0.75em; color: var(--muted); border-top: 1px solid var(--border);';
-          hint.innerHTML = '💡 <a href="/ao-direct.html" style="color: inherit; text-decoration: underline;">Logg inn</a> for flere lokaliteter';
+          hint.innerHTML = t('autocomplete.login_more_hint');
           dropdown.appendChild(hint);
         }
       } else if (data.auth_expired || data.not_logged_in) {
@@ -224,7 +225,7 @@ export function initAutocomplete(placeInput, onSelect, getPosition = null) {
             color: var(--muted);
             font-size: 0.85em;
           ">
-            Ingen treff. <a href="/ao-direct.html" style="color: inherit; text-decoration: underline;">Logg inn</a> for å søke i alle AO-lokaliteter.
+            ${t('autocomplete.no_hits_login')}
           </div>
         `;
         dropdown.style.display = 'block';
@@ -308,7 +309,7 @@ export function initAutocomplete(placeInput, onSelect, getPosition = null) {
       // Mine lokaliteter-merke (AO-søk)
       if (isMine) {
         const badge = document.createElement('span');
-        badge.textContent = '★ Min';
+        badge.textContent = t('autocomplete.my_badge');
         badge.style.cssText = `
           font-size: 0.7em;
           color: #ff9900;

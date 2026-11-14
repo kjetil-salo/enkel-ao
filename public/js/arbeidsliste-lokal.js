@@ -1,5 +1,7 @@
 // Den innhentede lista har egen nøkkel slik at en eldre fane kan lagre sin
 // lokale liste uten å overskrive kopien. Én fane av gangen kan redigere kopien.
+import { t } from './i18n.js?v=v1.60.20';
+
 const LAGER = 'arbeidsliste_innhentet_v1';
 let aktiv = null;
 
@@ -13,7 +15,7 @@ export function lesInnhentetListe() {
   } catch {
     // Behold uleselig innhold i lagringen.
   }
-  throw new Error('Den innhentede lista kan ikke leses. Lokale data er beholdt.');
+  throw new Error(t('arbeidsliste.unreadable'));
 }
 
 export function aktivInnhentetListe() {
@@ -28,13 +30,13 @@ export function lukkInnhentetListe() {
 
 export function apneInnhentetListe(klargjor) {
   if (!navigator.locks?.request) {
-    return Promise.reject(new Error('Denne nettleseren kan bare forhåndsvise lista. Prøv en oppdatert nettleser for å hente den inn.'));
+    return Promise.reject(new Error(t('arbeidsliste.no_locks_support')));
   }
   return new Promise((resolve, reject) => {
     navigator.locks.request(LAGER, { ifAvailable: true }, async (las) => {
-      if (!las) throw new Error('Den innhentede lista er åpen i en annen fane. Lukk den fanen og prøv igjen.');
+      if (!las) throw new Error(t('arbeidsliste.open_in_other_tab'));
       const liste = klargjor();
-      if (!liste) throw new Error('Finner ingen innhentet liste på denne enheten.');
+      if (!liste) throw new Error(t('arbeidsliste.none_found'));
       let slipp;
       const vent = new Promise((ferdig) => { slipp = ferdig; });
       const { eier, kopiId, lagretTs } = liste;
@@ -46,7 +48,7 @@ export function apneInnhentetListe(klargjor) {
 }
 
 export function lagreInnhentetKopi(metadata, observations, eier) {
-  if (lesInnhentetListe()) throw new Error('Det ligger allerede en innhentet liste på denne enheten.');
+  if (lesInnhentetListe()) throw new Error(t('arbeidsliste.already_exists'));
   const liste = { eier, kopiId: metadata.id, lagretTs: metadata.lagretTs, observations };
   localStorage.setItem(LAGER, JSON.stringify(liste));
   return liste;
@@ -54,7 +56,7 @@ export function lagreInnhentetKopi(metadata, observations, eier) {
 
 export function lagreEndringerIInnhentetListe(observations) {
   const metadata = aktivInnhentetListe();
-  if (!metadata) throw new Error('Åpne den innhentede lista før du endrer den.');
+  if (!metadata) throw new Error(t('arbeidsliste.open_before_edit'));
   if (observations.length) {
     localStorage.setItem(LAGER, JSON.stringify({ ...metadata, observations }));
   } else {
