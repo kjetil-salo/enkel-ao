@@ -47,6 +47,9 @@ async function seed(page: Page, observations: object[]) {
 
 test.describe('Dublett-vern ved publisering', () => {
   test.beforeEach(async ({ page }) => {
+    await page.route('**/api/ao-login', route => route.fulfill({
+      json: { success: true, loginToken: 'mock-token', authCookie: 'mock-cookie', userId: '42' },
+    }));
     await page.goto(BASE);
   });
 
@@ -88,5 +91,140 @@ test.describe('Dublett-vern ved publisering', () => {
     await page.locator('#ao-direct-btn').click();
     await page.waitForTimeout(600);
     await expect(page.locator('#dub-nye')).toHaveCount(0);
+  });
+
+  test('kopierer bare valgte funn og åpner AO3 med ett klikk når lista krever manuell kontroll', async ({ page }) => {
+    await page.addInitScript(() => {
+      Object.defineProperty(navigator, 'clipboard', {
+        value: { writeText: async (tekst: string) => { sessionStorage.setItem('test-ao3-kopi', tekst); } },
+      });
+    });
+    await page.route('**/api/ao-import-stream', (route) => route.fulfill({
+      contentType: 'text/event-stream',
+      body: 'data: {"phase":"error","code":"ao2_unavailable_before_import"}\n\n',
+    }));
+    const importside = 'https://mobil.artsobservasjoner.no/contribute/import';
+    await page.context().route(importside, route => route.fulfill({ body: 'AO3-import' }));
+    await page.route('**/api/log-export', route => route.fulfill({ json: { ok: true } }));
+    await page.route('**/api/ao3-import', route => route.fulfill({ json: { code: 'ao3_manual' } }));
+
+    const nyttFunn = { ...obs('Kjøttmeis'), placeId: 123, privateComment: 'Første linje\nAndre linje', uncertain: true };
+    await seed(page, [obs('Blåmeis', '2026-07-26T18:30:00'), nyttFunn]);
+    await page.evaluate(() => localStorage.setItem('ao_username', 'test@example.org'));
+    await page.locator('#ao-direct-btn').click();
+    await page.locator('#dub-nye').click();
+
+    const status = page.locator('#ao-direct-status');
+    await status.getByRole('button', { name: 'Publiser via AO3' }).click();
+    await expect(status).toContainText('krever manuell kontroll');
+    await expect(status.locator('button, a')).toHaveCount(1);
+    const loggkall = page.waitForRequest('**/api/log-export');
+    const nyFane = page.context().waitForEvent('page');
+    await status.getByRole('button', { name: 'Kopier og åpne AO3' }).click();
+    await expect(await nyFane).toHaveURL(importside);
+    await expect(status).toContainText('Kopiert.');
+    expect((await loggkall).postDataJSON()).toEqual({ type: 'copy_ao3' });
+
+    const tekst = await page.evaluate(() => sessionStorage.getItem('test-ao3-kopi'));
+    const [overskrift, rad] = tekst!.split('\n');
+    const kolonner = overskrift.split('\t');
+    const felt = rad.split('\t');
+    expect(tekst!.split('\n')).toHaveLength(2);
+    expect(felt).toHaveLength(kolonner.length);
+    expect(felt[kolonner.indexOf('Artsnavn')]).toBe('Kjøttmeis');
+    expect(felt[kolonner.indexOf('Lokalitetsnavn')]).toBe('Teststed');
+    expect(felt[kolonner.indexOf('Privat merknad (kun synlig for deg selv)')]).toBe('Første linje Andre linje');
+    expect(felt[kolonner.indexOf('Usikker artsbestemming')]).toBe('X');
+    await expect(page.locator('.obs-sent-badge')).toHaveCount(1);
+  });
+
+  test('tilbyr ingen ny sending når proxyen svarer 503 på importen uten kvittering', async ({ page }) => {
+    await page.route('**/api/ao-import-stream', (route) => route.fulfill({ status: 503, body: 'Utilgjengelig' }));
+    await seed(page, [obs('Kjøttmeis')]);
+    await page.locator('#ao-direct-btn').click();
+
+    const status = page.locator('#ao-direct-status');
+    await expect(status).toContainText('Sendingen kunne ikke bekreftes. Listen er beholdt.');
+    await expect(status.locator('button, a')).toHaveCount(0);
+    await expect(page.locator('.obs-sent-badge')).toHaveCount(0);
+
+    let innlogginger = 0;
+    await page.route('**/api/ao-login', (route) => {
+      innlogginger++;
+      return route.fulfill({ status: 503, json: { code: 'ao2_unavailable_before_import' } });
+    });
+    await page.reload();
+    const dialog = page.waitForEvent('dialog').then(async (varsel) => {
+      const melding = varsel.message();
+      await varsel.dismiss();
+      return melding;
+    });
+    await page.locator('#ao-direct-btn').click();
+    expect(await dialog).toContain('Har du sjekket både publiserte funn og funn til gjennomgang');
+    expect(innlogginger).toBe(0);
+  });
+
+  test('ber om bekreftelse før direkte AO3-publisering ved bekreftet AO2-feil', async ({ page }) => {
+    await page.route('**/api/ao-login', (route) => route.fulfill({
+      status: 503, json: { code: 'ao2_unavailable_before_import' },
+    }));
+    let ao3Kall = 0;
+    await page.route('**/api/ao3-import', (route) => {
+      ao3Kall++;
+      return route.fulfill({ json: { success: true, via: 'ao3', published: true, count: 1 } });
+    });
+    await page.route('**/api/log-export', route => route.fulfill({ json: { ok: true } }));
+    await seed(page, [obs('Kjøttmeis')]);
+    await page.evaluate(() => localStorage.setItem('ao_username', 'test@example.org'));
+    await page.locator('#ao-direct-btn').click();
+    const status = page.locator('#ao-direct-status');
+    await expect(status).toContainText('AO2 er utilgjengelig');
+    await expect(status.locator('button, a')).toHaveCount(1);
+    expect(ao3Kall).toBe(0);
+    const reservekall = page.waitForRequest('**/api/ao3-import');
+    await status.getByRole('button', { name: 'Publiser via AO3' }).click();
+    expect((await reservekall).postDataJSON().observations).toHaveLength(1);
+    await expect(status).toContainText('1 observasjon sendt til AO3');
+    await expect(page.locator('.obs-sent-badge')).toHaveCount(1);
+  });
+
+  test('viser AO-innstillinger ved AO2-feil for en bruker med alias', async ({ page }) => {
+    await page.route('**/api/ao-login', route => route.fulfill({
+      status: 503, json: { code: 'ao2_unavailable_before_import' },
+    }));
+    await seed(page, [obs('Kjøttmeis')]);
+    await page.locator('#ao-direct-btn').click();
+    const status = page.locator('#ao-direct-status');
+    await expect(status).toContainText('e-postadressen til samme AO-konto');
+    await expect(status.locator('button, a')).toHaveCount(1);
+    await status.getByRole('link', { name: 'Gå til AO-innlogging' }).click();
+    await expect(page).toHaveURL(/\/settings\.html#ao-username$/);
+  });
+
+  test('husker uavklart sending når siden lastes på nytt før kvitteringen', async ({ page }) => {
+    let slippImport = () => {};
+    const ventPåOmlasting = new Promise<void>((resolve) => { slippImport = resolve; });
+    await page.route('**/api/ao-import-stream', async (route) => {
+      await ventPåOmlasting;
+      await route.abort().catch(() => {});
+    });
+    await seed(page, [obs('Kjøttmeis')]);
+    const importkall = page.waitForRequest('**/api/ao-import-stream');
+    await page.locator('#ao-direct-btn').click();
+    await importkall;
+    try {
+      await page.reload({ waitUntil: 'domcontentloaded' });
+    } finally {
+      slippImport();
+    }
+
+    const kontroll = page.waitForEvent('dialog').then(async (dialog) => {
+      const melding = dialog.message();
+      await dialog.dismiss();
+      return melding;
+    });
+    await page.locator('#ao-direct-btn').click();
+    expect(await kontroll).toContain('Har du sjekket både publiserte funn og funn til gjennomgang');
+    await expect(page.locator('.obs-sent-badge')).toHaveCount(0);
   });
 });

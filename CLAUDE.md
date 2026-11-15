@@ -127,6 +127,8 @@ The `Handler` class routes requests:
     ID og risikere å dra med andres ventende funn
   - Full kartlegging av AOs feltformat, fallgruver og det som gjenstår å feltverifisere:
     `docs/ao-publish-selective-capture.md`
+  - Ved 502/503/504 før første importkall kan appen bruke AO3 eller tilby manuell AO3-import.
+    Se [AO3 som reserve](docs/ao3-reserve.md) for innlogging, feilhåndtering og verifisering.
 - `/api/ao-my-sightings` (POST) → brukerens EGNE publiserte funn hos AO, nyeste først
   - `src/ao_sightings.py`: henter AOs søkeskjema, overstyrer kun søkekriteriene, poster
     tilbake, og leser resultatet som JSON fra `/ViewSighting/BindSightingsGrid`

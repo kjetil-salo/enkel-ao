@@ -3,6 +3,7 @@
  */
 
 import { haversine } from './utils.js';
+import { kontoKontekst, sammeKontoKontekst } from './arbeidsliste-sesjon.js';
 
 // localStorage-basert cache for artssøk med 1 års TTL
 const SPECIES_CACHE_PREFIX = 'species_';
@@ -23,6 +24,8 @@ const PRIVATE_SITES_TTL = 24 * 60 * 60 * 1000; // 24 timer
 // nettverkskall ved hver panorering på kartet. Ett kall per tiende minutt er
 // en helt annen sak enn ett per panorering.
 const PRIVATE_SITES_EMPTY_TTL = 10 * 60 * 1000; // 10 minutter
+let privatOppslag = null;
+let mislykketPrivatOppslag = null;
 
 // Cache for offentlige/bbox-lokaliteter hentet ved panorering på kartet
 // (map.js). Helt offentlige AO-lokaliteter opprettes svært sjelden (appen har
@@ -73,7 +76,8 @@ export function getCachedPrivateSites() {
     if (!hasActiveAoLogin()) return [];
     const item = localStorage.getItem(PRIVATE_SITES_KEY);
     if (!item) return [];
-    const { ts, sites } = JSON.parse(item);
+    const { ts, sites, konto } = JSON.parse(item);
+    if (konto && !sammeKontoKontekst(konto)) return [];
     if (Date.now() - ts > PRIVATE_SITES_TTL) return [];
     return Array.isArray(sites) ? sites : [];
   } catch {
@@ -96,7 +100,8 @@ export function hasFreshPrivateSitesCache() {
   try {
     const item = localStorage.getItem(PRIVATE_SITES_KEY);
     if (!item) return false;
-    const { ts, sites } = JSON.parse(item);
+    const { ts, sites, konto } = JSON.parse(item);
+    if (konto && !sammeKontoKontekst(konto)) return false;
     const tomCache = !Array.isArray(sites) || sites.length === 0;
     const levetid = tomCache ? PRIVATE_SITES_EMPTY_TTL : PRIVATE_SITES_TTL;
     return Date.now() - ts <= levetid;
@@ -109,9 +114,13 @@ export function hasFreshPrivateSitesCache() {
  * Hent og cache alle brukerens private lokasjoner fra AO
  * Kjøres i bakgrunnen etter innlogging
  */
-export async function fetchAndCachePrivateSites() {
+export function lagrePrivateAoLokaliteter(sites, via) {
+  if (via === 'ao3') sites = sites.map(site => ({ ...site, fraAo3: true }));
+  localStorage.setItem(PRIVATE_SITES_KEY, JSON.stringify({ ts: Date.now(), sites, konto: kontoKontekst() }));
+}
+
+async function hentPrivateAo2Lokaliteter(tokens) {
   try {
-    const tokens = JSON.parse(localStorage.getItem('ao_tokens') || '{}');
     if (!tokens.authCookie) return;
     const headers = { 'X-AO-Auth-Cookie': tokens.authCookie };
     if (tokens.loginToken) headers['X-AO-Login-Token'] = tokens.loginToken;
@@ -119,30 +128,64 @@ export async function fetchAndCachePrivateSites() {
     const savedUsername = localStorage.getItem('ao_username');
     if (savedUsername) headers['X-AO-Username'] = savedUsername;
     const resp = await fetch('/api/ao-private-sites', { headers });
-    if (!resp.ok) return;
-    const data = await resp.json();
-    // Persister fornyet auth-cookie hvis sesjonen ble revitalisert server-side
-    if (data.refreshedAuthCookie) {
-      tokens.authCookie = data.refreshedAuthCookie;
-      localStorage.setItem('ao_tokens', JSON.stringify(tokens));
-    }
-    if (!Array.isArray(data.sites)) return;
-    // Et degradert svar skal ALDRI caches. Serveren svarer med en tom liste og
-    // status 200 når sesjonen er død (ekstern-API-konvensjonen), og uten
-    // `needsLogin` var det umulig å skille fra «brukeren har ingen private
-    // lokaliteter». Cachen varer 24 timer og `hasFreshPrivateSitesCache()`
-    // hindrer nye forsøk, så en død sesjon låste brukeren ut av sine EGNE
-    // lokaliteter i et helt døgn — også etter at hun hadde logget inn på nytt
-    // (funnet på staging 09.11.2026). Samme regel som bbox-cachen under.
-    if (data.needsLogin || data.degradert) {
-      console.warn('[AO] Private lokasjoner ikke cachet — sesjonen svarte degradert');
-      return;
-    }
-    localStorage.setItem(PRIVATE_SITES_KEY, JSON.stringify({ ts: Date.now(), sites: data.sites }));
-    console.log(`[AO] Cachet ${data.sites.length} private lokasjoner`);
-  } catch (e) {
-    console.warn('[AO] Kunne ikke hente private lokasjoner:', e);
+    if (resp.ok) return await resp.json();
+  } catch {
+    // AO3 kan fortsatt ha en fungerende innlogging.
   }
+}
+
+export async function fetchAndCachePrivateSites() {
+  if (!hasActiveAoLogin()) return false;
+  if (privatOppslag && sammeKontoKontekst(privatOppslag.konto)) return privatOppslag.svar;
+  const konto = kontoKontekst();
+  const passord = localStorage.getItem('ao_password');
+  const sammeKonto = () => sammeKontoKontekst(konto) && passord === localStorage.getItem('ao_password');
+  const oppslag = { konto };
+  privatOppslag = oppslag;
+  oppslag.svar = (async () => {
+    try {
+      let tokens = JSON.parse(localStorage.getItem('ao_tokens') || '{}');
+      if (!tokens.authCookie && await loggInnMedLagretLegitimasjon()) {
+        tokens = JSON.parse(localStorage.getItem('ao_tokens') || '{}');
+      }
+      if (!sammeKonto()) return false;
+      let data = await hentPrivateAo2Lokaliteter(tokens);
+      if (!sammeKonto()) return false;
+      if (data?.refreshedAuthCookie && tokens.authCookie === JSON.parse(localStorage.getItem('ao_tokens') || '{}').authCookie) {
+        localStorage.setItem('ao_tokens', JSON.stringify({ ...tokens, authCookie: data.refreshedAuthCookie }));
+      }
+      if ((!data || data.needsLogin || data.degradert) && konto.brukernavn.includes('@') && passord) {
+        const resp = await fetch('/api/ao-private-sites', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: konto.brukernavn, password: passord }),
+        });
+        data = resp.ok ? await resp.json() : null;
+      }
+      if (!sammeKonto() || !Array.isArray(data?.sites) || data.needsLogin || data.degradert) return false;
+      lagrePrivateAoLokaliteter(data.sites, data.via);
+      return true;
+    } catch {
+      return false;
+    }
+  })();
+  try {
+    const ok = await oppslag.svar;
+    if (sammeKonto()) mislykketPrivatOppslag = ok ? null : { konto, til: Date.now() + 5 * 60_000 };
+    return ok;
+  } finally {
+    if (privatOppslag === oppslag) privatOppslag = null;
+  }
+}
+
+export async function ensureAoPrivateSites() {
+  if (!hasActiveAoLogin()) return false;
+  if (hasFreshPrivateSitesCache()) return true;
+  if (mislykketPrivatOppslag && Date.now() < mislykketPrivatOppslag.til
+      && sammeKontoKontekst(mislykketPrivatOppslag.konto)) {
+    return false;
+  }
+  return fetchAndCachePrivateSites();
 }
 
 /**
@@ -218,52 +261,9 @@ export async function searchSpecies(term, includeSubtaxa = false) {
  * @returns {Promise<boolean>} - true hvis relogin var vellykket
  */
 async function tryAutoRelogin() {
-  const username = localStorage.getItem('ao_username');
-  const password = localStorage.getItem('ao_password');
-
-  if (!username || !password) {
-    console.log('[Auto-relogin] Ingen lagrede credentials');
-    return false;
-  }
-
-  console.log('[Auto-relogin] Prøver å logge inn på nytt...');
-
-  try {
-    const response = await fetch('/api/ao-login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password })
-    });
-
-    if (!response.ok) {
-      console.warn('[Auto-relogin] Innlogging feilet:', response.status);
-      return false;
-    }
-
-    const result = await response.json();
-
-    if (result.success) {
-      // Oppdater tokens i localStorage
-      const savedTokens = JSON.parse(localStorage.getItem('ao_tokens') || '{}');
-      savedTokens.loginToken = result.loginToken;
-      savedTokens.authCookie = result.authCookie;
-      // Behold eksisterende userId/mapUserId hvis satt
-      if (!savedTokens.userId) {
-        savedTokens.userId = result.userId;
-      }
-      localStorage.setItem('ao_tokens', JSON.stringify(savedTokens));
-      console.log('[Auto-relogin] Vellykket! Nye tokens lagret.');
-      // Ventet på — se samme begrunnelse i ensureAoTokens(). Kalleren her
-      // (fetchAoSites) gjør et nytt fetchAoSites-kall rett etter relogin, som
-      // igjen leser denne cachen synkront for isMine-merking.
-      await fetchAndCachePrivateSites();
-      return true;
-    }
-  } catch (e) {
-    console.warn('[Auto-relogin] Feil:', e);
-  }
-
-  return false;
+  if (!await loggInnMedLagretLegitimasjon()) return false;
+  await fetchAndCachePrivateSites();
+  return true;
 }
 
 /**
@@ -275,6 +275,7 @@ async function tryAutoRelogin() {
  * @returns {Promise<Array>} - Liste med lokaliteter
  */
 export async function fetchAoSites(lat, lon, sizeMeters = 1000, isRetry = false) {
+  const konto = kontoKontekst();
   let url = `/api/ao-sites?lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}&size=${encodeURIComponent(sizeMeters)}`;
 
   // Hent tokens fra localStorage og send som headers
@@ -304,7 +305,7 @@ export async function fetchAoSites(lat, lon, sizeMeters = 1000, isRetry = false)
   }
 
   const data = await resp.json();
-  if (!data) return [];
+  if (!data || !sammeKontoKontekst(konto)) return [];
 
   // Håndter refreshed auth cookie hvis mottatt
   if (data.refreshedAuthCookie) {
@@ -329,6 +330,7 @@ export async function fetchAoSites(lat, lon, sizeMeters = 1000, isRetry = false)
   if (!isRetry && data.authRequired && !data.refreshedAuthCookie && hadTokens) {
     console.log('[AO] Backend indikerer ugyldig auth, prøver frontend auto-relogin...');
     const reloginOk = await tryAutoRelogin();
+    if (!sammeKontoKontekst(konto)) return [];
     if (reloginOk) {
       return fetchAoSites(lat, lon, sizeMeters, true);
     } else {
@@ -358,6 +360,7 @@ export async function fetchAoSites(lat, lon, sizeMeters = 1000, isRetry = false)
  */
 export async function fetchAoSitesByBounds(bounds, isRetry = false) {
   if (!bounds) return [];
+  const konto = kontoKontekst();
   const north = Number(bounds.north);
   const south = Number(bounds.south);
   const east = Number(bounds.east);
@@ -401,7 +404,7 @@ export async function fetchAoSitesByBounds(bounds, isRetry = false) {
   if (!resp.ok) return [];
 
   const data = await resp.json();
-  if (!data) return [];
+  if (!data || !sammeKontoKontekst(konto)) return [];
 
   if (data.refreshedAuthCookie) {
     try {
@@ -418,6 +421,7 @@ export async function fetchAoSitesByBounds(bounds, isRetry = false) {
 
   if (!isRetry && data.authRequired && !data.refreshedAuthCookie && hadTokens) {
     const reloginOk = await tryAutoRelogin();
+    if (!sammeKontoKontekst(konto)) return [];
     if (reloginOk) {
       return fetchAoSitesByBounds(bounds, true);
     } else {
@@ -533,7 +537,8 @@ export async function fetchAoSitesCached(lat, lon, radiusMeters) {
  *   eller AO avviste den.
  */
 export async function loggInnMedLagretLegitimasjon() {
-  const username = localStorage.getItem('ao_username');
+  const konto = kontoKontekst();
+  const username = konto.brukernavn;
   const password = localStorage.getItem('ao_password');
   if (!username || !password) return false;
 
@@ -544,7 +549,7 @@ export async function loggInnMedLagretLegitimasjon() {
       body: JSON.stringify({ username, password }),
     });
     const result = await resp.json();
-    if (!resp.ok || !result.success) return false;
+    if (!resp.ok || !result.success || !sammeKontoKontekst(konto) || password !== localStorage.getItem('ao_password')) return false;
 
     const saved = JSON.parse(localStorage.getItem('ao_tokens') || '{}');
     saved.loginToken = result.loginToken;
@@ -593,9 +598,7 @@ export async function ensureAoTokens() {
   // cachen synkront for å markere isMine. Uten await var dette en race —
   // kartet kunne rekke å tegne markørene (som grå «privat», ikke gul «min»)
   // før nettverkskallet til /api/ao-private-sites var ferdig.
-  if (ok && !hasFreshPrivateSitesCache()) {
-    await fetchAndCachePrivateSites();
-  }
+  if (ok) await ensureAoPrivateSites();
   return ok;
 }
 
@@ -635,7 +638,7 @@ export async function createAoSite(name, lat, lon, accuracy) {
     try {
       const existing = getCachedPrivateSites().filter(s => s.id !== data.siteId);
       const newSite = { id: data.siteId, name: data.siteName || name, lat, lon, acc: accuracy };
-      localStorage.setItem(PRIVATE_SITES_KEY, JSON.stringify({ ts: Date.now(), sites: [newSite, ...existing] }));
+      lagrePrivateAoLokaliteter([newSite, ...existing]);
     } catch (e) {
       // localStorage utilgjengelig — ikke kritisk, tas igjen ved neste normale refresh
     }

@@ -13,7 +13,7 @@ vi.stubGlobal('localStorage', localStorageMock);
 const fetchMock = vi.fn();
 vi.stubGlobal('fetch', fetchMock);
 
-const { searchSpecies, fetchAoSites, logPageView, loadActivities, createAoSite, fetchAndCachePrivateSites, hasFreshPrivateSitesCache, loggInnMedLagretLegitimasjon } = await import('../../public/js/api.js');
+const { searchSpecies, fetchAoSites, logPageView, loadActivities, createAoSite, fetchAndCachePrivateSites, getCachedPrivateSites, hasFreshPrivateSitesCache, loggInnMedLagretLegitimasjon } = await import('../../public/js/api.js');
 
 beforeEach(() => {
   Object.keys(store).forEach(k => delete store[k]);
@@ -394,6 +394,38 @@ describe('fetchAndCachePrivateSites', () => {
     fetchMock.mockResolvedValue({ ok: true, json: async () => ({ sites: [], needsLogin: true }) });
     await fetchAndCachePrivateSites();
     expect(JSON.parse(store.ao_private_sites).sites).toHaveLength(1);
+  });
+
+  it('bruker AO3 ved avvist AO2-oppslag og binder lokalitetene til innlogget konto', async () => {
+    store.ao_username = 'test@example.org';
+    store.ao_password = 'testpass';
+    fetchMock
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ sites: [], needsLogin: true }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ via: 'ao3', sites: [{ id: 7 }] }) });
+
+    expect(await fetchAndCachePrivateSites()).toBe(true);
+    expect(fetchMock.mock.calls.map(([url, valg]) => [url, valg.method])).toEqual([
+      ['/api/ao-private-sites', undefined],
+      ['/api/ao-private-sites', 'POST'],
+    ]);
+    expect(getCachedPrivateSites()).toEqual([{ id: 7, fraAo3: true }]);
+    store.ao_username = 'annen@example.org';
+    expect(hasFreshPrivateSitesCache()).toBe(false);
+    expect(getCachedPrivateSites()).toEqual([]);
+  });
+
+  it('slipper ikke gjennom et AO2-kartsvar fra en tidligere konto', async () => {
+    let sendSvar;
+    fetchMock.mockImplementationOnce(() => new Promise(resolve => { sendSvar = resolve; }));
+    const kartoppslag = fetchAoSites(60, 5);
+    store.ao_username = 'annen@example.org';
+    delete store.ao_tokens;
+    sendSvar({ ok: true, json: async () => ({
+      refreshedAuthCookie: 'gammel-cookie',
+      sites: [{ id: 1, name: 'Gammel kontos lokalitet' }],
+    }) });
+    expect(await kartoppslag).toEqual([]);
+    expect(store.ao_tokens).toBeUndefined();
   });
 });
 

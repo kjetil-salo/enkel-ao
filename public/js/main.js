@@ -10,7 +10,7 @@
 // og en manglende navngitt eksport gir SyntaxError som stopper HELE main.js,
 // ikke bare den ene funksjonen. Bump ved hver nye eksport vi blir avhengige
 // av. Samme fallgruve som storage.js-importen under og map.js sin api.js-import.
-import { logPageView, loadActivities, fetchAoSites, fetchAndCachePrivateSites, hasFreshPrivateSitesCache, ensureAoTokens } from './api.js?v=v1.60.20';
+import { logPageView, loadActivities, fetchAoSites, ensureAoPrivateSites } from './api.js?v=v1.60.20';
 // Versjonert import: denne linjen har en HARD avhengighet til to navngitte
 // eksporter (loadAoDirectAutoClear/saveAoDirectAutoClear) som ikke fantes i
 // tiderligere versjoner av storage.js. Uten ?v= her kan Cloudflare servere en
@@ -1310,7 +1310,7 @@ async function hentLokaliteterForRadius(radiusMeters) {
   let sites = [];
   try {
     const res = await fetchLocationsWithNetworkMode(pos.lat, pos.lon, radiusMeters, {
-      ensureTokens: ensureAoTokens,
+      ensureTokens: ensureAoPrivateSites,
       fetchOnline: fetchAoSites,
       persistOpportunistic: true,
     });
@@ -1677,12 +1677,5 @@ window.addEventListener('DOMContentLoaded', () => {
         }
       })
       .catch(() => {});
-  }
-  if (!isOfflineMode() && !hasFreshPrivateSitesCache()) {
-    // Hent private lokasjoner i bakgrunnen hvis cache mangler eller er utdatert (kun når ikke i streng Offline-modus).
-    const tokens = JSON.parse(localStorage.getItem('ao_tokens') || '{}');
-    if (tokens.authCookie) {
-      fetchAndCachePrivateSites();
-    }
   }
 });

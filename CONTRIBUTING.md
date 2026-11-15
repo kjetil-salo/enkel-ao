@@ -79,7 +79,7 @@ er den delen som er fremmed.
 
 To ting er verdt å si eksplisitt til den:
 
-- **Den skal ikke deploye.** Skillsene sier det, men si det gjerne selv også
+- **Produksjonsutrulling krever godkjenning fra eieren.** Agenten kan rulle ut til staging.
 - **Be om små, avgrensede endringer.** Store omskrivinger i `observations.js`,
   `server.py` eller AO-importen er risikable selv for den som kjenner koden
 
@@ -165,10 +165,8 @@ jakter du på feil du ikke har innført.
    `changelog.html`), og parallelle PR-er ville kollidert i alle. Eieren bumper
    ved release — nevn det bare i PR-en hvis du har endret frontend, så det ikke
    glemmes
-5. **Ikke kjør deploy-skriptene** (`update-ao-pi.sh`, `deploy-staging-pi.sh`,
-   `update-app.sh`). Utrulling krever tilgang til infrastruktur som ikke ligger
-   i repoet, og gjøres av eieren. Trenger endringen verifisering i et ekte
-   miljø, si det i PR-en
+5. Bruk `deploy-staging-pi.sh` for å verifisere endringen på staging. Utrulling
+   til produksjon krever eksplisitt godkjenning fra eieren.
 
 ## Et par feller som har bitt før
 

@@ -12,6 +12,36 @@ import { aktivInnhentetListe } from './arbeidsliste-lokal.js';
 import { kontoKontekst, sammeKontoKontekst } from './arbeidsliste-sesjon.js';
 
 let senderTilAo = false;
+const UAVKLARTE_AO_FUNN = 'ao_uavklarte_funn_v1';
+let uavklarteFunnUtenLagring = null;
+
+function aoFunnNøkkel(funn) {
+  return JSON.stringify([funn.species?.taxonName, funn.placeId || funn.placeName, funn.timestamp]);
+}
+
+function lesUavklarteFunn() {
+  if (uavklarteFunnUtenLagring) return uavklarteFunnUtenLagring;
+  try {
+    return new Set(JSON.parse(localStorage.getItem(UAVKLARTE_AO_FUNN) || '[]'));
+  } catch {
+    return new Set();
+  }
+}
+
+function oppdaterUavklarteFunn(funn, uavklart) {
+  const nøkler = lesUavklarteFunn();
+  for (const observasjon of funn) {
+    const nøkkel = aoFunnNøkkel(observasjon);
+    if (uavklart) nøkler.add(nøkkel);
+    else nøkler.delete(nøkkel);
+  }
+  try {
+    localStorage.setItem(UAVKLARTE_AO_FUNN, JSON.stringify([...nøkler]));
+    uavklarteFunnUtenLagring = null;
+  } catch {
+    uavklarteFunnUtenLagring = nøkler;
+  }
+}
 
 export function aoSendingPagar() {
   return senderTilAo;
@@ -134,7 +164,7 @@ async function copyToClipboard(csv) {
     ta.focus();
     ta.select();
     try {
-      document.execCommand('copy');
+      if (!document.execCommand('copy')) throw new Error('Kunne ikke kopiere funnene');
     } finally {
       document.body.removeChild(ta);
     }
@@ -165,6 +195,76 @@ export async function handleCopyAndOpen(observations, dom) {
   } catch (e) {
     console.warn('Kunne ikke kopiere CSV til utklippstavlen', e);
   }
+}
+
+function feilVedAoSending(svar, standardmelding) {
+  const feil = new Error(svar.error || standardmelding);
+  feil.code = svar.code;
+  return feil;
+}
+
+function visAo3Valg(dom, tekst, handling) {
+  const status = dom.aoDirectStatus;
+  status.style.cssText = `display:block;margin-top:8px;padding:10px;border-radius:8px;font-size:0.9rem;background:rgba(234,179,8,0.1);border:1px solid rgba(234,179,8,0.4);color:${_statusColor('error')};`;
+  const melding = document.createElement('p');
+  melding.setAttribute('role', 'status');
+  melding.textContent = tekst;
+  status.replaceChildren(melding, handling);
+  return melding;
+}
+
+function visAo3Reserve(dom, utvalg, gyldig) {
+  let tekst = 'AO2 er utilgjengelig. Disse funnene krever manuell kontroll i AO3. '
+    + 'Lim inn de kopierte funnene og sjekk lokalitet og medobservatører før du publiserer.';
+  if (utvalg.some((obs) => obs.photo || obs.interesting)) {
+    tekst += ' Legg til eventuelle bilder og markeringer for interessante funn i AO3.';
+  }
+  const kopier = document.createElement('button');
+  kopier.type = 'button';
+  kopier.className = 'btn btn-secondary-action';
+  kopier.textContent = 'Kopier og åpne AO3';
+  const melding = visAo3Valg(dom, tekst, kopier);
+
+  kopier.addEventListener('click', async () => {
+    if (senderTilAo) return;
+    if (!gyldig()) {
+      melding.textContent = 'Lista eller AO-kontoen er endret. Start sendingen på nytt.';
+      return;
+    }
+    kopier.disabled = true;
+    let fane;
+    try {
+      const kopiering = copyToClipboard(toCsv(utvalg, { ao3: true }));
+      // Åpne fanen mens nettleseren fortsatt regner det som et brukerklikk.
+      fane = window.open('about:blank', '_blank');
+      if (fane) fane.opener = null;
+      await kopiering;
+      oppdaterUavklarteFunn(utvalg, true);
+      fetch('/api/log-export', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'copy_ao3' }), keepalive: true,
+      }).catch(() => {});
+    } catch {
+      fane?.close();
+      melding.textContent = 'Kunne ikke kopiere til utklippstavlen. Prøv igjen.';
+      kopier.disabled = false;
+      return;
+    }
+    const adresse = 'https://mobil.artsobservasjoner.no/contribute/import';
+    melding.textContent = 'Kopiert. Lim inn funnene i AO3 og sjekk dem før du publiserer.';
+    if (fane && !fane.closed) {
+      fane.location.replace(adresse);
+      kopier.disabled = false;
+    } else {
+      const åpne = document.createElement('a');
+      åpne.href = adresse;
+      åpne.target = '_blank';
+      åpne.rel = 'noopener';
+      åpne.className = kopier.className;
+      åpne.textContent = 'Åpne AO3';
+      kopier.replaceWith(åpne);
+    }
+  });
 }
 
 // AO underkjenner observasjoner med tidspunkt frem i tid («Angi et tidspunkt som ikke
@@ -344,7 +444,7 @@ export async function handleDirectSend(observations, dom, callbacks) {
 
   const innhentet = aktivInnhentetListe();
   const sammeListe = () => !hentAktivFellestur() && aktivInnhentetListe()?.kopiId === innhentet?.kopiId;
-  const konto = innhentet ? kontoKontekst() : null;
+  const konto = kontoKontekst();
 
   const future = _findFutureObservation(observations);
   if (future) {
@@ -372,6 +472,10 @@ export async function handleDirectSend(observations, dom, callbacks) {
     }
   }
 
+  const uavklarte = lesUavklarteFunn();
+  if (utvalg.some((o) => uavklarte.has(aoFunnNøkkel(o)))
+      && !confirm('Lista inneholder funn fra en tidligere sending eller AO3-kopi. Har du sjekket både publiserte funn og funn til gjennomgang hos Artsobservasjoner før du prøver igjen?')) return;
+
   const total = utvalg.length;
 
   // I streng Offline-modus spørres brukeren alltid før nettverket tas i bruk til innsending
@@ -388,19 +492,133 @@ export async function handleDirectSend(observations, dom, callbacks) {
   const extraHeaders = allowOfflineBypass ? { 'X-Allow-Offline-Network': '1' } : {};
   const listeVedStart = JSON.stringify(observations);
   let awaitingImportReceipt = false;
+  let importKallStartet = false;
+  let importAvvistFørInnsending = false;
   senderTilAo = true;
+
+  // Tøm listen automatisk ved vellykket sending dersom innstillingen er aktivert
+  const doClearList = (forventetListe) => {
+    if (!sammeListe() || JSON.stringify(observations) !== forventetListe) return;
+    try {
+      if (callbacks.lesLagretListe && JSON.stringify(callbacks.lesLagretListe()) !== forventetListe) return;
+    } catch {
+      return;
+    }
+    observations.splice(0, observations.length);
+    callbacks.doRenderObservations();
+    callbacks.saveState();
+    if (dom.aoDirectStatus) {
+      dom.aoDirectStatus.style.display = 'none';
+    }
+  };
+
+  const scheduleClearList = () => {
+    const forventetListe = JSON.stringify(observations);
+    const shouldAutoClear = Boolean(
+      (dom.aoDirectAutoClear && dom.aoDirectAutoClear.checked) ||
+      loadAoDirectAutoClear()
+    );
+    if (shouldAutoClear) {
+      setTimeout(() => {
+        doClearList(forventetListe);
+      }, 800);
+    } else {
+      setTimeout(() => {
+        try {
+          if (confirm('Sending vellykket! Vil du tømme observasjonslisten?')) {
+            doClearList(forventetListe);
+          }
+        } catch (_) {}
+      }, 500);
+    }
+  };
+
+  const completeSuccessfulSend = (res) => {
+    oppdaterUavklarteFunn(utvalg, false);
+    const count = (res && res.count) || total;
+    dom.aoDirectStatus.style.cssText = `display:block;margin-top:8px;padding:10px;border-radius:8px;font-size:0.9rem;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);color:${_statusColor('success')};`;
+    const mottaker = res?.via === 'ao3' ? 'AO3' : 'AO';
+    let statusText = `✅ ${count} observasjon${count !== 1 ? 'er' : ''} sendt til ${mottaker}!`;
+    if (res && res.imagesFailed && res.imagesFailed.length) {
+      statusText += ` ⚠️ Bilde ikke lastet opp for: ${res.imagesFailed.join(', ')} — observasjonen er likevel sendt, prøv å laste opp bildet på nytt direkte på AO.`;
+    }
+    dom.aoDirectStatus.textContent = statusText;
+    dom.aoDirectBtn.disabled = false;
+    fetch('/api/log-export', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'direct' }) }).catch(() => {});
+
+    const sendtTidspunkt = new Date().toISOString();
+    const tomKandidat = sammeListe() && sammeKontoKontekst(konto) && JSON.stringify(observations) === listeVedStart;
+    utvalg.forEach((o) => { o.sentTs = sendtTidspunkt; });
+    appendSentBatch(utvalg.map((o) => {
+      const { photo, _photoMarker, ...rest } = o;
+      return photo ? { ...rest, hadPhoto: true } : rest;
+    }));
+    if (sammeListe() && observations.length) {
+      callbacks.doRenderObservations();
+      callbacks.saveState();
+      if (tomKandidat) scheduleClearList();
+    }
+  };
+
+  const reserveGyldig = () => sammeListe() && sammeKontoKontekst(konto) && localStorage.getItem('ao_password') === password
+    && JSON.stringify(observations) === listeVedStart;
+
+  const sendTilAo3 = async () => {
+    if (senderTilAo) return;
+    const sisteUavklarte = lesUavklarteFunn();
+    if (!reserveGyldig() || utvalg.some((o) => {
+      const nøkkel = aoFunnNøkkel(o);
+      return sisteUavklarte.has(nøkkel) && !uavklarte.has(nøkkel);
+    })) {
+      dom.aoDirectStatus.textContent = 'Lista eller AO-kontoen er endret. Start sendingen på nytt.';
+      return;
+    }
+    senderTilAo = true;
+    dom.aoDirectBtn.disabled = true;
+    _renderProgress(dom, 2, 3, 'Sender via AO3 …');
+    oppdaterUavklarteFunn(utvalg, true);
+    let resultat;
+    try {
+      const svar = await fetch('/api/ao3-import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...extraHeaders },
+        body: JSON.stringify({ username, password, observations: utvalg }),
+      });
+      resultat = await svar.json();
+    } catch {
+      // En avbrutt forespørsel kan ha opprettet utkast eller publisert funn.
+    } finally {
+      senderTilAo = false;
+      dom.aoDirectBtn.disabled = false;
+    }
+    if (resultat?.via === 'ao3' && resultat.published === true && resultat.count === total) {
+      completeSuccessfulSend(resultat);
+    } else if (resultat?.code === 'ao3_manual') {
+      oppdaterUavklarteFunn(utvalg.filter((o) => !uavklarte.has(aoFunnNøkkel(o))), false);
+      if (reserveGyldig()) visAo3Reserve(dom, utvalg, reserveGyldig);
+    } else {
+      dom.aoDirectStatus.textContent = 'Sending via AO3 kunne ikke bekreftes. Lista er beholdt. '
+        + 'Sjekk publiserte og upubliserte funn hos AO3 før du prøver igjen.';
+    }
+  };
 
   try {
     const loginResp = await fetch('/api/ao-login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...extraHeaders },
-      body: JSON.stringify({ username, password, ...(innhentet && { arbeidslisteEier: innhentet.eier }) }),
+      body: JSON.stringify({
+        username, password,
+        ...(innhentet ? { arbeidslisteEier: innhentet.eier } : { allowAo3: username.includes('@') }),
+      }),
     });
     const loginResult = await loginResp.json();
     if (!loginResp.ok || !loginResult.success) {
-      throw new Error(loginResult.error || 'Innlogging feilet');
+      throw feilVedAoSending(loginResult, 'Innlogging feilet');
     }
-    if (innhentet && (!sammeListe() || !sammeKontoKontekst(konto))) {
+    if (loginResult.via === 'ao3') {
+      throw feilVedAoSending({ code: 'ao2_login_via_ao3' }, 'AO2-innloggingen feilet.');
+    }
+    if (!sammeListe() || !sammeKontoKontekst(konto)) {
       throw new Error('Lista eller AO-kontoen ble endret. Kontroller lista før du prøver igjen.');
     }
 
@@ -417,7 +635,9 @@ export async function handleDirectSend(observations, dom, callbacks) {
 
     _renderProgress(dom, 2, 3, `Sender ${total} observasjon${total !== 1 ? 'er' : ''} …`, 0);
 
-    awaitingImportReceipt = true;
+    // Serveren fullfører sendingen selv om siden lukkes mens strømmen pågår.
+    oppdaterUavklarteFunn(utvalg, true);
+    importKallStartet = awaitingImportReceipt = true;
     const importResp = await fetch('/api/ao-import-stream', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...extraHeaders },
@@ -441,7 +661,9 @@ export async function handleDirectSend(observations, dom, callbacks) {
           if (t && t.trim()) msg = t.trim();
         } catch (__) { /* ignorer */ }
       }
-      awaitingImportReceipt = false;
+      // En gatewayfeil fra appens proxy sier ikke om AO2 mottok importen.
+      awaitingImportReceipt = importResp.status >= 500;
+      importAvvistFørInnsending = importResp.status >= 400 && importResp.status < 500;
       throw new Error(msg);
     }
 
@@ -462,7 +684,7 @@ export async function handleDirectSend(observations, dom, callbacks) {
         const errorEvt = [...events].reverse().find((e) => e.phase === 'error');
         if (errorEvt) {
           awaitingImportReceipt = false;
-          throw new Error(errorEvt.error || 'Import feilet');
+          throw feilVedAoSending(errorEvt, 'Import feilet');
         }
         throw new Error('Import feilet');
       }
@@ -495,7 +717,7 @@ export async function handleDirectSend(observations, dom, callbacks) {
           const errorEvt = [...bufferedEvents].reverse().find((e) => e.phase === 'error');
           if (errorEvt) {
             awaitingImportReceipt = false;
-            throw new Error(errorEvt.error || 'Import feilet');
+            throw feilVedAoSending(errorEvt, 'Import feilet');
           }
 
           throw streamErr;
@@ -533,7 +755,7 @@ export async function handleDirectSend(observations, dom, callbacks) {
             break;
           } else if (evt.phase === 'error') {
             awaitingImportReceipt = false;
-            throw new Error(evt.error || 'Import feilet');
+            throw feilVedAoSending(evt, 'Import feilet');
           }
         }
       }
@@ -553,7 +775,7 @@ export async function handleDirectSend(observations, dom, callbacks) {
         const errorEvt = [...bufferedEvents].reverse().find((e) => e.phase === 'error');
         if (errorEvt) {
           awaitingImportReceipt = false;
-          throw new Error(errorEvt.error || 'Import feilet');
+          throw feilVedAoSending(errorEvt, 'Import feilet');
         }
 
       }
@@ -599,72 +821,37 @@ export async function handleDirectSend(observations, dom, callbacks) {
       return;
     }
 
-    // Tøm listen automatisk ved vellykket sending dersom innstillingen er aktivert
-    const doClearList = (forventetListe) => {
-      if (!sammeListe() || JSON.stringify(observations) !== forventetListe) return;
-      try {
-        if (callbacks.lesLagretListe && JSON.stringify(callbacks.lesLagretListe()) !== forventetListe) return;
-      } catch {
-        return;
-      }
-      observations.splice(0, observations.length);
-      callbacks.doRenderObservations();
-      callbacks.saveState();
-      if (dom.aoDirectStatus) {
-        dom.aoDirectStatus.style.display = 'none';
-      }
-    };
-
-    const scheduleClearList = () => {
-      const forventetListe = JSON.stringify(observations);
-      const shouldAutoClear = Boolean(
-        (dom.aoDirectAutoClear && dom.aoDirectAutoClear.checked) ||
-        loadAoDirectAutoClear()
-      );
-      if (shouldAutoClear) {
-        setTimeout(() => {
-          doClearList(forventetListe);
-        }, 800);
-      } else {
-        setTimeout(() => {
-          try {
-            if (confirm('Sending vellykket! Vil du tømme observasjonslisten?')) {
-              doClearList(forventetListe);
-            }
-          } catch (_) {}
-        }, 500);
-      }
-    };
-
-    const completeSuccessfulSend = (res) => {
-      const count = (res && res.count) || total;
-      dom.aoDirectStatus.style.cssText = `display:block;margin-top:8px;padding:10px;border-radius:8px;font-size:0.9rem;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);color:${_statusColor('success')};`;
-      let statusText = `✅ ${count} observasjon${count !== 1 ? 'er' : ''} sendt til AO!`;
-      if (res && res.imagesFailed && res.imagesFailed.length) {
-        statusText += ` ⚠️ Bilde ikke lastet opp for: ${res.imagesFailed.join(', ')} — observasjonen er likevel sendt, prøv å laste opp bildet på nytt direkte på AO.`;
-      }
-      dom.aoDirectStatus.textContent = statusText;
-      dom.aoDirectBtn.disabled = false;
-      fetch('/api/log-export', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'direct' }) }).catch(() => {});
-
-      const sendtTidspunkt = new Date().toISOString();
-      const tomKandidat = sammeListe() && JSON.stringify(observations) === listeVedStart;
-      utvalg.forEach((o) => { o.sentTs = sendtTidspunkt; });
-      appendSentBatch(utvalg.map((o) => {
-        const { photo, _photoMarker, ...rest } = o;
-        return photo ? { ...rest, hadPhoto: true } : rest;
-      }));
-      if (sammeListe() && observations.length) {
-        callbacks.doRenderObservations();
-        callbacks.saveState();
-        if (tomKandidat) scheduleClearList();
-      }
-    };
-
     completeSuccessfulSend(importResult);
   } catch (error) {
+    const innloggetViaAo3 = error.code === 'ao2_login_via_ao3';
+    const kanBrukeReserve = innloggetViaAo3 || error.code === 'ao2_unavailable_before_import';
+    if (importKallStartet && (kanBrukeReserve || importAvvistFørInnsending)) {
+      oppdaterUavklarteFunn(utvalg.filter((o) => !uavklarte.has(aoFunnNøkkel(o))), false);
+    }
+    if (kanBrukeReserve && reserveGyldig()) {
+      if (!username.includes('@')) {
+        const loggInn = document.createElement('a');
+        loggInn.href = '/settings.html#ao-username';
+        loggInn.className = 'btn btn-secondary-action';
+        loggInn.textContent = 'Gå til AO-innlogging';
+        visAo3Valg(dom, 'AO2 er utilgjengelig. Legg inn e-postadressen til samme AO-konto for å publisere via AO3.', loggInn);
+      } else if (innhentet || utvalg.some((o) => o.photo)) {
+        visAo3Reserve(dom, utvalg, reserveGyldig);
+      } else {
+        const fortsett = document.createElement('button');
+        fortsett.type = 'button';
+        fortsett.className = 'btn btn-primary-action';
+        fortsett.textContent = 'Publiser via AO3';
+        fortsett.addEventListener('click', sendTilAo3);
+        const grunn = innloggetViaAo3 ? 'AO2-innloggingen feilet.' : 'AO2 er utilgjengelig.';
+        visAo3Valg(dom, `${grunn} Vil du publisere de valgte funnene via AO3?`, fortsett);
+      }
+      dom.aoDirectBtn.disabled = false;
+      return;
+    }
     // Brudd uten fullstendig done-kvittering er usikkert, aldri grunnlag for å tømme listen.
-    const message = awaitingImportReceipt
+    const uavklart = awaitingImportReceipt || error.code === 'ao2_import_unconfirmed';
+    const message = uavklart
       ? 'Sendingen kunne ikke bekreftes. Listen er beholdt. Kontroller funnene hos Artsobservasjoner før du prøver på nytt.'
       : error.message;
     dom.aoDirectStatus.style.cssText = `display:block;margin-top:8px;padding:10px;border-radius:8px;font-size:0.9rem;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);color:${_statusColor('error')};`;

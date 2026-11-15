@@ -394,7 +394,7 @@ throw err;
  */
 async function handleApiFetch(request) {
 const allowBypass = request.method === 'POST'
-  && ['/api/ao-login', '/api/ao-import-stream'].includes(new URL(request.url).pathname)
+  && ['/api/ao-login', '/api/ao-import-stream', '/api/ao3-import'].includes(new URL(request.url).pathname)
   && request.headers.get('x-allow-offline-network') === '1';
 if (allowBypass) {
 return fetch(request);

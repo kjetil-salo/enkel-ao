@@ -4,8 +4,9 @@
 
 import { getNetworkMode, getAllOfflineLocations } from './offline-db.js';
 import { haversine } from './utils.js';
+import { kontoKontekst, sammeKontoKontekst } from './arbeidsliste-sesjon.js';
 // Versjonert import: hard avhengighet til en navngitt eksport.
-import { loggInnMedLagretLegitimasjon } from './api.js?v=v1.60.20';
+import { ensureAoPrivateSites, getCachedPrivateSites, hasFreshPrivateSitesCache, loggInnMedLagretLegitimasjon } from './api.js?v=v1.60.20';
 
 // Serveren kan ikke lenger fornye en sesjon på brukernavn alene — passordet er
 // bundet til logintokenet (v1.60.18), og rader lagret før bindingen er fjernet.
@@ -35,11 +36,13 @@ function isMineResult(result) {
  * @param {{ lat?: number, lon?: number }|null} pos
  * @returns {Promise<Array>}
  */
-async function searchOfflineAutocomplete(term, pos = null) {
+async function searchOfflineAutocomplete(term, pos = null, inkluderOffline = true) {
   const q = String(term || '').trim().toLowerCase();
   if (q.length < 2) return [];
-  const allOffline = await getAllOfflineLocations().catch(() => []);
-  const matches = allOffline
+  const egne = getCachedPrivateSites().map(site => ({ ...site, isMine: true, isPrivate: true }));
+  const offline = inkluderOffline ? await getAllOfflineLocations().catch(() => []) : [];
+  const lokaliteter = new Map([...offline, ...egne].filter(Boolean).map(site => [site.id ?? site.name, site]));
+  const matches = [...lokaliteter.values()]
     .filter((site) => site && typeof site.name === 'string' && site.name.toLowerCase().includes(q))
     .map((site) => {
       const lat = parseFloat(site.lat);
@@ -132,7 +135,8 @@ export function initAutocomplete(placeInput, onSelect, getPosition = null) {
    * Hent autocomplete-resultater i henhold til aktiv nettverksmodus (online / hybrid / offline)
    */
   async function fetchAutocomplete(term, seq) {
-    const isCurrent = () => seq === requestSeq;
+    const konto = kontoKontekst();
+    const isCurrent = () => seq === requestSeq && sammeKontoKontekst(konto);
     if (!term || term.length < 2) {
       dropdown.style.display = 'none';
       return;
@@ -151,20 +155,29 @@ export function initAutocomplete(placeInput, onSelect, getPosition = null) {
     }
 
     // Vis lokale treff straks, men suppler dem: et tekstsøk kan ha flere treff på nettet.
-    let localResults = [];
-    if (mode === 'hybrid') {
-      localResults = await searchOfflineAutocomplete(term, pos);
-      if (!isCurrent()) return;
-      if (localResults.length > 0) {
-        currentResults = localResults;
-        renderResults(localResults);
-      }
+    let localResults = await searchOfflineAutocomplete(term, pos, mode === 'hybrid');
+    if (!isCurrent()) return;
+    if (localResults.length > 0) {
+      currentResults = localResults;
+      renderResults(localResults);
     }
 
     // Vis loading-indikator før nettverkskall
     if (localResults.length === 0) showLoading();
 
     try {
+      const privateLokaliteterVarCachet = hasFreshPrivateSitesCache();
+      const privateLokaliteterHentet = privateLokaliteterVarCachet || await ensureAoPrivateSites();
+      if (!isCurrent()) return;
+      if (privateLokaliteterHentet && !privateLokaliteterVarCachet) {
+        localResults = await searchOfflineAutocomplete(term, pos, mode === 'hybrid');
+        if (!isCurrent()) return;
+        if (localResults.length) {
+          currentResults = localResults;
+          renderResults(localResults);
+        }
+      }
+
       // Sjekk om bruker er innlogget (for private lokaliteter)
       const tokens = JSON.parse(localStorage.getItem('ao_tokens') || '{}');
       const loginToken = tokens.loginToken || '';
@@ -199,9 +212,13 @@ export function initAutocomplete(placeInput, onSelect, getPosition = null) {
         }));
       }
 
-      const merged = new Map([...localResults, ...(data.results || [])].map((result) => [
-        result.id != null ? String(result.id) : result.value, result,
-      ]));
+      const lokalitetsnøkkel = (resultat) => resultat.id != null ? String(resultat.id) : resultat.value;
+      const merged = new Map(localResults.map(resultat => [lokalitetsnøkkel(resultat), resultat]));
+      for (const resultat of data.results || []) {
+        const nøkkel = lokalitetsnøkkel(resultat);
+        if (merged.get(nøkkel)?.isMine && !resultat.isMine) continue;
+        merged.set(nøkkel, resultat);
+      }
       const results = sortLocationAutocompleteResults(Array.from(merged.values())).slice(0, 30);
       currentResults = results;
 
@@ -209,14 +226,14 @@ export function initAutocomplete(placeInput, onSelect, getPosition = null) {
       if (results.length > 0) {
         renderResults(results);
         // Vis hint om innlogging kan gi flere resultater
-        if (data.auth_expired || data.not_logged_in) {
+        if (!privateLokaliteterHentet && (data.auth_expired || data.not_logged_in)) {
           if (data.auth_expired) fornyInnloggingEnGang();
           const hint = document.createElement('div');
           hint.style.cssText = 'padding: 8px 12px; font-size: 0.75em; color: var(--muted); border-top: 1px solid var(--border);';
-          hint.innerHTML = '💡 <a href="/ao-direct.html" style="color: inherit; text-decoration: underline;">Logg inn</a> for flere lokaliteter';
+          hint.innerHTML = '💡 <a href="/settings.html#ao-username" style="color: inherit; text-decoration: underline;">Logg inn</a> for flere lokaliteter';
           dropdown.appendChild(hint);
         }
-      } else if (data.auth_expired || data.not_logged_in) {
+      } else if (!privateLokaliteterHentet && (data.auth_expired || data.not_logged_in)) {
         if (data.auth_expired) fornyInnloggingEnGang();
         dropdown.innerHTML = `
           <div style="
@@ -224,7 +241,7 @@ export function initAutocomplete(placeInput, onSelect, getPosition = null) {
             color: var(--muted);
             font-size: 0.85em;
           ">
-            Ingen treff. <a href="/ao-direct.html" style="color: inherit; text-decoration: underline;">Logg inn</a> for å søke i alle AO-lokaliteter.
+            Ingen treff. <a href="/settings.html#ao-username" style="color: inherit; text-decoration: underline;">Logg inn</a> for å søke i alle AO-lokaliteter.
           </div>
         `;
         dropdown.style.display = 'block';

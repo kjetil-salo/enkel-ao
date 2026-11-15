@@ -26,7 +26,7 @@ from src.utils import mask_token
 
 
 # Import for å hente CSRF tokens
-from src.ao_import_httpx import fetch_csrf_tokens
+from src.ao_import_httpx import AO2_DRIFTSFEIL, fetch_csrf_tokens
 
 
 def fetch_ao_autocomplete(term: str, login_token: str = None, auth_cookie: str = None, user_id: str = None, location_db=None, lat: float = None, lon: float = None, username: str = None, client_ip: str = None) -> dict:
@@ -394,6 +394,8 @@ def login_to_ao(username: str, password: str, bind_token: bool = True, *, diskre
             timeout=15,
             follow_redirects=False  # Ikke følg redirect automatisk, vi må sjekke det
         )
+        if auth_response.status_code in AO2_DRIFTSFEIL:
+            auth_response.raise_for_status()
 
         # Parse cookies fra response (sjekk både auth_response og client jar)
         auth_cookie = auth_response.cookies.get('.ASPXAUTHNO') or client.cookies.get('.ASPXAUTHNO')

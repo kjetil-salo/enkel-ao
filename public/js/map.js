@@ -3,7 +3,7 @@
  */
 
 // Versjonert import
-import { createAoSite, ensureAoTokens, fetchAoSitesCached, fetchAoSitesByBounds, getCachedPrivateSites, hasActiveAoLogin } from './api.js?v=v1.60.20';
+import { createAoSite, ensureAoTokens, ensureAoPrivateSites, fetchAoSitesCached, fetchAoSitesByBounds, getCachedPrivateSites, hasFreshPrivateSitesCache, hasActiveAoLogin } from './api.js?v=v1.60.20';
 import { mergeAoSitesWithPrivateCache, isPrivateSite, shouldShowOthersPrivateSites, DEFAULT_MAP_CENTER } from './location.js?v=v1.60.20';
 import { saveLastKnownPosition, loadLastKnownPosition } from './storage.js?v=v1.60.20';
 import { haversine } from './utils.js';
@@ -104,8 +104,9 @@ if (isUserPositionAvailable) {
   userPosition = { ...DEFAULT_MAP_CENTER, isFallback: true };
 }
 
-const sites = Array.isArray(data.sites) ? data.sites : [];
 const sizeMeters = (typeof data.sizeMeters === 'number' && data.sizeMeters > 0) ? data.sizeMeters : 1000;
+const startLokaliteter = Array.isArray(data.sites) ? data.sites : [];
+const sites = mergeAoSitesWithPrivateCache(startLokaliteter, userPosition, sizeMeters);
 
 const missingLocationBanner = document.getElementById('missing-location-banner');
 if (missingLocationBanner) {
@@ -1188,7 +1189,9 @@ if (isOfflineMode()) {
   (async () => {
     try {
       const offlineSites = await getAllOfflineLocations();
-      renderSites(offlineSites.length > 0 ? offlineSites : sites, { fitToBounds: false });
+      renderSites(offlineSites.length > 0
+        ? mergeCachedSites(offlineSites, sites.filter(site => site.fraAo3))
+        : sites, { fitToBounds: false });
     } catch (e) {
       renderSites(sites, { fitToBounds: false });
     }
@@ -1216,7 +1219,7 @@ async function hentOgTegnLokaliteter(center, seq) {
   lokalitetsstatus?.replaceChildren(t('map.fetching_sites'));
   try {
     const { sites: bboxSites } = await fetchLocationsWithNetworkMode(center.lat, center.lng, AUTO_FETCH_RADIUS_M, {
-      ensureTokens: ensureAoTokens, fetchOnline: fetchAoSitesCached, persistOpportunistic: true,
+      ensureTokens: ensureAoPrivateSites, fetchOnline: fetchAoSitesCached, persistOpportunistic: true,
       onCachedSites(cachedSites) {
         if (seq !== fetchSeq) return;
         // Eiendomsmerking i offline-lageret kan være fra en tidligere konto.
@@ -1226,8 +1229,11 @@ async function hentOgTegnLokaliteter(center, seq) {
         renderSites(lokale, { fitToBounds: false });
         lokalitetsstatus?.replaceChildren();
       },
+    }).catch((feil) => {
+      if (!egneLokaliteter().length) throw feil;
+      return { sites: [] };
     });
-    if (seq !== fetchSeq || bboxSites.length === 0) return;
+    if (seq !== fetchSeq || (!bboxSites.length && !egneLokaliteter().length)) return;
 
     const merged = mergeAoSitesWithPrivateCache(
       mergeCachedSites(egneLokaliteter(), bboxSites), { lat: center.lat, lon: center.lng }, sizeMeters,
@@ -1238,7 +1244,7 @@ async function hentOgTegnLokaliteter(center, seq) {
   }
 }
 
-if (!isOfflineMode() && sites.length === 0) {
+if (!isOfflineMode() && (!startLokaliteter.length || !sites.length || (hasActiveAoLogin() && !hasFreshPrivateSitesCache()))) {
   hentOgTegnLokaliteter(map.getCenter(), ++fetchSeq).catch((e) => {
     console.warn('Kunne ikke hente lokaliteter ved kartoppstart:', e);
   });
@@ -1897,7 +1903,7 @@ async function startOfflineAreaDownload() {
       let isLoggedIn = hasActiveAoLogin();
       let fetchedSites = [];
       try {
-        if (isLoggedIn) isLoggedIn = await ensureAoTokens();
+        if (isLoggedIn) isLoggedIn = await ensureAoPrivateSites();
         fetchedSites = await fetchAoSitesByBounds(targetBounds);
       } catch (err) { }
       const fallbackSites = [...existingOfflineSites, ...currentRenderedSites];
@@ -2131,7 +2137,7 @@ if (mapSyncOfflineBtn) {
 
     try {
       const summary = await syncOfflineAreas({
-        fetchSitesByBounds: fetchAoSitesByBounds, checkLoggedIn: hasActiveAoLogin, ensureTokens: ensureAoTokens,
+        fetchSitesByBounds: fetchAoSitesByBounds, checkLoggedIn: hasActiveAoLogin, ensureTokens: ensureAoPrivateSites,
         getShowOthersPrivate: shouldShowOthersPrivateSites, getPrivateSitesCache: getCachedPrivateSites,
         tileUrlTemplate: KARTVERKET_TOPO_URL_TEMPLATE,
         onProgress: ({ areaIndex, totalAreas, phase, completedTiles, totalTiles }) => {

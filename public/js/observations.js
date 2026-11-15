@@ -721,7 +721,7 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
 // Oppdater samme konstant i src/ao_import.py hvis dette noensinne endrer seg.
 const AO_BOOL_TRUE = 'true';
 
-export function toCsv(observations) {
+export function toCsv(observations, { ao3 = false } = {}) {
   if (!observations.length) return '';
 
   const SEP = '\t';
@@ -782,7 +782,15 @@ export function toCsv(observations) {
     'Bekreftelsesår',
   ];
 
-  const lines = [header.join(SEP)];
+  let kolonner = header.map((_, i) => i);
+  if (ao3) {
+    // AO3s fuglemal (3.0) har egne navn og mangler disse AO2-feltene.
+    header[2] = 'Hovedlokalitet';
+    header[14] = 'Merknad (synlig for alle)';
+    header[15] = 'Privat merknad (kun synlig for deg selv)';
+    kolonner = kolonner.filter((i) => (i < 28 || i > 33) && i !== 41);
+  }
+  const lines = [kolonner.map((i) => header[i]).join(SEP)];
 
   for (const obs of observations) {
     // Kråke: AO har slått sammen kråke og svartkråke – begge heter nå "kråke" i navnebasen.
@@ -795,7 +803,8 @@ export function toCsv(observations) {
       : taxonName;
     const name = resolvedName.replace(/[;\t]/g, ',');
     // Bruk lokalitets-ID hvis tilgjengelig, ellers navn (unngår tvetydighet ved import)
-    const place = (obs.placeId || obs.placeName || '').toString().replace(/[;\t]/g, ',');
+    const sted = ao3 ? obs.placeName : obs.placeId || obs.placeName;
+    const place = String(sted || '').replace(/[;\t]/g, ',');
     const count = obs.count != null ? String(obs.count) : '';
     const activity = activityBokmalName(obs.activity || '').replace(/[;\t]/g, ',');
     const age = (obs.age || '').replace(/[;\t]/g, ',');
@@ -866,12 +875,14 @@ export function toCsv(observations) {
     }
 
     // Flere felt-modalen (kolonne 38-43) — se AO_BOOL_TRUE-kommentaren over
-    if (obs.secondhand) cols[38] = AO_BOOL_TRUE;
-    if (obs.uncertain) cols[39] = AO_BOOL_TRUE;
-    if (obs.notSpontaneous) cols[40] = AO_BOOL_TRUE;
+    const avkrysset = ao3 ? 'X' : AO_BOOL_TRUE;
+    if (obs.secondhand) cols[38] = avkrysset;
+    if (obs.uncertain) cols[39] = avkrysset;
+    if (obs.notSpontaneous) cols[40] = avkrysset;
     if (obs.interesting) cols[41] = AO_BOOL_TRUE;
-    if (obs.notRefound) cols[42] = AO_BOOL_TRUE;
-    if (obs.notFound) cols[43] = AO_BOOL_TRUE;
+    if (obs.notRefound) cols[42] = avkrysset;
+    if (obs.notFound) cols[43] = avkrysset;
+    if (ao3 && (obs.notRefound || obs.notFound)) cols[10] = '';
 
     // Medobservatører (10 kolonner)
     if (Array.isArray(obs.coObservers)) {
@@ -880,7 +891,7 @@ export function toCsv(observations) {
         // Hvis objekt: alias er unikt hos AO og foretrekkes (navn kan kollidere,
         // f.eks. flere kontoer med samme PresentationName). Ellers bruk som streng.
         if (v && typeof v === 'object') {
-          v = v.alias || v.name || '';
+          v = ao3 ? v.name || v.alias : v.alias || v.name;
         }
         if (!v || v === 'undefined' || v === null) v = '';
         cols[17 + i] = String(v).replace(/[;\t]/g, ',');
@@ -892,7 +903,9 @@ export function toCsv(observations) {
       }
     }
 
-    lines.push(cols.join(SEP));
+    lines.push(ao3
+      ? kolonner.map((i) => cols[i].replace(/[\r\n]+/g, ' ')).join(SEP)
+      : cols.join(SEP));
   }
   
   return lines.join('\n');

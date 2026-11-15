@@ -344,7 +344,8 @@ export async function saveOfflineAreaLocations(bounds, sites, options = {}) {
   // uansett hvilken kodevei som kalte oss.
   const showOthersPrivate =
     typeof options.showOthersPrivate === 'boolean' ? options.showOthersPrivate : readShowOthersPrivate();
-  const validSites = dropOthersPrivateSites(Array.isArray(sites) ? sites.filter(Boolean) : [], showOthersPrivate);
+  // AO3-lokaliteter ligger i det kontoavgrensede mellomlageret, ikke i den delte offline-databasen.
+  const validSites = dropOthersPrivateSites(Array.isArray(sites) ? sites.filter(s => s && !s.fraAo3) : [], showOthersPrivate);
 
   let publicCount = 0;
   let privateCount = 0;
@@ -474,6 +475,7 @@ export async function saveOpportunisticOfflineLocations(sites, bounds = null) {
       ? sites.filter(
           (s) =>
             s &&
+            !s.fraAo3 &&
             typeof s === 'object' &&
             typeof s.name === 'string' &&
             s.name.trim() &&

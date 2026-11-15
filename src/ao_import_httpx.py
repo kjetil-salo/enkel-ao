@@ -17,6 +17,26 @@ from src.utils import mask_token as _mask
 
 logger = logging.getLogger('fugleobs')
 
+AO2_DRIFTSFEIL = (502, 503, 504)
+
+
+class Ao2UtilgjengeligForInnsending(Exception):
+    """AO2 svarte med driftsfeil før første importkall."""
+
+    def __init__(self, status, fase):
+        super().__init__(f'AO2 svarte HTTP {status} før innsending')
+        self.status = status
+        self.fase = fase
+
+
+class Ao2ImportUavklart(ValueError):
+    """AO2 kan ha mottatt funnene, men vi har ingen sikker kvittering."""
+
+    def __init__(self):
+        super().__init__('Sendingen kunne ikke bekreftes. Listen er beholdt. '
+                         'Kontroller funnene hos Artsobservasjoner før du prøver på nytt.')
+
+
 # Hvor mange rader vi ber AOs gjennomgangs-grid om når køens faktiske størrelse er
 # ukjent (tellerendepunktet svarte ikke). Romslig med vilje — se `queue_size` i
 # `post_with_curl`.
@@ -104,7 +124,7 @@ def fetch_csrf_tokens(login_token, auth_cookie):
     return form_token, cookie_token, refreshed_auth
 
 
-def _post_count(url, login_token, auth_cookie):
+def _post_count(url, login_token, auth_cookie, *, forbereder_import=False):
     """
     POST til et AO count-endepunkt (body: JSON null) og returner Count som int.
 
@@ -128,9 +148,13 @@ def _post_count(url, login_token, auth_cookie):
     try:
         with httpx.Client() as client:
             resp = client.post(url, content='null', cookies=cookies, headers=headers, timeout=10)
+        if forbereder_import and resp.status_code in AO2_DRIFTSFEIL:
+            raise Ao2UtilgjengeligForInnsending(resp.status_code, 'oppslag i gjennomgangskøen')
         if resp.status_code != 200:
             return None
         return int(resp.json().get('Count'))
+    except Ao2UtilgjengeligForInnsending:
+        raise
     except Exception:
         return None
 
@@ -143,11 +167,11 @@ def number_of_sightings_importing(login_token, auth_cookie):
     )
 
 
-def number_of_sightings_submitted(login_token, auth_cookie):
+def number_of_sightings_submitted(login_token, auth_cookie, *, forbereder_import=False):
     """Antall observasjoner klargjort til gjennomgang (i review-køen)."""
     return _post_count(
         'https://www.artsobservasjoner.no/ReviewSighting/NumberOfSightingsSubmitted',
-        login_token, auth_cookie,
+        login_token, auth_cookie, forbereder_import=forbereder_import,
     )
 
 
@@ -639,7 +663,7 @@ def _remaining_after_publish(login_token, auth_cookie, timeout=6.0, interval=1.0
         lambda: number_of_sightings_submitted(login_token, auth_cookie), timeout, interval)
 
 
-def _remaining_scoped(login_token, auth_cookie, temp_sighting_ids, timeout=6.0, interval=1.0):
+def _remaining_scoped(login_token, auth_cookie, temp_sighting_ids, queue_size, timeout=6.0, interval=1.0):
     """
     Som `_remaining_after_publish`, men teller kun VÅRE `temp_sighting_ids` — ikke hele
     køen. Andres ventende funn kan fortsatt ligge der uten at VÅR publisering feilet.
@@ -650,7 +674,7 @@ def _remaining_scoped(login_token, auth_cookie, temp_sighting_ids, timeout=6.0, 
     wanted = {str(x) for x in temp_sighting_ids}
 
     def get_remaining():
-        rows = review_queue_rows(login_token, auth_cookie)
+        rows = review_queue_rows(login_token, auth_cookie, size=queue_size)
         if rows is None:
             return None
         present = {str(r.get('TemporarySightingId')) for r in rows}
@@ -686,9 +710,8 @@ def _poll_importing_done(login_token, auth_cookie, total, progress_cb=None,
     6 innsendte obs, men kun 1 rukket inn i gjennomgangskøen på de 1,5 sekundene
     "importing"-telleren brukte på å nå 0 to ganger på rad.
 
-    Tidsgrensen skaleres med antall observasjoner — større batcher tar reelt lengre
-    tid hos AO. Faller tilbake til kort blind venting hvis BEGGE endepunkt er nede;
-    hvis bare ett svarer, styres ferdig-vurderingen av det som faktisk svarer.
+    Tidsgrensen skaleres med antall observasjoner. Returnerer True når hele batchen
+    er funnet i køen, og False når dette ikke kan bekreftes.
     """
     effective_timeout = timeout if timeout is not None else min(120.0, max(30.0, total * 1.5))
     deadline = time.time() + effective_timeout
@@ -698,19 +721,13 @@ def _poll_importing_done(login_token, auth_cookie, total, progress_cb=None,
         remaining = number_of_sightings_importing(login_token, auth_cookie)
         submitted = number_of_sightings_submitted(login_token, auth_cookie)
 
-        if remaining is None and submitted is None:
-            # Begge endepunkt utilgjengelige — blind fallback, la publish-retry ta resten
-            logger.debug('[AO-HTTPX] Progress-endepunkter svarte ikke — faller tilbake til venting')
-            time.sleep(3)
-            return
-
         if progress_cb and remaining is not None and remaining > 0:
             progress_cb({'phase': 'importing', 'remaining': remaining, 'total': total})
 
         importing_done = True if remaining is None else remaining == 0
 
         if expect_markers is None:
-            queue_filled = True if submitted is None else submitted >= total
+            queue_filled = submitted is not None and submitted >= total
         elif not importing_done:
             # Ikke bruk den tunge grid-lesingen før den billige telleren melder ferdig
             queue_filled = False
@@ -728,14 +745,15 @@ def _poll_importing_done(login_token, auth_cookie, total, progress_cb=None,
             if consecutive_ready >= 2:
                 if progress_cb:
                     progress_cb({'phase': 'importing', 'remaining': 0, 'total': total})
-                return
+                return True
         else:
             consecutive_ready = 0
         time.sleep(interval)
     logger.warning(
         f'[AO-HTTPX] Poll-timeout nådd etter {effective_timeout:.0f}s ({total} obs, '
-        f'siste avlesning: importing={remaining}, submitted={submitted}) — fortsetter til publisering'
+        f'siste avlesning: importing={remaining}, submitted={submitted})'
     )
+    return False
 
 
 def post_with_curl(observations, login_token=None, auth_cookie=None, area_id='', progress_cb=None):
@@ -757,7 +775,12 @@ def post_with_curl(observations, login_token=None, auth_cookie=None, area_id='',
         raise ValueError('Mangler loginToken eller authCookie')
 
     # Hent BEGGE CSRF tokens + eventuell fornyet auth cookie
-    form_token, cookie_token, refreshed_auth = fetch_csrf_tokens(login_token, auth_cookie)
+    try:
+        form_token, cookie_token, refreshed_auth = fetch_csrf_tokens(login_token, auth_cookie)
+    except httpx.HTTPStatusError as exc:
+        if exc.response.status_code in AO2_DRIFTSFEIL:
+            raise Ao2UtilgjengeligForInnsending(exc.response.status_code, 'henting av importskjema') from exc
+        raise
 
     # Lå det noe i gjennomgangskøen FØR denne importen (andre funn, ikke fra denne
     # sendingen)? Da må publiseringen etterpå begrenses til nøyaktig vår batch — ellers
@@ -769,7 +792,7 @@ def post_with_curl(observations, login_token=None, auth_cookie=None, area_id='',
     # da må vi anta at den IKKE var det. Å anta «tom» i mangel på svar ville falt
     # tilbake til nøyaktig buggen denne fiksen skal unngå (publiserer fremmede, ventende
     # funn). Kun en BEKREFTET tom kø (0) slår av scoped publisering.
-    pre_existing_count = number_of_sightings_submitted(login_token, auth_cookie)
+    pre_existing_count = number_of_sightings_submitted(login_token, auth_cookie, forbereder_import=True)
     needs_scoped_publish = pre_existing_count != 0
 
     # Hvor mange rader må vi be AOs grid om for å se HELE køen (fremmede + vår batch)?
@@ -836,15 +859,19 @@ def post_with_curl(observations, login_token=None, auth_cookie=None, area_id='',
         'Sec-Fetch-User': '?1',
     }
 
-    with httpx.Client() as client:
-        response = client.post(
-            'https://www.artsobservasjoner.no/ImportSighting/ParseObservations',
-            content=post_data,
-            cookies=cookies,
-            headers=headers,
-            timeout=30,
-            follow_redirects=True
-        )
+    try:
+        with httpx.Client() as client:
+            response = client.post(
+                'https://www.artsobservasjoner.no/ImportSighting/ParseObservations',
+                content=post_data,
+                cookies=cookies,
+                headers=headers,
+                timeout=30,
+                follow_redirects=True
+            )
+    except httpx.RequestError as exc:
+        logger.warning('[AO-HTTPX] Fikk ikke svar på importkallet: %s', type(exc).__name__)
+        raise Ao2ImportUavklart() from exc
 
     logger.info(f'[AO-HTTPX] HTTP Status: {response.status_code}')
     logger.debug(f'[AO-HTTPX] ParseObservations URL etter redirect: {response.url}')
@@ -852,6 +879,8 @@ def post_with_curl(observations, login_token=None, auth_cookie=None, area_id='',
 
     if response.status_code >= 400:
         logger.error(f'[AO-HTTPX] Feil: HTTP {response.status_code}')
+        if response.status_code in AO2_DRIFTSFEIL:
+            raise Ao2ImportUavklart()
         raise ValueError(f'HTTP {response.status_code}')
 
     # Steg 2: Vent på at AO er ferdig med å parse importen — poll ekte fremdrift.
@@ -864,14 +893,18 @@ def post_with_curl(observations, login_token=None, auth_cookie=None, area_id='',
         [obs['_importMarker'] for obs in observations if obs.get('_importMarker')]
         if needs_scoped_publish else None
     )
-    _poll_importing_done(login_token, auth_cookie, total, progress_cb,
-                         expect_markers=expect_markers, queue_size=queue_size)
+    import_bekreftet = _poll_importing_done(login_token, auth_cookie, total, progress_cb,
+                                           expect_markers=expect_markers, queue_size=queue_size)
+    if not import_bekreftet and not needs_scoped_publish:
+        raise Ao2ImportUavklart()
 
     # Hent gjennomgangskøen ÉN gang — brukes til bildeopplasting og/eller
     # ID-oppslag for scoped publisering, avhengig av hva denne batchen trenger.
     rows = None
     if any(obs.get('_importMarker') for obs in observations):
-        rows = review_queue_rows(login_token, auth_cookie, size=queue_size) or []
+        rows = review_queue_rows(login_token, auth_cookie, size=queue_size)
+        if rows is None and needs_scoped_publish:
+            raise Ao2ImportUavklart()
 
     # Steg 2b: last opp vedlagte bilder mens funnene ligger i gjennomgangskøen — det er
     # eneste vinduet AO tillater det (PossibleToUploadImages, docs/ao-bilder-api.md).
@@ -913,7 +946,9 @@ def post_with_curl(observations, login_token=None, auth_cookie=None, area_id='',
         # gjenbruker en ID fra for 5-15 sekunder siden kan i verste fall treffe en rad
         # som ikke lenger finnes, uten at det gir et synlig unntak.
         if needs_scoped_publish and attempt > 1:
-            fresh_rows = review_queue_rows(login_token, auth_cookie, size=queue_size) or []
+            fresh_rows = review_queue_rows(login_token, auth_cookie, size=queue_size)
+            if fresh_rows is None:
+                raise Ao2ImportUavklart()
             temp_sighting_ids, unmatched_for_publish = _resolve_temp_ids_for_publish(observations, fresh_rows)
             if not temp_sighting_ids:
                 # Radene lå i køen før forrige forsøk, men er borte nå. Den klart mest
@@ -940,6 +975,7 @@ def post_with_curl(observations, login_token=None, auth_cookie=None, area_id='',
     if last_error:
         return {
             'success': False,
+            'code': 'ao2_import_unconfirmed',
             'error': f'Publisering feilet: {last_error}',
             'count': 0,
             'published': False,
@@ -962,9 +998,11 @@ def post_with_curl(observations, login_token=None, auth_cookie=None, area_id='',
     # våre egne temp_sighting_ids — ellers rapporteres andres ventende funn feilaktig
     # som om VI mislyktes med å publisere dem (se docs/ao-publish-selective-capture.md).
     if temp_sighting_ids is not None:
-        held_back = _remaining_scoped(login_token, auth_cookie, temp_sighting_ids)
+        held_back = _remaining_scoped(login_token, auth_cookie, temp_sighting_ids, queue_size)
     else:
         held_back = _remaining_after_publish(login_token, auth_cookie)
+    if held_back is None:
+        raise Ao2ImportUavklart()
 
     published_count = len(observations) - len(unmatched_for_publish)
     result = {

@@ -3,7 +3,7 @@
  */
 
 
-import { fetchAoSites, createAoSite, getCachedPrivateSites, ensureAoTokens } from './api.js';
+import { fetchAoSites, createAoSite, getCachedPrivateSites, ensureAoTokens, ensureAoPrivateSites } from './api.js?v=v1.60.20';
 import { setLocationStatus, haversine } from './ui.js';
 import { isOfflineMode, getAllOfflineLocations, fetchLocationsWithNetworkMode } from './offline-db.js';
 import { saveLastKnownPosition, loadLastKnownPosition } from './storage.js';
@@ -105,9 +105,9 @@ export function shouldShowOthersPrivateSites() {
  */
 export function mergeAoSitesWithPrivateCache(sites, referencePosition, searchRadiusMeters) {
   // Slå sammen bbox-sites med cachet liste over mine private lokasjoner
-  const bboxSites = Array.isArray(sites) ? sites : [];
   const cachedPrivate = getCachedPrivateSites();
   const cachedIds = new Set(cachedPrivate.map(s => s.id));
+  const bboxSites = Array.isArray(sites) ? sites.filter(site => !site.fraAo3 || cachedIds.has(site.id)) : [];
 
   // Marker bbox-sites som isMine hvis de finnes i cachen
   const markedBbox = bboxSites.map(s => {
@@ -444,7 +444,7 @@ export function initLocation(elements, onPositionUpdate, aoSizeMeters = 1000) {
 
       try {
         const { sites } = await fetchLocationsWithNetworkMode(lat, lon, effectiveAoSize, {
-          ensureTokens: ensureAoTokens,
+          ensureTokens: ensureAoPrivateSites,
           fetchOnline: fetchAoSites,
           persistOpportunistic: true,
         });

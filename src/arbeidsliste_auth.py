@@ -5,6 +5,8 @@ import re
 
 import httpx
 
+from src.ao_import_httpx import AO2_DRIFTSFEIL
+
 
 _PROFIL = 'https://www.artsobservasjoner.no/User/EditMyProfile'
 
@@ -23,12 +25,14 @@ class _ProfilParser(HTMLParser):
             self.aliaser.append(felt.get('data-useralias') or '')
 
 
-def hent_ao_konto(auth_cookie):
+def hent_ao_konto(auth_cookie, *, forbereder_import=False):
     """Returner (kontonøkkel, alias) fra AOs profilside, eller None ved avvik."""
     if not auth_cookie:
         return None
     try:
         svar = httpx.get(_PROFIL, cookies={'.ASPXAUTHNO': auth_cookie, 'AcceptCookies': '1'}, timeout=10)
+        if forbereder_import and svar.status_code in AO2_DRIFTSFEIL:
+            svar.raise_for_status()
         if svar.status_code != 200:
             return None
         parser = _ProfilParser()
@@ -37,6 +41,8 @@ def hent_ao_konto(auth_cookie):
             konto, alias = parser.kontoer[0], parser.aliaser[0]
             if re.fullmatch(r'[1-9][0-9]{0,19}', konto) and alias.strip() and len(alias) <= 80:
                 return f'ao:{konto}', alias
+    except httpx.HTTPStatusError:
+        raise
     except (httpx.HTTPError, ValueError):
         pass
     return None

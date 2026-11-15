@@ -19,6 +19,8 @@ import threading
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse, parse_qs
 
+import httpx
+
 # Konfigurerbart log-nivå via miljøvariabel (DEBUG, INFO, WARNING, ERROR)
 LOG_LEVEL = os.environ.get('LOG_LEVEL', 'INFO').upper()
 
@@ -66,8 +68,10 @@ from src import fellestur_store
 from src import fellestur_peer
 from src import email_notify
 from src.utils import parse_user_agent
-from src.ao_import_httpx import (post_with_curl, number_of_sightings_submitted,
+from src.ao_import_httpx import (AO2_DRIFTSFEIL, Ao2ImportUavklart, Ao2UtilgjengeligForInnsending,
+                                 post_with_curl, number_of_sightings_submitted,
                                  upload_photo_to_published_sighting)
+from src.ao3_import import logg_inn_pa_ao3, send_via_ao3
 from src.ao_sightings import fetch_my_sightings, fetch_raw_row
 from src import ao_edit
 from src import arbeidsliste_store
@@ -167,8 +171,11 @@ FELLESTUR_POLL_WINDOW_SEC = 600
 # gratis for angriperen, bak vår IP. Strammere enn tilbakemelding: en ekte
 # bruker som har tastet feil passord trenger noen få nye forsøk, ikke hundre.
 _ao_login_hits = {}
+_ao3_private_sites_hits = {}
 AO_LOGIN_MAX_PER_WINDOW = 10
 AO_LOGIN_WINDOW_SEC = 600
+_aktive_ao3_sendinger = set()
+_ao3_sending_laas = threading.Lock()
 
 # Samme proxy-resonnement for søk i AOs brukerregister (FindUsersByName) —
 # romsligere enn login siden det er debouncet fritekstsøk (400 ms) under
@@ -194,7 +201,7 @@ _arbeidsliste_skrive_hits = {}
 # uten den vokser hver dict med én nøkkel per unike IP noen gang sett, for alltid.
 _ALLE_RATE_HITS = (
     _feedback_hits, _share_hits, _fellestur_hits, _fellestur_peer_hits,
-    _fellestur_poll_hits, _ao_login_hits, _ao_search_observers_hits,
+    _fellestur_poll_hits, _ao_login_hits, _ao3_private_sites_hits, _ao_search_observers_hits,
     _logview_hits, _log_export_hits,
     _arbeidsliste_ip_hits, _arbeidsliste_skrive_hits,
 )
@@ -297,6 +304,11 @@ def _tell_bilder_ved_sending(observations, result):
         logger.warning(f'[stats] Kunne ikke telle bilder ved sending: {e}')
 
 
+def _ao2_reserveinfo(status, fase):
+    logger.warning('[AO3-RESERVE] AO2 svarte HTTP %s under %s. AO3-import kan tilbys.', status, fase)
+    return {'code': 'ao2_unavailable_before_import', 'error': 'Artsobservasjoner svarer ikke akkurat nå.'}
+
+
 class Handler(SimpleHTTPRequestHandler):
     """HTTP request handler med API-routing."""
 
@@ -339,6 +351,14 @@ class Handler(SimpleHTTPRequestHandler):
 
         if parsed.path == '/api/ao-import-stream':
             self._handle_ao_import_stream_post()
+            return
+
+        if parsed.path == '/api/ao3-import':
+            self._handle_ao3_import_post(lengde)
+            return
+
+        if parsed.path == '/api/ao-private-sites':
+            self._handle_ao3_private_sites_post(lengde)
             return
 
         if parsed.path == '/api/ao-queue-count':
@@ -439,9 +459,12 @@ class Handler(SimpleHTTPRequestHandler):
             content_length = int(self.headers.get('Content-Length', 0))
             body = json.loads(self.rfile.read(content_length)) if content_length else {}
             export_type = body.get('type', 'unknown')
-            if export_type not in stats_store.KJENTE_HENDELSER:
-                export_type = 'unknown'
-            stats_store.log_export(export_type)
+            if export_type == 'copy_ao3':
+                logger.info('[AO3-RESERVE] Brukeren kopierte funn til AO3-import.')
+            else:
+                if export_type not in stats_store.KJENTE_HENDELSER:
+                    export_type = 'unknown'
+                stats_store.log_export(export_type)
         except Exception as e:
             logger.warning(f"[log-export] Feil: {e}")
         self._send_json({'ok': True})
@@ -1259,6 +1282,42 @@ class Handler(SimpleHTTPRequestHandler):
             logger.error(f'[AO-BILDE] Uventet feil ved bildeopplasting: {e}')
             self._send_json({'ok': False, 'error': 'Kunne ikke laste opp bildet'})
 
+    def _handle_ao3_import_post(self, lengde):
+        """Bruk AO3 ved en bekreftet driftsfeil før AO2-importen."""
+        if not _rate_ok(_ao_login_hits, self._client_ip(), AO_LOGIN_MAX_PER_WINDOW, AO_LOGIN_WINDOW_SEC):
+            self._send_json({'success': False, 'code': 'ao3_manual'}, status=429)
+            return
+        try:
+            data = json.loads(self.rfile.read(lengde))
+            epost = data['username'].strip()
+            passord = data['password']
+            observasjoner = data['observations']
+            if ('@' not in epost or not isinstance(passord, str) or not passord
+                    or not isinstance(observasjoner, list) or not observasjoner):
+                raise ValueError
+        except (ValueError, TypeError, KeyError, AttributeError):
+            self._send_json({'success': False, 'code': 'ao3_manual'}, status=400)
+            return
+
+        konto = epost.casefold()
+        with _ao3_sending_laas:
+            sender_allerede = konto in _aktive_ao3_sendinger
+            if not sender_allerede:
+                _aktive_ao3_sendinger.add(konto)
+        if sender_allerede:
+            self._send_json({'success': False, 'code': 'ao3_unconfirmed'}, status=409)
+            return
+        try:
+            resultat = send_via_ao3(epost, passord, observasjoner)
+        finally:
+            with _ao3_sending_laas:
+                _aktive_ao3_sendinger.remove(konto)
+        if resultat['success']:
+            logger.info('[AO3-RESERVE] AO3 bekreftet publisering av %d funn.', resultat['count'])
+        else:
+            logger.warning('[AO3-RESERVE] Direkte AO3-sending: %s.', resultat['code'])
+        self._send_json(resultat)
+
     def _handle_ao_import_post(self):
         """Håndter direkte posting av observasjoner til AO (kun for eier)."""
         # Les request body
@@ -1288,6 +1347,10 @@ class Handler(SimpleHTTPRequestHandler):
             _tell_bilder_ved_sending(observations, result)
             self._send_json(result)
 
+        except Ao2UtilgjengeligForInnsending as e:
+            self._send_json(_ao2_reserveinfo(e.status, e.fase), status=503)
+        except Ao2ImportUavklart as e:
+            self._send_json({'code': 'ao2_import_unconfirmed', 'error': str(e)}, status=502)
         except ValueError as e:
             # Valideringsfeil eller AO-feil
             logger.error(f'[AO-IMPORT] Feil: {e}')
@@ -1355,6 +1418,11 @@ class Handler(SimpleHTTPRequestHandler):
             else:
                 emit({'phase': 'error', **result})
             logger.info(f'[AO-IMPORT-STREAM] Ferdig: {result}')
+        except Ao2UtilgjengeligForInnsending as e:
+            emit({'phase': 'error', **_ao2_reserveinfo(e.status, e.fase)})
+        except Ao2ImportUavklart as e:
+            logger.warning('[AO-IMPORT-STREAM] %s', e)
+            emit({'phase': 'error', 'code': 'ao2_import_unconfirmed', 'error': str(e)})
         except ValueError as e:
             logger.error(f'[AO-IMPORT-STREAM] Feil: {e}')
             emit({'phase': 'error', 'error': str(e)})
@@ -1507,26 +1575,30 @@ class Handler(SimpleHTTPRequestHandler):
             return
         try:
             content_length = int(self.headers.get('Content-Length', 0))
-            body = self.rfile.read(content_length).decode('utf-8')
-            data = json.loads(body)
+            data = json.loads(self.rfile.read(content_length))
+            username, password = data.get('username'), data.get('password')
+            if not isinstance(username, str) or not isinstance(password, str) or not username.strip() or not password.strip():
+                raise ValueError
+        except (ValueError, AttributeError):
+            self._send_json({'error': 'Brukernavn og passord er påkrevd'}, status=400)
+            return
 
-            username = data.get('username', '').strip()
-            password = data.get('password', '')
-
-            if not username or not password.strip():
-                self._send_json({'error': 'Brukernavn og passord er påkrevd'}, status=400)
-                return
-
-            kopi_eier = data.get('arbeidslisteEier')
+        username = username.strip()
+        kopi_eier = data.get('arbeidslisteEier')
+        try:
             if kopi_eier is None:
-                logger.info(f'[AO-LOGIN] Innloggingsforsøk for bruker: {username}')
+                logger.info('[AO-LOGIN] Innloggingsforsøk')
                 result = login_to_ao(username, password)
                 logger.info(f'[AO-LOGIN] Vellykket for user_id={result.get("userId")}')
             else:
                 # For en innhentet liste sjekkes eieren med sesjonen som skal sende til AO.
                 try:
                     result = login_to_ao(username, password, bind_token=False, diskret=True)
-                    konto = hent_ao_konto(result['authCookie'])
+                    konto = hent_ao_konto(result['authCookie'], forbereder_import=True)
+                except httpx.HTTPStatusError as e:
+                    if e.response.status_code in AO2_DRIFTSFEIL:
+                        raise
+                    konto = None
                 except Exception:
                     konto = None
                 if konto is None:
@@ -1543,9 +1615,28 @@ class Handler(SimpleHTTPRequestHandler):
                 'userId': result['userId']
             })
 
-        except ValueError as e:
-            logger.warning(f'[AO-LOGIN] Avvist: {e}')
-            self._send_json({'error': str(e)}, status=401)
+        except (httpx.HTTPError, ValueError) as e:
+            ao2_status = e.response.status_code if isinstance(e, httpx.HTTPStatusError) else None
+            driftsfeil = ao2_status in AO2_DRIFTSFEIL or isinstance(e, httpx.RequestError)
+            if data.get('allowAo3') is True and kopi_eier is None and '@' in username:
+                resultat = logg_inn_pa_ao3(username, password, med_lokaliteter=data.get('includePrivateSites') is True)
+                if resultat is not None:
+                    logger.info('[AO3-RESERVE] Bekreftet AO3-innlogging etter feil i AO2.')
+                    self._send_json(resultat)
+                    return
+                if driftsfeil:
+                    self._send_json({'code': 'ao3_login_unconfirmed',
+                                     'error': 'Kunne ikke bekrefte innloggingen hos AO3.'}, status=503)
+                    return
+            if driftsfeil:
+                feil = _ao2_reserveinfo(ao2_status or 'uten svar', 'innlogging')
+                self._send_json(feil, status=503)
+            elif isinstance(e, ValueError):
+                logger.warning('[AO-LOGIN] Innlogging avvist')
+                self._send_json({'error': str(e)}, status=401)
+            else:
+                logger.error('[AO-LOGIN] AO svarte HTTP %s', ao2_status)
+                self._send_json({'error': 'Kunne ikke logge inn på Artsobservasjoner.'}, status=500)
         except Exception as e:
             logger.error(f'[AO-LOGIN] Uventet feil: {e}')
             self._send_json({'error': f'Server-feil: {str(e)}'}, status=500)
@@ -1937,6 +2028,28 @@ class Handler(SimpleHTTPRequestHandler):
         except Exception as e:
             logger.warning(f'[AO-PRIVATE-SITES] Feil: {e}')
             self._send_json({'sites': [], 'degradert': True})
+
+    def _handle_ao3_private_sites_post(self, lengde):
+        """Hent egne private lokaliteter via AO3 når AO2-oppslaget feiler."""
+        if not _rate_ok(_ao3_private_sites_hits, self._client_ip(), AO_LOGIN_MAX_PER_WINDOW, AO_LOGIN_WINDOW_SEC):
+            self._send_json({'sites': [], 'degradert': True}, status=429)
+            return
+        try:
+            data = json.loads(self.rfile.read(lengde))
+            epost, passord = data.get('username'), data.get('password')
+            if not isinstance(epost, str) or '@' not in epost or not isinstance(passord, str) or not passord:
+                raise ValueError
+        except (ValueError, AttributeError):
+            self._send_json({'sites': [], 'needsLogin': True}, status=400)
+            return
+
+        resultat = logg_inn_pa_ao3(epost.strip(), passord, med_lokaliteter=True)
+        if resultat is None:
+            self._send_json({'sites': [], 'needsLogin': True})
+            return
+        if 'sites' in resultat:
+            logger.info('[AO3-RESERVE] Hentet %d private lokaliteter via AO3.', len(resultat['sites']))
+        self._send_json(resultat)
 
     def _handle_ao_areas_api(self, parsed):
         """Proxy for AO område-søk (politiske grenser). Åpent API med access-key."""

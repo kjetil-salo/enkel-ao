@@ -42,6 +42,60 @@ def start_server(port):
     return server
 
 
+@pytest.mark.parametrize('fase', ['innlogging', 'henting av importskjema',
+                                  'oppslag i gjennomgangskøen', 'påbegynt import', 'ufullstendig import'])
+def test_ao3_reserve_krever_at_ao2_import_ikke_har_startet(monkeypatch, fase, caplog):
+    """En 503 på selve importkallet kan bety at AO2 allerede mottok funnene."""
+    klient = MagicMock()
+    klient.__enter__.return_value = klient
+    ao_svar = httpx.Response(503, request=httpx.Request('GET', 'https://www.artsobservasjoner.no/'))
+    klient.get.return_value = ao_svar
+    klient.post.return_value = ao_svar
+    monkeypatch.setattr('httpx.Client', lambda **kwargs: klient)
+
+    if fase in ('oppslag i gjennomgangskøen', 'påbegynt import', 'ufullstendig import'):
+        monkeypatch.setattr('src.ao_import_httpx.fetch_csrf_tokens', lambda *_: ('form', 'cookie', None))
+    if fase in ('påbegynt import', 'ufullstendig import'):
+        monkeypatch.setattr('src.ao_import_httpx.number_of_sightings_submitted', lambda *_, **__: 0)
+    if fase == 'ufullstendig import':
+        klient.post.return_value = httpx.Response(200, request=ao_svar.request)
+        monkeypatch.setattr('src.ao_import_httpx._poll_importing_done', lambda *_, **__: False)
+
+    srv = start_server(0)
+    url = f'http://127.0.0.1:{srv.server_port}'
+    try:
+        if fase == 'innlogging':
+            svar = requests.post(url + '/api/ao-login',
+                                 json={'username': 'alias', 'password': 'test'}, timeout=5)
+            assert svar.status_code == 503
+            feil = svar.json()
+        else:
+            svar = requests.post(url + '/api/ao-import-stream', json={
+                'observations': [{'species': {'taxonName': 'Kjøttmeis'}}],
+                'loginToken': 'token',
+                'authCookie': 'cookie',
+            }, timeout=5)
+            assert svar.status_code == 200
+            siste_hendelse = svar.text.strip().split('\n\n')[-1]
+            feil = json.loads(siste_hendelse.removeprefix('data: '))
+        if fase in ('påbegynt import', 'ufullstendig import'):
+            klient.post.assert_called_once()
+            assert feil['code'] == 'ao2_import_unconfirmed'
+            assert 'Sendingen kunne ikke bekreftes' in feil['error']
+            assert '[AO3-RESERVE]' not in caplog.text
+        else:
+            if fase == 'oppslag i gjennomgangskøen':
+                klient.post.assert_called_once()
+                assert klient.post.call_args.args[0].endswith('/ReviewSighting/NumberOfSightingsSubmitted')
+            else:
+                klient.post.assert_not_called()
+            assert feil['code'] == 'ao2_unavailable_before_import'
+            assert f'HTTP 503 under {fase}' in caplog.text
+    finally:
+        srv.shutdown()
+        srv.server_close()
+
+
 class MockSubprocessResult:
     """Mock for subprocess.run returnverdi."""
     def __init__(self, stdout='', stderr='', returncode=0):
@@ -435,7 +489,7 @@ def test_post_with_curl_success(monkeypatch):
     # pollingen, og er tom igjen ved held-back-sjekken etter publisering.
     submitted_calls = {'n': 0}
 
-    def fake_submitted(lt, ac):
+    def fake_submitted(lt, ac, **_):
         submitted_calls['n'] += 1
         if submitted_calls['n'] == 1:
             return 0
@@ -506,7 +560,7 @@ def test_post_with_curl_reports_held_back(monkeypatch):
     # at én observasjon fortsatt ligger til gjennomgang etter publisering.
     submitted_calls = {'n': 0}
 
-    def fake_submitted_held_back(lt, ac):
+    def fake_submitted_held_back(lt, ac, **_):
         submitted_calls['n'] += 1
         return 0 if submitted_calls['n'] == 1 else 1
 
@@ -554,7 +608,7 @@ def test_post_with_curl_waits_for_queue_before_publishing(monkeypatch):
     submitted_sequence = iter([0, 1, 3, 6, 6, 0])
     submitted_seen = []
 
-    def fake_submitted(lt, ac):
+    def fake_submitted(lt, ac, **_):
         value = next(submitted_sequence, 0)
         submitted_seen.append(value)
         return value
@@ -605,7 +659,7 @@ def test_post_with_curl_no_held_back_when_queue_empty(monkeypatch):
     # trigges) — og til slutt er køen tom igjen etter selve publiseringen.
     submitted_calls = {'n': 0}
 
-    def fake_submitted(lt, ac):
+    def fake_submitted(lt, ac, **_):
         submitted_calls['n'] += 1
         if submitted_calls['n'] == 1:
             return 0
@@ -646,7 +700,7 @@ def test_post_with_curl_scoped_publish_when_queue_not_empty(monkeypatch):
     # Køen har 3 fremmede funn fra før denne importen (ikke fra denne sendingen).
     submitted_calls = {'n': 0}
 
-    def fake_submitted(lt, ac):
+    def fake_submitted(lt, ac, **_):
         submitted_calls['n'] += 1
         return 3 if submitted_calls['n'] == 1 else 5  # 3 fremmede + 2 våre = 5
 
@@ -714,7 +768,7 @@ def test_post_with_curl_scoped_publish_without_photos(monkeypatch):
 
     # 1 pre-eksisterende funn til gjennomgang hos AO
     submitted_calls = {'n': 0}
-    def fake_submitted(lt, ac):
+    def fake_submitted(lt, ac, **_):
         submitted_calls['n'] += 1
         return 1 if submitted_calls['n'] == 1 else 3
 
@@ -780,7 +834,7 @@ def test_post_with_curl_scoped_publish_aborts_when_nothing_matches(monkeypatch):
 
     submitted_calls = {'n': 0}
 
-    def fake_submitted(lt, ac):
+    def fake_submitted(lt, ac, **_):
         submitted_calls['n'] += 1
         return 3 if submitted_calls['n'] == 1 else 10
 
@@ -834,7 +888,7 @@ def test_post_with_curl_retry_treats_vanished_rows_as_published(monkeypatch):
     monkeypatch.setattr('time.sleep', lambda x: None)
 
     # Ikke-tom kø før import → scoped publisering
-    monkeypatch.setattr('src.ao_import_httpx.number_of_sightings_submitted', lambda lt, ac: 2)
+    monkeypatch.setattr('src.ao_import_httpx.number_of_sightings_submitted', lambda lt, ac, **_: 2)
 
     observations = [
         {'species': {'taxonName': 'Gråspurv'}, 'count': '1', 'timestamp': '2024-01-15T14:00:00Z', 'placeName': 'Oslo', 'photo': 'data:image/jpeg;base64,QUJD'}
@@ -893,7 +947,7 @@ def test_post_with_curl_unknown_queue_count_waits_for_markers(monkeypatch):
     monkeypatch.setattr('time.sleep', lambda x: None)
 
     # Tellerendepunktet er nede hele veien → køstørrelsen er ukjent
-    monkeypatch.setattr('src.ao_import_httpx.number_of_sightings_submitted', lambda lt, ac: None)
+    monkeypatch.setattr('src.ao_import_httpx.number_of_sightings_submitted', lambda lt, ac, **_: None)
     # AOs "importing"-teller melder ferdig med det samme (racet i praksis)
     monkeypatch.setattr('src.ao_import_httpx.number_of_sightings_importing', lambda lt, ac: 0)
 
@@ -957,7 +1011,7 @@ def test_post_with_curl_uploads_photo_via_marker_matching(monkeypatch):
     # (1) for pollingen, og er tom igjen ved held-back-sjekken etter publisering.
     submitted_calls = {'n': 0}
 
-    def fake_submitted(lt, ac):
+    def fake_submitted(lt, ac, **_):
         submitted_calls['n'] += 1
         if submitted_calls['n'] == 1:
             return 0
@@ -1017,7 +1071,7 @@ def test_post_with_curl_uploads_photo_when_marker_shares_column_with_private_com
     # (1) for pollingen, og er tom igjen ved held-back-sjekken etter publisering.
     submitted_calls = {'n': 0}
 
-    def fake_submitted(lt, ac):
+    def fake_submitted(lt, ac, **_):
         submitted_calls['n'] += 1
         if submitted_calls['n'] == 1:
             return 0
@@ -1077,9 +1131,9 @@ def test_post_with_curl_no_photo_never_gets_import_marker_or_private_comment(mon
     mock_client.post = fake_post
     monkeypatch.setattr('httpx.Client', lambda: mock_client)
     monkeypatch.setattr('time.sleep', lambda x: None)
-    monkeypatch.setattr('src.ao_import_httpx._poll_importing_done', lambda *a, **kw: None)
+    monkeypatch.setattr('src.ao_import_httpx._poll_importing_done', lambda *a, **kw: True)
     monkeypatch.setattr('src.ao_import_httpx.publish_all', lambda lt, ac, temp_sighting_ids=None: {'status': 200})
-    monkeypatch.setattr('src.ao_import_httpx.number_of_sightings_submitted', lambda lt, ac: 0)
+    monkeypatch.setattr('src.ao_import_httpx.number_of_sightings_submitted', lambda lt, ac, **_: 0)
 
     observations = [
         {'species': {'taxonName': 'Gråspurv'}, 'count': '1', 'timestamp': '2024-01-15T14:00:00Z', 'placeName': 'Oslo'},
@@ -1127,9 +1181,9 @@ def test_post_with_curl_only_photo_observation_gets_import_marker_and_private_co
     mock_client.post = fake_post
     monkeypatch.setattr('httpx.Client', lambda: mock_client)
     monkeypatch.setattr('time.sleep', lambda x: None)
-    monkeypatch.setattr('src.ao_import_httpx._poll_importing_done', lambda *a, **kw: None)
+    monkeypatch.setattr('src.ao_import_httpx._poll_importing_done', lambda *a, **kw: True)
     monkeypatch.setattr('src.ao_import_httpx.publish_all', lambda lt, ac, temp_sighting_ids=None: {'status': 200})
-    monkeypatch.setattr('src.ao_import_httpx.number_of_sightings_submitted', lambda lt, ac: 0)
+    monkeypatch.setattr('src.ao_import_httpx.number_of_sightings_submitted', lambda lt, ac, **_: 0)
 
     observations = [
         {'species': {'taxonName': 'Gråspurv'}, 'count': '1', 'timestamp': '2024-01-15T14:00:00Z', 'placeName': 'Oslo'},
@@ -1183,7 +1237,7 @@ def test_post_with_curl_reports_failed_image_without_blocking_publish(monkeypatc
     # hele testen → ingen rad matcher bildemarkøren.
     submitted_calls = {'n': 0}
 
-    def fake_submitted(lt, ac):
+    def fake_submitted(lt, ac, **_):
         submitted_calls['n'] += 1
         if submitted_calls['n'] == 1:
             return 0
@@ -1617,6 +1671,73 @@ def test_ao_login_endpoint(monkeypatch):
         srv.shutdown()
 
 
+@pytest.mark.parametrize(
+    'data, ao2_status, ao3_ok, forventet_status, forventet_kode, forventet_ao3',
+    [
+        ({'allowAo3': True}, 502, True, 200, None, True),
+        ({'allowAo3': True}, 503, False, 503, 'ao3_login_unconfirmed', True),
+        ({'allowAo3': True, 'username': 'testalias'}, 504, True, 503, 'ao2_unavailable_before_import', False),
+        ({}, 503, True, 503, 'ao2_unavailable_before_import', False),
+        ({'allowAo3': True, 'arbeidslisteEier': 'eier'}, 503, True, 503, 'ao2_unavailable_before_import', False),
+        ({'allowAo3': True, 'includePrivateSites': True}, 401, True, 200, None, True),
+        ({'allowAo3': True}, 401, False, 401, None, True),
+    ],
+)
+def test_ao_login_reserve(monkeypatch, data, ao2_status, ao3_ok, forventet_status, forventet_kode, forventet_ao3):
+    def ao2_innlogging(*args, **kwargs):
+        if ao2_status == 401:
+            raise ValueError('Feil brukernavn eller passord')
+        svar = httpx.Response(ao2_status, request=httpx.Request('GET', 'https://www.artsobservasjoner.no/LogOn'))
+        svar.raise_for_status()
+
+    resultat = {'success': True, 'via': 'ao3'}
+    if data.get('includePrivateSites'):
+        resultat['sites'] = [{'id': 53, 'name': 'Privat lokalitet'}]
+    bekreft = Mock(return_value=resultat if ao3_ok else None)
+    monkeypatch.setattr('server._ao_login_hits', {})
+    monkeypatch.setattr('server.login_to_ao', ao2_innlogging)
+    monkeypatch.setattr('server.logg_inn_pa_ao3', bekreft)
+    srv = start_server(0)
+    try:
+        svar = requests.post(
+            f'http://127.0.0.1:{srv.server_port}/api/ao-login',
+            json={'username': 'test@example.org', 'password': 'testpass', **data},
+            timeout=5,
+        )
+        assert svar.status_code == forventet_status
+        assert svar.json().get('code') == forventet_kode
+        if forventet_ao3:
+            bekreft.assert_called_once_with('test@example.org', 'testpass',
+                                            med_lokaliteter=data.get('includePrivateSites') is True)
+        else:
+            bekreft.assert_not_called()
+        if forventet_status == 200:
+            assert svar.json() == resultat
+    finally:
+        srv.shutdown()
+        srv.server_close()
+
+
+def test_henter_private_lokaliteter_med_ao3(monkeypatch):
+    resultat = {'success': True, 'via': 'ao3', 'sites': [{'id': 12, 'name': 'Min plass'}]}
+    innlogging = Mock(return_value=resultat)
+    monkeypatch.setattr('server._ao3_private_sites_hits', {})
+    monkeypatch.setattr('server.logg_inn_pa_ao3', innlogging)
+    srv = start_server(0)
+    try:
+        url = f'http://127.0.0.1:{srv.server_port}/api/ao-private-sites'
+        alias = requests.post(url, json={'username': 'alias', 'password': 'testpass'}, timeout=5)
+        assert alias.status_code == 400
+        innlogging.assert_not_called()
+        svar = requests.post(url, json={'username': 'test@example.org', 'password': 'testpass'}, timeout=5)
+        assert svar.json() == resultat
+        assert svar.headers['Cache-Control'] == 'no-store'
+        innlogging.assert_called_once_with('test@example.org', 'testpass', med_lokaliteter=True)
+    finally:
+        srv.shutdown()
+        srv.server_close()
+
+
 def test_ao_login_endpoint_missing_params():
     """Test /api/ao-login uten påkrevde parametere."""
     port = 38013
@@ -1717,7 +1838,7 @@ def test_post_with_curl_emits_progress(monkeypatch):
     # er køen tom igjen ved held-back-sjekken etter publisering.
     submitted_calls = {'n': 0}
 
-    def fake_submitted(lt, ac):
+    def fake_submitted(lt, ac, **_):
         submitted_calls['n'] += 1
         if submitted_calls['n'] == 1:
             return 0

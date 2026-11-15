@@ -1,10 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Mock avhengigheter før import
-vi.mock('../../public/js/api.js', () => ({
+vi.mock('../../public/js/api.js?v=v1.60.20', () => ({
   fetchAoSites: vi.fn(),
   getCachedPrivateSites: vi.fn(() => []),
   ensureAoTokens: vi.fn(),
+  ensureAoPrivateSites: vi.fn(),
   createAoSite: vi.fn(),
 }));
 vi.mock('../../public/js/ui.js', () => ({
@@ -26,7 +27,7 @@ const localStorageMock = {
 };
 vi.stubGlobal('localStorage', localStorageMock);
 
-const { createAoSite, ensureAoTokens, getCachedPrivateSites } = await import('../../public/js/api.js');
+const { createAoSite, ensureAoTokens, getCachedPrivateSites } = await import('../../public/js/api.js?v=v1.60.20');
 const { isPrivateSite, getSiteLabel, setAoSiteSuggestions, mergeAoSitesWithPrivateCache, openMap, openMapPage, initCreateSite, initLocation } = await import('../../public/js/location.js');
 
 // ─── isPrivateSite ────────────────────────────────────────────

@@ -37,8 +37,8 @@ og her står bare en peker.
 - **Ingen `Co-Authored-By`** i commit-meldinger.
 - **Hold diffen så liten som oppgaven tillater.** Én PR løser én ting. Rør
   ikke filer oppgaven ikke handler om.
-- **Ikke kjør deploy-skriptene** (`update-ao-pi.sh`, `deploy-staging-pi.sh`,
-  `update-app.sh`). Utrulling gjøres av eieren.
+- **Utrulling til staging er alltid tillatt.** Bruk `deploy-staging-pi.sh` for
+  Pi-staging. Utrulling til produksjon krever eksplisitt godkjenning fra eieren.
 - **Ikke bump versjonsnummer i en PR.** Versjonen ligger på fire steder og
   kolliderer i parallelle PR-er. Eieren bumper ved release — nevn bare i
   PR-beskrivelsen at du har endret frontend.

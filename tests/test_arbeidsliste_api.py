@@ -25,7 +25,7 @@ def api(tmp_path, monkeypatch):
     login = Mock(side_effect=lambda bruker, *args, **kwargs: {
         'authCookie': f'mock:{bruker}', 'loginToken': 'mock-token', 'userId': 'ustabilt-prefiks',
     })
-    profil = Mock(side_effect=lambda cookie: ('ao:1', 'A') if cookie == 'mock:A' else ('ao:2', 'B'))
+    profil = Mock(side_effect=lambda cookie, **_: ('ao:1', 'A') if cookie == 'mock:A' else ('ao:2', 'B'))
     monkeypatch.setattr(server, 'login_to_ao', login)
     monkeypatch.setattr(server, 'hent_ao_konto', profil)
     with ThreadingHTTPServer(('127.0.0.1', 0), server.Handler) as tjeneste:
