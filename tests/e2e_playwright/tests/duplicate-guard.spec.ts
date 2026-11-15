@@ -198,7 +198,7 @@ test.describe('Dublett-vern ved publisering', () => {
     await expect(status).toContainText('e-postadressen til samme AO-konto');
     await expect(status.locator('button, a')).toHaveCount(1);
     await status.getByRole('link', { name: 'Gå til AO-innlogging' }).click();
-    await expect(page).toHaveURL(/\/settings\.html#ao-username$/);
+    await expect(page).toHaveURL(/\/profil\.html#ao-username$/);
   });
 
   test('husker uavklart sending når siden lastes på nytt før kvitteringen', async ({ page }) => {

@@ -465,7 +465,7 @@
       // Alias tr (ikke t): denne filen har allerede en lokal `const t = hentTokens();`
       // inne i lastAoFunn() - et import med samme navn ville vært forvirrende å lese,
       // selv om selve skoperingen er trygg.
-      import { t as tr, applyTranslations } from '/js/i18n.js?v=v1.60.20';
+      import { t as tr, applyTranslations } from '/js/i18n.js?v=v1.60.21';
 
       applyTranslations();
       document.title = tr('sendt.title');
@@ -483,9 +483,9 @@
       // (v1.59.7). En cachet gammel kopi ville gitt TypeError i det slideren eller
       // zoomen brukes — eller SyntaxError som stopper hele denne modulen. Se
       // «Versjonering» i CLAUDE.md (v1.53.15).
-      import { initPhotoPicker } from '/js/photo-picker.js?v=v1.60.20';
-      import { lagBildeEditor } from '/js/bilde-editor.js?v=v1.60.20';
-      import { loggInnMedLagretLegitimasjon } from '/js/api.js?v=v1.60.20';
+      import { initPhotoPicker } from '/js/photo-picker.js?v=v1.60.21';
+      import { lagBildeEditor } from '/js/bilde-editor.js?v=v1.60.21';
+      import { loggInnMedLagretLegitimasjon } from '/js/api.js?v=v1.60.21';
 
       const MND = ['januar', 'februar', 'mars', 'april', 'mai', 'juni',
         'juli', 'august', 'september', 'oktober', 'november', 'desember'];
@@ -646,7 +646,7 @@
           // altså når det ikke finnes lagret passord, eller AO avviste det.
           aoListeEl.innerHTML = `<div class="beskjed">
             Innloggingen mot Artsobservasjoner er utløpt, og vi klarte ikke å fornye den
-            automatisk. <a href="/settings.html">Sjekk brukernavn og passord i innstillinger</a>.
+            automatisk. <a href="/profil.html">Sjekk brukernavn og passord på profilen</a>.
           </div>`;
           return;
         }

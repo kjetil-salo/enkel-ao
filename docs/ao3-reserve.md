@@ -9,7 +9,7 @@ aktuelle sendingen og kontrollerer kvitteringen for alle funnene.
 Appen tilbyr også direkte AO3-publisering når AO2-innloggingen blir avvist og
 AO3 godkjenner den samme e-posten og passordet.
 
-Under **Innstillinger → AO-innlogging** prøver **Logg inn** først AO2.
+Under **Profil → AO-innlogging** prøver **Logg inn** først AO2.
 Hvis AO2-innloggingen feiler, prøver appen AO3 med den lagrede e-postadressen.
 Siden viser da **Innlogging bekreftet via AO3** hvis AO3 godkjenner innloggingen.
 Kartet og lokalitetssøket bruker også AO3 som reserve for egne private

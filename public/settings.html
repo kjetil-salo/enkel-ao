@@ -7,7 +7,7 @@
     <link rel="icon" href="/favicon.png" type="image/png" />
     <link rel="apple-touch-icon" href="/icon-192.png" />
     <link rel="manifest" href="/manifest.json">
-    <link rel="stylesheet" href="style.css?v=v1.60.20" />
+    <link rel="stylesheet" href="style.css?v=v1.60.21" />
       <style>
         .settings-card {
           background: var(--card-bg, #111827);
@@ -177,6 +177,10 @@
         <a href="/" style="color:#3b82f6;text-decoration:none;font-size:0.9rem;padding:6px 12px;border-radius:8px;" data-i18n="settings.back_link">← Tilbake</a>
       </div>
 
+      <div style="margin-bottom:18px;">
+        <a href="/profil.html" style="color:#3b82f6;text-decoration:underline;font-size:0.88em;" data-i18n="settings.profile_link">👤 AO-innlogging ligger nå på profilsiden</a>
+      </div>
+
       <div class="settings-row" style="flex-direction: column; align-items: flex-start; gap: 10px;">
         <span class="settings-label" data-i18n="settings.language.label">Språk</span>
         <div class="theme-seg" id="lang-seg" role="radiogroup" aria-label="Språk"></div>
@@ -271,48 +275,6 @@
       </div>
       <div style="font-size:0.92em;color:var(--muted,#aaa);margin-bottom:18px;" data-i18n="settings.force_offline.desc">
         Når denne er på, brukes kun den lokale artslisten (ingen søk mot Artsobservasjoner).
-      </div>
-
-      <div style="margin-top:24px;padding-top:18px;border-top:1px solid rgba(148,163,184,0.12);">
-        <h3 style="margin:0 0 4px 0;font-size:1em;color:var(--text,#e5e7eb);" data-i18n="settings.ao_login.heading">AO-innlogging</h3>
-        <p style="font-size:0.82em;color:var(--muted,#aaa);margin:0 0 14px 0;" data-i18n-html="settings.ao_login.desc1">
-          Logg inn med Artsobservasjoner-kontoen din for å publisere funn direkte fra appen.
-          Brukernavn og passord sendes kun videre til Artsobservasjoner.no — de lagres <strong>aldri</strong> på serveren,
-          bare lokalt i nettleseren din så du slipper å logge inn hver gang.
-          Du velger selv: lagre passordet for direkte publisering, eller la det stå tomt og bruk «Kopier &amp; åpne AO-import» i stedet.
-          Du kan tømme feltene når som helst.
-        </p>
-        <p style="font-size:0.82em;color:var(--muted,#aaa);margin:0 0 14px 0;" data-i18n-html="settings.ao_login.desc2">
-          Har du ikke AO-bruker?
-          <a href="https://www.artsobservasjoner.no/UserAccount" target="_blank" rel="noopener"
-            style="color:#3b82f6;text-decoration:underline;">Opprett gratis konto på Artsobservasjoner.no ↗</a>
-        </p>
-        <p style="font-size:0.82em;color:var(--muted,#aaa);margin:0 0 14px 0;" data-i18n="settings.ao_login.reserve_hint">
-          Bruk e-postadressen til AO-kontoen din hvis du vil bruke AO3 når AO2 er nede.
-        </p>
-        <div style="margin-bottom:12px;">
-          <label for="ao-username" style="display:block;font-size:0.88em;color:var(--muted,#aaa);margin-bottom:4px;" data-i18n="settings.ao_login.username_label">Brukernavn</label>
-          <input type="text" id="ao-username" autocomplete="username" placeholder="ditt_brukernavn" data-i18n-attr="placeholder:settings.ao_login.username_placeholder"
-            style="width:100%;padding:10px 12px;border-radius:8px;border:1px solid rgba(148,163,184,0.3);background:rgba(15,23,42,0.8);color:var(--text,#e5e7eb);font-size:16px;box-sizing:border-box;" />
-        </div>
-        <div>
-          <label for="ao-password" style="display:block;font-size:0.88em;color:var(--muted,#aaa);margin-bottom:4px;" data-i18n="settings.ao_login.password_label">Passord</label>
-          <div style="position:relative;">
-            <input type="password" id="ao-password" autocomplete="current-password" placeholder="••••••••"
-              style="width:100%;padding:10px 40px 10px 12px;border-radius:8px;border:1px solid rgba(148,163,184,0.3);background:rgba(15,23,42,0.8);color:var(--text,#e5e7eb);font-size:16px;box-sizing:border-box;" />
-            <button type="button" id="toggle-ao-password"
-              style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--muted,#aaa);font-size:1.1em;padding:4px;">👁️</button>
-          </div>
-        </div>
-        <button type="button" id="test-ao-login" data-i18n="settings.ao_login.login_btn"
-          style="margin-top:14px;width:100%;padding:10px;border-radius:8px;border:none;background:#3b82f6;color:white;font-size:1em;cursor:pointer;">
-          🔐 Logg inn
-        </button>
-        <div id="ao-login-status" style="display:none;margin-top:8px;padding:10px;border-radius:8px;font-size:0.85em;"></div>
-        <button type="button" id="clear-ao-login" data-i18n="settings.ao_login.clear_btn"
-          style="display:none;margin-top:10px;width:100%;padding:9px;border-radius:8px;border:1px solid rgba(239,68,68,0.35);background:transparent;color:var(--muted,#aaa);font-size:0.92em;cursor:pointer;">
-          🚪 Fjern innlogging fra denne enheten
-        </button>
       </div>
 
       <div style="margin-top:24px;padding-top:18px;border-top:1px solid rgba(148,163,184,0.12);">
@@ -428,16 +390,16 @@
     <script type="module">
       import { fjernOverforingssesjon } from './js/arbeidsliste-sesjon.js';
       import { apneInnhentetListe, lagreInnhentetKopi, lesInnhentetListe, lukkInnhentetListe } from './js/arbeidsliste-lokal.js';
-      import { loadActivityPills, saveActivityPills, ACTIVITY_SHORT_SUGGESTIONS, activityDisplayName, activityBokmalName } from './js/storage.js?v=v1.60.20';
-      import { loadActivities, fetchAoSitesByBounds, hasActiveAoLogin, ensureAoTokens, getCachedPrivateSites } from './js/api.js?v=v1.60.20';
-      import { shouldShowOthersPrivateSites } from './js/location.js?v=v1.60.20';
+      import { loadActivityPills, saveActivityPills, ACTIVITY_SHORT_SUGGESTIONS, activityDisplayName, activityBokmalName } from './js/storage.js?v=v1.60.21';
+      import { loadActivities, fetchAoSitesByBounds, hasActiveAoLogin, ensureAoTokens, getCachedPrivateSites } from './js/api.js?v=v1.60.21';
+      import { shouldShowOthersPrivateSites } from './js/location.js?v=v1.60.21';
       import {
         getOfflineStorageStats,
         syncOfflineAreas,
         clearAllOfflineData,
         clearAppCachesPreservingMapTiles,
-      } from './js/offline-db.js?v=v1.60.20';
-      import { t, getLanguage, setLanguage, getAvailableLanguages, applyTranslations } from './js/i18n.js?v=v1.60.20';
+      } from './js/offline-db.js?v=v1.60.21';
+      import { t, getLanguage, setLanguage, getAvailableLanguages, applyTranslations } from './js/i18n.js?v=v1.60.21';
 
       // Service Worker registreres og modus synkroniseres av offline-db.js (importert over).
 
@@ -891,14 +853,12 @@
       });
     </script>
     <script type="module">
-      // Egen modul-blokk (ikke den over): bruker t(), fjernOverforingssesjon() og
-      // innhentet-liste-funksjonene, som alle er navngitte modul-eksporter og derfor
-      // ikke synlige fra en vanlig <script> uten egen import. Nøyaktig det som manglet
-      // her og ga «ReferenceError» på AO-innlogging og sikkerhetskopi-knappene
-      // (rapportert 14.11.2026, v1.60.19).
-      import { t } from './js/i18n.js?v=v1.60.20';
-      import { fjernOverforingssesjon, kontoKontekst, sammeKontoKontekst } from './js/arbeidsliste-sesjon.js';
-      import { lagrePrivateAoLokaliteter } from './js/api.js?v=v1.60.20';
+      // Egen modul-blokk (ikke den over): bruker t() og innhentet-liste-funksjonene,
+      // som alle er navngitte modul-eksporter og derfor ikke synlige fra en vanlig
+      // <script> uten egen import. Nøyaktig det som manglet her og ga «ReferenceError»
+      // på sikkerhetskopi-knappene (rapportert 14.11.2026, v1.60.19). AO-innlogging
+      // flyttet til egen profilside i v1.60.21.
+      import { t } from './js/i18n.js?v=v1.60.21';
       import { apneInnhentetListe, lagreInnhentetKopi, lesInnhentetListe, lukkInnhentetListe } from './js/arbeidsliste-lokal.js';
 
       // Tema (segmentert velger: mørkt / lyst / clean)
@@ -943,150 +903,6 @@
         if(privateSitesCb.checked) localStorage.setItem(privateSitesKey, '1');
         else localStorage.removeItem(privateSitesKey);
       });
-
-      // AO-innlogging
-      const aoUsernameInput = document.getElementById('ao-username');
-      const aoPasswordInput = document.getElementById('ao-password');
-      const togglePasswordBtn = document.getElementById('toggle-ao-password');
-
-      aoUsernameInput.value = localStorage.getItem('ao_username') || '';
-      aoPasswordInput.value = localStorage.getItem('ao_password') || '';
-
-      function glemAoSesjonVedKontobytte() {
-        fjernOverforingssesjon();
-        localStorage.removeItem('ao_tokens');
-        localStorage.removeItem('ao_private_sites');
-      }
-
-      aoUsernameInput.addEventListener('input', () => {
-        const val = aoUsernameInput.value.trim();
-        if (val !== (localStorage.getItem('ao_username') || '')) glemAoSesjonVedKontobytte();
-        if (val) localStorage.setItem('ao_username', val);
-        else localStorage.removeItem('ao_username');
-        updateClearLoginVisibility();
-      });
-
-      aoPasswordInput.addEventListener('input', () => {
-        const val = aoPasswordInput.value;
-        if (val !== (localStorage.getItem('ao_password') || '')) glemAoSesjonVedKontobytte();
-        if (val) localStorage.setItem('ao_password', val);
-        else localStorage.removeItem('ao_password');
-        updateClearLoginVisibility();
-      });
-
-      togglePasswordBtn.addEventListener('click', () => {
-        if (aoPasswordInput.type === 'password') {
-          aoPasswordInput.type = 'text';
-          togglePasswordBtn.textContent = '🙈';
-        } else {
-          aoPasswordInput.type = 'password';
-          togglePasswordBtn.textContent = '👁️';
-        }
-      });
-
-      // Test innlogging
-      const testLoginBtn = document.getElementById('test-ao-login');
-      const loginStatus = document.getElementById('ao-login-status');
-
-      function _sc(type) {
-        const l = document.body.classList.contains('theme-light');
-        return { info: l ? '#2563eb' : '#93c5fd', success: l ? '#16a34a' : '#86efac', error: l ? '#dc2626' : '#fca5a5' }[type];
-      }
-
-      testLoginBtn.addEventListener('click', async () => {
-        const konto = kontoKontekst();
-        const username = aoUsernameInput.value.trim();
-        const password = aoPasswordInput.value;
-        if (!username || !password) {
-          loginStatus.style.display = 'block';
-          loginStatus.style.cssText = `display:block;margin-top:8px;padding:10px;border-radius:8px;font-size:0.85em;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);color:${_sc('error')};`;
-          loginStatus.textContent = t('settings.ao_login.fill_in_first');
-          return;
-        }
-
-        testLoginBtn.disabled = true;
-        testLoginBtn.textContent = t('settings.ao_login.logging_in');
-        loginStatus.style.cssText = `display:block;margin-top:8px;padding:10px;border-radius:8px;font-size:0.85em;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.3);color:${_sc('info')};`;
-        loginStatus.textContent = t('settings.ao_login.connecting');
-
-        try {
-          const resp = await fetch('/api/ao-login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, password, allowAo3: true, includePrivateSites: true }),
-          });
-          const result = await resp.json();
-          if (!sammeKontoKontekst(konto) || username !== aoUsernameInput.value.trim() || password !== aoPasswordInput.value) {
-            loginStatus.style.display = 'none';
-            return;
-          }
-          if (resp.ok && result.success) {
-            if (username !== localStorage.getItem('ao_username') || password !== localStorage.getItem('ao_password')) {
-              glemAoSesjonVedKontobytte();
-              localStorage.setItem('ao_username', username);
-              localStorage.setItem('ao_password', password);
-            }
-            localStorage.removeItem('ao_private_sites');
-            loginStatus.style.cssText = `display:block;margin-top:8px;padding:10px;border-radius:8px;font-size:0.85em;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);color:${_sc('success')};`;
-            if (result.via === 'ao3') {
-              localStorage.removeItem('ao_tokens');
-              if (Array.isArray(result.sites)) lagrePrivateAoLokaliteter(result.sites, 'ao3');
-              loginStatus.textContent = t('settings.ao_login.ao3_success');
-              return;
-            }
-            // LAGRE tokenene, ikke bare meld at innloggingen gikk bra. Før gjorde
-            // knappen kun en tilkoblingstest, og en bruker som kom hit fra en side
-            // som sa «sesjonen er utløpt» fikk «✅ Innlogging OK!» — og var fortsatt
-            // utlogget. Eneste vei ut var å innom kartet, som logger inn som en
-            // bieffekt. Rapportert fra staging 25.10.2026.
-            const lagret = JSON.parse(localStorage.getItem('ao_tokens') || '{}');
-            lagret.loginToken = result.loginToken;
-            lagret.authCookie = result.authCookie;
-            if (!lagret.userId) lagret.userId = result.userId;
-            localStorage.setItem('ao_tokens', JSON.stringify(lagret));
-            loginStatus.textContent = t('settings.ao_login.success', { id: result.userId });
-          } else if ((result.code === 'ao2_unavailable_before_import' || resp.status === 401) && !username.includes('@')) {
-            throw new Error(t('settings.ao_login.ao3_requires_email'));
-          } else {
-            throw new Error(result.error || t('settings.ao_login.failed'));
-          }
-        } catch (e) {
-          loginStatus.style.cssText = `display:block;margin-top:8px;padding:10px;border-radius:8px;font-size:0.85em;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);color:${_sc('error')};`;
-          loginStatus.textContent = `❌ ${e.message}`;
-        } finally {
-          testLoginBtn.disabled = false;
-          testLoginBtn.textContent = t('settings.ao_login.login_btn');
-          updateClearLoginVisibility();
-        }
-      });
-
-      // Fjern innlogging (tømmer legitimasjon OG aktiv sesjon fra denne enheten)
-      const clearLoginBtn = document.getElementById('clear-ao-login');
-
-      function hasStoredLogin() {
-        if (localStorage.getItem('ao_username') || localStorage.getItem('ao_password')) return true;
-        const t = JSON.parse(localStorage.getItem('ao_tokens') || '{}');
-        return !!(t.loginToken || t.authCookie);
-      }
-
-      function updateClearLoginVisibility() {
-        clearLoginBtn.style.display = hasStoredLogin() ? 'block' : 'none';
-      }
-
-      clearLoginBtn.addEventListener('click', () => {
-        fjernOverforingssesjon();
-        localStorage.removeItem('ao_username');
-        localStorage.removeItem('ao_password');
-        localStorage.removeItem('ao_tokens');
-        localStorage.removeItem('ao_private_sites');
-        aoUsernameInput.value = '';
-        aoPasswordInput.value = '';
-        loginStatus.style.cssText = `display:block;margin-top:8px;padding:10px;border-radius:8px;font-size:0.85em;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.3);color:${_sc('info')};`;
-        loginStatus.textContent = t('settings.ao_login.cleared');
-        updateClearLoginVisibility();
-      });
-
-      updateClearLoginVisibility();
 
       // Tving fram ny versjon: fjern service worker + cache, hent siden ferskt fra nett
       const forceUpdateBtn = document.getElementById('force-update-btn');

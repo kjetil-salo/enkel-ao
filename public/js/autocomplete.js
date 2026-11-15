@@ -6,7 +6,7 @@ import { getNetworkMode, getAllOfflineLocations } from './offline-db.js';
 import { haversine } from './utils.js';
 import { kontoKontekst, sammeKontoKontekst } from './arbeidsliste-sesjon.js';
 // Versjonert import: hard avhengighet til en navngitt eksport.
-import { ensureAoPrivateSites, getCachedPrivateSites, hasFreshPrivateSitesCache, loggInnMedLagretLegitimasjon } from './api.js?v=v1.60.20';
+import { ensureAoPrivateSites, getCachedPrivateSites, hasFreshPrivateSitesCache, loggInnMedLagretLegitimasjon } from './api.js?v=v1.60.21';
 
 // Serveren kan ikke lenger fornye en sesjon på brukernavn alene — passordet er
 // bundet til logintokenet (v1.60.18), og rader lagret før bindingen er fjernet.
@@ -230,7 +230,7 @@ export function initAutocomplete(placeInput, onSelect, getPosition = null) {
           if (data.auth_expired) fornyInnloggingEnGang();
           const hint = document.createElement('div');
           hint.style.cssText = 'padding: 8px 12px; font-size: 0.75em; color: var(--muted); border-top: 1px solid var(--border);';
-          hint.innerHTML = '💡 <a href="/settings.html#ao-username" style="color: inherit; text-decoration: underline;">Logg inn</a> for flere lokaliteter';
+          hint.innerHTML = '💡 <a href="/profil.html#ao-username" style="color: inherit; text-decoration: underline;">Logg inn</a> for flere lokaliteter';
           dropdown.appendChild(hint);
         }
       } else if (!privateLokaliteterHentet && (data.auth_expired || data.not_logged_in)) {
@@ -241,7 +241,7 @@ export function initAutocomplete(placeInput, onSelect, getPosition = null) {
             color: var(--muted);
             font-size: 0.85em;
           ">
-            Ingen treff. <a href="/settings.html#ao-username" style="color: inherit; text-decoration: underline;">Logg inn</a> for å søke i alle AO-lokaliteter.
+            Ingen treff. <a href="/profil.html#ao-username" style="color: inherit; text-decoration: underline;">Logg inn</a> for å søke i alle AO-lokaliteter.
           </div>
         `;
         dropdown.style.display = 'block';

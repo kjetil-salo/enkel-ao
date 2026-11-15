@@ -5,7 +5,7 @@
 import { toCsv } from './observations.js';
 import { flashButton, showToast } from './ui.js';
 import { appendSentBatch, loadAoDirectAutoClear } from './storage.js';
-import { t } from './i18n.js?v=v1.60.20';
+import { t } from './i18n.js?v=v1.60.21';
 import { isOfflineMode } from './offline-db.js';
 import { hentAktivFellestur } from './fellestur-client.js';
 import { aktivInnhentetListe } from './arbeidsliste-lokal.js';
@@ -831,7 +831,7 @@ export async function handleDirectSend(observations, dom, callbacks) {
     if (kanBrukeReserve && reserveGyldig()) {
       if (!username.includes('@')) {
         const loggInn = document.createElement('a');
-        loggInn.href = '/settings.html#ao-username';
+        loggInn.href = '/profil.html#ao-username';
         loggInn.className = 'btn btn-secondary-action';
         loggInn.textContent = 'Gå til AO-innlogging';
         visAo3Valg(dom, 'AO2 er utilgjengelig. Legg inn e-postadressen til samme AO-konto for å publisere via AO3.', loggInn);

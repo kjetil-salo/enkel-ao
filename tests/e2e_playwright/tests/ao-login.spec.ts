@@ -21,7 +21,7 @@ test('bekreftet AO3-innlogging lar brukeren publisere uten å åpne importen', a
     await route.fulfill({ json: { success: true, via: 'ao3', published: true, count: 1 } });
   });
   await page.route('**/api/log-export', route => route.fulfill({ json: { ok: true } }));
-  await page.goto('/settings.html');
+  await page.goto('/profil.html');
   // Simuler autofyll uten input-hendelse for å teste hva klikket leser.
   await page.evaluate(() => {
     localStorage.setItem('ao_tokens', JSON.stringify({ authCookie: 'gammel-ao2-sesjon' }));
@@ -87,12 +87,12 @@ test('kart og stedsnavnsøk viser egne AO3-lokaliteter når AO2-innloggingen fei
   await expect(page.locator('.autocomplete-dropdown')).toContainText('Min testlokalitet');
 });
 
-test('innstillinger ber aliasbrukeren bruke e-post når AO2 er nede', async ({ page }) => {
+test('profilsiden ber aliasbrukeren bruke e-post når AO2 er nede', async ({ page }) => {
   await page.route('**/api/ao-login', route => route.fulfill({
     status: 503,
     json: { code: 'ao2_unavailable_before_import' },
   }));
-  await page.goto('/settings.html');
+  await page.goto('/profil.html');
   await page.locator('#ao-username').fill('testalias');
   await page.locator('#ao-password').fill('testpass');
   await page.locator('#test-ao-login').click();
