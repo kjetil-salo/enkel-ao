@@ -178,7 +178,7 @@ export default {
   'settings.storage.area_word_singular': 'offline-område',
   'settings.storage.area_word_plural': 'offline-område',
   'settings.storage.sync_btn': '🔄 Synkroniser offline-område',
-  'settings.storage.clear_btn': '🗑️ Slett alle offline-data',
+  'settings.storage.clear_btn': '🗑️ Slett offline-data',
   'settings.pills.heading': 'Aktivitets-snøggknappar (0-8)',
   'settings.pills.desc': 'Vel kva aktivitetar som vert viste som snøggknappar. Maks 8. Dra i symbolet ⠿ for å endra rekkjefølgja. Skriv eventuelt eit kort namn (maks 5 teikn) i «Kort»-feltet for meir kompakte knappar – tomt felt viser fullt namn.',
   'settings.pills.suggest_btn': 'Føreslå forkortingar',
