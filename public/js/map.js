@@ -3,11 +3,11 @@
  */
 
 // Versjonert import
-import { createAoSite, ensureAoTokens, ensureAoPrivateSites, fetchAoSitesCached, fetchAoSitesByBounds, getCachedPrivateSites, hasFreshPrivateSitesCache, hasActiveAoLogin } from './api.js?v=v1.60.21';
-import { mergeAoSitesWithPrivateCache, isPrivateSite, shouldShowOthersPrivateSites, DEFAULT_MAP_CENTER } from './location.js?v=v1.60.21';
-import { saveLastKnownPosition, loadLastKnownPosition } from './storage.js?v=v1.60.21';
+import { createAoSite, ensureAoTokens, ensureAoPrivateSites, fetchAoSitesCached, fetchAoSitesByBounds, getCachedPrivateSites, hasFreshPrivateSitesCache, hasActiveAoLogin } from './api.js?v=v1.60.23';
+import { mergeAoSitesWithPrivateCache, isPrivateSite, shouldShowOthersPrivateSites, DEFAULT_MAP_CENTER } from './location.js?v=v1.60.23';
+import { saveLastKnownPosition, loadLastKnownPosition } from './storage.js?v=v1.60.23';
 import { haversine } from './utils.js';
-import { t, getLanguage, applyTranslations } from './i18n.js?v=v1.60.21';
+import { t, getLanguage, applyTranslations } from './i18n.js?v=v1.60.23';
 
 applyTranslations(); // statisk data-i18n-markup i map.html (back-lenke, FAB, opprett-panel)
 // Versjonert import: HARD avhengighet til navngitte eksporter i en modul som
@@ -20,7 +20,7 @@ import {
   tilLagretVerdi,
   visLokaliteter,
   visNavn,
-} from './kart-visning.js?v=v1.60.21';
+} from './kart-visning.js?v=v1.60.23';
 import {
   DEFAULT_OFFLINE_AREA_SIDE_M,
   KARTVERKET_TOPO_URL_TEMPLATE,
@@ -42,7 +42,7 @@ import {
   getBoundsDimensionsMeters,
   moveBoundsToCenter,
   resizeBoundsFromCorner,
-} from './offline-area.js?v=v1.60.21';
+} from './offline-area.js?v=v1.60.23';
 import {
   getNetworkMode,
   setNetworkMode,
@@ -59,7 +59,7 @@ import {
   syncOfflineAreas,
   clearAllOfflineData,
   syncNetworkModeToServiceWorker,
-} from './offline-db.js?v=v1.60.21';
+} from './offline-db.js?v=v1.60.23';
 
 // Hent data fra localStorage — fall tilbake til Svortland, Bømlo dersom mapData mangler
 let data = {};

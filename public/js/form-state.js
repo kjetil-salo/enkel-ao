@@ -10,14 +10,18 @@ const SEARCH_PLACEHOLDER_READY = 'Skriv artsnavn her …';
 
 export function updateSectionStates(state, dom) {
   const hasLocation = !!(dom.placeInput && dom.placeInput.value.trim());
+  // «Ukjent antall» (sticky avkrysning, se observation-commit.js) gjør antall-feltet
+  // irrelevant — det skal da IKKE blokkere aktivitet/✓ selv om det står tomt.
+  const unknownCount = !!(dom.countUnknownCheckbox && dom.countUnknownCheckbox.checked);
+  const countOk = unknownCount || !!(dom.countInput && dom.countInput.value.trim());
 
   if (dom.sectionObservasjon) {
     dom.sectionObservasjon.classList.toggle('dimmed', !hasLocation);
     dom.input.disabled = !hasLocation;
     // Selvforklarende låst tilstand: feltet forteller hva som mangler.
     dom.input.placeholder = hasLocation ? SEARCH_PLACEHOLDER_READY : SEARCH_PLACEHOLDER_LOCKED;
-    dom.countInput.disabled = !hasLocation || !state.selectedSpecies;
-    dom.activitySelect.disabled = !hasLocation || !state.selectedSpecies || !dom.countInput.value.trim();
+    dom.countInput.disabled = !hasLocation || !state.selectedSpecies || unknownCount;
+    dom.activitySelect.disabled = !hasLocation || !state.selectedSpecies || !countOk;
     dom.activitySubmitBtn.disabled = dom.activitySelect.disabled;
     if (!hasLocation) {
       dom.input.value = '';
@@ -28,7 +32,7 @@ export function updateSectionStates(state, dom) {
       dom.genderSelect.disabled = true;
     }
   }
-  const hasCount = !!(dom.countInput && dom.countInput.value.trim() && !dom.countInput.disabled);
+  const hasCount = hasLocation && !!state.selectedSpecies && countOk;
   if (dom.sectionAktivitet) {
     dom.sectionAktivitet.classList.toggle('dimmed', !hasCount);
     const wasDisabled = dom.activitySelect.disabled;

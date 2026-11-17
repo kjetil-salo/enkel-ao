@@ -129,7 +129,11 @@ def observations_to_csv(observations):
             date_str,  # Til dato = fra dato
             time_str,
             time_to_str,
-            str(obs.get('count', '')),
+            # obs.get('count', '') er IKKE nok her: nøkkelen er alltid TIL STEDE (ukjent
+            # antall settes til None, ikke fjernes), så fallbacken '' treffer aldri — i
+            # stedet ble str(None) == 'None' sendt til AO som verdien i Antall-kolonnen,
+            # og AO avviste raden («Ugyldig verdi: ikke et heltall», feltverifisert 16.11.2026).
+            '' if obs.get('count') is None else str(obs['count']),
             obs.get('age', ''),
             obs.get('gender', ''),
             obs.get('activity', ''),

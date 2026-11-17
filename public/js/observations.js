@@ -2,9 +2,9 @@
  * Observations-modul for håndtering av observasjoner og CSV-eksport
  */
 
-import { defaultCoObservers, loadMedobs, speciesDisplayName, activityDisplayName, activityBokmalName } from './storage.js?v=v1.60.21';
+import { defaultCoObservers, loadMedobs, speciesDisplayName, activityDisplayName, activityBokmalName, loadAllowUnknownCount } from './storage.js?v=v1.60.23';
 import { showToast } from './ui.js';
-import { t } from './i18n.js?v=v1.60.21';
+import { t } from './i18n.js?v=v1.60.23';
 import { toLocalISOString } from './utils.js';
 import { getObservationVisitKey, setVisitLocked } from './visits.js';
 import { openEditModal } from './edit-modal.js';
@@ -505,6 +505,7 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
           Object.assign(minus10Btn.style, btnStyleWithDisplay);
           minus10Btn.addEventListener('click', (e) => {
             e.stopPropagation();
+            if (obs.count == null) return; // ukjent antall - «-» er no-op
             if (obs.count > 10) {
               obs.count -= 10;
             } else {
@@ -525,6 +526,7 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
         Object.assign(minusBtn.style, btnStyleWithDisplay);
         minusBtn.addEventListener('click', (e) => {
           e.stopPropagation();
+          if (obs.count == null) return; // ukjent antall - «-» er no-op
           if (obs.count > 1) {
             obs.count--;
             obs.tilKlokkeslett = toLocalISOString(new Date());
@@ -535,7 +537,7 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
 
         // Tallet
         const span = document.createElement('span');
-        span.textContent = obs.count != null ? String(obs.count) : '';
+        span.textContent = obs.count != null ? String(obs.count) : '–';
         Object.assign(span.style, {
           cursor: 'pointer',
           minWidth: isNarrow ? '22px' : '36px',
@@ -559,7 +561,7 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
         Object.assign(plusBtn.style, btnStyleWithDisplay);
         plusBtn.addEventListener('click', (e) => {
           e.stopPropagation();
-          obs.count++;
+          obs.count = (obs.count == null ? 0 : obs.count) + 1; // ukjent antall - «+» setter 1
           obs.tilKlokkeslett = toLocalISOString(new Date());
           span.textContent = String(obs.count);
           saveState();
@@ -576,7 +578,7 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
           Object.assign(plus10Btn.style, btnStyleWithDisplay);
           plus10Btn.addEventListener('click', (e) => {
             e.stopPropagation();
-            obs.count += 10;
+            obs.count = (obs.count == null ? 0 : obs.count) + 10;
             obs.tilKlokkeslett = toLocalISOString(new Date());
             span.textContent = String(obs.count);
             saveState();
@@ -607,8 +609,20 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
         
         function save() {
           const val = input.value.trim();
+          if (!val) {
+            if (!loadAllowUnknownCount()) {
+              showToast(t('observations.validation.count'));
+              renderCountCell();
+              return;
+            }
+            obs.count = null;
+            obs.tilKlokkeslett = toLocalISOString(new Date());
+            saveState();
+            renderObservations(observations, obsListEl, buttons, saveState);
+            return;
+          }
           const num = parseInt(val, 10);
-          if (!val || isNaN(num) || num <= 0) {
+          if (isNaN(num) || num <= 0) {
             renderCountCell();
             return;
           }

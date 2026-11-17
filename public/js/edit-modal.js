@@ -4,10 +4,11 @@
  * stedet for en egen side. Gjenbruker photo-picker.js og coobserver-picker.js,
  * som også brukes av registrerings-modalen (✎ Flere felt i ②).
  */
-import { saveObservations, lastSaveError, activityDisplayName, activityBokmalName } from './storage.js';
-import { initPhotoPicker } from './photo-picker.js?v=v1.60.21';
+import { saveObservations, lastSaveError, activityDisplayName, activityBokmalName, loadAllowUnknownCount } from './storage.js';
+import { initPhotoPicker } from './photo-picker.js?v=v1.60.23';
 import { initCoObserverPicker } from './coobserver-picker.js';
 import { isoToDate, isoToTime, updateDateTimeInIso } from './datetime-helpers.js';
+import { t } from './i18n.js';
 
 let els = null;
 let photoPicker = null;
@@ -100,11 +101,14 @@ function ensureInit() {
 async function populateActivitySelect(currentActivity) {
   const activities = await loadActivitiesOnce();
   els.activity.innerHTML = '';
+  const noneOpt = document.createElement('option');
+  noneOpt.value = '';
+  noneOpt.textContent = t('index.common.not_specified');
+  els.activity.appendChild(noneOpt);
   activities.forEach((a) => {
     const opt = document.createElement('option');
     opt.value = a.value;
     opt.textContent = activityDisplayName(a.label);
-    if (a.selected) opt.selected = true;
     els.activity.appendChild(opt);
   });
   if (currentActivity) {
@@ -118,6 +122,8 @@ async function populateActivitySelect(currentActivity) {
         break;
       }
     }
+  } else {
+    els.activity.selectedIndex = 0; // «Ikke oppgitt» — funnet har genuint ingen aktivitet
   }
 }
 
@@ -179,9 +185,25 @@ function handleSubmit(e) {
 
   obs.species = obs.species || {};
   obs.species.taxonName = els.species.value.trim();
-  obs.count = parseInt(els.count.value, 10) || 1;
+
+  const rawCount = els.count.value.trim();
+  if (!rawCount) {
+    if (!loadAllowUnknownCount()) {
+      alert('Du må fylle inn antall, eller skru på «Tillat ukjent antall» i innstillinger.');
+      return;
+    }
+    obs.count = null;
+  } else {
+    const parsedCount = parseInt(rawCount, 10);
+    if (isNaN(parsedCount) || parsedCount <= 0) {
+      alert('Antall må være et positivt tall.');
+      return;
+    }
+    obs.count = parsedCount;
+  }
+
   const actOpt = els.activity.options[els.activity.selectedIndex];
-  obs.activity = actOpt && actOpt.text ? activityBokmalName(actOpt.text.trim()) : '';
+  obs.activity = (actOpt && actOpt.value !== '') ? activityBokmalName((actOpt.text || '').trim()) : '';
   obs.age = els.age.value || '';
   obs.gender = els.gender.value || '';
   obs.placeName = els.place.value.trim();

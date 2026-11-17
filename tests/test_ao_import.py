@@ -135,6 +135,26 @@ def test_observations_to_csv_basic():
     assert 'Medobservatør' in lines[0]
 
 
+def test_observations_to_csv_count_none_gir_tom_kolonne_ikke_strengen_none():
+    # Regresjonsvern: obs.get('count', '') traff ALDRI fallbacken siden nøkkelen
+    # er TIL STEDE (ukjent antall er None, ikke fjernet) — str(None) == 'None' ble
+    # sendt til AO som Antall-verdien, og AO avviste raden («ikke et heltall»,
+    # feltverifisert 16.11.2026). Se docs/ukjent-antall-og-uoppgitt-aktivitet.md.
+    observations = [{
+        'species': {'taxonName': 'Gråspurv'},
+        'timestamp': '2026-11-16T20:10:00Z',
+        'placeName': 'Testlokalitet',
+        'count': None,
+        'activity': '',
+    }]
+
+    csv = observations_to_csv(observations)
+
+    assert 'None' not in csv
+    cols = csv.split('\r\n')[1].split('\t')
+    assert cols[10] == ''  # Antall-kolonnen (indeks 10, se header_cols)
+
+
 def test_observations_to_csv_with_coobservers():
     """Test med 1-10 medobservatører."""
     observations = [{

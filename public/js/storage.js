@@ -3,9 +3,9 @@
  */
 import { hentAktivFellestur } from './fellestur-client.js';
 import { lastSpeil, lagreSpeilOgSynk, hentTurMedobservatorer } from './fellestur-sync.js';
-import { translateDedicatedSubspeciesToNynorsk } from './species-matcher.js?v=v1.60.21';
+import { translateDedicatedSubspeciesToNynorsk } from './species-matcher.js?v=v1.60.23';
 import { aktivInnhentetListe, lagreEndringerIInnhentetListe, lesInnhentetListe } from './arbeidsliste-lokal.js';
-import { getLanguage, setLanguage, isNynorsk } from './i18n.js?v=v1.60.21';
+import { getLanguage, setLanguage, isNynorsk } from './i18n.js?v=v1.60.23';
 
 export { isNynorsk };
 
@@ -343,6 +343,66 @@ export function loadAoDirectAutoClear() {
 
   try {
     return window.localStorage.getItem(AO_DIRECT_AUTO_CLEAR_KEY) === '1';
+  } catch (e) {
+    return false;
+  }
+}
+
+/**
+ * Lagre om «ca»-avkrysningsboksen (legger «Estimert antal» i kommentarfeltet)
+ * skal vises i hovedskjemaet. Av som standard, bak samme type innstillingsbryter
+ * som «ukjent antall» — holder skjemaet enkelt for de fleste brukerne.
+ * @param {boolean} value
+ */
+export function saveAllowEstimatedCount(value) {
+  if (!window.localStorage) return;
+
+  try {
+    window.localStorage.setItem('allow_estimated_count_v1', value ? '1' : '0');
+  } catch (e) {
+    console.warn('Kunne ikke lagre estimert-antall-valg', e);
+  }
+}
+
+/**
+ * Last om «ca»-avkrysningsboksen skal vises i hovedskjemaet.
+ * @returns {boolean}
+ */
+export function loadAllowEstimatedCount() {
+  if (!window.localStorage) return false;
+
+  try {
+    return window.localStorage.getItem('allow_estimated_count_v1') === '1';
+  } catch (e) {
+    return false;
+  }
+}
+
+/**
+ * Lagre om antall-feltet kan stå tomt ved registrering (sticky «ukjent
+ * antall»-avkrysning i hovedskjemaet). Av som standard — moderatorer har
+ * historisk klaget på antallsløse funn, se docs/ukjent-antall-og-uoppgitt-aktivitet.md.
+ * @param {boolean} value
+ */
+export function saveAllowUnknownCount(value) {
+  if (!window.localStorage) return;
+
+  try {
+    window.localStorage.setItem('allow_unknown_count_v1', value ? '1' : '0');
+  } catch (e) {
+    console.warn('Kunne ikke lagre ukjent-antall-valg', e);
+  }
+}
+
+/**
+ * Last om antall-feltet kan stå tomt ved registrering.
+ * @returns {boolean}
+ */
+export function loadAllowUnknownCount() {
+  if (!window.localStorage) return false;
+
+  try {
+    return window.localStorage.getItem('allow_unknown_count_v1') === '1';
   } catch (e) {
     return false;
   }

@@ -73,6 +73,7 @@ function nyDom() {
     ageSelect: lagSelect('age', '', ''),
     genderSelect: lagSelect('gender', '', ''),
     countEstimatedCheckbox: lagCheckbox('count-estimated'),
+    countUnknownCheckbox: lagCheckbox('count-unknown'),
     extraUncertain: lagCheckbox('extra-uncertain'),
     extraNotSpontaneous: lagCheckbox('extra-not-spontaneous'),
     extraInteresting: lagCheckbox('extra-interesting'),
@@ -134,6 +135,53 @@ describe('commitObservation — «antall er estimert»-boks', () => {
     commitObservation(state, dom, nyeCallbacks());
 
     expect(dom.countEstimatedCheckbox.checked).toBe(false);
+  });
+});
+
+describe('commitObservation — ukjent antall og uoppgitt aktivitet', () => {
+  it('avviser fortsatt tomt antall når «ukjent antall»-boksen ikke er huket av', () => {
+    const state = nyState();
+    const dom = nyDom();
+    dom.countInput.value = '';
+    dom.countUnknownCheckbox.checked = false;
+
+    commitObservation(state, dom, nyeCallbacks());
+
+    expect(state.observations).toHaveLength(0);
+  });
+
+  it('lagrer count: null når «ukjent antall»-boksen er huket av, selv med tomt antallsfelt', () => {
+    const state = nyState();
+    const dom = nyDom();
+    dom.countInput.value = '';
+    dom.countUnknownCheckbox.checked = true;
+
+    commitObservation(state, dom, nyeCallbacks());
+
+    expect(state.observations).toHaveLength(1);
+    expect(state.observations[0].count).toBeNull();
+  });
+
+  it('holder «ukjent antall»-boksen huket av etter registrering (sticky, i motsetning til «ca»)', () => {
+    const state = nyState();
+    const dom = nyDom();
+    dom.countInput.value = '';
+    dom.countUnknownCheckbox.checked = true;
+
+    commitObservation(state, dom, nyeCallbacks());
+
+    expect(dom.countUnknownCheckbox.checked).toBe(true);
+  });
+
+  it('lagrer activity: "" når «Ikke oppgitt» (value="") er valgt, uten å avvise registreringen', () => {
+    const state = nyState();
+    const dom = nyDom();
+    dom.activitySelect = lagSelect('activity', 'Ikke oppgitt', '');
+
+    commitObservation(state, dom, nyeCallbacks());
+
+    expect(state.observations).toHaveLength(1);
+    expect(state.observations[0].activity).toBe('');
   });
 });
 

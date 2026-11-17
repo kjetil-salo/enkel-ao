@@ -10,7 +10,7 @@
 // og en manglende navngitt eksport gir SyntaxError som stopper HELE main.js,
 // ikke bare den ene funksjonen. Bump ved hver nye eksport vi blir avhengige
 // av. Samme fallgruve som storage.js-importen under og map.js sin api.js-import.
-import { logPageView, loadActivities, fetchAoSites, ensureAoPrivateSites } from './api.js?v=v1.60.21';
+import { logPageView, loadActivities, fetchAoSites, ensureAoPrivateSites } from './api.js?v=v1.60.23';
 // Versjonert import: denne linjen har en HARD avhengighet til to navngitte
 // eksporter (loadAoDirectAutoClear/saveAoDirectAutoClear) som ikke fantes i
 // tiderligere versjoner av storage.js. Uten ?v= her kan Cloudflare servere en
@@ -19,10 +19,10 @@ import { logPageView, loadActivities, fetchAoSites, ensureAoPrivateSites } from 
 // altså hele appen, se samme fallgruve for map.js/location.js (v1.53.15) og
 // sjekklisten i CLAUDE.md. Bump SAMTIDIG som index.html sin egen ?v=-tag for
 // main.js, hver gang storage.js får en ny eksport main.js begynner å bruke.
-import { loadObservations, saveObservations, loadAoSearchRadius, saveAoSearchRadius, loadLocationSortMode, saveLocationSortMode, loadAoDirectAutoClear, saveAoDirectAutoClear, saveLastKnownPosition, loadLastKnownPosition, activityDisplayName, lesArbeidslisteForOverforing } from './storage.js?v=v1.60.21';
-import { setStatus, setLocationStatus, showToast, showOfflineNotAvailableDialog, haversine, MODE_SPLASH_DURATION_MS } from './ui.js?v=v1.60.21';
-import { t, applyTranslations } from './i18n.js?v=v1.60.21';
-import { DEFAULT_MAP_CENTER, setAoSiteSuggestions, initLocation, openMap, openMapPage, updateCreateSiteBtnVisibility, initCreateSite } from './location.js?v=v1.60.21';
+import { loadObservations, saveObservations, loadAoSearchRadius, saveAoSearchRadius, loadLocationSortMode, saveLocationSortMode, loadAoDirectAutoClear, saveAoDirectAutoClear, saveLastKnownPosition, loadLastKnownPosition, activityDisplayName, lesArbeidslisteForOverforing, loadAllowUnknownCount, loadAllowEstimatedCount } from './storage.js?v=v1.60.23';
+import { setStatus, setLocationStatus, showToast, showOfflineNotAvailableDialog, haversine, MODE_SPLASH_DURATION_MS } from './ui.js?v=v1.60.23';
+import { t, applyTranslations } from './i18n.js?v=v1.60.23';
+import { DEFAULT_MAP_CENTER, setAoSiteSuggestions, initLocation, openMap, openMapPage, updateCreateSiteBtnVisibility, initCreateSite } from './location.js?v=v1.60.23';
 // Versjonert import: observations.js sitt eget innhold (ikke bare hvilke
 // eksporter den har) endret seg vesentlig i dag (speciesDisplayName-bruk i
 // ③-lista og slett-toasten). En stale cachet kopi av selve FILEN - ikke bare
@@ -32,7 +32,7 @@ import { DEFAULT_MAP_CENTER, setAoSiteSuggestions, initLocation, openMap, openMa
 // timer, uten noen SyntaxError som varsler om det (funksjonene fantes jo
 // allerede - bare med gammel logikk). Se species-search.js/
 // observation-commit.js under for samme fiks, og docs/CLAUDE.md.
-import { renderObservations } from './observations.js?v=v1.60.21';
+import { renderObservations } from './observations.js?v=v1.60.23';
 import { getVisitTimeSpan, isVisitLocked, visitExists } from './visits.js';
 
 // Nye moduler
@@ -43,18 +43,18 @@ import { updateSectionStates, pulseSearchFieldAndFocus } from './form-state.js';
 // gang har vært versjonert. Dette var den faktiske årsaken til at Kjetil
 // testet v1.53.25 og fortsatt bare så gammel oppførsel i vanlig søk -
 // nettleseren hans hadde en cachet species-search.js fra v1.53.24.
-import { fetchResults, renderResults, chooseItem, updateSubtaxaCheckboxState } from './species-search.js?v=v1.60.21';
-import { commitObservation, renderActivityPills } from './observation-commit.js?v=v1.60.21';
+import { fetchResults, renderResults, chooseItem, updateSubtaxaCheckboxState } from './species-search.js?v=v1.60.23';
+import { commitObservation, renderActivityPills } from './observation-commit.js?v=v1.60.23';
 import { handleExport, handleCopy, handleCopyAndOpen, handleClear, handleDirectSend, oppdaterAoKoHint, aoSendingPagar }
-  from './export-operations.js?v=v1.60.21';
+  from './export-operations.js?v=v1.60.23';
 import { openShareDialog } from './share.js';
-import { initAutocomplete } from './autocomplete.js?v=v1.60.21';
-import { initNewsSplash } from './news-splash.js?v=v1.60.21';
-import { initFirstRunHint, shouldShowHint } from './first-run-hint.js?v=v1.60.21';
+import { initAutocomplete } from './autocomplete.js?v=v1.60.23';
+import { initNewsSplash } from './news-splash.js?v=v1.60.23';
+import { initFirstRunHint, shouldShowHint } from './first-run-hint.js?v=v1.60.23';
 import { hentAktivFellestur, forlatFellestur } from './fellestur-client.js';
 import { oppdaterSpeilFraServer, hentSpeilVersjon, lastSpeil } from './fellestur-sync.js';
 import { aktivInnhentetListe, lukkInnhentetListe } from './arbeidsliste-lokal.js';
-import { initArbeidslisteOverforing } from './arbeidsliste-overforing.js?v=v1.60.21';
+import { initArbeidslisteOverforing } from './arbeidsliste-overforing.js?v=v1.60.23';
 import {
   getNetworkMode,
   cycleNetworkMode,
@@ -64,7 +64,7 @@ import {
   fetchLocationsWithNetworkMode,
   saveOpportunisticOfflineLocations,
   syncNetworkModeToServiceWorker,
-} from './offline-db.js?v=v1.60.21';
+} from './offline-db.js?v=v1.60.23';
 
 // ============================================================
 // Applikasjonstilstand
@@ -151,6 +151,9 @@ const dom = {
   ageSelect: document.getElementById('age'),
   genderSelect: document.getElementById('gender'),
   countEstimatedCheckbox: document.getElementById('count-estimated'),
+  countEstimatedRow: document.getElementById('count-estimated-row'),
+  countUnknownCheckbox: document.getElementById('count-unknown'),
+  countUnknownRow: document.getElementById('count-unknown-row'),
   extraUncertain: document.getElementById('extra-uncertain'),
   extraNotSpontaneous: document.getElementById('extra-not-spontaneous'),
   extraInteresting: document.getElementById('extra-interesting'),
@@ -946,6 +949,20 @@ function setupEventListeners() {
   if (dom.countInput) {
     dom.countInput.addEventListener('input', () => updateSectionStates(appState, dom));
   }
+  if (dom.countEstimatedRow && loadAllowEstimatedCount()) {
+    dom.countEstimatedRow.style.display = 'flex';
+  }
+  if (dom.countUnknownRow && loadAllowUnknownCount()) {
+    dom.countUnknownRow.style.display = 'flex';
+  }
+  if (dom.countUnknownCheckbox) {
+    dom.countUnknownCheckbox.addEventListener('change', () => {
+      if (dom.countUnknownCheckbox.checked) {
+        dom.countInput.value = '';
+      }
+      updateSectionStates(appState, dom);
+    });
+  }
   if (dom.input) {
     dom.input.addEventListener('input', () => updateSectionStates(appState, dom));
   }
@@ -1261,6 +1278,10 @@ async function init() {
 
   try {
     const activities = await loadActivities();
+    const noneOpt = document.createElement('option');
+    noneOpt.value = '';
+    noneOpt.textContent = t('index.common.not_specified');
+    dom.activitySelect.appendChild(noneOpt);
     activities.forEach(a => {
       const opt = document.createElement('option');
       opt.value = a.value;

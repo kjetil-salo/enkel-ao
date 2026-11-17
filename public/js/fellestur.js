@@ -14,12 +14,12 @@
  * Se docs/deling-av-observasjoner-plan.md for søsterfunksjonen "deling"
  * (read-only, én skriver) — fellestur er det motsatte: flere skrivere.
  */
-import { loadObservations, saveObservations } from './storage.js';
+import { loadObservations, saveObservations, loadAllowUnknownCount } from './storage.js';
 import { resolveVisitIdForNewObservation } from './visits.js';
 import { hentAktivFellestur, settAktivFellestur, forlatFellestur, hentMittNavn, settMittNavn } from './fellestur-client.js';
 import { showToast } from './ui.js';
 import { attachAoObserverAutocomplete } from './ao-observer-autocomplete.js';
-import { t, applyTranslations } from './i18n.js?v=v1.60.21';
+import { t, applyTranslations } from './i18n.js?v=v1.60.23';
 
 applyTranslations(); // oversetter statisk data-i18n-markup i fellestur.html (back-link, ingress)
 
@@ -487,8 +487,19 @@ function renderObsListe() {
   listeEl.querySelectorAll('[data-antall-id]').forEach((input) => {
     input.addEventListener('change', async () => {
       const id = input.dataset.antallId;
-      const antall = parseInt(input.value, 10);
-      if (isNaN(antall)) return;
+      const raw = input.value.trim();
+      let antall;
+      if (!raw) {
+        if (!loadAllowUnknownCount()) {
+          showToast(t('observations.validation.count'));
+          renderObsListe(); // gjenoppretter den gamle verdien i inputfeltet
+          return;
+        }
+        antall = null;
+      } else {
+        antall = parseInt(raw, 10);
+        if (isNaN(antall)) return;
+      }
       const rad = state.tur.observasjoner.find((o) => o.id === id);
       if (!rad) return;
       const obs = { ...obsUtenMeta(rad), count: antall };
