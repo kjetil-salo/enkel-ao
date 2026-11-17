@@ -9,8 +9,8 @@ import {
   getSpeciesMeta,
   findBokmalByNynorskTerm,
   searchSpecies,
-} from './species_offline.js?v=v1.60.21';
-import { speciesDisplayName, loadNynorskArtsnavn } from './storage.js?v=v1.60.21';
+} from './species_offline.js?v=v1.60.24';
+import { speciesDisplayName, loadNynorskArtsnavn } from './storage.js?v=v1.60.24';
 
 export { searchSpecies };
 
@@ -99,13 +99,20 @@ export function chooseItem(index, state, dom, callbacks) {
     dom.resultsEl.style.display = '';
   }, 200);
 
-  dom.countInput.disabled = false;
-  dom.countInput.value = '1';
-  dom.countInput.dataset.isDefault = '1';
-  dom.countInput.focus();
-  dom.countInput.classList.remove('focus-flash');
-  void dom.countInput.offsetWidth;
-  dom.countInput.classList.add('focus-flash');
+  // Sticky «ukjent antall» fra forrige registrering (se observation-commit.js):
+  // ikke forhåndsfyll '1' i et felt brukeren bevisst har erklært irrelevant.
+  const utenAntall = !!(dom.countUnknownCheckbox && dom.countUnknownCheckbox.checked);
+  dom.countInput.disabled = utenAntall;
+  if (utenAntall) {
+    dom.countInput.value = '';
+  } else {
+    dom.countInput.value = '1';
+    dom.countInput.dataset.isDefault = '1';
+    dom.countInput.focus();
+    dom.countInput.classList.remove('focus-flash');
+    void dom.countInput.offsetWidth;
+    dom.countInput.classList.add('focus-flash');
+  }
 
   // Første siffer erstatter default-verdien
   dom.countInput.addEventListener('keydown', function defaultHandler(e) {
@@ -139,6 +146,10 @@ export function chooseItem(index, state, dom, callbacks) {
 
   dom.ageSelect.disabled = false;
   dom.genderSelect.disabled = false;
+
+  if (utenAntall && dom.activitySelect) {
+    dom.activitySelect.focus();
+  }
 
   callbacks.updateSectionStates();
 }

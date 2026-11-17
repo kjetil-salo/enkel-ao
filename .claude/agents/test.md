@@ -130,3 +130,16 @@ Rapporter kun funn — ikke list tester som bestod. Fiks ikke bugs, rapporter de
 
 Test aldri mot staging eller produksjon. Alt her kjøres lokalt, mot
 `localhost:3000` eller mock-serveren i `mock/`.
+
+## Om en ekte AO-test likevel trengs (utenfor denne agentens normale omfang)
+
+Skal en endring feltverifiseres mot artsobservasjoner.no sitt ekte import-API
+(ikke lokal mock), gjelder reglene i CLAUDE.md sin seksjon «Testkonto på
+Artsobservasjoner». Kort oppsummert:
+- Kontoen heter **`kjetil-test`** — en egen AO-konto Kjetil har opprettet
+  utelukkende for testing. ALDRI bruk eierens egen AO-konto.
+- **Alle observasjoner opprettet under testing skal slettes igjen** etter at
+  testen er verifisert — i gjennomgangskøen eller publisert, uansett. Ingen
+  testdata skal bli stående på kontoen.
+- Standard er å aldri publisere — test til gjennomgangskøen og slett derfra.
+  Spør eieren eksplisitt før en eventuell publisering.

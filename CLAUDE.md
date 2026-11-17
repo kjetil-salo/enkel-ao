@@ -377,6 +377,11 @@ Pure ES6 modules with no framework:
     `obs.rarityWarning = {header, body}` — vist som ⚠️-merke i lista (`observations.js`)
   - `edit-modal.js` nullstiller `obs.rarityWarning` hvis art/lokasjon/dato endres ved redigering
     — det gamle AO-svaret er ellers ikke lenger til å stole på
+  - **Antall og aktivitet kan begge stå tomt** (v1.60.22): antall bak en sticky avkrysning
+    styrt av innstillingsbryteren «Tillat ukjent antall» (`form-state.js` gater
+    aktivitet/✓-knappen på den i stedet for på et utfylt antall-felt); aktivitet har et
+    alltid tilgjengelig «Ikke oppgitt»-valg (`value=""`), ALDRI kjørt gjennom
+    `activityBokmalName()`. Full beskrivelse: `docs/ukjent-antall-og-uoppgitt-aktivitet.md`
 - `storage.js` — Browser localStorage management (includes activity pills config)
   - `saveObservations()` returnerer `true`/`false` for om `localStorage.setItem()` faktisk
     lyktes (full kvote, f.eks. store bilder på iOS Safari, kaster ellers i stillhet).
@@ -740,11 +745,15 @@ om den setter en validator i arbeid, og om den ligger på en ekte lokalitet.
 
 1. **Legitimasjon i `.env`** (gitignorert). Aldri i en commit, aldri i en
    loggfil, aldri skrevet ut i en samtale. NB: serveren lagrer AO-passord i
-   `/data/credentials.json` — én grunn mer til at det ikke skal være eierens egen
+   `/data/credentials.json` — én grunn mer til at det ikke skal være eierens egen.
+   **Testkontoen heter `kjetil-test`** — en egen AO-konto Kjetil har opprettet
+   utelukkende for dette formålet
 2. **Standard: publiser ALDRI.** AO-importen er to steg — radene havner først i
    gjennomgangskøen («Kontroller funn»), publisering er et eget steg. Test til
    køen, verifiser, slett fra køen. `/api/ao-queue-count` skal vise samme tall
-   etterpå som før
+   etterpå som før. **Alle observasjoner opprettet under testing — i køen eller
+   publisert — skal slettes igjen etter at testen er verifisert.** Ingen
+   testdata skal bli stående på kontoen
 3. **Må publiseringsveien testes ende-til-ende** (det må den av og til — det er
    kjernefunksjonen): ett funn, antall 1, **slett straks etter verifisering**, og
    bekreft at det er borte med `/api/ao-my-sightings`. Ikke «antar det ble slettet»

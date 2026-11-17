@@ -75,6 +75,31 @@ def test_ao3_publiserer_bare_verifiserte_utkast(monkeypatch, utfall):
         assert publisert == ([101, 102] if utfall == 'uten_kvittering' else [])
 
 
+def test_prepare_avviser_ukjent_antall_i_stedet_for_a_krasje(monkeypatch):
+    # count=None (ukjent antall, se docs/ukjent-antall-og-uoppgitt-aktivitet.md)
+    # skal gi den uttrykte _KanIkkeSende-grenen for antall<1, ALDRI en ufanget
+    # TypeError fra int(None) — regresjonsvern for ao3_import.py sin _prepare().
+    monkeypatch.setattr(ao3_import, '_ao3_art', lambda _: {'vernacularName': {'name': 'kjøttmeis'}, 'speciesGroupId': 8})
+    monkeypatch.setattr(ao3_import, '_verdilister', lambda: ({'stasjonær': 23}, {'': 0}, {'': 0}))
+    funn = {'species': {'taxonId': 4372, 'taxonName': 'Kjøttmeis'}, 'activity': '',
+            'placeId': 349566, 'count': None, 'timestamp': '2026-11-14T08:00:00'}
+
+    with pytest.raises(ao3_import._KanIkkeSende, match='antall'):
+        ao3_import._prepare(funn)
+
+
+def test_prepare_tillater_tom_aktivitet(monkeypatch):
+    # Et tomt aktivitetsfelt («Ikke oppgitt») skal ikke sette activityId i det
+    # hele tatt — ikke kaste på et manglende oppslag i aktivitetslista.
+    monkeypatch.setattr(ao3_import, '_ao3_art', lambda _: {'vernacularName': {'name': 'kjøttmeis'}, 'speciesGroupId': 8})
+    monkeypatch.setattr(ao3_import, '_verdilister', lambda: ({'stasjonær': 23}, {'': 0}, {'': 0}))
+    funn = {'species': {'taxonId': 4372, 'taxonName': 'Kjøttmeis'}, 'activity': '',
+            'placeId': 349566, 'count': 1, 'timestamp': '2026-11-14T08:00:00'}
+
+    felter = ao3_import._prepare(funn)
+    assert 'activityId' not in felter
+
+
 def test_private_ao3_lokaliteter_hentes_paginert_fra_innlogget_konto():
     def svar(request):
         assert request.url.path == '/core/Sites/ByUser'

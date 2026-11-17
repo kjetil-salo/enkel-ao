@@ -73,6 +73,7 @@ function nyDom() {
     ageSelect: lagSelect('age', '', ''),
     genderSelect: lagSelect('gender', '', ''),
     countEstimatedCheckbox: lagCheckbox('count-estimated'),
+    countUnknownCheckbox: lagCheckbox('count-unknown'),
     extraUncertain: lagCheckbox('extra-uncertain'),
     extraNotSpontaneous: lagCheckbox('extra-not-spontaneous'),
     extraInteresting: lagCheckbox('extra-interesting'),
@@ -134,6 +135,53 @@ describe('commitObservation — «antall er estimert»-boks', () => {
     commitObservation(state, dom, nyeCallbacks());
 
     expect(dom.countEstimatedCheckbox.checked).toBe(false);
+  });
+});
+
+describe('commitObservation — ukjent antall og uoppgitt aktivitet', () => {
+  it('avviser fortsatt tomt antall når «ukjent antall»-boksen ikke er huket av', () => {
+    const state = nyState();
+    const dom = nyDom();
+    dom.countInput.value = '';
+    dom.countUnknownCheckbox.checked = false;
+
+    commitObservation(state, dom, nyeCallbacks());
+
+    expect(state.observations).toHaveLength(0);
+  });
+
+  it('lagrer count: null når «ukjent antall»-boksen er huket av, selv med tomt antallsfelt', () => {
+    const state = nyState();
+    const dom = nyDom();
+    dom.countInput.value = '';
+    dom.countUnknownCheckbox.checked = true;
+
+    commitObservation(state, dom, nyeCallbacks());
+
+    expect(state.observations).toHaveLength(1);
+    expect(state.observations[0].count).toBeNull();
+  });
+
+  it('holder «ukjent antall»-boksen huket av etter registrering (sticky, i motsetning til «ca»)', () => {
+    const state = nyState();
+    const dom = nyDom();
+    dom.countInput.value = '';
+    dom.countUnknownCheckbox.checked = true;
+
+    commitObservation(state, dom, nyeCallbacks());
+
+    expect(dom.countUnknownCheckbox.checked).toBe(true);
+  });
+
+  it('lagrer activity: "" når «Ikke oppgitt» (value="") er valgt, uten å avvise registreringen', () => {
+    const state = nyState();
+    const dom = nyDom();
+    dom.activitySelect = lagSelect('activity', 'Ikke oppgitt', '');
+
+    commitObservation(state, dom, nyeCallbacks());
+
+    expect(state.observations).toHaveLength(1);
+    expect(state.observations[0].activity).toBe('');
   });
 });
 
@@ -394,5 +442,45 @@ describe('renderActivityPills & drag-to-scroll', () => {
     // Skal IKKE ha endret scrollLeft og skal IKKE ha forhindret default (nedoverscrolling)
     expect(container.scrollLeft).toBe(0);
     expect(wheelEvent.defaultPrevented).toBe(false);
+  });
+
+  it('matcher «Ikke oppgitt»-pillen (value="") på verdi, selv når <option>-teksten står på et annet språk enn den lagrede pill-labelen', () => {
+    // Regresjonstest: p.value er en tom streng for «Ikke oppgitt», og en
+    // tidligere `p.value && ...`-sjekk hoppet derfor alltid over
+    // verdi-matchingen for nettopp denne pillen og falt tilbake til
+    // tekst-sammenligning - som brøt sammen ved språkbytte (se
+    // docs/ukjent-antall-og-uoppgitt-aktivitet.md).
+    localStorage.setItem('activityPills_v1', JSON.stringify({
+      version: 1,
+      pills: [{ label: 'Ikke oppgitt', value: '' }],
+    }));
+
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+
+    const select = document.createElement('select');
+    const stasjonaer = document.createElement('option');
+    stasjonaer.value = '23';
+    stasjonaer.text = 'Stasjonær';
+    select.appendChild(stasjonaer);
+    const ikkeOppgitt = document.createElement('option');
+    ikkeOppgitt.value = '';
+    ikkeOppgitt.text = 'Ikkje oppgjeve'; // nynorsk, mens pillens label er lagret på bokmål
+    select.appendChild(ikkeOppgitt);
+    document.body.appendChild(select);
+
+    const commitFn = vi.fn();
+    const dom = { activityPillsEl: container, activitySelect: select };
+
+    renderActivityPills(dom, commitFn);
+
+    const pill = container.querySelector('.activity-pill');
+    expect(pill).not.toBeNull();
+    pill.click();
+
+    expect(select.selectedIndex).toBe(1);
+    expect(commitFn).toHaveBeenCalledTimes(1);
+
+    localStorage.removeItem('activityPills_v1');
   });
 });

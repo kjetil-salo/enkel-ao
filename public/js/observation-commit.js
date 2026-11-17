@@ -2,9 +2,9 @@
  * Observasjons-modul for validering, lagring og aktivitets-pills
  */
 
-import { defaultCoObservers, loadActivityPills, speciesDisplayName, activityDisplayName, activityBokmalName } from './storage.js?v=v1.60.21';
+import { defaultCoObservers, loadActivityPills, speciesDisplayName, activityDisplayName, activityBokmalName } from './storage.js?v=v1.60.24';
 import { showToast } from './ui.js';
-import { t } from './i18n.js?v=v1.60.21';
+import { t } from './i18n.js?v=v1.60.24';
 import { toLocalISOString } from './utils.js';
 import { resolveVisitIdForNewObservation, getVisitTimeSpan, isVisitLocked, visitExists } from './visits.js';
 import { celebrateRareFind } from './celebrate.js';
@@ -85,25 +85,33 @@ export function commitObservation(state, dom, callbacks) {
     dom.input.focus();
     return;
   }
-  const raw = dom.countInput.value.trim();
-  const num = parseInt(raw, 10);
-  if (!raw || isNaN(num) || num <= 0) {
-    showToast(t('observations.validation.count'));
-    dom.countInput.focus();
-    return;
+  // «Ukjent antall» (sticky avkrysning i hovedskjemaet, se form-state.js og
+  // reset-blokken nedenfor) gjør feltet irrelevant — count lagres da som null,
+  // aldri 0 eller en gjettet verdi. Se docs/ukjent-antall-og-uoppgitt-aktivitet.md.
+  const unknownCount = !!(dom.countUnknownCheckbox && dom.countUnknownCheckbox.checked);
+  let count;
+  if (unknownCount) {
+    count = null;
+  } else {
+    const raw = dom.countInput.value.trim();
+    const num = parseInt(raw, 10);
+    if (!raw || isNaN(num) || num <= 0) {
+      showToast(t('observations.validation.count'));
+      dom.countInput.focus();
+      return;
+    }
+    count = num;
   }
 
+  // «Ikke oppgitt» (value="") er et vanlig, alltid tilgjengelig valg i lista —
+  // aldri kjørt gjennom activityBokmalName(), som ellers ville returnert den
+  // oversatte UI-teksten som om det var et ekte AO-aktivitetsnavn.
   let activity = 'Stasjonær';
   if (dom.activitySelect && !dom.activitySelect.disabled) {
     const opt = dom.activitySelect.options[dom.activitySelect.selectedIndex];
-    if (opt && opt.text && opt.text.trim()) {
-      activity = activityBokmalName(opt.text.trim());
+    if (opt) {
+      activity = opt.value === '' ? '' : activityBokmalName((opt.text || '').trim());
     }
-  }
-  if (!activity || activity === '') {
-    showToast(t('observations.validation.activity'));
-    dom.activitySelect.focus();
-    return;
   }
 
   let age = dom.ageSelect.value || '';
@@ -157,7 +165,7 @@ export function commitObservation(state, dom, callbacks) {
 
   const obs = {
     species: state.selectedSpecies,
-    count: num,
+    count,
     position: state.currentPosition,
     activity,
     placeName: place,
@@ -232,9 +240,16 @@ export function commitObservation(state, dom, callbacks) {
   const artNavnToast = speciesDisplayName(state.selectedSpecies);
 
   // Behold selectedSpecies for å tillate umiddelbar ny registrering med nytt antall
-  // Nullstilles først når bruker begynner å skrive nytt søk
-  dom.countInput.value = '1';
-  dom.countInput.disabled = false; // Hold aktivert så bruker kan endre antall
+  // Nullstilles først når bruker begynner å skrive nytt søk.
+  // «Ukjent antall» nullstilles BEVISST IKKE her — det er selve sticky-mekanismen
+  // (checkboxen står fortsatt avkrysset til brukeren selv fjerner den eller laster siden på nytt).
+  if (unknownCount) {
+    dom.countInput.value = '';
+    dom.countInput.disabled = true;
+  } else {
+    dom.countInput.value = '1';
+    dom.countInput.disabled = false; // Hold aktivert så bruker kan endre antall
+  }
 
   // Lagre sist valgt aktivitet for gjenbruk
   if (dom.activitySelect && activity) {
@@ -365,11 +380,13 @@ export function renderActivityPills(dom, commitFn) {
         return;
       }
       if (dom.activitySelect) {
-        // Match på verdi hvis pillen har en (sikrest), ellers kanonisk
-        // bokmål-navn uansett hvilket språk <option>-teksten vises på.
+        // Match på verdi (sikrest), ellers kanonisk bokmål-navn uansett
+        // hvilket språk <option>-teksten vises på. `p.value` kan være en
+        // tom streng («Ikke oppgitt») - derfor IKKE en sannhets-sjekk på
+        // p.value her, det ville hoppet bom på nettopp den pillen.
         for (let i = 0; i < dom.activitySelect.options.length; i++) {
           const opt = dom.activitySelect.options[i];
-          if ((p.value && opt.value === p.value) || activityBokmalName(opt.text.trim()) === label) {
+          if (opt.value === p.value || activityBokmalName(opt.text.trim()) === label) {
             dom.activitySelect.selectedIndex = i;
             break;
           }

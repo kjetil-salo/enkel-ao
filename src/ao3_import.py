@@ -149,7 +149,10 @@ def _prepare(funn):
     art = funn['species']
     takson = int(art['taxonId'])
     sted = int(funn['placeId'])
-    antall = int(funn['count'])
+    # Ukjent antall (se docs/ukjent-antall-og-uoppgitt-aktivitet.md) gir count=None —
+    # 0 er aldri et ekte antall, så den eksisterende min(...)<1-sjekken under fanger
+    # det uttrykt og sender funnet til manuell AO3-import i stedet for å kaste.
+    antall = int(funn['count']) if funn.get('count') is not None else 0
     if min(takson, sted, antall) < 1:
         raise _KanIkkeSende('Bruk AO3-importen for funn uten entydig art, lokalitet eller antall.')
     ao3_art = _ao3_art(takson)
