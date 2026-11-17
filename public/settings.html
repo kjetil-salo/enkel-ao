@@ -7,7 +7,7 @@
     <link rel="icon" href="/favicon.png" type="image/png" />
     <link rel="apple-touch-icon" href="/icon-192.png" />
     <link rel="manifest" href="/manifest.json">
-    <link rel="stylesheet" href="style.css?v=v1.60.24" />
+    <link rel="stylesheet" href="style.css?v=v1.60.25" />
       <style>
         .settings-card {
           background: var(--card-bg, #111827);
@@ -413,29 +413,39 @@
     <div id="update-progress-modal" role="dialog" aria-modal="true" aria-labelledby="update-progress-title"
       style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(2,6,23,0.75);backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:16px;">
       <div style="background:var(--card-bg,#0f172a);color:var(--text,#e5e7eb);border:1px solid rgba(59,130,246,0.45);border-radius:14px;max-width:420px;width:100%;padding:22px 20px;box-shadow:0 20px 40px rgba(0,0,0,0.45);text-align:center;">
-        <div style="font-size:2.2em;margin-bottom:10px;">🔄</div>
+        <div id="update-progress-icon" style="font-size:2.2em;margin-bottom:10px;">🔄</div>
         <h3 id="update-progress-title" style="margin:0 0 10px 0;font-size:1.1em;color:#3b82f6;font-weight:700;">
           Henter nyeste versjon
         </h3>
         <p id="update-progress-text" style="margin:0;font-size:0.95em;line-height:1.45;color:var(--text,#e5e7eb);">
           Sjekker kontakt med serveren …
         </p>
+        <div id="update-progress-actions" style="display:none;gap:10px;justify-content:center;margin-top:18px;">
+          <button type="button" id="update-progress-close-btn"
+            style="padding:10px 16px;border-radius:8px;border:1px solid rgba(148,163,184,0.35);background:transparent;color:var(--text,#e5e7eb);font-size:0.95em;cursor:pointer;">
+            Lukk
+          </button>
+          <button type="button" id="update-progress-retry-btn"
+            style="padding:10px 16px;border-radius:8px;border:none;background:#3b82f6;color:white;font-weight:600;font-size:0.95em;cursor:pointer;">
+            🔄 Prøv igjen
+          </button>
+        </div>
       </div>
     </div>
 
     <script type="module">
       import { fjernOverforingssesjon } from './js/arbeidsliste-sesjon.js';
       import { apneInnhentetListe, lagreInnhentetKopi, lesInnhentetListe, lukkInnhentetListe } from './js/arbeidsliste-lokal.js';
-      import { loadActivityPills, saveActivityPills, ACTIVITY_SHORT_SUGGESTIONS, activityDisplayName, activityBokmalName } from './js/storage.js?v=v1.60.24';
-      import { loadActivities, fetchAoSitesByBounds, hasActiveAoLogin, ensureAoTokens, getCachedPrivateSites } from './js/api.js?v=v1.60.24';
-      import { shouldShowOthersPrivateSites } from './js/location.js?v=v1.60.24';
+      import { loadActivityPills, saveActivityPills, ACTIVITY_SHORT_SUGGESTIONS, activityDisplayName, activityBokmalName } from './js/storage.js?v=v1.60.25';
+      import { loadActivities, fetchAoSitesByBounds, hasActiveAoLogin, ensureAoTokens, getCachedPrivateSites } from './js/api.js?v=v1.60.25';
+      import { shouldShowOthersPrivateSites } from './js/location.js?v=v1.60.25';
       import {
         getOfflineStorageStats,
         syncOfflineAreas,
         clearAllOfflineData,
         clearAppCachesPreservingMapTiles,
-      } from './js/offline-db.js?v=v1.60.24';
-      import { t, getLanguage, setLanguage, getAvailableLanguages, applyTranslations } from './js/i18n.js?v=v1.60.24';
+      } from './js/offline-db.js?v=v1.60.25';
+      import { t, getLanguage, setLanguage, getAvailableLanguages, applyTranslations } from './js/i18n.js?v=v1.60.25';
 
       // Service Worker registreres og modus synkroniseres av offline-db.js (importert over).
 
@@ -914,9 +924,21 @@
       // <script> uten egen import. Nøyaktig det som manglet her og ga «ReferenceError»
       // på sikkerhetskopi-knappene (rapportert 14.11.2026, v1.60.19). AO-innlogging
       // flyttet til egen profilside i v1.60.21.
-      import { t } from './js/i18n.js?v=v1.60.24';
+      import { t } from './js/i18n.js?v=v1.60.25';
       import { apneInnhentetListe, lagreInnhentetKopi, lesInnhentetListe, lukkInnhentetListe } from './js/arbeidsliste-lokal.js';
-      import { loadAllowUnknownCount, saveAllowUnknownCount, loadAllowEstimatedCount, saveAllowEstimatedCount } from './js/storage.js?v=v1.60.24';
+      import { loadAllowUnknownCount, saveAllowUnknownCount, loadAllowEstimatedCount, saveAllowEstimatedCount } from './js/storage.js?v=v1.60.25';
+
+      // Tema-avhengig statusfarge. Brukt av statusboksene i denne modulen («Hent nyeste
+      // versjon», sikkerhetskopi). Fantes i AO-innlogging-blokken før den flyttet til egen
+      // profilside i v1.60.21, men ble ikke tatt med hit — begge kallstedene under kastet
+      // siden en stille ReferenceError. For «Hent nyeste versjon» (lagt til i v1.60.24) kom
+      // feilen FØR cache-ryddingen i det hele tatt startet: dialogen åpnet seg som planlagt,
+      // men frøs permanent der, med service worker og cache urørt (rapportert i felt
+      // 17.11.2026, reprodusert og rotårsak bekreftet med instrumentering).
+      function _sc(type) {
+        const l = document.body.classList.contains('theme-light');
+        return { info: l ? '#2563eb' : '#93c5fd', success: l ? '#16a34a' : '#86efac', error: l ? '#dc2626' : '#fca5a5' }[type];
+      }
 
       // Tema (segmentert velger: mørkt / lyst / clean)
       const THEMES = ['dark', 'light', 'clean'];
@@ -981,9 +1003,25 @@
       const offlineUpdateModal = document.getElementById('offline-update-modal');
       const offlineUpdateCloseBtn = document.getElementById('offline-update-close-btn');
       const updateProgressModal = document.getElementById('update-progress-modal');
+      const updateProgressIcon = document.getElementById('update-progress-icon');
+      const updateProgressTitle = document.getElementById('update-progress-title');
       const updateProgressText = document.getElementById('update-progress-text');
+      const updateProgressActions = document.getElementById('update-progress-actions');
+      const updateProgressCloseBtn = document.getElementById('update-progress-close-btn');
+      const updateProgressRetryBtn = document.getElementById('update-progress-retry-btn');
+      let updateStallTimer = null;
 
       function openUpdateProgressModal(text) {
+        if (updateStallTimer) {
+          clearTimeout(updateStallTimer);
+          updateStallTimer = null;
+        }
+        if (updateProgressIcon) updateProgressIcon.textContent = '🔄';
+        if (updateProgressTitle) {
+          updateProgressTitle.textContent = 'Henter nyeste versjon';
+          updateProgressTitle.style.color = '#3b82f6';
+        }
+        if (updateProgressActions) updateProgressActions.style.display = 'none';
         if (updateProgressText) updateProgressText.textContent = text;
         if (updateProgressModal) updateProgressModal.style.display = 'flex';
       }
@@ -993,7 +1031,39 @@
       }
 
       function closeUpdateProgressModal() {
+        if (updateStallTimer) {
+          clearTimeout(updateStallTimer);
+          updateStallTimer = null;
+        }
         if (updateProgressModal) updateProgressModal.style.display = 'none';
+      }
+
+      // Selve reload-navigasjonen (location.href) kan stoppe opp uten varsel ved svak
+      // feltdekning — da ble brukeren tidligere stående med spinneren for alltid, uten
+      // beskjed om noe feilet, og måtte tvangslukke og åpne appen på nytt for å komme videre.
+      function showUpdateStalled() {
+        updateStallTimer = null;
+        if (updateProgressIcon) updateProgressIcon.textContent = '⚠️';
+        if (updateProgressTitle) {
+          updateProgressTitle.textContent = 'Tar uventet lang tid';
+          updateProgressTitle.style.color = '#f59e0b';
+        }
+        setUpdateProgressText(
+          'Mellomlageret er ryddet, men vi fikk ikke bekreftet at siden lastet på nytt – dette skjer typisk ved svak nettforbindelse. Trykk «Prøv igjen», eller lukk og fortsett å bruke appen som normalt.',
+        );
+        if (updateProgressActions) updateProgressActions.style.display = 'flex';
+        forceUpdateBtn.disabled = false;
+        forceUpdateBtn.textContent = '🔄 Hent nyeste versjon';
+        updateForceUpdateBtnState();
+      }
+
+      if (updateProgressCloseBtn) {
+        updateProgressCloseBtn.addEventListener('click', () => {
+          closeUpdateProgressModal();
+          forceUpdateBtn.disabled = false;
+          forceUpdateBtn.textContent = '🔄 Hent nyeste versjon';
+          updateForceUpdateBtnState();
+        });
       }
 
       function isAppOffline() {
@@ -1053,9 +1123,9 @@
       window.addEventListener('offline_mode_changed', updateForceUpdateBtnState);
       updateForceUpdateBtnState();
 
-      forceUpdateBtn.addEventListener('click', async (e) => {
+      async function runForceUpdate(e) {
         if (isAppOffline()) {
-          e.preventDefault();
+          if (e) e.preventDefault();
           openOfflineUpdateModal();
           return;
         }
@@ -1105,10 +1175,20 @@
         setUpdateProgressText('Laster siden på nytt med fersk kode …');
         await new Promise((resolve) => setTimeout(resolve, 500));
 
+        // Selve navigasjonen kan stoppe opp uten feilmelding ved svak feltdekning —
+        // denne timeren er det som gir brukeren et varsel og en vei videre i så fall.
+        // Ved vellykket navigasjon rives hele siden (og dermed timeren) ned før den når å utløses.
+        updateStallTimer = setTimeout(showUpdateStalled, 8000);
+
         const url = new URL(location.href);
         url.searchParams.set('_fresh', Date.now());
         location.href = url.toString();
-      });
+      }
+
+      forceUpdateBtn.addEventListener('click', runForceUpdate);
+      if (updateProgressRetryBtn) {
+        updateProgressRetryBtn.addEventListener('click', () => runForceUpdate());
+      }
 
       // Sikkerhetskopi (backup/gjenoppretting av observasjoner)
       const OBS_KEY = 'fugleobservasjoner_v1';
