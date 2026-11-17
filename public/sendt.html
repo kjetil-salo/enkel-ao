@@ -303,7 +303,7 @@
           <option value="30">Siste 30 dager</option>
           <option value="60">Siste 60 dager</option>
         </select>
-        <button id="ao-oppdater" class="btn-liten">↻ Oppdater</button>
+        <button id="ao-oppdater" class="btn-liten" data-i18n="sendt.update_btn">↻ Oppdater</button>
         <label class="filter-pille">
           <input type="checkbox" id="ao-bare-uten-bilde" />
           <span data-i18n="sendt.only_without_image">Bare uten bilde</span>
@@ -385,8 +385,8 @@
         <p class="modal-status" id="em-status"></p>
 
         <div class="modal-bunn">
-          <button type="button" class="btn-liten" id="em-avbryt">Avbryt</button>
-          <button type="button" class="btn-liten primar" id="em-lagre" disabled>Lagre og publiser</button>
+          <button type="button" class="btn-liten" id="em-avbryt" data-i18n="common.cancel">Avbryt</button>
+          <button type="button" class="btn-liten primar" id="em-lagre" disabled data-i18n="sendt.save_and_publish">Lagre og publiser</button>
         </div>
       </div>
     </div>
@@ -409,7 +409,7 @@
             <div class="bare-mus dropsone-eller">eller</div>
             <div class="dropsone-knapper">
               <button type="button" class="btn-liten primar" id="bm-fil" data-i18n="sendt.pick_file">📁 Velg fil</button>
-              <button type="button" class="btn-liten skjult" id="bm-lim">📋 Lim inn</button>
+              <button type="button" class="btn-liten skjult" id="bm-lim" data-i18n="index.common.paste">📋 Lim inn</button>
             </div>
             <p class="dropsone-hint bare-mus">Du kan også lime inn med ⌘V / Ctrl+V</p>
           </div>
@@ -436,9 +436,9 @@
           </div>
           <div class="modal-verktoy">
             <!-- Vises først når det faktisk er beskåret noe å zoome inn på. -->
-            <button type="button" class="btn-liten" id="bm-zoom" hidden>⤢ Vis hele bildet</button>
-            <button type="button" class="btn-liten" id="bm-nullstill">↺ Tilbakestill</button>
-            <button type="button" class="btn-liten" id="bm-bytt">🔄 Bytt bilde</button>
+            <button type="button" class="btn-liten" id="bm-zoom" hidden data-i18n="sendt.view_full_image">⤢ Vis hele bildet</button>
+            <button type="button" class="btn-liten" id="bm-nullstill" data-i18n="sendt.reset_image">↺ Tilbakestill</button>
+            <button type="button" class="btn-liten" id="bm-bytt" data-i18n="sendt.change_image">🔄 Bytt bilde</button>
           </div>
         </div>
 
@@ -453,8 +453,8 @@
 
         <div class="modal-status" id="bm-status"></div>
         <div class="modal-bunn">
-          <button type="button" class="btn-liten" id="bm-avbryt">Avbryt</button>
-          <button type="button" class="btn-liten primar" id="bm-send" disabled>Last opp til AO</button>
+          <button type="button" class="btn-liten" id="bm-avbryt" data-i18n="common.cancel">Avbryt</button>
+          <button type="button" class="btn-liten primar" id="bm-send" disabled data-i18n="sendt.upload_to_ao">Last opp til AO</button>
         </div>
       </div>
     </div>
@@ -561,7 +561,7 @@
         // stedet for å tilby noe som ville blitt avvist.
         const endre = funn.isReporter
           ? `<button class="btn-liten" data-endre="${attr(funn.sightingId)}"
-               title="Endre antall eller aktivitet. Funnet blir kort usynlig for andre mens du endrer.">✏️ Endre</button>`
+               title="${tr('sendt.edit_btn_title')}">${tr('sendt.edit_btn')}</button>`
           : '';
         const rapportor = funn.isReporter || !funn.reporter ? ''
           : `<span class="rapportert-av">Rapportert av ${tekst(funn.reporter)}</span>`;
@@ -1521,8 +1521,8 @@
             </div>
             ${seksjoner}
             <div class="knapper">
-              <button class="btn-liten primar" data-del="${idx}">🔗 Del disse</button>
-              <button class="btn-liten" data-kopier="${idx}">📋 Kopier til lista</button>
+              <button class="btn-liten primar" data-del="${idx}">${tr('sendt.share_these')}</button>
+              <button class="btn-liten" data-kopier="${idx}">${tr('sendt.copy_to_list')}</button>
             </div>
           </div>`;
       }

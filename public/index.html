@@ -123,9 +123,9 @@
             <details class="header-menu" id="header-menu">
               <summary aria-label="Meny" title="Meny" data-i18n-attr="aria-label:index.menu,title:index.menu"><span aria-hidden="true">⋯</span></summary>
               <nav class="header-menu-links" aria-label="Hovedmeny">
-                <button type="button" id="arbeidsliste-overfor" hidden>Fortsett på en annen enhet</button>
-                <button type="button" id="arbeidsliste-hent">Hent liste fra en annen enhet</button>
-                <button type="button" id="arbeidsliste-lokal" hidden>Åpne innhentet liste</button>
+                <button type="button" id="arbeidsliste-overfor" hidden data-i18n="index.arbeidsliste.overfor">Fortsett på en annen enhet</button>
+                <button type="button" id="arbeidsliste-hent" data-i18n="index.arbeidsliste.hent">Hent liste fra en annen enhet</button>
+                <button type="button" id="arbeidsliste-lokal" hidden data-i18n="index.arbeidsliste.lokal">Åpne innhentet liste</button>
                 <a href="/fellestur.html" data-i18n="main.nav.fellestur">Fellestur</a>
                 <a href="/help.html" data-i18n="index.help_link">Hjelp</a>
                 <a href="/settings.html" data-i18n="settings.title">Innstillinger</a>
@@ -219,7 +219,7 @@
             <span>👥 På fellestur: <strong id="fellestur-banner-navn"></strong> — det du registrerer havner i den delte loggen</span>
             <span style="display:flex;gap:10px;align-items:center;white-space:nowrap;">
               <a href="/fellestur.html" style="color:var(--accent);text-decoration:none;font-weight:600;">Se logg</a>
-              <button type="button" id="fellestur-forlat-btn" style="background:none;border:none;color:var(--muted);text-decoration:underline;cursor:pointer;font-size:1em;padding:0;">Forlat</button>
+              <button type="button" id="fellestur-forlat-btn" data-i18n="index.fellestur_banner.leave" style="background:none;border:none;color:var(--muted);text-decoration:underline;cursor:pointer;font-size:1em;padding:0;">Forlat</button>
             </span>
           </div>
           <div id="fellestur-avsluttet-varsel" style="display:none;color:#f87171;font-weight:600;"></div>
@@ -550,7 +550,7 @@
         <div style="margin-top:8px;text-align:center;">
           <button class="btn btn-danger-muted" id="clear-btn" disabled style="font-size:0.75em;border:none;background:transparent;color:var(--muted);">
             <span>🗑️</span>
-            <span>Tøm liste</span>
+            <span data-i18n="index.clear_btn">Tøm liste</span>
           </button>
         </div>
         </div><!-- /tablet-list-column -->
@@ -931,7 +931,7 @@
             <div id="extra-photo-preview-wrap" style="display:none;margin-top:8px;">
               <img id="extra-photo-preview" style="max-width:100%;border-radius:8px;display:block;" alt="Valgt bilde" />
               <div style="display:flex;gap:8px;margin-top:6px;">
-                <button type="button" id="extra-photo-edit-btn" class="btn-ghost" style="flex:1;">✂️ Beskjær og juster</button>
+                <button type="button" id="extra-photo-edit-btn" class="btn-ghost" style="flex:1;" data-i18n="index.photo_edit_btn">✂️ Beskjær og juster</button>
                 <button type="button" id="extra-photo-remove-btn" class="btn-ghost" data-i18n="index.extra.photo_remove">Fjern bilde</button>
               </div>
             </div>
@@ -1126,7 +1126,7 @@
           <div id="em-photo-preview-wrap" style="display:none;margin-top:8px;">
             <img id="em-photo-preview" style="max-width:100%;border-radius:8px;display:block;" alt="Valgt bilde" />
             <div style="display:flex;gap:8px;margin-top:6px;">
-              <button type="button" id="em-photo-edit-btn" class="btn-ghost" style="flex:1;">✂️ Beskjær og juster</button>
+              <button type="button" id="em-photo-edit-btn" class="btn-ghost" style="flex:1;" data-i18n="index.photo_edit_btn">✂️ Beskjær og juster</button>
               <button type="button" id="em-photo-remove-btn" class="btn-ghost" data-i18n="index.extra.photo_remove">Fjern bilde</button>
             </div>
           </div>
@@ -1138,12 +1138,12 @@
           <div id="em-medobs-picker" style="display:flex;flex-direction:column;gap:6px;"></div>
           <div style="display:flex;gap:6px;margin-top:6px;">
             <input id="em-medobs-new-name" type="text" placeholder="Legg til navn…" autocomplete="off" data-i18n-attr="placeholder:index.medobs.name_placeholder_add" style="flex:1;padding:8px;border-radius:8px;border:1px solid rgba(148,163,184,0.15);background:rgba(255,255,255,0.02);color:var(--text);box-sizing:border-box;" />
-            <button type="button" id="em-medobs-new-add-btn" class="btn-ghost" style="flex-shrink:0;">Legg til</button>
+            <button type="button" id="em-medobs-new-add-btn" class="btn-ghost" style="flex-shrink:0;" data-i18n="common.add">Legg til</button>
           </div>
 
           <div style="margin-top:16px;display:flex;gap:8px;justify-content:flex-end;">
-            <button type="button" id="em-cancel-btn" style="padding:8px 16px;border:1px solid var(--border);border-radius:6px;background:transparent;color:var(--text);cursor:pointer;font-size:0.9em;" data-i18n="index.common.close">Lukk</button>
-            <button type="submit" style="padding:8px 16px;border:1px solid rgba(59,130,246,1);border-radius:6px;background:#3b82f6;color:white;cursor:pointer;font-size:0.9em;">Lagre</button>
+            <button type="button" id="em-cancel-btn" style="padding:8px 16px;border:1px solid var(--border);border-radius:6px;background:transparent;color:var(--text);cursor:pointer;font-size:0.9em;" data-i18n="common.close">Lukk</button>
+            <button type="submit" style="padding:8px 16px;border:1px solid rgba(59,130,246,1);border-radius:6px;background:#3b82f6;color:white;cursor:pointer;font-size:0.9em;" data-i18n="common.save">Lagre</button>
           </div>
         </form>
       </div>
@@ -1169,32 +1169,32 @@
         </select>
         <div id="create-site-status" style="display:none;padding:8px;margin-bottom:12px;border-radius:6px;font-size:0.85em;"></div>
         <div style="display:flex;gap:8px;justify-content:flex-end;">
-          <button id="create-site-cancel" style="padding:8px 16px;border:1px solid var(--border);border-radius:6px;background:transparent;color:var(--text);cursor:pointer;font-size:0.9em;">Avbryt</button>
-          <button id="create-site-submit" style="padding:8px 16px;border:none;border-radius:6px;background:var(--accent);color:white;cursor:pointer;font-size:0.9em;font-weight:500;">Opprett</button>
+          <button id="create-site-cancel" style="padding:8px 16px;border:1px solid var(--border);border-radius:6px;background:transparent;color:var(--text);cursor:pointer;font-size:0.9em;" data-i18n="common.cancel">Avbryt</button>
+          <button id="create-site-submit" style="padding:8px 16px;border:none;border-radius:6px;background:var(--accent);color:white;cursor:pointer;font-size:0.9em;font-weight:500;" data-i18n="common.create">Opprett</button>
         </div>
       </div>
     </div>
     <dialog id="arbeidsliste-dialog" class="arbeidsliste-dialog" aria-labelledby="arbeidsliste-tittel">
       <form method="dialog" class="arbeidsliste-dialoghode">
         <h2 id="arbeidsliste-tittel">Overfør arbeidslista</h2>
-        <button class="btn" value="lukk">Lukk</button>
+        <button class="btn" value="lukk" data-i18n="common.close">Lukk</button>
       </form>
       <p id="arbeidsliste-konto"></p>
       <p id="arbeidsliste-info"></p>
       <p id="arbeidsliste-status" role="status"></p>
       <div class="arbeidsliste-knapper">
-        <button type="button" class="btn" id="arbeidsliste-logg-inn">Bruk AO-innlogging</button>
-        <a class="btn" id="arbeidsliste-innstillinger" href="/settings.html">Innstillinger</a>
-        <button type="button" class="btn" id="arbeidsliste-lagre" hidden>Lagre privat kopi</button>
-        <button type="button" class="btn" id="arbeidsliste-forhandsvis" hidden>Forhåndsvis kopien</button>
-        <button type="button" class="btn" id="arbeidsliste-slett" hidden>Slett serverkopien</button>
+        <button type="button" class="btn" id="arbeidsliste-logg-inn" data-i18n="index.arbeidsliste.logg_inn">Bruk AO-innlogging</button>
+        <a class="btn" id="arbeidsliste-innstillinger" href="/settings.html" data-i18n="settings.title">Innstillinger</a>
+        <button type="button" class="btn" id="arbeidsliste-lagre" hidden data-i18n="index.arbeidsliste.lagre">Lagre privat kopi</button>
+        <button type="button" class="btn" id="arbeidsliste-forhandsvis" hidden data-i18n="index.arbeidsliste.forhandsvis">Forhåndsvis kopien</button>
+        <button type="button" class="btn" id="arbeidsliste-slett" hidden data-i18n="index.arbeidsliste.slett">Slett serverkopien</button>
       </div>
       <p id="arbeidsliste-advarsel" hidden>
         Lista finnes fortsatt på den andre enheten. Sjekk om funn allerede er sendt og publiser fra én enhet.
         Når du henter inn lista, blir den lagret i denne nettleseren og kan åpnes her uten nett.
       </p>
       <ul id="arbeidsliste-rader" class="arbeidsliste-rader"></ul>
-      <button type="button" class="btn btn-primary-action" id="arbeidsliste-ta-inn" hidden>Hent inn i Lista di</button>
+      <button type="button" class="btn btn-primary-action" id="arbeidsliste-ta-inn" hidden data-i18n="index.arbeidsliste.ta_inn">Hent inn i Lista di</button>
     </dialog>
 
   </body>

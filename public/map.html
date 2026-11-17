@@ -880,7 +880,7 @@
   <div class="offline-download-modal-backdrop" id="offline-download-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="offline-download-modal-text">
     <div class="offline-download-modal" id="offline-download-modal">
       <div class="offline-download-modal-text" id="offline-download-modal-text">0 offentlige og 0 private lokaliteter er lastet ned</div>
-      <button type="button" class="offline-download-modal-ok-btn" id="offline-download-modal-ok-btn">OK</button>
+      <button type="button" class="offline-download-modal-ok-btn" id="offline-download-modal-ok-btn" data-i18n="common.ok">OK</button>
     </div>
   </div>
 
@@ -897,7 +897,7 @@
   <!-- Tre trinn: Alt → Skjul navn → Skjul alt → Alt. Teksten settes av
        map.js (knappetekst() i kart-visning.js) og beskriver hva NESTE trykk
        gjør; verdien her er bare det første trinnet før JS har kjørt. -->
-  <button type="button" class="back-btn" id="toggle-labels-btn" style="top:76px;right:10px;left:auto;" title="Trykk for å skjule navn, så alle lokaliteter — nyttig for å zoome inn der det er tett">🏷️ Skjul navn</button>
+  <button type="button" class="back-btn" id="toggle-labels-btn" style="top:76px;right:10px;left:auto;" title="Trykk for å skjule navn, så alle lokaliteter — nyttig for å zoome inn der det er tett" data-i18n="kart.visning.knapp.skjul_navn">🏷️ Skjul navn</button>
   <div style="position:absolute;top:122px;right:10px;z-index:1000;display:flex;gap:6px;align-items:center;">
     <!-- Listeikon for nedlastede offline-områder (kun synlig når områdevalg er åpent) -->
     <button type="button" class="back-btn" id="offline-areas-list-btn" style="display:none;position:static;padding:8px 12px;font-size:16px;min-width:44px;min-height:44px;justify-content:center;" title="Vis nedlastede offline-områder" aria-label="Vis nedlastede offline-områder" data-i18n-attr="title:map.areas_list_btn,aria-label:map.areas_list_btn">
@@ -912,7 +912,7 @@
     </button>
     <button type="button" class="back-btn" id="toggle-offline-area-btn" style="position:static;" title="Velg område på kartet for offline-bruk" data-i18n-attr="title:map.select_area_title">📦 Offline-område</button>
   </div>
-  <button type="button" class="back-btn" id="toggle-offline-markers-btn" style="display:none;top:174px;right:10px;left:auto;" title="Skjul eller vis lokalitetsmarkører i offline-modus">📍 Skjul lokaliteter</button>
+  <button type="button" class="back-btn" id="toggle-offline-markers-btn" style="display:none;top:174px;right:10px;left:auto;" title="Skjul eller vis lokalitetsmarkører i offline-modus" data-i18n="map.offline.toggle_markers.hide">📍 Skjul lokaliteter</button>
 
   <div id="map"></div>
 
@@ -958,11 +958,11 @@
         Er du sikker på at du vil slette alle nedlastede lokaliteter og kartlag? Dette kan ikke angres.
       </p>
       <div style="display:flex;gap:10px;justify-content:flex-end;">
-        <button type="button" id="map-clear-offline-cancel-btn"
+        <button type="button" id="map-clear-offline-cancel-btn" data-i18n="common.cancel"
           style="padding:9px 14px;border-radius:8px;border:1px solid #cbd5e1;background:#f8fafc;color:#334155;font-size:14px;font-weight:500;cursor:pointer;">
           Avbryt
         </button>
-        <button type="button" id="map-clear-offline-confirm-btn"
+        <button type="button" id="map-clear-offline-confirm-btn" data-i18n="settings.storage.clear_confirm_btn"
           style="padding:9px 14px;border-radius:8px;border:none;background:#dc2626;color:#ffffff;font-weight:600;font-size:14px;cursor:pointer;">
           Ja, slett offline-data
         </button>
@@ -973,14 +973,14 @@
   <!-- Ny lokasjon: FAB, hint og avbryt -->
   <button class="add-site-fab" id="add-site-fab" style="display: none;" title="Opprett ny lokasjon" data-i18n-attr="title:map.create_site_heading">+</button>
   <div class="pin-drop-hint" id="pin-drop-hint" data-i18n="map.pin_drop_hint">Trykk på kartet for å plassere lokasjon</div>
-  <button class="cancel-pin-btn" id="cancel-pin-btn">Avbryt</button>
+  <button class="cancel-pin-btn" id="cancel-pin-btn" data-i18n="common.cancel">Avbryt</button>
 
   <!-- Opprett-lokasjon-panel (bottom sheet) -->
   <div class="create-site-panel" id="create-site-panel">
     <h3 data-i18n="map.create_site_heading">Opprett ny lokasjon</h3>
     <label for="new-site-name" data-i18n="map.new_site_name_label">Navn</label>
     <input type="text" id="new-site-name" placeholder="Navn på lokalitet" data-i18n-attr="placeholder:map.new_site_name_placeholder" />
-    <label for="new-site-accuracy">Nøyaktighet</label>
+    <label for="new-site-accuracy" data-i18n="index.create_site.accuracy_label">Nøyaktighet</label>
     <select id="new-site-accuracy">
       <option value="0">Punktobservasjon</option>
       <option value="25">25 m</option>
@@ -990,8 +990,8 @@
       <option value="500">500 m</option>
     </select>
     <div class="panel-buttons">
-      <button class="btn-cancel" id="panel-cancel-btn">Avbryt</button>
-      <button class="btn-create" id="panel-create-btn">Opprett</button>
+      <button class="btn-cancel" id="panel-cancel-btn" data-i18n="common.cancel">Avbryt</button>
+      <button class="btn-create" id="panel-create-btn" data-i18n="common.create">Opprett</button>
     </div>
     <div class="panel-status" id="panel-status"></div>
   </div>
