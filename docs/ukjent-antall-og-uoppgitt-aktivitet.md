@@ -82,6 +82,41 @@ sendt til AO som om fuglen faktisk hadde aktiviteten «Ikke oppgitt».
 Ingen sticky-mekanisme for aktivitet (bevisst, enklere valg): neste
 registrering følger vanlig `lastActivity`-gjenbruk, ikke «Ikke oppgitt».
 
+## «Ikke oppgitt» som hurtigpill (v1.60.24)
+
+Select-valget alene krevde fortsatt et ekstra steg (åpne dropdown, bla til
+toppen) hver gang. `availableActivities` i `settings.html` sin
+pill-konfigurator kom utelukkende fra `activities.json`, som aldri har hatt
+«Ikke oppgitt» — den legges manuelt til i selve skjemaet
+(`main.js`/`edit-modal.js`), ikke i den delte dataen. `addPillRow()` i
+`settings.html` setter nå inn samme `value=""`-opsjon FØRST i
+pill-konfiguratorens dropdown, slik main.js/edit-modal.js allerede gjør i
+selve skjemaet — brukeren kan dermed konfigurere den som en av sine 0-8
+hurtigpiller på vanlig måte, helt likt enhver annen aktivitet.
+
+**Feltet fanget en reell matchingsbug i `renderActivityPills()`** (ikke bare
+en mangel): klikk-håndtereren i `observation-commit.js` matchet pillen mot
+`<select>`-opsjonen med `(p.value && opt.value === p.value) || ...`.
+`p.value` er `''` for nettopp denne pillen — en sannhets-sjekk på en tom
+streng er alltid falsk, så verdi-matchingen ble ALLTID hoppet over for «Ikke
+oppgitt», uansett. Falt tilbake til tekst-sammenligning
+(`activityBokmalName(opt.text) === label`), som i praksis traff i bokmål
+(samme ustranslaterte streng på begge sider), men brøt sammen i nynorsk: en
+pill lagret mens siden sto i nynorsk fikk `label` satt til den nynorske
+UI-teksten («Ikkje oppgjeve»), siden «Ikke oppgitt» manglet i
+`ACTIVITY_NYNORSK_MAP`/`ACTIVITY_BOKMAL_MAP` i `storage.js` — et klikk i
+bokmål-modus traff da aldri treffet, og valgte aktivitet ble stille stående
+uendret (feil aktivitet committet). Fikset ved å (1) fjerne
+sannhets-sjekken — matching skjer nå alltid først på verdi, likt alle andre
+piller — og (2) legge «Ikke oppgitt» → «Ikkje oppgjeve» inn i
+`ACTIVITY_NYNORSK_MAP`, slik at både lagret `label` og selve
+pille-visningsteksten oversettes riktig uavhengig av språk.
+
+`ACTIVITY_SHORT_SUGGESTIONS` fikk `'': 'Ingen'` som forslag til kortnavn
+(«Foreslå forkortelser»-knappen), og `relabelActivityPillOptions()` håndterer
+`value === ''` som spesialtilfelle ved språkbytte (samme årsak: finnes ikke
+i `activities.json`, som er kilden den funksjonen ellers slår opp i).
+
 ## AO3-reserveimport (`src/ao3_import.py`)
 
 `_prepare()` sin `antall = int(funn['count'])` kastet `TypeError` på

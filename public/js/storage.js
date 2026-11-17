@@ -3,9 +3,9 @@
  */
 import { hentAktivFellestur } from './fellestur-client.js';
 import { lastSpeil, lagreSpeilOgSynk, hentTurMedobservatorer } from './fellestur-sync.js';
-import { translateDedicatedSubspeciesToNynorsk } from './species-matcher.js?v=v1.60.23';
+import { translateDedicatedSubspeciesToNynorsk } from './species-matcher.js?v=v1.60.24';
 import { aktivInnhentetListe, lagreEndringerIInnhentetListe, lesInnhentetListe } from './arbeidsliste-lokal.js';
-import { getLanguage, setLanguage, isNynorsk } from './i18n.js?v=v1.60.23';
+import { getLanguage, setLanguage, isNynorsk } from './i18n.js?v=v1.60.24';
 
 export { isNynorsk };
 
@@ -504,6 +504,10 @@ export function speciesDisplayName(species, userLanguage = undefined) {
  * nynorsk-visningsnavnet - samme retning som speciesDisplayName() over.
  */
 export const ACTIVITY_NYNORSK_MAP = {
+  // «Ikke oppgitt» finnes ikke i activities.json (egen i18n-nøkkel der det
+  // vises som <option>), men trengs her for at hurtigpillen skal oversettes
+  // riktig til nynorsk - se docs/ukjent-antall-og-uoppgitt-aktivitet.md.
+  'Ikke oppgitt': 'Ikkje oppgjeve',
   'Stasjonær': 'Stasjonær',
   'Rastende': 'Rastande',
   'Overflygende': 'Overflygande',
@@ -629,6 +633,7 @@ export function activityBokmalName(label) {
  * Brukes av «Foreslå forkortelser»-knappen i innstillinger. Maks 5 tegn.
  */
 export const ACTIVITY_SHORT_SUGGESTIONS = {
+  '': 'Ingen',   // Ikke oppgitt
   '23': 'Stasj', // Stasjonær
   '22': 'Rast',  // Rastende
   '24': 'Overf', // Overflygende

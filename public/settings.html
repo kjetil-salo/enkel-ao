@@ -7,7 +7,7 @@
     <link rel="icon" href="/favicon.png" type="image/png" />
     <link rel="apple-touch-icon" href="/icon-192.png" />
     <link rel="manifest" href="/manifest.json">
-    <link rel="stylesheet" href="style.css?v=v1.60.23" />
+    <link rel="stylesheet" href="style.css?v=v1.60.24" />
       <style>
         .settings-card {
           background: var(--card-bg, #111827);
@@ -409,19 +409,33 @@
       </div>
     </div>
 
+    <!-- Modal som viser fremdrift mens «Hent nyeste versjon» kjører -->
+    <div id="update-progress-modal" role="dialog" aria-modal="true" aria-labelledby="update-progress-title"
+      style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(2,6,23,0.75);backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:16px;">
+      <div style="background:var(--card-bg,#0f172a);color:var(--text,#e5e7eb);border:1px solid rgba(59,130,246,0.45);border-radius:14px;max-width:420px;width:100%;padding:22px 20px;box-shadow:0 20px 40px rgba(0,0,0,0.45);text-align:center;">
+        <div style="font-size:2.2em;margin-bottom:10px;">🔄</div>
+        <h3 id="update-progress-title" style="margin:0 0 10px 0;font-size:1.1em;color:#3b82f6;font-weight:700;">
+          Henter nyeste versjon
+        </h3>
+        <p id="update-progress-text" style="margin:0;font-size:0.95em;line-height:1.45;color:var(--text,#e5e7eb);">
+          Sjekker kontakt med serveren …
+        </p>
+      </div>
+    </div>
+
     <script type="module">
       import { fjernOverforingssesjon } from './js/arbeidsliste-sesjon.js';
       import { apneInnhentetListe, lagreInnhentetKopi, lesInnhentetListe, lukkInnhentetListe } from './js/arbeidsliste-lokal.js';
-      import { loadActivityPills, saveActivityPills, ACTIVITY_SHORT_SUGGESTIONS, activityDisplayName, activityBokmalName } from './js/storage.js?v=v1.60.23';
-      import { loadActivities, fetchAoSitesByBounds, hasActiveAoLogin, ensureAoTokens, getCachedPrivateSites } from './js/api.js?v=v1.60.23';
-      import { shouldShowOthersPrivateSites } from './js/location.js?v=v1.60.23';
+      import { loadActivityPills, saveActivityPills, ACTIVITY_SHORT_SUGGESTIONS, activityDisplayName, activityBokmalName } from './js/storage.js?v=v1.60.24';
+      import { loadActivities, fetchAoSitesByBounds, hasActiveAoLogin, ensureAoTokens, getCachedPrivateSites } from './js/api.js?v=v1.60.24';
+      import { shouldShowOthersPrivateSites } from './js/location.js?v=v1.60.24';
       import {
         getOfflineStorageStats,
         syncOfflineAreas,
         clearAllOfflineData,
         clearAppCachesPreservingMapTiles,
-      } from './js/offline-db.js?v=v1.60.23';
-      import { t, getLanguage, setLanguage, getAvailableLanguages, applyTranslations } from './js/i18n.js?v=v1.60.23';
+      } from './js/offline-db.js?v=v1.60.24';
+      import { t, getLanguage, setLanguage, getAvailableLanguages, applyTranslations } from './js/i18n.js?v=v1.60.24';
 
       // Service Worker registreres og modus synkroniseres av offline-db.js (importert over).
 
@@ -751,11 +765,26 @@
         const select = document.createElement('select');
         select.style.cssText = 'flex: 1; min-width: 0; padding: 8px; border-radius: 6px; border: 1px solid rgba(148,163,184,0.45); background: rgba(15,23,42,0.95); color: var(--text); font-size: 1em;';
 
+        // Samme mønster som hovedskjemaet og rediger-modalen: «Ikke oppgitt»
+        // (value="") først, slik at ingen aktivitet også kan velges som hurtigpill.
+        const noneOpt = document.createElement('option');
+        noneOpt.value = '';
+        noneOpt.textContent = t('index.common.not_specified');
+        if (pill && pill.value === '') {
+          noneOpt.selected = true;
+        }
+        select.appendChild(noneOpt);
+
         availableActivities.forEach(activity => {
           const option = document.createElement('option');
           option.value = activity.value;
           option.textContent = activityDisplayName(activity.label);
           if (pill && pill.value === activity.value) {
+            option.selected = true;
+          } else if (!pill && activity.selected) {
+            // Ny, tom rad (ingen lagret pill): behold gammel default
+            // (Stasjonær) i stedet for at «Ikke oppgitt» - nå først i
+            // listen - blir valgt bare fordi den står øverst i DOM-en.
             option.selected = true;
           }
           select.appendChild(option);
@@ -861,6 +890,11 @@
         const labelByValue = new Map(availableActivities.map((a) => [a.value, a.label]));
         container.querySelectorAll('.pill-config-row select').forEach((select) => {
           Array.from(select.options).forEach((opt) => {
+            if (opt.value === '') {
+              // «Ikke oppgitt» finnes ikke i activities.json - egen i18n-nøkkel.
+              opt.textContent = t('index.common.not_specified');
+              return;
+            }
             const nbLabel = labelByValue.get(opt.value);
             if (nbLabel) opt.textContent = activityDisplayName(nbLabel);
           });
@@ -880,9 +914,9 @@
       // <script> uten egen import. Nøyaktig det som manglet her og ga «ReferenceError»
       // på sikkerhetskopi-knappene (rapportert 14.11.2026, v1.60.19). AO-innlogging
       // flyttet til egen profilside i v1.60.21.
-      import { t } from './js/i18n.js?v=v1.60.23';
+      import { t } from './js/i18n.js?v=v1.60.24';
       import { apneInnhentetListe, lagreInnhentetKopi, lesInnhentetListe, lukkInnhentetListe } from './js/arbeidsliste-lokal.js';
-      import { loadAllowUnknownCount, saveAllowUnknownCount, loadAllowEstimatedCount, saveAllowEstimatedCount } from './js/storage.js?v=v1.60.23';
+      import { loadAllowUnknownCount, saveAllowUnknownCount, loadAllowEstimatedCount, saveAllowEstimatedCount } from './js/storage.js?v=v1.60.24';
 
       // Tema (segmentert velger: mørkt / lyst / clean)
       const THEMES = ['dark', 'light', 'clean'];
@@ -946,6 +980,21 @@
       const updateStatus = document.getElementById('update-status');
       const offlineUpdateModal = document.getElementById('offline-update-modal');
       const offlineUpdateCloseBtn = document.getElementById('offline-update-close-btn');
+      const updateProgressModal = document.getElementById('update-progress-modal');
+      const updateProgressText = document.getElementById('update-progress-text');
+
+      function openUpdateProgressModal(text) {
+        if (updateProgressText) updateProgressText.textContent = text;
+        if (updateProgressModal) updateProgressModal.style.display = 'flex';
+      }
+
+      function setUpdateProgressText(text) {
+        if (updateProgressText) updateProgressText.textContent = text;
+      }
+
+      function closeUpdateProgressModal() {
+        if (updateProgressModal) updateProgressModal.style.display = 'none';
+      }
 
       function isAppOffline() {
         const netMode = (localStorage.getItem('network_mode_v1') || '').trim().toLowerCase();
@@ -1014,6 +1063,7 @@
         // Før vi sletter noe som helst: sjekk at vi faktisk har kontakt med serveren!
         forceUpdateBtn.disabled = true;
         forceUpdateBtn.textContent = '⏳ Sjekker nettverk...';
+        openUpdateProgressModal('Sjekker kontakt med serveren …');
         try {
           const ctrl = new AbortController();
           const tid = setTimeout(() => ctrl.abort(), 3500);
@@ -1021,6 +1071,7 @@
           clearTimeout(tid);
           if (!ping || !ping.ok) throw new Error('Ingen kontakt med server');
         } catch (err) {
+          closeUpdateProgressModal();
           forceUpdateBtn.disabled = false;
           updateForceUpdateBtnState();
           openOfflineUpdateModal();
@@ -1028,6 +1079,7 @@
         }
 
         forceUpdateBtn.textContent = '⏳ Henter ny versjon...';
+        setUpdateProgressText('Rydder mellomlager for appkode … (dine observasjoner, innstillinger og nedlastede kartfliser bevares)');
         updateStatus.style.cssText = `display:block;margin-top:8px;padding:10px;border-radius:8px;font-size:0.85em;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.3);color:${_sc('info')};`;
         updateStatus.textContent = '⏳ Rydder mellomlager og henter fersk versjon...';
 
@@ -1049,6 +1101,9 @@
         } catch (e) {
           // Fortsett uansett — cache-bustet reload henter fersk versjon selv om oppryddingen delvis feilet
         }
+
+        setUpdateProgressText('Laster siden på nytt med fersk kode …');
+        await new Promise((resolve) => setTimeout(resolve, 500));
 
         const url = new URL(location.href);
         url.searchParams.set('_fresh', Date.now());

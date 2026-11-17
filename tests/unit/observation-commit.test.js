@@ -443,4 +443,44 @@ describe('renderActivityPills & drag-to-scroll', () => {
     expect(container.scrollLeft).toBe(0);
     expect(wheelEvent.defaultPrevented).toBe(false);
   });
+
+  it('matcher «Ikke oppgitt»-pillen (value="") på verdi, selv når <option>-teksten står på et annet språk enn den lagrede pill-labelen', () => {
+    // Regresjonstest: p.value er en tom streng for «Ikke oppgitt», og en
+    // tidligere `p.value && ...`-sjekk hoppet derfor alltid over
+    // verdi-matchingen for nettopp denne pillen og falt tilbake til
+    // tekst-sammenligning - som brøt sammen ved språkbytte (se
+    // docs/ukjent-antall-og-uoppgitt-aktivitet.md).
+    localStorage.setItem('activityPills_v1', JSON.stringify({
+      version: 1,
+      pills: [{ label: 'Ikke oppgitt', value: '' }],
+    }));
+
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+
+    const select = document.createElement('select');
+    const stasjonaer = document.createElement('option');
+    stasjonaer.value = '23';
+    stasjonaer.text = 'Stasjonær';
+    select.appendChild(stasjonaer);
+    const ikkeOppgitt = document.createElement('option');
+    ikkeOppgitt.value = '';
+    ikkeOppgitt.text = 'Ikkje oppgjeve'; // nynorsk, mens pillens label er lagret på bokmål
+    select.appendChild(ikkeOppgitt);
+    document.body.appendChild(select);
+
+    const commitFn = vi.fn();
+    const dom = { activityPillsEl: container, activitySelect: select };
+
+    renderActivityPills(dom, commitFn);
+
+    const pill = container.querySelector('.activity-pill');
+    expect(pill).not.toBeNull();
+    pill.click();
+
+    expect(select.selectedIndex).toBe(1);
+    expect(commitFn).toHaveBeenCalledTimes(1);
+
+    localStorage.removeItem('activityPills_v1');
+  });
 });

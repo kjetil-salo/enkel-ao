@@ -2,9 +2,9 @@
  * Observasjons-modul for validering, lagring og aktivitets-pills
  */
 
-import { defaultCoObservers, loadActivityPills, speciesDisplayName, activityDisplayName, activityBokmalName } from './storage.js?v=v1.60.23';
+import { defaultCoObservers, loadActivityPills, speciesDisplayName, activityDisplayName, activityBokmalName } from './storage.js?v=v1.60.24';
 import { showToast } from './ui.js';
-import { t } from './i18n.js?v=v1.60.23';
+import { t } from './i18n.js?v=v1.60.24';
 import { toLocalISOString } from './utils.js';
 import { resolveVisitIdForNewObservation, getVisitTimeSpan, isVisitLocked, visitExists } from './visits.js';
 import { celebrateRareFind } from './celebrate.js';
@@ -380,11 +380,13 @@ export function renderActivityPills(dom, commitFn) {
         return;
       }
       if (dom.activitySelect) {
-        // Match på verdi hvis pillen har en (sikrest), ellers kanonisk
-        // bokmål-navn uansett hvilket språk <option>-teksten vises på.
+        // Match på verdi (sikrest), ellers kanonisk bokmål-navn uansett
+        // hvilket språk <option>-teksten vises på. `p.value` kan være en
+        // tom streng («Ikke oppgitt») - derfor IKKE en sannhets-sjekk på
+        // p.value her, det ville hoppet bom på nettopp den pillen.
         for (let i = 0; i < dom.activitySelect.options.length; i++) {
           const opt = dom.activitySelect.options[i];
-          if ((p.value && opt.value === p.value) || activityBokmalName(opt.text.trim()) === label) {
+          if (opt.value === p.value || activityBokmalName(opt.text.trim()) === label) {
             dom.activitySelect.selectedIndex = i;
             break;
           }
