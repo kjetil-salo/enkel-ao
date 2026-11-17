@@ -1,7 +1,12 @@
 import json
+import os
+import sys
 
 import httpx
 import pytest
+
+REPO_ROOT = os.path.dirname(os.path.dirname(__file__))
+sys.path.insert(0, REPO_ROOT)
 
 from src import ao3_import
 
