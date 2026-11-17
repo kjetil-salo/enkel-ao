@@ -115,8 +115,8 @@
               </div>
               <a class="lenke" href="/d/${slug}" target="_blank" rel="noopener">${location.origin}/d/${slug}</a>
               <div class="knapper">
-                <button class="btn-liten primar" data-oppdater="${idx}" ${utlopt ? 'disabled' : ''}>🔄 Oppdater</button>
-                <button class="btn-liten" data-trekk="${idx}">🗑️ Trekk tilbake</button>
+                <button class="btn-liten primar" data-oppdater="${idx}" ${utlopt ? 'disabled' : ''}>${t('delinger.update_btn')}</button>
+                <button class="btn-liten" data-trekk="${idx}">${t('delinger.revoke_btn')}</button>
               </div>
             </div>`;
         }).join('');
