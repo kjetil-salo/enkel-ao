@@ -394,6 +394,11 @@ def normalize_row(row, alias=None):
         # Kun rapportøren kan endre funnet — AO skjuler selv «Endre»-knappen for
         # andre. Bilder kan derimot alle involverte legge til.
         'isReporter': bool(alias) and str(row.get('ReporterUserAlias') or '') == alias,
+        # «Ikke rapportør» alene er ikke nok: ukjent alias gir også False.
+        # Fjerning krever at AO positivt markerer brukeren som observatør.
+        'canRemoveSelf': bool(alias) and bool(row.get('ReporterUserAlias'))
+        and str(row['ReporterUserAlias']).casefold() != str(alias).casefold()
+        and str(_current_user_alias([row]) or '').casefold() == str(alias).casefold(),
         'url': f'{AO_BASE}/Sighting/{sighting_id}' if sighting_id else '',
     }
 

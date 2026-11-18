@@ -3,11 +3,11 @@
  */
 
 
-import { fetchAoSites, createAoSite, getCachedPrivateSites, ensureAoTokens, ensureAoPrivateSites } from './api.js?v=v1.60.27';
+import { fetchAoSites, createAoSite, getCachedPrivateSites, ensureAoTokens, ensureAoPrivateSites } from './api.js?v=v1.60.28';
 import { setLocationStatus, haversine } from './ui.js';
 import { isOfflineMode, getAllOfflineLocations, fetchLocationsWithNetworkMode } from './offline-db.js';
 import { saveLastKnownPosition, loadLastKnownPosition } from './storage.js';
-import { t } from './i18n.js?v=v1.60.27';
+import { t } from './i18n.js?v=v1.60.28';
 
 /**
  * Standard kartsenter (Svortland, Bømlo) som brukes når brukerens GPS-posisjon

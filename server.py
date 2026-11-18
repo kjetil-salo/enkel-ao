@@ -74,6 +74,9 @@ from src.ao_import_httpx import (AO2_DRIFTSFEIL, Ao2ImportUavklart, Ao2Utilgjeng
 from src.ao3_import import logg_inn_pa_ao3, send_via_ao3
 from src.ao_sightings import fetch_my_sightings, fetch_raw_row
 from src import ao_edit
+from src.ao_coobserver import fjern_meg
+from src.ao_observers import observer_setup
+from src.ao_delete import slett_funn, er_rapportor, gjelder_gruppe
 from src import arbeidsliste_store
 from src.arbeidsliste_auth import hent_ao_konto
 
@@ -370,6 +373,18 @@ class Handler(SimpleHTTPRequestHandler):
 
         if parsed.path == '/api/ao-my-sightings':
             self._handle_ao_my_sightings_post()
+            return
+
+        if parsed.path == '/api/ao-remove-me':
+            self._handle_ao_remove_me_post()
+            return
+
+        if parsed.path == '/api/ao-coobserver-setup':
+            self._handle_ao_coobserver_setup_post()
+            return
+
+        if parsed.path == '/api/ao-delete-sighting':
+            self._handle_ao_delete_sighting_post()
             return
 
         if parsed.path == '/api/ao-upload-image':
@@ -1027,6 +1042,40 @@ class Handler(SimpleHTTPRequestHandler):
             logger.error(f'[AO-FUNN] Kunne ikke hente egne funn: {e}')
             self._send_json({'sightings': [], 'total': 0, 'truncated': False}, status=200)
 
+    def _handle_ao_remove_me_post(self):
+        """Fjern gjeldende bruker som medobservatør, aldri rapportøren."""
+        try:
+            data = self._read_json_body()
+            valg = {'expected_group': data['expectedGroup']} if 'expectedGroup' in data else {}
+            self._send_json(fjern_meg(data.get('loginToken'), data.get('authCookie'),
+                                      data.get('sightingId'), **valg), status=200)
+        except Exception as exc:
+            logger.warning('[AO-OBSERVATOER] Forespørselen feilet: %s', type(exc).__name__)
+            self._send_json({'ok': False, 'error': 'Kunne ikke behandle forespørselen.'},
+                            status=200)
+
+    def _handle_ao_coobserver_setup_post(self):
+        """Les observatører uten å åpne eksisterende funn for redigering."""
+        try:
+            data = self._read_json_body()
+            self._send_json(observer_setup(data.get('loginToken'), data.get('authCookie'),
+                                           data.get('sightingId'), data.get('expectedGroup')),
+                            status=200)
+        except Exception:
+            self._send_json({'ok': False, 'error': 'Kunne ikke lese observatørvalgene.'}, status=200)
+
+    def _handle_ao_delete_sighting_post(self):
+        """Slett bare egne funn; rolle og tillatelse kontrolleres hos AO."""
+        try:
+            data = self._read_json_body()
+            valg = {'expected_group': data['expectedGroup']} if 'expectedGroup' in data else {}
+            self._send_json(slett_funn(data.get('loginToken'), data.get('authCookie'),
+                                       data.get('sightingId'), **valg), status=200)
+        except Exception as exc:
+            logger.warning('[AO-SLETT] Forespørselen feilet: %s', type(exc).__name__)
+            self._send_json({'ok': False, 'error': 'Kunne ikke behandle forespørselen.'},
+                            status=200)
+
     # ---------------------------------------------------------------
     # Endring av et publisert funn hos AO
     # ---------------------------------------------------------------
@@ -1155,6 +1204,16 @@ class Handler(SimpleHTTPRequestHandler):
             if not rad:
                 self._send_json({'ok': False,
                                  'error': 'Fant ikke funnet blant dine egne funn hos AO.'},
+                                status=200)
+                return
+            if not er_rapportor(rad):
+                self._send_json({'ok': False,
+                                 'error': 'Bare rapportøren kan endre dette funnet.'},
+                                status=200)
+                return
+            if not gjelder_gruppe(rad, data.get('expectedGroup')):
+                self._send_json({'ok': False,
+                                 'error': 'Funnet tilhører ikke lenger valgt sted og dato. Ingen endring er sendt.'},
                                 status=200)
                 return
             funn = ao_edit.funn_fra_rad(rad)

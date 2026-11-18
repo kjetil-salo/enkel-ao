@@ -313,6 +313,21 @@ def test_antall_null_respekteres_ikke_som_fravaerende():
     assert _en(_body(endringer={'quantity': '0'}), S + 'Quantity') == '0'
 
 
+def test_apen_kommentar_overstyres():
+    assert _en(_body(endringer={'comment': 'Sett fra skjul'}),
+               S + 'PublicComment.Comment') == 'Sett fra skjul'
+
+
+def test_apen_kommentar_uendret_naar_ikke_oppgitt():
+    """Samme mønster som antall: fraværende nøkkel = urørt, behold AOs verdi."""
+    assert _en(_body(), S + 'PublicComment.Comment') == ''
+
+
+def test_apen_kommentar_kan_tommes_eksplisitt():
+    """Tom streng er et gyldig, eksplisitt ønske («fjern kommentaren»)."""
+    assert _en(_body(endringer={'comment': ''}), S + 'PublicComment.Comment') == ''
+
+
 # ---------------------------------------------------------------------------
 # Fail-closed
 # ---------------------------------------------------------------------------
@@ -515,6 +530,19 @@ def test_bekreft_fanger_at_kjonns_nullstilling_IKKE_tok():
     assert 'Kjønn' in res['avvik'][0]
 
 
+def test_bekreft_fanger_feil_apen_kommentar():
+    res = ao_edit.bekreft(None, 1, FUNN, {'comment': 'Sett fra skjul'},
+                          hent_rad=lambda _: _rad(PublicComment='Annen tekst'))
+    assert res['bekreftet'] is False
+    assert 'Kommentar' in res['avvik'][0]
+
+
+def test_bekreft_verifiserer_eksplisitt_tommet_kommentar():
+    res = ao_edit.bekreft(None, 1, FUNN, {'comment': ''},
+                          hent_rad=lambda _: _rad(PublicComment=''))
+    assert res['bekreftet'] is True
+
+
 def test_bekreft_uten_hent_rad_gir_vet_ikke_ikke_feil():
     """`None` betyr «vet ikke». Å returnere False ville meldt feil på noe som gikk bra."""
     res = ao_edit.bekreft(None, 1, FUNN, {'quantity': '7'})
@@ -588,6 +616,17 @@ def test_funn_fra_rad_taaler_manglende_felt():
 def test_funn_fra_rad_taaler_rar_dato():
     f = ao_edit.funn_fra_rad({'UniversalDate': 'ikke en dato'})
     assert isinstance(f['dato'], str)
+
+
+def test_funn_fra_rad_gir_apen_kommentar_for_forhaandsutfylling():
+    """`/api/ao-sighting-details` forhåndsutfyller kommentarfeltet i modalen med denne."""
+    f = ao_edit.funn_fra_rad({'PublicComment': 'Sett fra skjul'})
+    assert f['comment'] == 'Sett fra skjul'
+
+
+def test_funn_fra_rad_manglende_kommentar_blir_tom_streng():
+    f = ao_edit.funn_fra_rad({})
+    assert f['comment'] == ''
 
 
 def test_funn_fra_rad_kan_mates_rett_inn_i_bygg_save_body():

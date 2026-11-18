@@ -28,6 +28,40 @@ POST /ViewSighting/BindSightingsGrid    → ren JSON, én rad per funn
 
 Implementert i `src/ao_sightings.py`, eksponert som `POST /api/ao-my-sightings`.
 
+### Fjerne seg som medobservatør
+
+`POST /api/ao-remove-me` tar `loginToken`, `authCookie` og `sightingId`.
+`src/ao_coobserver.py` godtar bare en positivt identifisert medobservatør;
+rapportøren kan ikke fjerne seg gjennom dette endepunktet. `canRemoveSelf` i
+funnlisten krever både kjent identitet, kjent annen rapportør og AOs egen
+`iscurrentuser`-markering på observatøren.
+
+Mekanismen er lest i offentlig HTML fra `/Sighting/<id>` 2026-11-18:
+`toggleObserver(id)` sender JSON `{"sightingId": id}` til
+`/ViewSighting/ToggleObserver/<id>`. AOs `MasterJs` bekrefter JSON-formatet og
+`X-Requested-With: XMLHttpRequest` kommer fra jQuery. Dette er en **toggle**:
+samme kall en gang til kan legge brukeren tilbake. Derfor låses operasjonen per
+funn innenfor serverprosessen, medlemskapet kontrolleres fra funnsidens
+`#coobservers` rett før sending, og bare ett POST-kall sendes. Deretter leses
+listen tilbake. `ok: true, verified: true` betyr at brukeren er bekreftet borte.
+Nettverksfeil etter sending gir `uncertain: true`, og skal aldri utløse automatisk
+retry. Listen skal oppdateres og funnet kontrolleres før et nytt forsøk.
+
+Et uavklart mutasjonsforsøk sperrer også senere POST-kall for samme AO-alias og
+funn i serverprosessen. En ny kontroll får bekrefte fravær og rydde sperren, men
+fortsatt medlemskap er aldri tilstrekkelig grunn til å sende toggle på nytt:
+et tidligere kall kan fremdeles arbeide hos AO etter en lokal timeout. Sperrene
+har ingen tidsbasert oppheving. Ved grensen på 1024 uavklarte forsøk avvises nye
+mutasjoner konservativt uten å kaste ut eldre sperrer. Kontroller kan fortsatt
+bekrefte fravær. En helt tom observatørliste regnes konservativt som ukjent
+markup og kan derfor ikke bekrefte en vellykket fjerning.
+
+Låsen og sperrene dekker samtidige enheter mot denne serverprosessen. Sperrene
+forsvinner ved omstart. Samtidige endringer direkte hos AO eller gjennom andre
+serverprosesser kan ikke låses av appen.
+Tester bruker bare mocker; ingen virkelig observasjon er endret for å teste
+denne funksjonen. Reell fjerning må feltverifiseres når eieren bruker knappen.
+
 ## 1. Søkeskjemaet
 
 `/ViewSighting/SearchSighting` inneholder ett skjema, `id="ViewSightingForm"`, med
@@ -255,6 +289,27 @@ en validator-flagg eller en reell sperre er ikke undersøkt.
 bildedelen av v1 var verifisert og deployet til staging.
 
 ## 3c. Hvem kan gjøre hva: bilder vs. redigering
+
+### Sletting og frosset gruppeutvalg (18.11.2026)
+
+`POST /api/ao-delete-sighting` tar `loginToken`, `authCookie` og `sightingId`.
+Bare positivt identifisert rapportør kan slette. Før sending kreves også at
+den innloggede funnsiden faktisk har AOs `delete_sightings`-handling.
+
+Mekanismen er lest fra AOs offentlige funnside og `MasterJs`: ett JSON-kall til
+`/ReviewSighting/DeleteSighting` med `sightingId` og `isTemporary: false`.
+Ingen test har slettet et ekte funn. AOs egen kvittering sier at søkeresultater
+kan henge etter, så en tom søkeresultatliste brukes ikke som bevis. `verified`
+blir bare sann når selve funnsiden etterpå gir den målte 404-responsen til
+`/Error/PageNotFound/` med «Siden finnes ikke». Andre resultater etter sending
+gir `ok: false, uncertain: true`; operasjonen gjentas ikke automatisk.
+
+Massehandlinger kan sende `expectedGroup: {date: "YYYY-MM-DD", siteId: 123}`
+til sletting, avmelding og lagring. Frisk AO-rad må fortsatt ha samme dato og
+steds-ID før mutasjonen. Dette hindrer at et frosset utvalg følger med et funn
+som i mellomtiden er flyttet. Manglende gruppe bevarer enkeltfunn-flyten.
+Lagring kontrollerer nå også positiv rapportørrolle før redigeringsskjemaet
+åpnes, i tillegg til AOs egen kontroll.
 
 **Verifisert 25.10.2026** på funn 42022052 (stokkand), rapportert av `bert` med
 Kjetil som observatør:

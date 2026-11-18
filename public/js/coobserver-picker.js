@@ -9,7 +9,7 @@
  */
 import { loadMedobs, saveMedobs } from './storage.js';
 import { attachAoObserverAutocomplete } from './ao-observer-autocomplete.js';
-import { t } from './i18n.js?v=v1.60.27';
+import { t } from './i18n.js?v=v1.60.28';
 
 const MEDOBS_MAX = 10;
 
@@ -21,7 +21,7 @@ function escapeHtml(s) {
  * @param {object} els - { container, newNameInput, addBtn }
  * @returns {{ setSelected: (names: string[]) => void, getSelected: () => string[] }}
  */
-export function initCoObserverPicker(els) {
+export function initCoObserverPicker(els, onChange = () => {}) {
   const { container, newNameInput, addBtn } = els;
   const selected = new Set();
 
@@ -50,6 +50,7 @@ export function initCoObserverPicker(els) {
         } else {
           selected.delete(name);
         }
+        onChange();
       });
       container.appendChild(label);
     });
@@ -75,6 +76,7 @@ export function initCoObserverPicker(els) {
       saveMedobs(master);
     }
     render();
+    onChange();
   }
 
   addBtn.addEventListener('click', () => {

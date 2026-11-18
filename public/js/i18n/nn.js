@@ -113,6 +113,10 @@ export default {
   'sendt.upload_to_ao': 'Last opp til AO',
   'sendt.edit_btn': '✏️ Endre',
   'sendt.edit_btn_title': 'Endra antal eller aktivitet. Funnet blir kort usynleg for andre medan du endrar.',
+  'sendt.role_own': '👤 Eige',
+  'sendt.role_own_title': 'Du har rapportert dette funnet — du kan endra det.',
+  'sendt.role_with': '👥 Med på',
+  'sendt.role_with_title': 'Du er med på funnet, men det er ein annan som har rapportert det — du kan legge til bilete, ikkje endra.',
   'sendt.share_these': '🔗 Del desse',
   'sendt.copy_to_list': '📋 Kopier til lista',
 

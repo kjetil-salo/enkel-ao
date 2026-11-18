@@ -29,4 +29,19 @@ describe('coobserver-picker språk', () => {
     picker.setSelected([]);
     expect(container.textContent).toBe('Ingen medobservatører lagt til ennå — legg til under.');
   });
+
+  it('varsler brukerens valg og tillegg uten å varsle ved forhåndsutfylling', () => {
+    let endringer = 0;
+    const picker = initCoObserverPicker({ container, newNameInput, addBtn }, () => { endringer++; });
+    saveMedobs([{ name: 'Anne', alias: 'anne', active: false }]);
+    picker.setSelected([]);
+    expect(endringer).toBe(0);
+    container.querySelector('input').click();
+    expect(picker.getSelected()).toEqual([{ name: 'Anne', alias: 'anne' }]);
+    expect(endringer).toBe(1);
+    newNameInput.value = 'Per';
+    addBtn.click();
+    expect(endringer).toBe(2);
+    expect(picker.getSelected()).toHaveLength(2);
+  });
 });

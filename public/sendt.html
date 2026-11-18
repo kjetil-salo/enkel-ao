@@ -14,10 +14,11 @@
       .shell { max-width: 640px; margin: 0 auto; }
       header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 4px; }
       h1 { font-size: 1.25rem; margin: 0; }
-      h2 { font-size: 1rem; margin: 26px 0 6px; }
+      h2 { font-size: 1rem; margin: 18px 0 6px; }
       .back-link { color: var(--accent, #3b82f6); text-decoration: none; font-size: 0.9rem; }
-      .ingress { color: var(--muted, #9ca3af); font-size: 0.85rem; line-height: 1.4; margin: 0 0 18px; }
-      .seksjon-info { color: var(--muted, #9ca3af); font-size: 0.8rem; line-height: 1.4; margin: 0 0 12px; }
+      .ingress { color: var(--muted, #9ca3af); font-size: 0.85rem; line-height: 1.4; margin: 0 0 10px; }
+      .seksjon-info { color: var(--muted, #9ca3af); font-size: 0.8rem; line-height: 1.4; margin: 0 0 8px; }
+      #ao-status:empty { display: none; }
       .batch { background: rgba(255,255,255,0.04); border: 1px solid rgba(148,163,184,0.15);
                border-radius: 12px; padding: 14px 16px; margin-bottom: 14px; }
       .batch-head { display: flex; justify-content: space-between; align-items: baseline;
@@ -67,31 +68,61 @@
 
       /* AO-seksjonen */
       .ao-topp { display: flex; align-items: center; gap: 10px;
-                 flex-wrap: wrap; margin-bottom: 10px; }
+                 flex-wrap: wrap; margin-bottom: 4px; }
       /* style.css gir alle select-er width:100% — her skal den dele linje med
          Oppdater-knappen, ikke dytte den ned på egen rad. */
       .ao-dager { width: auto; flex: 0 1 auto; font-size: 16px; padding: 8px 32px 8px 12px;
                   min-height: 44px; border-radius: 8px; background: transparent;
                   color: var(--text, #e5e7eb); border: 1px solid rgba(148,163,184,0.25); }
-      .funn { background: rgba(255,255,255,0.04); border: 1px solid rgba(148,163,184,0.15);
-              border-radius: 12px; padding: 12px 14px; margin-bottom: 10px; }
+      /* Kompakt: mange funn skal kunne skummes uten å scrolle i det uendelige —
+         samme informasjon, mindre luft rundt hver rad. */
+      .funn { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto;
+              align-items: center; column-gap: 8px; padding: 7px 10px;
+              border-top: 1px solid var(--border-color); }
       /* Kolonne, ikke rad: `justify-content:space-between` presset lang(e)
          artsnavn og "klokkeslett · aktivitet" mot hver sin kant på samme linje,
          og raden ble unødig bred på smale skjermer (feltmelding). Meta-linjen
          hører naturlig under artsnavnet, ikke ved siden av det. */
-      .funn-hode { display: flex; flex-direction: column; gap: 2px; }
-      .funn-art { font-weight: 600; }
-      .funn-meta { color: var(--muted, #9ca3af); font-size: 0.85rem; }
-      .funn-handling { display: flex; gap: 6px; align-items: center; margin-top: 10px; flex-wrap: wrap; }
-      .funn-handling .btn-liten { padding-left: 10px; padding-right: 10px; }
+      .funn-hode { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+      /* Rollemerket (👤/👥) deler linje med artsnavnet — egen rad ville kostet
+         nøyaktig den vertikale plassen kompakteringen skal spare. */
+      .funn-linje1 { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
+      .funn-art { font-weight: 600; overflow-wrap: anywhere; }
+      .funn-meta { color: var(--muted, #9ca3af); font-size: 0.8rem; }
+      .funn-handling { display: flex; gap: 2px; align-items: center; }
+      .ikonknapp { display: inline-flex; align-items: center; justify-content: center;
+                    min-width: 44px; min-height: 44px; padding: 4px; border: 0;
+                    border-radius: 8px; background: transparent; color: var(--color-accent);
+                    font: inherit; font-size: 0.95rem; cursor: pointer; text-decoration: none; }
+      .ikonknapp:hover { background: var(--color-accent-soft); }
+      .ikonknapp-pluss { position: relative; }
+      .pluss-merke { position: absolute; right: 2px; bottom: 2px; width: 15px; height: 15px;
+                     display: flex; align-items: center; justify-content: center;
+                     border-radius: 50%; background: var(--color-accent); color: #fff;
+                     font-size: 0.72rem; font-weight: 800; line-height: 1;
+                     box-shadow: 0 0 0 2px var(--bg, #0f172a); }
+      body.theme-light .pluss-merke { box-shadow: 0 0 0 2px #ffffff; }
+      .funn-handling .btn-liten { padding: 6px 8px; }
       .funn-lenke { color: var(--accent, #3b82f6); text-decoration: none; font-size: 0.85rem;
                     padding: 10px 4px; min-height: 44px; display: inline-flex; align-items: center; }
       .funn-lenke.endre { color: var(--muted, #9ca3af); }
       .rapportert-av { font-style: italic; }
-      .har-bilde { color: #86efac; font-size: 0.85rem; }
-      .advarsel { margin-top: 8px; padding: 8px 10px; border-radius: 8px; font-size: 0.85rem;
+      /* Hvem står ansvarlig for raden, og dermed hva du kan gjøre med den:
+         bare rapportøren kan endre, alle kan legge til bilde. Et ikon alene
+         er for utydelig til å bære det skillet — derfor et tydelig ord også. */
+      .funn-rolle { flex: none; display: inline-flex; align-items: center; gap: 4px;
+                    font-size: 0.72rem; font-weight: 600; white-space: nowrap;
+                    padding: 1px 8px; border-radius: 999px; }
+      .funn-rolle.egen { background: rgba(59,130,246,0.14); color: #93c5fd; }
+      .funn-rolle.med { background: rgba(234,179,8,0.14); color: #facc15; }
+      body.theme-light .funn-rolle.egen { background: #dbeafe !important; color: #1d4ed8 !important; }
+      body.theme-light .funn-rolle.med { background: #fef3c7 !important; color: #92400e !important; }
+      .har-bilde { display: inline-flex; align-items: center; justify-content: center;
+                   min-width: 32px; min-height: 44px; font-size: 1rem; }
+      .advarsel { grid-column: 1 / -1; margin-top: 6px; padding: 7px 9px; border-radius: 8px; font-size: 0.85rem;
                   background: rgba(234,179,8,0.1); border: 1px solid rgba(234,179,8,0.4); }
-      .rad-status { font-size: 0.85rem; margin-top: 8px; }
+      .rad-status { grid-column: 1 / -1; font-size: 0.85rem; margin-top: 6px; }
+      .rad-status:empty { margin-top: 0; }
       .rad-status.feil { color: #fca5a5; }
       .rad-status.ok { color: #86efac; }
       .beskjed { padding: 14px 16px; border-radius: 12px; line-height: 1.5; font-size: 0.9rem;
@@ -101,25 +132,96 @@
       /* ---- Gruppering av en lang liste ---- */
       /* En aktiv observatør får fort hundre rader. Uten inndeling er det en vegg
          av tekst, og det er umulig å se hvor en dag slutter og neste begynner. */
-      .sammendrag { color: var(--muted, #9ca3af); font-size: 0.85rem; margin: 0 0 12px; }
+      .liste-topp { display: flex; align-items: center; justify-content: space-between;
+                    gap: 4px 12px; flex-wrap: wrap; margin-bottom: 4px; }
+      .sammendrag { color: var(--muted, #9ca3af); font-size: 0.85rem; margin: 0; }
+      .fold-knapper { display: flex; gap: 4px; }
+      .tekstknapp { background: transparent; border: 0; color: var(--color-accent);
+                    min-height: 44px; padding: 6px 8px; font: inherit; font-size: 0.82rem; cursor: pointer; }
+      button:focus-visible, summary:focus-visible, a:focus-visible {
+        outline: 2px solid var(--color-accent); outline-offset: 2px; }
       .filter-pille { display: inline-flex; align-items: center; gap: 7px;
                       padding: 0 12px; min-height: 44px; border-radius: 999px;
                       border: 1px solid rgba(148,163,184,0.25); font-size: 0.85rem;
-                      cursor: pointer; user-select: none; }
+                      cursor: pointer; user-select: none; margin: 0; }
       .filter-pille input { width: 16px; height: 16px; accent-color: var(--accent, #3b82f6); }
       .filter-pille:has(input:checked) { border-color: var(--accent, #3b82f6);
                                          background: rgba(59,130,246,0.1); }
 
-      .dato-gruppe { margin-bottom: 18px; }
+      .dato-gruppe { margin-bottom: 14px; }
       /* Klebrig datooverskrift: når man scroller gjennom en lang liste er det
          lett å miste hvilken dag man ser på. */
       .dato-overskrift { position: sticky; top: 0; z-index: 2;
                          display: flex; justify-content: space-between; align-items: baseline;
-                         gap: 10px; margin: 0 0 8px; padding: 8px 0;
+                         gap: 10px; margin: 0 0 4px; padding: 8px 0;
                          background: var(--bg, #0f172a); font-size: 0.95rem; }
       .dato-antall { color: var(--muted, #9ca3af); font-size: 0.8rem; font-weight: 400; }
-      .sted-gruppe { margin-bottom: 10px; }
-      .sted-overskrift { color: #93c5fd; font-size: 0.88rem; margin: 0 0 5px 2px; }
+      .sted-gruppe { margin-bottom: 8px; border: 1px solid var(--border-color-medium);
+                     border-radius: 10px; background: var(--color-obs-row-bg); position: relative; }
+      .sted-ramme { position: relative; }
+      .sted-overskrift { display: flex; align-items: center; gap: 8px; min-height: 48px;
+                         padding: 6px 56px 6px 10px; cursor: pointer; list-style: none; }
+      .sted-handlinger { position: absolute; right: 4px; top: 2px; }
+      summary::-webkit-details-marker { display: none; }
+      .sted-overskrift::before, .lokal-overskrift::before {
+        content: '›'; flex: none; font-size: 1.2rem; color: var(--color-muted); }
+      .sted-gruppe[open] > .sted-overskrift::before,
+      .lokal-logg[open] > .lokal-overskrift::before { transform: rotate(90deg); }
+      .sted-navn { flex: 1; min-width: 0; font-size: 0.9rem; font-weight: 600; overflow-wrap: anywhere; }
+      .sted-tall { color: var(--color-muted); font-size: 0.75rem; text-align: right; }
+      .sted-uten-bilde { display: block; }
+      .sted-varsel { color: var(--color-warning); }
+      .funn-meny { position: relative; }
+      .funn-meny > summary { display: flex; align-items: center; justify-content: center;
+                             width: 44px; min-height: 44px; cursor: pointer; list-style: none;
+                             font-size: 1.3rem; border-radius: 8px; color: var(--color-muted); }
+      .funn-meny[open] > summary { background: var(--color-accent-soft); }
+      .funn-meny-innhold { position: absolute; right: 0; top: 100%; z-index: 5;
+                           width: 220px; max-width: calc(100vw - 56px); padding: 4px;
+                           background: var(--color-card-bg); border: 1px solid var(--border-color-medium);
+                           border-radius: 10px; box-shadow: var(--shadow-md); }
+      .funn-meny-innhold button, .funn-meny-innhold a { display: flex; align-items: center;
+        width: 100%; min-height: 44px; padding: 8px 10px; border: 0; border-radius: 6px;
+        font: inherit; font-size: 0.85rem; text-align: left; text-decoration: none;
+        background: transparent; color: var(--color-text); cursor: pointer; }
+      .funn-meny-innhold button:hover, .funn-meny-innhold a:hover { background: var(--color-accent-soft); }
+      .funn-meny-innhold .fjern-meg { color: var(--color-error); }
+      .funn-meny-innhold .slett-funn { color: var(--color-error); }
+      .funn-meny-innhold button:disabled { opacity: 0.55; cursor: wait; }
+      .lokal-logg { margin-top: 20px; border-top: 1px solid var(--border-color-medium); }
+      .lokal-overskrift { display: flex; gap: 8px; align-items: center; min-height: 48px;
+                           padding: 8px 0; font-size: 0.95rem; font-weight: 600; cursor: pointer; list-style: none; }
+      .lokal-antall { color: var(--color-muted); font-size: 0.8rem; font-weight: 400; margin-left: auto; }
+      dialog.gruppe-modal { width: calc(100% - 24px); max-width: 560px; max-height: calc(100dvh - 24px);
+        overflow-y: auto; padding: 16px; border-radius: 14px;
+        border: 1px solid var(--border-color-medium); background: var(--color-card-bg);
+        color: var(--color-text); box-shadow: var(--shadow-lg); }
+      dialog.gruppe-modal::backdrop { background: rgba(var(--color-card-shadow-rgb), 0.55); }
+      .gruppe-modal [hidden] { display: none; }
+      .gruppe-modal .em-rad-par[hidden] { display: none; }
+      .gruppe-advarsel { border-left: 3px solid var(--color-warning); padding: 8px 12px;
+                         background: var(--color-warning-soft); font-size: 0.85rem; }
+      .gruppe-resultater { padding-left: 24px; font-size: 0.85rem; overflow-wrap: anywhere; }
+      .gruppe-modal .btn-liten.farlig { background: var(--color-error); }
+      .gruppe-medobs-liste { margin: 8px 0 14px; }
+      .gruppe-medobs-liste label { min-height: 44px; text-transform: none; letter-spacing: normal; }
+      .gruppe-medobs-sok { display: flex; gap: 8px; align-items: start; }
+      .gruppe-modal .medobs-ac-wrap { position: relative; flex: 1; min-width: 0; }
+      .gruppe-modal .medobs-ac-list { display: none; position: absolute; left: 0; right: 0; top: 100%;
+        z-index: 5; background: var(--color-card-bg); border: 1px solid var(--border-color-medium);
+        border-radius: 8px; box-shadow: var(--shadow-md); max-height: 220px; overflow-y: auto; }
+      .gruppe-modal .medobs-ac-list.show { display: block; }
+      .gruppe-modal .medobs-ac-item { padding: 10px; min-height: 44px; font-size: 0.85rem; cursor: pointer; }
+      .gruppe-modal .medobs-ac-item:hover, .gruppe-modal .medobs-ac-item.active { background: var(--color-accent-soft); }
+      .gruppe-modal .medobs-ac-spinner { padding: 10px; color: var(--color-muted); font-size: 0.85rem; }
+      .gruppe-modal .ac-city { color: var(--color-muted); margin-left: 6px; }
+      @media (max-width: 380px) {
+        body { padding: 12px; }
+        .funn-rolle { padding: 1px 5px; }
+        .funn-handling .btn-liten { padding: 6px; font-size: 0.8rem; }
+        .rapportert-av { display: block; }
+        .funn-handling { display: grid; grid-template-columns: repeat(2, 44px); }
+      }
 
       /* ---- Bildemodal ---- */
       .modal-bakgrunn { position: fixed; inset: 0; background: rgba(0,0,0,0.6);
@@ -177,11 +279,12 @@
       /* ---- Endringsmodal ---- */
       .em-rad { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
       .em-rad label { font-size: 0.8rem; color: var(--muted, #9ca3af); }
-      .em-rad input, .em-rad select {
+      .em-rad input, .em-rad select, .em-rad textarea {
         font-size: 16px; padding: 8px 10px; border-radius: 8px;
         border: 1px solid var(--border, #334155);
-        background: var(--bg, #0f172a); color: var(--text, #e5e7eb); width: 100%; }
-      body.theme-light .em-rad input, body.theme-light .em-rad select {
+        background: var(--bg, #0f172a); color: var(--text, #e5e7eb); width: 100%;
+        font-family: inherit; resize: vertical; }
+      body.theme-light .em-rad input, body.theme-light .em-rad select, body.theme-light .em-rad textarea {
         background: #ffffff !important; color: #0f172a !important; border-color: #cbd5e1 !important; }
       .em-fast { font-size: 0.8rem; color: var(--muted, #9ca3af); margin: 0 0 14px;
                  padding-top: 10px; border-top: 1px solid var(--border, #334155); }
@@ -250,10 +353,8 @@
       body.theme-light .modal { background: #ffffff !important; border-color: #e2e8f0 !important; }
       body.theme-light .modal-status.feil { color: #b91c1c !important; }
       body.theme-light .batch,
-      body.theme-light .funn,
       body.theme-light .beskjed { background: #f8fafc !important; border-color: #e2e8f0 !important; }
-      body.theme-light .sted,
-      body.theme-light .sted-overskrift { color: #1d4ed8 !important; }
+      body.theme-light .sted { color: #1d4ed8 !important; }
       body.theme-light .dato-overskrift { background: #ffffff !important; }
       body.theme-light .antall { color: #16a34a !important; }
       body.theme-light .har-bilde,
@@ -304,14 +405,17 @@
         </label>
       </div>
       <div id="ko-varsel" class="ko-varsel" hidden></div>
-    <div id="ao-liste"></div>
+      <p id="ao-status" class="seksjon-info" role="status" aria-live="polite"></p>
+      <div id="ao-liste"></div>
 
-      <h2 data-i18n="sendt.local_heading">📱 Sendt fra denne enheten</h2>
+      <details class="lokal-logg">
+      <summary class="lokal-overskrift"><span data-i18n="sendt.local_heading">📱 Sendt fra denne enheten</span><span id="lokal-antall" class="lokal-antall"></span></summary>
       <p class="seksjon-info" data-i18n="sendt.local_info">
         Lokal kvittering for det du har publisert de siste 7 dagene. Virker uten nett
         og uten innlogging.
       </p>
       <div id="liste"></div>
+      </details>
 
       <footer data-i18n-html="sendt.footer">
         Skal du rette et funn, gjør du det på
@@ -370,6 +474,11 @@
               <label for="em-kjonn">Kjønn</label>
               <select id="em-kjonn"></select>
             </div>
+          </div>
+
+          <div class="em-rad">
+            <label for="em-kommentar">Åpen kommentar (synlig for andre)</label>
+            <textarea id="em-kommentar" rows="2"></textarea>
           </div>
 
           <p class="em-fast" id="em-fast"></p>
@@ -462,7 +571,7 @@
       // Alias tr (ikke t): denne filen har allerede en lokal `const t = hentTokens();`
       // inne i lastAoFunn() - et import med samme navn ville vært forvirrende å lese,
       // selv om selve skoperingen er trygg.
-      import { t as tr, applyTranslations } from '/js/i18n.js?v=v1.60.27';
+      import { t as tr, applyTranslations } from '/js/i18n.js?v=v1.60.28';
 
       applyTranslations();
       document.title = tr('sendt.title');
@@ -480,9 +589,10 @@
       // (v1.59.7). En cachet gammel kopi ville gitt TypeError i det slideren eller
       // zoomen brukes — eller SyntaxError som stopper hele denne modulen. Se
       // «Versjonering» i CLAUDE.md (v1.53.15).
-      import { initPhotoPicker } from '/js/photo-picker.js?v=v1.60.27';
-      import { lagBildeEditor } from '/js/bilde-editor.js?v=v1.60.27';
-      import { loggInnMedLagretLegitimasjon, loadActivities } from '/js/api.js?v=v1.60.27';
+      import { initPhotoPicker } from '/js/photo-picker.js?v=v1.60.28';
+      import { lagBildeEditor } from '/js/bilde-editor.js?v=v1.60.28';
+      import { loggInnMedLagretLegitimasjon, loadActivities } from '/js/api.js?v=v1.60.28';
+      import { initSendtHandlinger } from '/js/sendt-handlinger.js?v=v1.60.28';
 
       const MND = ['januar', 'februar', 'mars', 'april', 'mai', 'juni',
         'juli', 'august', 'september', 'oktober', 'november', 'desember'];
@@ -530,6 +640,12 @@
       const dagerEl = document.getElementById('ao-dager');
       const oppdaterEl = document.getElementById('ao-oppdater');
       let funnCache = [];
+      const aapneSteder = new Map();
+      const fjernerFunn = new Set();
+      const fjernedeFunn = new Set();
+      const endredeFunn = new Map();
+      let endringsSeq = 0;
+      let harAapnetFoersteSted = false;
       // Teller som forkaster svar fra en eldre, tregere henting når en nyere
       // allerede har tegnet. Uten den kan et 60-dagers svar lande etter at
       // brukeren har byttet til 7 dager, og lista beskriver feil tidsrom.
@@ -559,47 +675,86 @@
           : `<span class="rapportert-av">Rapportert av ${tekst(funn.reporter)}</span>`;
       }
 
+      // Rollemerke: om DU står som rapportør avgjør om «Endre» finnes nedenfor
+      // eller ikke, og det er lett å overse hvorfor en rad bare har bildeknapp.
+      // Et synlig merke på HVER rad gjør skillet synlig i et blikk nedover
+      // lista, i stedet for noe man må legge merke til er fraværende.
+      function rolleHtml(funn) {
+        if (funn.isReporter !== true && funn.canRemoveSelf !== true) {
+          return `<span class="funn-rolle" title="Rollen din kunne ikke bekreftes">Ukjent rolle</span>`;
+        }
+        return funn.isReporter === true
+          ? `<span class="funn-rolle egen" title="${attr(tr('sendt.role_own_title'))}">${tr('sendt.role_own')}</span>`
+          : `<span class="funn-rolle med" title="${attr(tr('sendt.role_with_title'))}">${tr('sendt.role_with')}</span>`;
+      }
+
       function renderFunn(funn) {
         const detaljer = [funn.time, activityDisplayName(funn.activity)].filter(Boolean).join(' · ');
         const advarsel = funn.triggeredRules
           ? `<div class="advarsel">⚠️ Artsobservasjoner har en merknad til dette funnet:
              ${tekst(funn.triggeredRules)}</div>`
           : '';
-        // Knappen blir stående også etter første bilde: AO tillater inntil 10 per
-        // funn, og en fugl fortjener gjerne både nærbilde og habitatbilde. Merket
-        // ved siden av forteller at det alt ligger noe der.
-        const harMerke = funn.hasImage ? `<span class="har-bilde">${tr('sendt.has_image')}</span>` : '';
-        const bildeknapp = `<button class="btn-liten ${funn.hasImage ? '' : 'primar'}"
-          data-bilde="${attr(funn.sightingId)}">${funn.hasImage ? tr('sendt.add_one_more') : tr('sendt.add_image')}</button>`;
+        // To faste, atskilte ikoner i stedet for ett som bytter mening: et
+        // bilde-merke (ren indikator, ikke klikkbar) forteller at det ALLEREDE
+        // ligger noe der, og en egen leggTil-knapp er alltid tilgjengelig —
+        // AO tillater inntil 10 bilder per funn, og en fugl fortjener gjerne
+        // både nærbilde og habitatbilde. Før lå leggTil-knappen gjemt i
+        // ⋯-menyen når det allerede fantes ett bilde, med en annen tekst enn
+        // den synlige knappen — samme handling så ut som to ulike.
+        const harMerke = funn.hasImage
+          ? `<span class="har-bilde" role="img" aria-label="${attr(tr('sendt.has_image'))}" title="${attr(tr('sendt.has_image'))}">📷</span>` : '';
+        const leggTilTekst = funn.hasImage ? tr('sendt.add_one_more') : tr('sendt.add_image');
+        // Samme kamera som indikatoren (ellers ser de ut som to ulike handlinger),
+        // men med et tydelig pluss-merke i hjørnet — en «＋» midt i emoji-fonten
+        // druknet helt i den første versjonen av dette ikonet.
+        const leggTilBilde = `<button class="ikonknapp ikonknapp-pluss" data-bilde="${attr(funn.sightingId)}"
+               aria-label="${attr(leggTilTekst)}" title="${attr(leggTilTekst)}">📷<span class="pluss-merke" aria-hidden="true">+</span></button>`;
 
         // Bilder kan alle involverte legge til, men bare rapportøren kan endre
         // funnet. AO skjuler selv «Endre» for andre, så vi speiler den regelen i
         // stedet for å tilby noe som ville blitt avvist.
-        const endre = funn.isReporter
-          ? `<button class="btn-liten" data-endre="${attr(funn.sightingId)}"
-               title="${tr('sendt.edit_btn_title')}">${tr('sendt.edit_btn')}</button>`
+        const endre = funn.isReporter === true
+          ? `<button class="ikonknapp" data-endre="${attr(funn.sightingId)}"
+               aria-label="Endre funn" title="Endre funn">✎</button>`
           : '';
         const rapportor = rapportorHtml(funn);
+        const fjern = funn.canRemoveSelf === true
+          ? `<button class="fjern-meg" data-fjern-meg="${attr(funn.sightingId)}" ${fjernerFunn.has(String(funn.sightingId)) ? 'disabled' : ''}>${tr('sendt.remove_me')}</button>` : '';
+        const slett = funn.isReporter === true
+          ? `<button class="slett-funn" data-slett="${attr(funn.sightingId)}">🗑 Slett funn</button>` : '';
 
         return `
           <div class="funn" id="funn-${attr(funn.sightingId)}">
             <div class="funn-hode">
-              <span class="funn-art"><span class="antall">${tekst(funn.quantity)}</span>
-                ${tekst(funn.taxonName)}</span>
+              <div class="funn-linje1">
+                <span class="funn-art"><span class="antall">${tekst(funn.quantity)}</span>
+                  ${tekst(funn.taxonName)}</span>
+                ${rolleHtml(funn)}
+              </div>
               <span class="funn-meta">${[tekst(detaljer), rapportor].filter(Boolean).join(' · ')}</span>
             </div>
-            ${advarsel}
             <div class="funn-handling">
               ${harMerke}
-              ${bildeknapp}
-              <a class="funn-lenke" href="${attr(funn.url)}" target="_blank" rel="noopener">↗ Vis på AO</a>
+              ${leggTilBilde}
               ${endre}
+              <a class="ikonknapp" href="${attr(funn.url)}" target="_blank" rel="noopener"
+                 aria-label="Åpne funnet hos Artsobservasjoner" title="Vis på AO">AO ↗</a>
+              <details class="funn-meny">
+                <summary aria-label="${attr(tr('sendt.more_actions', { species: funn.taxonName }))}">⋯</summary>
+                <div class="funn-meny-innhold">
+                  ${fjern}
+                  ${slett}
+                </div>
+              </details>
             </div>
-            <div class="rad-status" data-status="${attr(funn.sightingId)}"></div>
+            ${advarsel}
+            <div class="rad-status" data-status="${attr(funn.sightingId)}" role="status"></div>
           </div>`;
       }
 
       async function lastAoFunn() {
+        huskAapneSteder();
+        document.getElementById('ao-status').textContent = '';
         const t = hentTokens();
         if (!t.loginToken || !t.authCookie) {
           aoListeEl.innerHTML = `<div class="beskjed">${tr('sendt.not_logged_in')}</div>`;
@@ -607,6 +762,7 @@
         }
 
         const minSeq = ++hentSeq;
+        const endringerVedStart = endringsSeq;
         aoListeEl.innerHTML = `<div class="laster">
           <div class="spinner" role="status" aria-label="Henter"></div>
           <div>Henter funnene dine fra Artsobservasjoner …</div>
@@ -665,7 +821,13 @@
           return;
         }
 
-        funnCache = Array.isArray(data.sightings) ? data.sightings : [];
+        // Et hentesvar kan være eldre enn en fjerning som nettopp ble bekreftet.
+        funnCache = Array.isArray(data.sightings)
+          ? data.sightings.filter((f) => !fjernedeFunn.has(String(f.sightingId)))
+            .map((f) => {
+              const endring = endredeFunn.get(String(f.sightingId));
+              return { ...f, ...(endring?.seq > endringerVedStart ? endring.patch : {}) };
+            }) : [];
 
         if (!funnCache.length) {
           aoListeEl.innerHTML = `<div class="tom">
@@ -704,7 +866,7 @@
         for (const f of funn) {
           if (!datoer.has(f.date)) datoer.set(f.date, new Map());
           const steder = datoer.get(f.date);
-          const sted = f.siteName || '';
+          const sted = String(f.siteId || f.siteName || '');
           if (!steder.has(sted)) steder.set(sted, []);
           steder.get(sted).push(f);
         }
@@ -712,16 +874,21 @@
       }
 
       function tegnListe() {
+        huskAapneSteder();
         const bareUtenBilde = document.getElementById('ao-bare-uten-bilde').checked;
         const utenBilde = funnCache.filter((f) => !f.hasImage).length;
         const synlige = bareUtenBilde ? funnCache.filter((f) => !f.hasImage) : funnCache;
 
-        const sammendrag = `<p class="sammendrag">${funnCache.length} funn
+        const sammendrag = `<div class="liste-topp"><p class="sammendrag">${funnCache.length} funn
           ${utenBilde ? `· <strong>${utenBilde}</strong> ${tr('sendt.without_image')}` : tr('sendt.all_have_image')}</p>`;
+        const foldKnapper = synlige.length
+          ? `<div class="fold-knapper"><button class="tekstknapp" data-fold="aapne">${tr('sendt.show_all')}</button>
+               <button class="tekstknapp" data-fold="lukk">${tr('sendt.hide_all')}</button></div></div>`
+          : '</div>';
 
         if (!synlige.length) {
-          aoListeEl.innerHTML = sammendrag + `<div class="tom">
-            ${tr('sendt.all_in_period_have_image')}
+          aoListeEl.innerHTML = sammendrag + foldKnapper + avkortetMelding + `<div class="tom">
+            ${funnCache.length ? tr('sendt.all_in_period_have_image') : tr('sendt.no_sightings')}
           </div>`;
           return;
         }
@@ -730,11 +897,21 @@
         const deler = [];
         for (const [dato, steder] of grupper_) {
           const antall = [...steder.values()].reduce((n, liste) => n + liste.length, 0);
-          const seksjoner = [...steder].map(([sted, liste]) => `
-            <div class="sted-gruppe">
-              ${sted ? `<div class="sted-overskrift">${tekst(sted)}</div>` : ''}
+          const seksjoner = [...steder].map(([sted, liste]) => {
+            const noekkel = JSON.stringify([dato, sted]);
+            if (!aapneSteder.has(noekkel)) {
+              aapneSteder.set(noekkel, !harAapnetFoersteSted);
+              harAapnetFoersteSted = true;
+            }
+            return `<div class="sted-ramme"><details class="sted-gruppe" data-sted="${attr(noekkel)}" ${aapneSteder.get(noekkel) ? 'open' : ''}>
+              <summary class="sted-overskrift">
+                <span class="sted-navn">${tekst(liste[0].siteName || tr('sendt.no_site'))}</span>
+                <span class="sted-tall">${stedTall(liste)}</span>
+              </summary>
               ${liste.map(renderFunn).join('')}
-            </div>`).join('');
+            </details>${Number(liste[0].siteId) > 0 ? `<button class="ikonknapp sted-handlinger" data-sted-handlinger="${attr(noekkel)}"
+                aria-label="Handlinger for ${attr(liste[0].siteName)}" title="Handlinger for stedet">⋯</button>` : ''}</div>`;
+          }).join('');
           deler.push(`
             <div class="dato-gruppe">
               <h3 class="dato-overskrift">
@@ -745,8 +922,46 @@
             </div>`);
         }
 
-        aoListeEl.innerHTML = sammendrag + avkortetMelding + deler.join('');
+        aoListeEl.innerHTML = sammendrag + foldKnapper + avkortetMelding + deler.join('');
       }
+
+      function stedTall(liste) {
+        const utenBilde = liste.filter((f) => !f.hasImage).length;
+        const merknader = liste.filter((f) => f.triggeredRules).length;
+        return tekst(tr('sendt.sighting_count', { n: liste.length }))
+          + (utenBilde ? `<span class="sted-uten-bilde">${utenBilde} ${tr('sendt.without_image')}</span>` : '')
+          + (merknader ? `<span class="sted-uten-bilde sted-varsel">⚠ ${tekst(tr('sendt.warning_count', { n: merknader }))}</span>` : '');
+      }
+
+      function huskAapneSteder() {
+        for (const sted of aoListeEl.querySelectorAll('.sted-gruppe')) {
+          aapneSteder.set(sted.dataset.sted, sted.open);
+        }
+      }
+
+      aoListeEl.addEventListener('click', (e) => {
+        const knapp = e.target.closest('[data-fold]');
+        if (!knapp) return;
+        for (const sted of aoListeEl.querySelectorAll('.sted-gruppe')) {
+          sted.open = knapp.dataset.fold === 'aapne';
+          aapneSteder.set(sted.dataset.sted, sted.open);
+        }
+      });
+
+      // Native summary tar seg av Enter/Space. Escape lukker menyen og gir
+      // fokus tilbake; et trykk utenfor lukker bare den åpne menyen.
+      document.addEventListener('click', (e) => {
+        for (const meny of aoListeEl.querySelectorAll('.funn-meny[open]')) {
+          if (!meny.contains(e.target)) meny.open = false;
+        }
+      });
+      document.addEventListener('keydown', (e) => {
+        if (e.key !== 'Escape') return;
+        for (const meny of aoListeEl.querySelectorAll('.funn-meny[open]')) {
+          meny.open = false;
+          meny.querySelector('summary').focus();
+        }
+      });
 
       /**
        * Oppdater bare tellelinja etter en opplasting.
@@ -761,6 +976,10 @@
         const utenBilde = funnCache.filter((f) => !f.hasImage).length;
         el.innerHTML = `${funnCache.length} funn ${utenBilde
           ? `· <strong>${utenBilde}</strong> ${tr('sendt.without_image')}` : tr('sendt.all_have_image')}`;
+        for (const sted of aoListeEl.querySelectorAll('.sted-gruppe')) {
+          const ids = new Set([...sted.querySelectorAll('.funn')].map((rad) => rad.id));
+          sted.querySelector('.sted-tall').innerHTML = stedTall(funnCache.filter((f) => ids.has(`funn-${f.sightingId}`)));
+        }
       }
 
       function settStatus(sightingId, melding, type) {
@@ -838,17 +1057,7 @@
         const funn = funnCache.find((f) => String(f.sightingId) === String(sightingId));
         const rad = document.getElementById(`funn-${sightingId}`);
         if (!funn || !rad) return;
-        const knapp = rad.querySelector('[data-bilde]');
-        if (knapp) {
-          knapp.textContent = tr('sendt.add_one_more');
-          knapp.classList.remove('primar');
-        }
-        if (!rad.querySelector('.har-bilde')) {
-          const merke = document.createElement('span');
-          merke.className = 'har-bilde';
-          merke.textContent = tr('sendt.has_image');
-          rad.querySelector('.funn-handling').prepend(merke);
-        }
+        rad.outerHTML = renderFunn(funn);
       }
 
       // Etter en vellykket opplasting står modalen igjen åpen: den vanlige
@@ -953,6 +1162,7 @@
       const emAktivitet = document.getElementById('em-aktivitet');
       const emAlder = document.getElementById('em-alder');
       const emKjonn = document.getElementById('em-kjonn');
+      const emKommentar = document.getElementById('em-kommentar');
       const emFast = document.getElementById('em-fast');
 
       // Statisk vokabular — fylles én gang, ikke per åpning av modalen.
@@ -1191,6 +1401,7 @@
           opprinneligAntall: f0.quantity, opprinneligAktivitetNavn: f0.activity_navn,
           opprinneligArt: f0.taxon_id, opprinneligArtNavn: funn.taxonName,
           opprinneligAlder: f0.age_navn || '', opprinneligKjonn: f0.gender_navn || '',
+          opprinneligKommentar: f0.comment || '',
           nyArt: null,
         };
         visValgtArt();
@@ -1226,6 +1437,7 @@
         emKjonn.value = emOkt.opprinneligKjonn;
         emAlderRort = false;
         emKjonnRort = false;
+        emKommentar.value = emOkt.opprinneligKommentar;
 
         // Det vi IKKE endrer her skal stå synlig, så ingen tror det er glemt.
         emFast.textContent = `Dato, tid og lokalitet endres ikke her: `
@@ -1267,6 +1479,10 @@
         // oppgitt», fraværende nøkkel = urørt/behold nåværende AO-verdi.
         if (emAlderRort) endringer.age_navn = emAlder.value;
         if (emKjonnRort) endringer.gender_navn = emKjonn.value;
+        // Fri tekst — samme mønster som antall: verdi-sammenligning holder,
+        // ingen lookup-ambiguitet som for alder/kjønn.
+        const kommentar = emKommentar.value.trim();
+        if (kommentar !== (emOkt.opprinneligKommentar || '')) endringer.comment = kommentar;
 
         emLagre.disabled = true;
         emAvbryt.disabled = true;
@@ -1393,7 +1609,92 @@
 
       emLagre.addEventListener('click', emLagreEndring);
 
+      const handlinger = initSendtHandlinger({
+        hentTokens,
+        erOpptatt: () => fjernerFunn.size > 0 || !emModal.hidden || !modal.hidden,
+        onFjernet(id) {
+          fjernedeFunn.add(String(id));
+          funnCache = funnCache.filter((f) => String(f.sightingId) !== String(id));
+          tegnListe();
+        },
+        onEndring(id, endringer, ao) {
+          const patch = {};
+          if (endringer.activity_navn) patch.activity = ao?.ActivityName || endringer.activity_navn;
+          if (endringer.time_from) patch.time = endringer.time_from === endringer.time_to
+            ? endringer.time_from : `${endringer.time_from}-${endringer.time_to}`;
+          if (Object.keys(patch).length) endredeFunn.set(String(id), { seq: ++endringsSeq, patch });
+          const funn = funnCache.find((f) => String(f.sightingId) === String(id));
+          if (funn) Object.assign(funn, patch);
+          tegnListe();
+        },
+      });
+
+      async function fjernMeg(funn, knapp) {
+        const id = String(funn.sightingId);
+        if (!funn.canRemoveSelf || fjernerFunn.has(id)) return;
+        if (!confirm(tr('sendt.remove_confirm', {
+          count: funn.quantity, species: funn.taxonName,
+          site: funn.siteName, date: formatDato(funn.date),
+        }))) return;
+
+        fjernerFunn.add(id);
+        knapp.disabled = true;
+        settStatus(id, tr('sendt.removing_me'));
+        let svar;
+        try {
+          const t = hentTokens();
+          svar = await fetch('/api/ao-remove-me', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sightingId: funn.sightingId,
+              loginToken: t.loginToken, authCookie: t.authCookie }),
+          }).then((r) => r.json());
+        } catch (e) {
+          // AO har en toggle, så ikke gjenta et kall som kan ha nådd frem.
+          svar = { ok: false };
+        } finally {
+          fjernerFunn.delete(id);
+          knapp.disabled = false;
+          const gjeldendeKnapp = document.getElementById(`funn-${id}`)?.querySelector('[data-fjern-meg]');
+          if (gjeldendeKnapp) gjeldendeKnapp.disabled = false;
+        }
+        if (svar.ok !== true || svar.verified !== true) {
+          settStatus(id, svar.error || tr('sendt.remove_failed'), 'feil');
+          return;
+        }
+        const stedNoekkel = document.getElementById(`funn-${id}`)?.closest('.sted-gruppe')?.dataset.sted;
+        fjernedeFunn.add(id);
+        funnCache = funnCache.filter((f) => String(f.sightingId) !== id);
+        tegnListe();
+        document.getElementById('ao-status').textContent = tr('sendt.removed_me', { species: funn.taxonName });
+        const sted = [...aoListeEl.querySelectorAll('.sted-gruppe')].find((el) => el.dataset.sted === stedNoekkel);
+        (sted?.querySelector('summary') || aoListeEl.querySelector('[data-fold]') || oppdaterEl).focus();
+      }
+
       aoListeEl.addEventListener('click', (e) => {
+        const stedKnapp = e.target.closest('[data-sted-handlinger]');
+        if (stedKnapp) {
+          const [dato, sted] = JSON.parse(stedKnapp.dataset.stedHandlinger);
+          const funn = funnCache.filter((f) => f.date === dato && String(f.siteId || f.siteName || '') === sted);
+          if (funn.length) handlinger.aapneGruppe(funn, {
+            tittel: `${funn[0].siteName} · ${dato}`, expectedGroup: { date: dato, siteId: funn[0].siteId },
+            avkortet: Boolean(avkortetMelding),
+          }, stedKnapp);
+          return;
+        }
+        const slettKnapp = e.target.closest('[data-slett]');
+        if (slettKnapp) {
+          const f = funnCache.find((x) => String(x.sightingId) === slettKnapp.dataset.slett);
+          slettKnapp.closest('.funn-meny').open = false;
+          if (f?.isReporter === true) handlinger.slettFunn(f, { tittel: `${f.siteName} · ${f.date}` }, slettKnapp);
+          return;
+        }
+        const fjernKnapp = e.target.closest('[data-fjern-meg]');
+        if (fjernKnapp) {
+          const f = funnCache.find((x) => String(x.sightingId) === fjernKnapp.dataset.fjernMeg);
+          fjernKnapp.closest('.funn-meny').open = false;
+          if (f) fjernMeg(f, fjernKnapp);
+          return;
+        }
         const endreKnapp = e.target.closest('[data-endre]');
         if (endreKnapp) {
           const f = funnCache.find((x) => String(x.sightingId) === endreKnapp.dataset.endre);
@@ -1402,6 +1703,8 @@
         }
         const knapp = e.target.closest('[data-bilde]');
         if (!knapp) return;
+        const meny = knapp.closest('.funn-meny');
+        if (meny) meny.open = false;
         const funn = funnCache.find((f) => String(f.sightingId) === knapp.dataset.bilde);
         if (funn) apneModal(funn);
       });
@@ -1552,6 +1855,7 @@
 
       const batches = loadSentBatches();
       const listeEl = document.getElementById('liste');
+      document.getElementById('lokal-antall').textContent = batches.length;
 
       // Egen funksjon (ikke bare kjørt rett ned) slik at et språkbytte kan
       // tegne listen på nytt uten å feste klikk-lytteren en gang til.

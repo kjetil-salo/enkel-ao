@@ -120,6 +120,31 @@ SELECT_DEFAULTS = {
 EKSTRA_FELT = (('base', 'on'),)
 
 _DATO_RE = re.compile(r'^(\d{2}\.\d{2}\.\d{4})')
+_TID_RE = re.compile(r'^(?:[01]\d|2[0-3]):[0-5]\d$')
+
+
+def valider_endringer(endringer):
+    """Avvis ugyldige nye felt før åpning gjør funnet upublisert hos AO."""
+    if 'time_from' in endringer or 'time_to' in endringer:
+        fra, til = endringer.get('time_from'), endringer.get('time_to')
+        if (not isinstance(fra, str) or not isinstance(til, str)
+                or not _TID_RE.fullmatch(fra) or not _TID_RE.fullmatch(til)):
+            raise AoEditError('Oppgi både fra- og til-tid som HH:MM.')
+        if til < fra:
+            raise AoEditError('Til-tid kan ikke være før fra-tid på samme dato.')
+    if 'coobserver_aliases' in endringer:
+        raise AoEditError('Endring av medobservatører må foreløpig gjøres hos Artsobservasjoner.')
+
+
+def _tidsrom_fra_rad(rad):
+    verdi = re.sub(r'<[^>]*>', '', unescape(str(rad.get('FormattedTime') or '')))
+    verdi = re.sub(r'^\s*kl\.\s*', '', verdi).strip().replace('–', '-').replace('—', '-')
+    deler = re.split(r'\s*-\s*', verdi)
+    if len(deler) == 1 and _TID_RE.fullmatch(deler[0]):
+        return deler[0], deler[0]
+    if len(deler) == 2 and all(_TID_RE.fullmatch(d) for d in deler):
+        return tuple(deler)
+    return None
 
 # Felt som MÅ finnes i skjemaet. Mangler ett, er skjemaet ikke det vi tror — da er
 # det tryggere å kaste enn å poste en body som stille tømmer et felt hos AO.
@@ -316,6 +341,7 @@ def bygg_save_body(html, funn, endringer=None):
     ASP.NET-checkboxer er `true`/`false`-par, og `Taxon` sendes bevisst TO ganger.
     """
     endringer = endringer or {}
+    valider_endringer(endringer)
     felt, options = parse_edit_form(html)
 
     finnes = {n for n, _, _ in felt}
@@ -419,6 +445,20 @@ def bygg_save_body(html, funn, endringer=None):
     }
     if quantity is not None:
         overstyr[_S + 'Quantity'] = [str(quantity)]
+
+    kommentar = endringer.get('comment')
+    if kommentar is not None:
+        overstyr[_S + 'PublicComment.Comment'] = [str(kommentar)]
+
+    if 'time_from' in endringer:
+        if not {_S + 'StartTime', _S + 'EndTime', _S + 'EndDate'}.issubset(finnes):
+            raise AoEditError('Redigeringsskjemaet fra AO mangler tidsfeltene.')
+        for datofelt in (_S + 'StartDate', _S + 'EndDate'):
+            datoer = {_normaliser_dato(v) for n, v, _ in felt if n == datofelt}
+            if datoer != {dato}:
+                raise AoEditError('Tidsrom kan bare settes på funn med samme start- og sluttdato.')
+        overstyr[_S + 'StartTime'] = [endringer['time_from']]
+        overstyr[_S + 'EndTime'] = [endringer['time_to']]
 
     select_verdier = dict(SELECT_DEFAULTS)
     select_verdier[_S + 'Activity'] = str(aktivitet)
@@ -794,6 +834,7 @@ def rediger_atomisk(client, sighting_id, funn, endringer, hent_rad=None):
     `funn` MÅ være hentet FØR dette kalles (samme krav som `bygg_save_body()`
     og `aapne_for_redigering()` hver for seg stiller).
     """
+    valider_endringer(endringer)
     try:
         åpnet = aapne_for_redigering(client, sighting_id, funn)
     except Exception:
@@ -933,6 +974,23 @@ def bekreft(client, sighting_id, funn, endringer, hent_rad=None):
             avvik.append(
                 f'Kjønn: ba om {endringer["gender_navn"]!r}, AO har {rad.get("GenderName")!r}')
 
+    # Fri tekst — ingen casefold. «Ikke oppgitt» og en bevisst tømt kommentar
+    # (tom streng) er begge gyldige, eksplisitte ønsker, samme mønster som
+    # age_navn/gender_navn over.
+    if 'comment' in endringer:
+        ventet = str(endringer['comment'] or '').strip()
+        fikk = str(rad.get('PublicComment') or '').strip()
+        if ventet != fikk:
+            avvik.append(
+                f'Kommentar: ba om {endringer["comment"]!r}, AO har {rad.get("PublicComment")!r}')
+
+    if 'time_from' in endringer:
+        ventet = (endringer['time_from'], endringer['time_to'])
+        if _tidsrom_fra_rad(rad) != ventet:
+            avvik.append(f'Tidsrom: ba om {ventet[0]}–{ventet[1]}, AO har {rad.get("FormattedTime")!r}')
+        if str(rad.get('UniversalDate') or '')[:10] != str(funn.get('iso_date') or ''):
+            avvik.append('Datoen hos AO avviker etter endring av tidsrom.')
+
     return {'bekreftet': not avvik, 'ao': ao, 'avvik': avvik}
 
 
@@ -961,6 +1019,8 @@ def funn_fra_rad(rad):
         'activity_navn': rad.get('ActivityName'),
         'age_navn': rad.get('StageName'),
         'gender_navn': rad.get('GenderName'),
+        'comment': rad.get('PublicComment') or '',
+        'iso_date': iso,
         # Kun til VISNING i den lese-only detalje-responsen — bygg_save_body()
         # leser aldri denne, kun endringer.get('quantity').
         'quantity': rad.get('Quantity'),
