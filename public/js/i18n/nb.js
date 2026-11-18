@@ -120,7 +120,6 @@ export default {
   'sendt.role_with_title': 'Du er med på funnet, men det er en annen som har rapportert det — du kan legge til bilde, ikke endre.',
   'sendt.show_all': 'Vis alle',
   'sendt.hide_all': 'Skjul alle',
-  'sendt.more_actions': 'Flere handlinger for {species}',
   'sendt.image_short': '＋ Bilde',
   'sendt.view_on_ao': '↗ Vis på AO',
   'sendt.remove_me': 'Fjern meg som observatør',

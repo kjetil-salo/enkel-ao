@@ -171,23 +171,8 @@
       .sted-tall { color: var(--color-muted); font-size: 0.75rem; text-align: right; }
       .sted-uten-bilde { display: block; }
       .sted-varsel { color: var(--color-warning); }
-      .funn-meny { position: relative; }
-      .funn-meny > summary { display: flex; align-items: center; justify-content: center;
-                             width: 44px; min-height: 44px; cursor: pointer; list-style: none;
-                             font-size: 1.3rem; border-radius: 8px; color: var(--color-muted); }
-      .funn-meny[open] > summary { background: var(--color-accent-soft); }
-      .funn-meny-innhold { position: absolute; right: 0; top: 100%; z-index: 5;
-                           width: 220px; max-width: calc(100vw - 56px); padding: 4px;
-                           background: var(--color-card-bg); border: 1px solid var(--border-color-medium);
-                           border-radius: 10px; box-shadow: var(--shadow-md); }
-      .funn-meny-innhold button, .funn-meny-innhold a { display: flex; align-items: center;
-        width: 100%; min-height: 44px; padding: 8px 10px; border: 0; border-radius: 6px;
-        font: inherit; font-size: 0.85rem; text-align: left; text-decoration: none;
-        background: transparent; color: var(--color-text); cursor: pointer; }
-      .funn-meny-innhold button:hover, .funn-meny-innhold a:hover { background: var(--color-accent-soft); }
-      .funn-meny-innhold .fjern-meg { color: var(--color-error); }
-      .funn-meny-innhold .slett-funn { color: var(--color-error); }
-      .funn-meny-innhold button:disabled { opacity: 0.55; cursor: wait; }
+      .ikonknapp-farlig { color: var(--color-error); }
+      .ikonknapp-farlig:disabled { opacity: 0.55; cursor: wait; }
       .lokal-logg { margin-top: 20px; border-top: 1px solid var(--border-color-medium); }
       .lokal-overskrift { display: flex; gap: 8px; align-items: center; min-height: 48px;
                            padding: 8px 0; font-size: 0.95rem; font-weight: 600; cursor: pointer; list-style: none; }
@@ -571,7 +556,7 @@
       // Alias tr (ikke t): denne filen har allerede en lokal `const t = hentTokens();`
       // inne i lastAoFunn() - et import med samme navn ville vært forvirrende å lese,
       // selv om selve skoperingen er trygg.
-      import { t as tr, applyTranslations } from '/js/i18n.js?v=v1.60.28';
+      import { t as tr, applyTranslations } from '/js/i18n.js?v=v1.60.29';
 
       applyTranslations();
       document.title = tr('sendt.title');
@@ -589,10 +574,10 @@
       // (v1.59.7). En cachet gammel kopi ville gitt TypeError i det slideren eller
       // zoomen brukes — eller SyntaxError som stopper hele denne modulen. Se
       // «Versjonering» i CLAUDE.md (v1.53.15).
-      import { initPhotoPicker } from '/js/photo-picker.js?v=v1.60.28';
-      import { lagBildeEditor } from '/js/bilde-editor.js?v=v1.60.28';
-      import { loggInnMedLagretLegitimasjon, loadActivities } from '/js/api.js?v=v1.60.28';
-      import { initSendtHandlinger } from '/js/sendt-handlinger.js?v=v1.60.28';
+      import { initPhotoPicker } from '/js/photo-picker.js?v=v1.60.29';
+      import { lagBildeEditor } from '/js/bilde-editor.js?v=v1.60.29';
+      import { loggInnMedLagretLegitimasjon, loadActivities } from '/js/api.js?v=v1.60.29';
+      import { initSendtHandlinger } from '/js/sendt-handlinger.js?v=v1.60.29';
 
       const MND = ['januar', 'februar', 'mars', 'april', 'mai', 'juni',
         'juli', 'august', 'september', 'oktober', 'november', 'desember'];
@@ -718,10 +703,18 @@
                aria-label="Endre funn" title="Endre funn">✎</button>`
           : '';
         const rapportor = rapportorHtml(funn);
+        // `canRemoveSelf` og `isReporter` er gjensidig utelukkende (se
+        // ao_sightings.py) — det er aldri mer enn én ⚠️-handling per funn, så
+        // en ⋯-meny med ett eneste valg var et unødvendig ekstra klikk. Begge
+        // vises derfor som en direkte søppelbøtte-knapp; bekreftelsen ligger
+        // allerede i fjernMeg()/handlinger.slettFunn().
         const fjern = funn.canRemoveSelf === true
-          ? `<button class="fjern-meg" data-fjern-meg="${attr(funn.sightingId)}" ${fjernerFunn.has(String(funn.sightingId)) ? 'disabled' : ''}>${tr('sendt.remove_me')}</button>` : '';
+          ? `<button class="ikonknapp ikonknapp-farlig" data-fjern-meg="${attr(funn.sightingId)}"
+               ${fjernerFunn.has(String(funn.sightingId)) ? 'disabled' : ''}
+               aria-label="${attr(tr('sendt.remove_me'))}" title="${attr(tr('sendt.remove_me'))}">🗑</button>` : '';
         const slett = funn.isReporter === true
-          ? `<button class="slett-funn" data-slett="${attr(funn.sightingId)}">🗑 Slett funn</button>` : '';
+          ? `<button class="ikonknapp ikonknapp-farlig" data-slett="${attr(funn.sightingId)}"
+               aria-label="Slett funn" title="Slett funn">🗑</button>` : '';
 
         return `
           <div class="funn" id="funn-${attr(funn.sightingId)}">
@@ -739,13 +732,8 @@
               ${endre}
               <a class="ikonknapp" href="${attr(funn.url)}" target="_blank" rel="noopener"
                  aria-label="Åpne funnet hos Artsobservasjoner" title="Vis på AO">AO ↗</a>
-              <details class="funn-meny">
-                <summary aria-label="${attr(tr('sendt.more_actions', { species: funn.taxonName }))}">⋯</summary>
-                <div class="funn-meny-innhold">
-                  ${fjern}
-                  ${slett}
-                </div>
-              </details>
+              ${fjern}
+              ${slett}
             </div>
             ${advarsel}
             <div class="rad-status" data-status="${attr(funn.sightingId)}" role="status"></div>
@@ -945,21 +933,6 @@
         for (const sted of aoListeEl.querySelectorAll('.sted-gruppe')) {
           sted.open = knapp.dataset.fold === 'aapne';
           aapneSteder.set(sted.dataset.sted, sted.open);
-        }
-      });
-
-      // Native summary tar seg av Enter/Space. Escape lukker menyen og gir
-      // fokus tilbake; et trykk utenfor lukker bare den åpne menyen.
-      document.addEventListener('click', (e) => {
-        for (const meny of aoListeEl.querySelectorAll('.funn-meny[open]')) {
-          if (!meny.contains(e.target)) meny.open = false;
-        }
-      });
-      document.addEventListener('keydown', (e) => {
-        if (e.key !== 'Escape') return;
-        for (const meny of aoListeEl.querySelectorAll('.funn-meny[open]')) {
-          meny.open = false;
-          meny.querySelector('summary').focus();
         }
       });
 
@@ -1684,14 +1657,12 @@
         const slettKnapp = e.target.closest('[data-slett]');
         if (slettKnapp) {
           const f = funnCache.find((x) => String(x.sightingId) === slettKnapp.dataset.slett);
-          slettKnapp.closest('.funn-meny').open = false;
           if (f?.isReporter === true) handlinger.slettFunn(f, { tittel: `${f.siteName} · ${f.date}` }, slettKnapp);
           return;
         }
         const fjernKnapp = e.target.closest('[data-fjern-meg]');
         if (fjernKnapp) {
           const f = funnCache.find((x) => String(x.sightingId) === fjernKnapp.dataset.fjernMeg);
-          fjernKnapp.closest('.funn-meny').open = false;
           if (f) fjernMeg(f, fjernKnapp);
           return;
         }
@@ -1703,8 +1674,6 @@
         }
         const knapp = e.target.closest('[data-bilde]');
         if (!knapp) return;
-        const meny = knapp.closest('.funn-meny');
-        if (meny) meny.open = false;
         const funn = funnCache.find((f) => String(f.sightingId) === knapp.dataset.bilde);
         if (funn) apneModal(funn);
       });

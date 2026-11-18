@@ -60,18 +60,12 @@ test('folder steder og bevarer valgene ved filter og oppdatering uten å slå sa
 
 test('viser riktige handlinger for rapportør, medobservatør og ukjent rolle', async ({ page }) => {
   await aapne(page);
-  await page.locator('#funn-1 .funn-meny > summary').click();
   await expect(page.locator('#funn-1 [data-endre]')).toBeVisible();
   await expect(page.locator('#funn-1 [data-fjern-meg]')).toHaveCount(0);
-  await page.locator('h1').click();
-  await expect(page.locator('#funn-1 .funn-meny')).not.toHaveAttribute('open', '');
-  await page.locator('#funn-2 .funn-meny > summary').click();
-  await expect(page.locator('#funn-1 .funn-meny')).not.toHaveAttribute('open', '');
   await expect(page.locator('#funn-2 [data-endre]')).toHaveCount(0);
   await expect(page.locator('#funn-2 [data-fjern-meg]')).toBeVisible();
   await expect(page.locator('#funn-2 .advarsel')).toContainText('Kontroller antallet');
   await page.getByRole('button', { name: 'Vis alle', exact: true }).click();
-  await page.locator('#funn-3 .funn-meny > summary').click();
   await expect(page.locator('#funn-3 [data-fjern-meg]')).toHaveCount(0);
   await expect(page.locator('#funn-3 [data-bilde]')).toBeVisible();
   await page.locator('#funn-3 [data-bilde]').click();
@@ -79,7 +73,7 @@ test('viser riktige handlinger for rapportør, medobservatør og ukjent rolle', 
   await expect(page.locator('#bm-funn')).toContainText('Gråhegre');
 });
 
-test('støtter tastatur for folding og meny med Escape', async ({ page }) => {
+test('støtter tastatur for folding av stedsgrupper', async ({ page }) => {
   await aapne(page);
   const overskrift = page.locator('.sted-overskrift').first();
   await overskrift.focus();
@@ -87,13 +81,6 @@ test('støtter tastatur for folding og meny med Escape', async ({ page }) => {
   await expect(page.locator('.sted-gruppe').first()).not.toHaveAttribute('open', '');
   await overskrift.press('Space');
   await expect(page.locator('.sted-gruppe').first()).toHaveAttribute('open', '');
-  const meny = page.locator('#funn-2 .funn-meny > summary');
-  await meny.focus();
-  await meny.press('Enter');
-  await expect(page.locator('#funn-2 [data-fjern-meg]')).toBeVisible();
-  await meny.press('Escape');
-  await expect(page.locator('#funn-2 .funn-meny')).not.toHaveAttribute('open', '');
-  await expect(meny).toBeFocused();
 });
 
 test('avbrutt bekreftelse sender ingen forespørsel om fjerning', async ({ page }) => {
@@ -107,7 +94,6 @@ test('avbrutt bekreftelse sender ingen forespørsel om fjerning', async ({ page 
     expect(dialog.message()).toContain('Toppand, Mosvatnet, 18. november');
     await dialog.dismiss();
   });
-  await page.locator('#funn-2 .funn-meny > summary').click();
   await page.locator('#funn-2 [data-fjern-meg]').click();
   await expect(page.locator('#funn-2')).toBeVisible();
   expect(kall).toBe(0);
@@ -125,10 +111,8 @@ test('fjerner raden bare etter bekreftet svar og oppdaterer antall og fokus', as
     await route.fulfill({ json: { ok: true, verified: true } });
   });
   page.once('dialog', dialog => dialog.accept());
-  await page.locator('#funn-2 .funn-meny > summary').click();
   await page.locator('#funn-2 [data-fjern-meg]').click();
   await expect(page.locator('#funn-2 .rad-status')).toContainText('Fjerner deg');
-  await page.locator('#funn-2 .funn-meny > summary').click();
   await expect(page.locator('#funn-2 [data-fjern-meg]')).toBeDisabled();
   fullfoer();
   await expect(page.locator('#funn-2')).toHaveCount(0);
@@ -148,11 +132,9 @@ test('filterbytte under fjerning låser ikke den nye knappen etter avvist svar',
     await route.fulfill({ json: { ok: false, error: 'Kunne ikke kontrollere funnet. Ingen endring er sendt.' } });
   });
   page.once('dialog', dialog => dialog.accept());
-  await page.locator('#funn-2 .funn-meny > summary').click();
   await page.locator('#funn-2 [data-fjern-meg]').click();
   await expect(page.locator('#funn-2 .rad-status')).toContainText('Fjerner deg');
   await page.getByLabel('Bare uten bilde').check();
-  await page.locator('#funn-2 .funn-meny > summary').click();
   await expect(page.locator('#funn-2 [data-fjern-meg]')).toBeDisabled();
   fullfoer();
   await expect(page.locator('#funn-2 .rad-status')).toContainText('Ingen endring er sendt');
@@ -168,7 +150,6 @@ test('eldre hentesvar gjeninnfører ikke et bekreftet fjernet funn', async ({ pa
     await route.fulfill({ json: { ok: true, verified: true } });
   });
   page.once('dialog', dialog => dialog.accept());
-  await page.locator('#funn-2 .funn-meny > summary').click();
   await page.locator('#funn-2 [data-fjern-meg]').click();
   let fullfoerHenting!: () => void;
   const ventHenting = new Promise<void>(resolve => { fullfoerHenting = resolve; });
@@ -198,7 +179,6 @@ for (const utfall of ['usikkert', 'nettverksfeil', 'ubekreftet suksess']) {
         : { ok: true } });
     });
     page.once('dialog', dialog => dialog.accept());
-    await page.locator('#funn-2 .funn-meny > summary').click();
     await page.locator('#funn-2 [data-fjern-meg]').click();
     await expect(page.locator('#funn-2 .rad-status.feil')).not.toBeEmpty();
     await expect(page.locator('#funn-2')).toBeVisible();
@@ -232,11 +212,10 @@ test('bildeopplasting beholder raden med aktivt filter og oppdaterer stedets tel
   // Legg-til-knappen blir stående i hovedraden (ikke flyttet inn i ⋯-menyen) —
   // bilde-indikator og legg-til er to atskilte, alltid synlige ikoner.
   await expect(page.locator('#funn-2 > .funn-handling > [data-bilde]')).toBeVisible();
-  await page.locator('#funn-2 .funn-meny > summary').click();
   await expect(page.locator('#funn-2 [data-fjern-meg]')).toBeVisible();
 });
 
-test('endre fra menyen åpner eksisterende skjema og oppdaterer raden uten å endre folding', async ({ page }) => {
+test('endre åpner eksisterende skjema og oppdaterer raden uten å endre folding', async ({ page }) => {
   await aapne(page);
   await page.route('**/api/ao-sighting-details', route => route.fulfill({
     json: { ok: true, funn: { quantity: '12', activity_navn: 'Stasjonær', taxon_id: 1, comment: 'Sett fra land' } },
@@ -245,7 +224,6 @@ test('endre fra menyen åpner eksisterende skjema og oppdaterer raden uten å en
     expect(route.request().postDataJSON().endringer).toEqual({ quantity: '13' });
     await route.fulfill({ json: { ok: true, bekreftet: true, ao: { Quantity: '13', ActivityName: 'Stasjonær' } } });
   });
-  await page.locator('#funn-1 .funn-meny > summary').click();
   await page.locator('#funn-1 [data-endre]').click();
   await expect(page.locator('#em-kommentar')).toHaveValue('Sett fra land');
   await page.locator('#em-antall').fill('13');
@@ -268,13 +246,11 @@ test('320 px og lange navn gir ingen horisontal scrolling og beholder 44 px tryk
       document.body.classList.toggle('theme-light', tema !== 'dark');
       document.body.classList.toggle('theme-clean', tema === 'clean');
     }, tema);
-    await page.locator('#funn-2 .funn-meny > summary').click();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-    for (const selector of ['.sted-overskrift', '#funn-2 .funn-meny > summary', '#funn-2 [data-fjern-meg]', '#funn-1 > .funn-handling > [data-bilde]']) {
+    for (const selector of ['.sted-overskrift', '#funn-2 [data-fjern-meg]', '#funn-1 > .funn-handling > [data-bilde]']) {
       const boks = await page.locator(selector).first().boundingBox();
       expect(boks!.height).toBeGreaterThanOrEqual(44);
     }
-    await page.locator('#funn-2 .funn-meny > summary').click();
   }
 });
 
@@ -437,7 +413,7 @@ test('enkeltfunn har blyant og AO-lenke, og sletting krever bekreftelse med sted
   await aapne(page);
   await expect(page.locator('#funn-1 > .funn-handling > [data-endre]')).toBeVisible();
   await expect(page.locator('#funn-1 > .funn-handling > a')).toHaveText('AO ↗');
-  await page.locator('#funn-1 .funn-meny > summary').click();
+  await expect(page.locator('#funn-1 > .funn-handling > [data-slett]')).toBeVisible();
   await page.locator('#funn-1 [data-slett]').click();
   let kall = 0;
   await page.route('**/api/ao-delete-sighting', async route => {
@@ -456,16 +432,15 @@ test('enkeltfunn har blyant og AO-lenke, og sletting krever bekreftelse med sted
   await expect(page.locator('#funn-1')).toBeVisible();
 });
 
-test('avbrutt enkeltsletting gir fokus til synlig menyknapp', async ({ page }) => {
+test('avbrutt enkeltsletting gir fokus til synlig slett-knapp', async ({ page }) => {
   await aapne(page);
-  const menyknapp = page.locator('#funn-1 .funn-meny > summary');
+  const slettKnapp = page.locator('#funn-1 [data-slett]');
   for (const maate of ['Escape', 'Avbryt']) {
-    await menyknapp.click();
-    await page.locator('#funn-1 [data-slett]').click();
+    await slettKnapp.click();
     if (maate === 'Escape') await page.keyboard.press('Escape');
     else await page.locator('#gm-avbryt').click();
     await expect(page.locator('.gruppe-modal')).not.toBeVisible();
-    await expect(menyknapp).toBeFocused();
+    await expect(slettKnapp).toBeFocused();
   }
 });
 
