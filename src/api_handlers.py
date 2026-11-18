@@ -274,6 +274,16 @@ def _sliding_expiration(auth_cookie: str, user_id: str, login_token: str = None)
     Treffer /User/MyPages med eksisterende cookie for å trigge fornyelse.
     Rate-limited til maks 1 gang per 5 minutter per bruker.
 
+    VIKTIG: sender ALDRI `logintoken`/`logintoken_ssl` her, selv om kalleren har dem
+    (parameteren beholdes kun for signatur-/logg-konsistens med søsterfunksjonen
+    `_is_cookie_expired`). Verifisert empirisk 2026-11-18 (se docs/ao-token-autentisering.md
+    korreksjon 5): å sende logintoken SAMMEN MED en utløpt `.ASPXAUTHNO` bruker opp AO sin
+    engangs stille-revival-kapasitet for det tokenet — selv når selve sliding-forsøket feiler
+    (korrekt oppdaget via /LogOn-redirect under) — slik at det påfølgende, rene
+    `_refresh_with_logintoken()`-forsøket i `_full_relogin()` alltid møter et allerede brent
+    token og feiler. Dette var den reelle årsaken til at logintoken-revival har hatt ~0 %
+    suksessrate i produksjon siden 16.09.2026, uavhengig av URL-fiksen (`/LogOn?ReturnUrl=X`).
+
     Returns:
         Ny auth-cookie hvis AO fornyet, ellers None.
     """
@@ -286,9 +296,6 @@ def _sliding_expiration(auth_cookie: str, user_id: str, login_token: str = None)
 
     try:
         cookies = {'.ASPXAUTHNO': auth_cookie, 'AcceptCookies': '1'}
-        if login_token:
-            cookies['logintoken'] = login_token
-            cookies['logintoken_ssl'] = '1'
 
         with httpx.Client(cookies=cookies) as client:
             response = client.get(
@@ -824,12 +831,14 @@ def _ensure_auth(ao_auth, ao_user_id, login_token, username=None, client_ip=None
 
 
 def _is_cookie_expired(auth_cookie, user_id, login_token):
-    """Sjekk om auth-cookie er utløpt ved å probe MyPages."""
+    """Sjekk om auth-cookie er utløpt ved å probe MyPages.
+
+    VIKTIG: sender ALDRI `logintoken`/`logintoken_ssl` her — samme begrunnelse som i
+    `_sliding_expiration()` rett over (docs/ao-token-autentisering.md korreksjon 5).
+    `login_token`-parameteren beholdes kun for kallsted-/signatur-konsistens.
+    """
     try:
         cookies = {'.ASPXAUTHNO': auth_cookie, 'AcceptCookies': '1'}
-        if login_token:
-            cookies['logintoken'] = login_token
-            cookies['logintoken_ssl'] = '1'
 
         with httpx.Client(cookies=cookies) as client:
             response = client.get(

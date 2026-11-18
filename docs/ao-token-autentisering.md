@@ -1,3 +1,47 @@
+# ⚠️ KORREKSJON 5 (2026-11-18): rotårsaken til at logintoken-revival ALDRI lyktes i prod er funnet
+
+> **Oppdaterer korreksjon 2 under, som trodde URL-fiksen (`/LogOn?ReturnUrl=X`) løste saken.**
+> Prod-måling 2 måneder etter URL-fiksen (16.09→18.11.2026) viste fortsatt 0 suksesser av
+> 1161 forsøk — kun passordfallbacket holdt appen oppe. Se `[[project_ao_token_work_status]]`
+> i Claude sitt minne for hele måleserien.
+>
+> **Rotårsak, verifisert empirisk mot ekte AO med testkontoen `kjetil-test` (standalone
+> httpx-skript, isolert fra appen):** AO gir et `logintoken` **nøyaktig ÉN** vellykket stille
+> revival — deretter avviser AO alle senere forsøk med samme (uendrede) tokenverdi, uansett
+> headere. Dette i seg selv var ikke problemet. Det faktiske problemet: **`_ensure_auth()`
+> kaller TO funksjoner FØR `_refresh_with_logintoken()` i det hele tatt får sjansen** —
+> `_sliding_expiration()` og `_is_cookie_expired()` — og BEGGE sendte `logintoken`+
+> `logintoken_ssl` SAMMEN MED den utløpte `.ASPXAUTHNO` til `/User/MyPages`. Det er nøyaktig
+> kombinasjonen korreksjon #3 lenger ned (juli 2026) allerede hadde dokumentert som forbudt
+> («Ingen `.ASPXAUTHNO` må sendes: en gammel/død cookie kortslutter auto-login») — men ingen
+> koblet dette til at de to «sjekk om utløpt»-funksjonene gjorde nøyaktig det, og at AO i
+> tillegg bruker opp tokenets engangs-revival ved selve forsøket, selv når forsøket feiler.
+> Kjeden var altså: sliding expiration brenner tokenet (feiler, korrekt oppdaget) →
+> is-cookie-expired brenner det en gang til (feiler, korrekt oppdaget) → den rene,
+> url-fiksede `_refresh_with_logintoken()` møter et allerede dødt token og feiler garantert.
+>
+> Bevist med et isolert, kontrollert eksperiment (fersk `kjetil-test`-logintoken for hvert
+> steg, se scratchpad-skript kjørt 18.11.2026):
+> 1. Fersk token, RENT revival-forsøk direkte → **suksess** (bekrefter at url-fiksen i seg
+>    selv er riktig).
+> 2. Fersk token, samme rene forsøk gjentatt 2 ganger på rad → kun forsøk #1 lykkes, #2 og #3
+>    feiler identisk — bekrefter engangs-semantikken.
+> 3. Fersk token, simuler `_sliding_expiration()`s eksakte kall (død `.ASPXAUTHNO` + logintoken
+>    sammen) → feiler som forventet — SÅ et rent revival-forsøk med samme token → **feiler
+>    også**, selv om tokenet aldri hadde vært brukt til noe ekte før.
+> 4. Samme som 3, men med `logintoken` FJERNET fra sliding-sjekken → sliding-sjekken oppdager
+>    fortsatt korrekt at sesjonen er utløpt → det påfølgende rene revival-forsøket **lykkes**.
+>
+> **Kodefiks (2026-11-18):** `_sliding_expiration()` og `_is_cookie_expired()`
+> (`src/api_handlers.py`) sender nå KUN `.ASPXAUTHNO`+`AcceptCookies` — aldri
+> `logintoken`/`logintoken_ssl`. `login_token`-parameteren beholdes i signaturen (kalt fra
+> `_ensure_auth()`) men brukes ikke lenger i disse to funksjonene. Verifisert end-to-end mot
+> ekte `_ensure_auth()` med en død auth-cookie + fersk `kjetil-test`-logintoken: revival lykkes
+> nå via logintoken, ikke passordfallback. Alle 628 pytest grønne. **Ikke deployet til Pi ennå
+> ved skrivende stund** — vent på naturlige relogin-hendelser i prod-loggen etter deploy for å
+> bekrefte at suksessraten faktisk endrer seg fra ~0 % til noe betydelig (se
+> `[[project_ao_token_work_status]]` for måleoppskriften).
+
 # ⚠️ KORREKSJON 4 (2026-11-09): passordfallbacket ga sesjon til hvem som helst med et brukernavn
 
 > `_full_relogin()` slo opp det lagrede passordet på brukernavnet klienten sendte i
