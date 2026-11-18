@@ -17,6 +17,3 @@ services:
       - key: SUPABASE_KEY
         fromDatabase: false
         value: ""
-      - key: STATS_KEY
-        fromDatabase: false
-        value: "salo"

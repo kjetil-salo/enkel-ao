@@ -145,7 +145,7 @@ export async function fetchAndCachePrivateSites() {
   oppslag.svar = (async () => {
     try {
       let tokens = JSON.parse(localStorage.getItem('ao_tokens') || '{}');
-      if (!tokens.authCookie && await loggInnMedLagretLegitimasjon()) {
+      if (!tokens.authCookie && await loggInnMedLagretLegitimasjon('mangler-token')) {
         tokens = JSON.parse(localStorage.getItem('ao_tokens') || '{}');
       }
       if (!sammeKonto()) return false;
@@ -261,7 +261,9 @@ export async function searchSpecies(term, includeSubtaxa = false) {
  * @returns {Promise<boolean>} - true hvis relogin var vellykket
  */
 async function tryAutoRelogin() {
-  if (!await loggInnMedLagretLegitimasjon()) return false;
+  // Kalles kun når backend har et token fra før og eksplisitt avviser det
+  // (authRequired) — altså en reell token-utløpsrelogin, ikke "aldri logget inn".
+  if (!await loggInnMedLagretLegitimasjon('token-avvist')) return false;
   await fetchAndCachePrivateSites();
   return true;
 }
@@ -535,8 +537,12 @@ export async function fetchAoSitesCached(lat, lon, radiusMeters) {
  *
  * @returns {Promise<boolean>} false hvis det ikke finnes lagret legitimasjon,
  *   eller AO avviste den.
+ * @param {string} [reason] - Hvorfor denne relogin-en skjer (kun til logging på
+ *   serveren, aldri sensitivt). Brukes til å måle hvor ofte brukere ender opp
+ *   med å levere passordet på nytt fordi et token ble avvist som utløpt, mot
+ *   hvor ofte det skjer fordi det aldri fantes et token i utgangspunktet.
  */
-export async function loggInnMedLagretLegitimasjon() {
+export async function loggInnMedLagretLegitimasjon(reason = 'ukjent') {
   const konto = kontoKontekst();
   const username = konto.brukernavn;
   const password = localStorage.getItem('ao_password');
@@ -546,7 +552,7 @@ export async function loggInnMedLagretLegitimasjon() {
     const resp = await fetch('/api/ao-login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password }),
+      body: JSON.stringify({ username, password, reason }),
     });
     const result = await resp.json();
     if (!resp.ok || !result.success || !sammeKontoKontekst(konto) || password !== localStorage.getItem('ao_password')) return false;
@@ -577,7 +583,7 @@ export async function ensureAoTokens() {
   let ok = !!(tokens.loginToken && tokens.authCookie);
 
   if (!ok) {
-    ok = await loggInnMedLagretLegitimasjon();
+    ok = await loggInnMedLagretLegitimasjon('mangler-token');
     if (!ok) return false;
   }
 

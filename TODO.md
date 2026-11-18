@@ -1,5 +1,34 @@
 # TODO
 
+## 44. Sjekk hvor ofte appen leverer bruker/pass på nytt fordi tokenet er utgått (2026-11-17)
+
+Henger direkte sammen med [#38](#38-klartekst-passord-på-serveren--bør-det-lagres-der-i-det-hele-tatt-2026-11-09):
+før vi bestemmer om serveren skal fortsette å lagre AO-passordet i klartekst
+(`/data/credentials.json`), må vi vite hvor dyr «retning 2» (ikke lagre det der)
+faktisk er i praksis — altså hvor ofte en bruker ender opp med å sende
+brukernavn+passord til `/api/ao-login` fordi et token ble avvist som utløpt,
+versus fordi det aldri fantes et token i utgangspunktet.
+
+v1.60.27 la på `reason`-tagging i loggen for nettopp dette (kun til logging,
+aldri sensitivt) — se `loggInnMedLagretLegitimasjon(reason)` i
+`public/js/api.js` og `[AO-LOGIN] ... (reason=...)` i `server.py`.
+
+- `reason=token-avvist` — serveren hadde et token, avviste det som utløpt. **Dette
+  er det reelle tallet for #38**
+- `reason=mangler-token` — ingen token å prøve (første bruk / tokens fjernet)
+- `reason=needs-login` — `sendt.html` sin egen needsLogin-sjekk
+- `reason=manuell` — ekte innloggingsskjema (`ao-direct.html`, `profil.html`) eller
+  sending til AO (relogger alltid, uavhengig av tokenets tilstand)
+
+**Gjør etter noen dagers drift i prod:**
+```
+grep '\[AO-LOGIN\] Vellykket' /data/logs/fugleobs.log | grep -c 'reason=token-avvist'
+grep '\[AO-LOGIN\] Vellykket' /data/logs/fugleobs.log | wc -l
+```
+Lavt tall → «ikke lagre passord server-side» (retning 2 i #38) er billig å
+innføre. Høyt/jevnt tall → brukerne ville merket flere stille gjeninnlogginger,
+og en kryptert-på-disk-løsning (retning 1) kan være et bedre mellomsteg.
+
 ## 43. Øk maks antall medobservatører fra 10 til 20 (2026-11-13)
 
 `MEDOBS_MAX = 10` i `public/js/coobserver-picker.js` setter grensen for hvor

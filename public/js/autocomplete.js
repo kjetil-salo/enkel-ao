@@ -6,7 +6,7 @@ import { getNetworkMode, getAllOfflineLocations } from './offline-db.js';
 import { haversine } from './utils.js';
 import { kontoKontekst, sammeKontoKontekst } from './arbeidsliste-sesjon.js';
 // Versjonert import: hard avhengighet til en navngitt eksport.
-import { ensureAoPrivateSites, getCachedPrivateSites, hasFreshPrivateSitesCache, loggInnMedLagretLegitimasjon } from './api.js?v=v1.60.26';
+import { ensureAoPrivateSites, getCachedPrivateSites, hasFreshPrivateSitesCache, loggInnMedLagretLegitimasjon } from './api.js?v=v1.60.27';
 
 // Serveren kan ikke lenger fornye en sesjon på brukernavn alene — passordet er
 // bundet til logintokenet (v1.60.18), og rader lagret før bindingen er fjernet.
@@ -21,7 +21,7 @@ function fornyInnloggingEnGang() {
   // Flagget nullstilles igjen uansett utfall. Et kort nettbrudd skal ikke låse
   // resten av sidens levetid i utlogget tilstand — det var nettopp det
   // fornyelsen finnes for å unngå.
-  loggInnMedLagretLegitimasjon()
+  loggInnMedLagretLegitimasjon('token-avvist')
     .catch(() => false)
     .finally(() => { reinnloggingPagar = false; });
 }

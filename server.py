@@ -1584,12 +1584,20 @@ class Handler(SimpleHTTPRequestHandler):
             return
 
         username = username.strip()
+        # `reason` kommer fra klienten og er KUN til logging (aldri sensitivt) — se
+        # loggInnMedLagretLegitimasjon() i public/js/api.js. Måler hvor ofte brukere
+        # ender opp med å levere passordet på nytt fordi et token ble avvist som
+        # utløpt ('token-avvist'), mot "aldri hadde et token" ('mangler-token'),
+        # mot et eksplisitt innloggingsskjema ('manuell', ingen reason sendt).
+        reason = data.get('reason')
+        if reason not in ('mangler-token', 'token-avvist', 'needs-login'):
+            reason = 'manuell'
         kopi_eier = data.get('arbeidslisteEier')
         try:
             if kopi_eier is None:
-                logger.info('[AO-LOGIN] Innloggingsforsøk')
+                logger.info(f'[AO-LOGIN] Innloggingsforsøk (reason={reason})')
                 result = login_to_ao(username, password)
-                logger.info(f'[AO-LOGIN] Vellykket for user_id={result.get("userId")}')
+                logger.info(f'[AO-LOGIN] Vellykket for user_id={result.get("userId")} (reason={reason})')
             else:
                 # For en innhentet liste sjekkes eieren med sesjonen som skal sende til AO.
                 try:
@@ -1632,7 +1640,7 @@ class Handler(SimpleHTTPRequestHandler):
                 feil = _ao2_reserveinfo(ao2_status or 'uten svar', 'innlogging')
                 self._send_json(feil, status=503)
             elif isinstance(e, ValueError):
-                logger.warning('[AO-LOGIN] Innlogging avvist')
+                logger.warning(f'[AO-LOGIN] Innlogging avvist (reason={reason})')
                 self._send_json({'error': str(e)}, status=401)
             else:
                 logger.error('[AO-LOGIN] AO svarte HTTP %s', ao2_status)
