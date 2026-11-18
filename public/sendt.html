@@ -175,18 +175,6 @@
 
       body.theme-light { background: #ffffff !important; color: #1a1a1a !important; }
       /* ---- Endringsmodal ---- */
-      /* Den røde advarselen er vedvarende, ikke en toast: tilstanden den beskriver
-         varer helt til brukeren lagrer eller avbryter. */
-      .fare { border: 1px solid #b91c1c; background: rgba(185, 28, 28, 0.12);
-              border-radius: 8px; padding: 10px 12px; margin: 0 0 14px;
-              font-size: 0.85rem; line-height: 1.45; }
-      .fare strong { display: block; color: #fca5a5; margin-bottom: 4px;
-                     font-size: 0.9rem; }
-      .fare .fare-nb { color: #fca5a5; font-weight: 600; }
-      body.theme-light .fare { background: #fef2f2 !important; border-color: #dc2626 !important; }
-      body.theme-light .fare strong,
-      body.theme-light .fare .fare-nb { color: #b91c1c !important; }
-
       .em-rad { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
       .em-rad label { font-size: 0.8rem; color: var(--muted, #9ca3af); }
       .em-rad input, .em-rad select {
@@ -332,9 +320,10 @@
     </div>
 
     <!-- Endringsmodal. Samme mønster som bildemodalen: hvilket funn den gjelder
-         står i `data-funn`. Den røde advarselen er ikke pynt — å åpne skjemaet
-         gjør funnet usynlig for andre hos AO, og det varer til vi lagrer eller
-         avbryter. Se docs/endringsside-v1-plan.md. -->
+         står i `data-funn`. Funnet forblir publisert og synlig for andre gjennom
+         hele tiden brukeren står her — åpne+lagre+publiser skjer i ett
+         sammenhengende serverkall (ao_edit.rediger_atomisk()), se kommentaren
+         ved emModal i scriptet under. -->
     <div id="endre-modal" class="modal-bakgrunn" hidden>
       <div class="modal" role="dialog" aria-modal="true" aria-labelledby="em-tittel">
         <div class="modal-topp">
@@ -344,20 +333,11 @@
         <p class="modal-funn" id="em-funn"></p>
 
         <div id="em-laster" class="laster">
-          <div class="spinner" role="status" aria-label="Åpner"></div>
-          <div id="em-laster-tekst">Åpner funnet hos Artsobservasjoner …</div>
-          <div class="laster-hint">Vi henter hele skjemaet derfra — det tar noen sekunder.</div>
+          <div class="spinner" role="status" aria-label="Henter"></div>
+          <div id="em-laster-tekst">Henter funnets detaljer …</div>
         </div>
 
         <div id="em-skjema" hidden>
-          <div class="fare" role="alert">
-            <strong>🔴 Funnet er nå usynlig for andre</strong>
-            Artsobservasjoner tar funnet ut av visning mens du endrer det. Det blir
-            synlig igjen når du lagrer.
-            <span class="fare-nb">Lukker du siden nå, blir funnet liggende skjult.</span>
-            Bruk «Avbryt» hvis du ombestemmer deg — da publiseres det tilbake med én gang.
-          </div>
-
           <div class="em-rad em-art-boks">
             <label for="em-art">Art</label>
             <div class="em-art-valgt" id="em-art-valgt">
