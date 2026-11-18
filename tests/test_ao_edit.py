@@ -63,7 +63,7 @@ def test_aktivitet_blir_aldri_null_fra_forste_opsjon():
 def test_ukjent_aktivitetsnavn_kaster_framfor_aa_gjette():
     """Å gjette her ville sendt et tomt aktivitetsfelt til AO."""
     funn = {**FUNN, 'activity_navn': 'Finnes ikke i AO'}
-    with pytest.raises(AoEditError, match='aktivitets-ID'):
+    with pytest.raises(AoEditError, match='aktivitets'):
         _body(funn=funn)
 
 
@@ -177,6 +177,86 @@ def test_ovrige_select_defaults():
     assert _en(body, S + 'SightingSpeciesCollectionItem.SpeciesCollection') == '-1'
     assert _en(body, V + 'FavoriteSite') == ''
     assert _en(body, V + 'UserMapExtent') == '-1'
+
+
+# ---------------------------------------------------------------------------
+# Alder (Stage) og kjønn (Gender) — den tidligere stille-nullstill-fella
+# ---------------------------------------------------------------------------
+# Fixturen (ao_edit_form.lag_skjema) har Stage=[('0',''), ('1','Egg')] og
+# Gender=[('0',''), ('1','Hann')] — altså ÉN ekte navngitt opsjon hver.
+
+def test_eksisterende_alder_bevares_naar_urort():
+    """Regresjonsvakt for selve bug-fiksen: urørt alder skal IKKE bli '0'."""
+    funn = dict(FUNN, age_navn='Egg')
+    assert _en(_body(funn=funn), S + 'Stage') == '1'
+
+
+def test_eksisterende_kjonn_bevares_naar_urort():
+    funn = dict(FUNN, gender_navn='Hann')
+    assert _en(_body(funn=funn), S + 'Gender') == '1'
+
+
+def test_alder_uten_eksisterende_verdi_blir_ikke_angitt():
+    """Et funn uten alder fra før (funn.age_navn mangler) skal fortsatt gi '0'."""
+    assert _en(_body(), S + 'Stage') == '0'
+
+
+def test_bruker_kan_sette_alder_eksplisitt():
+    body = _body(endringer={'age_navn': 'Egg'})
+    assert _en(body, S + 'Stage') == '1'
+
+
+def test_bruker_kan_nullstille_alder_eksplisitt():
+    """Tom streng i endringer = «ikke oppgitt», ikke «urørt» — ingen oppslag trengs."""
+    funn = dict(FUNN, age_navn='Egg')
+    body = _body(funn=funn, endringer={'age_navn': ''})
+    assert _en(body, S + 'Stage') == '0'
+
+
+def test_ukjent_eksisterende_aldersnavn_kaster_framfor_aa_slette():
+    """
+    Finnes funnets EGEN, urørte alder ikke i AOs valgliste, skal HELE lagringen
+    avbrytes (og funnet publiseres tilbake uendret av kalleren) — ikke stille
+    nullstille alderen slik den gamle fallback-oppførselen gjorde.
+    """
+    funn = dict(FUNN, age_navn='Et navn AO ikke har')
+    with pytest.raises(AoEditError):
+        _body(funn=funn)
+
+
+def test_ukjent_brukervalgt_aldersnavn_kaster():
+    with pytest.raises(AoEditError):
+        _body(endringer={'age_navn': 'Et navn AO ikke har'})
+
+
+# Speil av alder-testene over, for kjønn — `_slaa_opp()` er delt kode, men en
+# feil i feltnavn-strengen ('Gender' vs 'Stage') eller rekkefølgen i en
+# fremtidig refaktorering ville likevel bare ramme ett av de to feltene.
+
+def test_kjonn_uten_eksisterende_verdi_blir_ikke_angitt():
+    assert _en(_body(), S + 'Gender') == '0'
+
+
+def test_bruker_kan_sette_kjonn_eksplisitt():
+    body = _body(endringer={'gender_navn': 'Hann'})
+    assert _en(body, S + 'Gender') == '1'
+
+
+def test_bruker_kan_nullstille_kjonn_eksplisitt():
+    funn = dict(FUNN, gender_navn='Hann')
+    body = _body(funn=funn, endringer={'gender_navn': ''})
+    assert _en(body, S + 'Gender') == '0'
+
+
+def test_ukjent_eksisterende_kjonnsnavn_kaster_framfor_aa_slette():
+    funn = dict(FUNN, gender_navn='Et navn AO ikke har')
+    with pytest.raises(AoEditError):
+        _body(funn=funn)
+
+
+def test_ukjent_brukervalgt_kjonnsnavn_kaster():
+    with pytest.raises(AoEditError):
+        _body(endringer={'gender_navn': 'Et navn AO ikke har'})
 
 
 # ---------------------------------------------------------------------------
@@ -388,6 +468,51 @@ def test_bekreft_aktivitet_er_ufolsom_for_store_bokstaver():
     res = ao_edit.bekreft(None, 1, FUNN, {'activity_navn': 'stasjonær'},
                           hent_rad=lambda _: _rad(ActivityName='Stasjonær'))
     assert res['bekreftet'] is True
+
+
+def test_bekreft_fanger_feil_alder():
+    res = ao_edit.bekreft(None, 1, FUNN, {'age_navn': 'Adult'},
+                          hent_rad=lambda _: _rad(StageName='Egg'))
+    assert res['bekreftet'] is False
+    assert 'Alder' in res['avvik'][0]
+
+
+def test_bekreft_fanger_feil_kjonn():
+    res = ao_edit.bekreft(None, 1, FUNN, {'gender_navn': 'Hunn'},
+                          hent_rad=lambda _: _rad(GenderName='Hann'))
+    assert res['bekreftet'] is False
+    assert 'Kjønn' in res['avvik'][0]
+
+
+def test_bekreft_verifiserer_eksplisitt_nullstilt_alder():
+    """
+    Membership (`in`), ikke truthy: en tom endringer-verdi («sett til ikke
+    oppgitt») skal faktisk bekreftes mot AO, ikke stille hoppes over slik en
+    tidligere versjon av denne sjekken gjorde.
+    """
+    res = ao_edit.bekreft(None, 1, FUNN, {'age_navn': ''},
+                          hent_rad=lambda _: _rad(StageName=''))
+    assert res['bekreftet'] is True
+
+
+def test_bekreft_fanger_at_nullstilling_IKKE_tok():
+    res = ao_edit.bekreft(None, 1, FUNN, {'age_navn': ''},
+                          hent_rad=lambda _: _rad(StageName='Egg'))
+    assert res['bekreftet'] is False
+    assert 'Alder' in res['avvik'][0]
+
+
+def test_bekreft_verifiserer_eksplisitt_nullstilt_kjonn():
+    res = ao_edit.bekreft(None, 1, FUNN, {'gender_navn': ''},
+                          hent_rad=lambda _: _rad(GenderName=''))
+    assert res['bekreftet'] is True
+
+
+def test_bekreft_fanger_at_kjonns_nullstilling_IKKE_tok():
+    res = ao_edit.bekreft(None, 1, FUNN, {'gender_navn': ''},
+                          hent_rad=lambda _: _rad(GenderName='Hann'))
+    assert res['bekreftet'] is False
+    assert 'Kjønn' in res['avvik'][0]
 
 
 def test_bekreft_uten_hent_rad_gir_vet_ikke_ikke_feil():
@@ -730,3 +855,71 @@ def test_art_og_antall_kan_endres_samtidig():
     body = _body(endringer={'taxon_id': '4472', 'quantity': '9'})
     assert _verdier(body, S + 'Taxon') == ['4472']
     assert _en(body, S + 'Quantity') == '9'
+
+
+# ---------------------------------------------------------------------------
+# rediger_atomisk(): kjeder åpning og lagring i ett kall, med nødutgang
+# ---------------------------------------------------------------------------
+
+def test_rediger_atomisk_kjeder_aapning_og_lagring(monkeypatch):
+    kalt = {}
+
+    def falsk_aapning(client, sighting_id, funn):
+        kalt['aapnet'] = (client, sighting_id, funn)
+        return {'html': '<form>ÅPNET</form>', 'csrfCookie': 'cc'}
+
+    def falsk_lagring(client, sighting_id, html, funn, endringer, hent_rad=None):
+        kalt['lagret'] = (client, sighting_id, html, funn, endringer, hent_rad)
+        return {'bekreftet': True, 'ao': {}, 'avvik': []}
+
+    monkeypatch.setattr(ao_edit, 'aapne_for_redigering', falsk_aapning)
+    monkeypatch.setattr(ao_edit, 'lagre_og_publiser', falsk_lagring)
+
+    res = ao_edit.rediger_atomisk('klient', 1, FUNN, {'quantity': '4'}, hent_rad='hent')
+
+    assert res == {'bekreftet': True, 'ao': {}, 'avvik': []}
+    assert kalt['aapnet'] == ('klient', 1, FUNN)
+    # Lagringen må bruke HTML-en fra åpningen, ikke noe kalleren selv har liggende.
+    assert kalt['lagret'] == ('klient', 1, '<form>ÅPNET</form>', FUNN, {'quantity': '4'}, 'hent')
+
+
+def test_rediger_atomisk_publiserer_tilbake_ved_feil_under_aapning(monkeypatch):
+    """
+    `aapne_for_redigering()` unpublisher funnet FØR den selv kan feile (f.eks. et
+    manglende påkrevd felt i parse_edit_form()). Uten nødutgangen her ville funnet
+    blitt liggende usynlig med ingen vei tilbake.
+    """
+    kalt = {'publisert_tilbake': False}
+
+    def feiler(client, sighting_id, funn):
+        raise AoEditError('simulert feil ved åpning')
+
+    def falsk_publiser_tilbake(client, sighting_id):
+        kalt['publisert_tilbake'] = True
+
+    monkeypatch.setattr(ao_edit, 'aapne_for_redigering', feiler)
+    monkeypatch.setattr(ao_edit, 'publiser_tilbake', falsk_publiser_tilbake)
+
+    with pytest.raises(AoEditError, match='simulert feil ved åpning'):
+        ao_edit.rediger_atomisk('klient', 1, FUNN, {})
+
+    assert kalt['publisert_tilbake'] is True
+
+
+def test_rediger_atomisk_rapporterer_original_feil_selv_om_tilbakepublisering_feiler(monkeypatch):
+    """
+    Går BÅDE åpningen og nødutgangen galt, skal brukeren få vite om det FØRSTE —
+    det er den hun kan handle på («sjekk Kontrollér funn»). Nødutgangens egen feil
+    logges (se `ao_edit.rediger_atomisk()`), men skal ikke overskygge originalen.
+    """
+    def feiler(client, sighting_id, funn):
+        raise AoEditError('original feil')
+
+    def feiler_ogsaa(client, sighting_id):
+        raise RuntimeError('publiser_tilbake feilet også')
+
+    monkeypatch.setattr(ao_edit, 'aapne_for_redigering', feiler)
+    monkeypatch.setattr(ao_edit, 'publiser_tilbake', feiler_ogsaa)
+
+    with pytest.raises(AoEditError, match='original feil'):
+        ao_edit.rediger_atomisk('klient', 1, FUNN, {})

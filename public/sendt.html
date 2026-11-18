@@ -75,11 +75,15 @@
                   color: var(--text, #e5e7eb); border: 1px solid rgba(148,163,184,0.25); }
       .funn { background: rgba(255,255,255,0.04); border: 1px solid rgba(148,163,184,0.15);
               border-radius: 12px; padding: 12px 14px; margin-bottom: 10px; }
-      .funn-hode { display: flex; justify-content: space-between; align-items: baseline;
-                   gap: 10px; flex-wrap: wrap; }
+      /* Kolonne, ikke rad: `justify-content:space-between` presset lang(e)
+         artsnavn og "klokkeslett · aktivitet" mot hver sin kant på samme linje,
+         og raden ble unødig bred på smale skjermer (feltmelding). Meta-linjen
+         hører naturlig under artsnavnet, ikke ved siden av det. */
+      .funn-hode { display: flex; flex-direction: column; gap: 2px; }
       .funn-art { font-weight: 600; }
       .funn-meta { color: var(--muted, #9ca3af); font-size: 0.85rem; }
-      .funn-handling { display: flex; gap: 8px; align-items: center; margin-top: 10px; flex-wrap: wrap; }
+      .funn-handling { display: flex; gap: 6px; align-items: center; margin-top: 10px; flex-wrap: wrap; }
+      .funn-handling .btn-liten { padding-left: 10px; padding-right: 10px; }
       .funn-lenke { color: var(--accent, #3b82f6); text-decoration: none; font-size: 0.85rem;
                     padding: 10px 4px; min-height: 44px; display: inline-flex; align-items: center; }
       .funn-lenke.endre { color: var(--muted, #9ca3af); }
@@ -193,6 +197,8 @@
         background: #ffffff !important; color: #0f172a !important; border-color: #cbd5e1 !important; }
       .em-fast { font-size: 0.8rem; color: var(--muted, #9ca3af); margin: 0 0 14px;
                  padding-top: 10px; border-top: 1px solid var(--border, #334155); }
+      .em-rad-par { display: flex; gap: 8px; }
+      .em-rad-par .em-rad { flex: 1; }
 
       /* Artssøk: inputfelt med trefliste under. */
       .em-art-boks { position: relative; }
@@ -375,6 +381,17 @@
             <select id="em-aktivitet"></select>
           </div>
 
+          <div class="em-rad-par">
+            <div class="em-rad">
+              <label for="em-alder">Alder</label>
+              <select id="em-alder"></select>
+            </div>
+            <div class="em-rad">
+              <label for="em-kjonn">Kjønn</label>
+              <select id="em-kjonn"></select>
+            </div>
+          </div>
+
           <p class="em-fast" id="em-fast"></p>
         </div>
 
@@ -485,10 +502,20 @@
       // «Versjonering» i CLAUDE.md (v1.53.15).
       import { initPhotoPicker } from '/js/photo-picker.js?v=v1.60.27';
       import { lagBildeEditor } from '/js/bilde-editor.js?v=v1.60.27';
-      import { loggInnMedLagretLegitimasjon } from '/js/api.js?v=v1.60.27';
+      import { loggInnMedLagretLegitimasjon, loadActivities } from '/js/api.js?v=v1.60.27';
 
       const MND = ['januar', 'februar', 'mars', 'april', 'mai', 'juni',
         'juli', 'august', 'september', 'oktober', 'november', 'desember'];
+
+      // Samme faste vokabular som index.html sine #age/#gender-selects for NYE
+      // observasjoner (holdt i synk manuelt — ikke en delt modul, for å unngå å
+      // røre kjerneregistreringsflyten i index.html bare for denne gjenbruken).
+      // Teksten sendes direkte til AO som Stage/Gender-navn ved lagring
+      // (ao_edit.finn_option_id slår opp AOs egen ID mot AKKURAT denne teksten).
+      const ALDER_VALG = ['Adult', 'Egg', 'Pulli',
+        '1K', '1K+', '2K', '2K+', '2K-', '3K', '3K+', '3K-', '4K', '4K+', '4K-',
+        '5K', '5K+', '5K-', '6K', '6K+', '6K-', '7K', '7K+', '7K-'];
+      const KJONN_VALG = ['Hann', 'Hunn', 'Hunnfarget', 'I par'];
 
       function formatSendt(iso) {
         const d = new Date(iso);
@@ -543,6 +570,15 @@
         return `${Number(dag)}. ${MND[Number(mnd) - 1]}`;
       }
 
+      // Delt mellom renderFunn() og oppdaterFunnEtterEndring() — begge skriver til
+      // samme `.funn-meta`-element etter at F1 slo sammen detaljer og rapportør i
+      // én linje, og må derfor bygge rapportør-biten likt for ikke å rive bort
+      // hverandres markup.
+      function rapportorHtml(funn) {
+        return funn.isReporter || !funn.reporter ? ''
+          : `<span class="rapportert-av">Rapportert av ${tekst(funn.reporter)}</span>`;
+      }
+
       function renderFunn(funn) {
         const detaljer = [funn.time, activityDisplayName(funn.activity)].filter(Boolean).join(' · ');
         const advarsel = funn.triggeredRules
@@ -563,17 +599,15 @@
           ? `<button class="btn-liten" data-endre="${attr(funn.sightingId)}"
                title="${tr('sendt.edit_btn_title')}">${tr('sendt.edit_btn')}</button>`
           : '';
-        const rapportor = funn.isReporter || !funn.reporter ? ''
-          : `<span class="rapportert-av">Rapportert av ${tekst(funn.reporter)}</span>`;
+        const rapportor = rapportorHtml(funn);
 
         return `
           <div class="funn" id="funn-${attr(funn.sightingId)}">
             <div class="funn-hode">
               <span class="funn-art"><span class="antall">${tekst(funn.quantity)}</span>
                 ${tekst(funn.taxonName)}</span>
-              <span class="funn-meta">${tekst(detaljer)}</span>
+              <span class="funn-meta">${[tekst(detaljer), rapportor].filter(Boolean).join(' · ')}</span>
             </div>
-            ${rapportor ? `<div class="funn-meta">${rapportor}</div>` : ''}
             ${advarsel}
             <div class="funn-handling">
               ${harMerke}
@@ -922,9 +956,12 @@
       // ===================================================================
       // Endringsmodal: åpne → endre → lagre og publiser
       // ===================================================================
-      // Å ÅPNE skjemaet hos AO gjør funnet upublisert med én gang. Derfor eier
-      // denne modalen en tilstand som MÅ ryddes opp: enten ved å lagre, eller ved
-      // å publisere funnet tilbake. Alle veier ut kaller én av delene.
+      // `/api/ao-sighting-details` er rent lesende — funnet forblir publisert
+      // og synlig gjennom hele tiden brukeren står i modalen. Åpning, lagring
+      // og publisering skjer i ÉTT serverkall (`/api/ao-sighting-save`), se
+      // `ao_edit.rediger_atomisk()`. Det finnes derfor ingen upublisert
+      // mellomtilstand å rydde opp fra klienten — «Avbryt» og «✕» er nå bare
+      // en lukkeknapp.
 
       const emModal = document.getElementById('endre-modal');
       const emFunn = document.getElementById('em-funn');
@@ -934,7 +971,22 @@
       const emBekreftet = document.getElementById('em-bekreftet-tekst');
       const emAntall = document.getElementById('em-antall');
       const emAktivitet = document.getElementById('em-aktivitet');
+      const emAlder = document.getElementById('em-alder');
+      const emKjonn = document.getElementById('em-kjonn');
       const emFast = document.getElementById('em-fast');
+
+      // Statisk vokabular — fylles én gang, ikke per åpning av modalen.
+      emAlder.innerHTML = '<option value="">Ikke oppgitt</option>'
+        + ALDER_VALG.map((v) => `<option value="${attr(v)}">${tekst(v)}</option>`).join('');
+      emKjonn.innerHTML = '<option value="">Ikke oppgitt</option>'
+        + KJONN_VALG.map((v) => `<option value="${attr(v)}">${tekst(v)}</option>`).join('');
+
+      // Satt av faktisk brukerinteraksjon, IKKE av value-sammenligning mot
+      // forhåndsutfylt verdi — se begrunnelse der emOkt.opprinneligAlder settes.
+      let emAlderRort = false;
+      let emKjonnRort = false;
+      emAlder.addEventListener('change', () => { emAlderRort = true; });
+      emKjonn.addEventListener('change', () => { emKjonnRort = true; });
       const emStatus = document.getElementById('em-status');
       const emLagre = document.getElementById('em-lagre');
       const emAvbryt = document.getElementById('em-avbryt');
@@ -1094,44 +1146,16 @@
         emSettStatus('');
       }
 
-      /**
-       * Publiser funnet tilbake uendret.
-       *
-       * `stille` brukes fra beforeunload, der vi ikke kan vente på svar og ikke
-       * har noe sted å vise en feil.
-       */
-      async function emPubliserTilbake(stille) {
-        if (!emOkt || emOkt.ryddet) return true;
-        const okt = emOkt;
-        okt.ryddet = true;   // hindrer at avbryt + beforeunload begge kjører
-        const t = hentTokens();
-        const kropp = JSON.stringify({
-          loginToken: t.loginToken, authCookie: t.authCookie, sightingId: okt.id,
-        });
-        if (stille) {
-          // sendBeacon overlever at siden lukkes; fetch gjør det ikke.
-          try {
-            navigator.sendBeacon('/api/ao-sighting-abort',
-              new Blob([kropp], { type: 'application/json' }));
-          } catch (e) { /* siden er på vei ut — ingenting mer å gjøre */ }
-          return true;
+      // Statisk aktivitetsvokabular (AOs egne numeriske ID-er), samme fil som
+      // `edit-modal.js` sin `loadActivitiesOnce()` bruker for hovedflyten.
+      // Lastes én gang og caches — ikke per åpning av modalen.
+      let aktiviteterPromise = null;
+      function lastAktiviteter() {
+        if (!aktiviteterPromise) {
+          aktiviteterPromise = loadActivities()
+            .catch((e) => { console.error('Kunne ikke laste aktiviteter:', e); return []; });
         }
-        try {
-          const r = await fetch('/api/ao-sighting-abort', {
-            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: kropp,
-          }).then((x) => x.json());
-          if (!r.ok) {
-            okt.ryddet = false;   // ikke ryddet likevel — la brukeren prøve igjen
-            emSettStatus(r.advarsel || r.error || 'Klarte ikke publisere funnet tilbake.', 'feil');
-            return false;
-          }
-          return true;
-        } catch (e) {
-          okt.ryddet = false;
-          emSettStatus('Mistet kontakten. Funnet kan være usynlig for andre — '
-            + 'sjekk «Kontrollér funn» hos Artsobservasjoner.', 'feil');
-          return false;
-        }
+        return aktiviteterPromise;
       }
 
       async function emApne(funn) {
@@ -1152,7 +1176,7 @@
         const t = hentTokens();
         let res;
         try {
-          res = await fetch('/api/ao-sighting-form', {
+          res = await fetch('/api/ao-sighting-details', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               loginToken: t.loginToken, authCookie: t.authCookie,
@@ -1175,33 +1199,57 @@
             emSettStatus('Sesjonen mot Artsobservasjoner er utløpt. '
               + 'Logg inn på nytt i innstillinger.', 'feil');
           } else {
-            emSettStatus(res.error || 'Kunne ikke åpne funnet for endring.', 'feil');
+            emSettStatus(res.error || 'Kunne ikke hente funnets detaljer.', 'feil');
           }
-          // Køen var ikke tom: vis det samme varselet som ved sidelast, slik at
-          // brukeren har en vei videre i stedet for bare en feilmelding.
-          if (res.queueNotEmpty) visKoVarsel(res.queueCount);
           return;
         }
 
-        // FRA HER er funnet upublisert hos AO.
+        // Funnet er fortsatt publisert — `/api/ao-sighting-details` er rent lesende.
+        const f0 = res.funn || {};
         emOkt = {
-          id: funn.sightingId, formHtml: res.formHtml, funn: res.funn,
-          csrfCookie: res.csrfCookie, ryddet: false,
-          opprinneligAntall: res.quantity, opprinneligAktivitet: res.activityId,
-          opprinneligArt: res.taxonId, opprinneligArtNavn: funn.taxonName,
+          id: funn.sightingId, funn: f0,
+          opprinneligAntall: f0.quantity, opprinneligAktivitetNavn: f0.activity_navn,
+          opprinneligArt: f0.taxon_id, opprinneligArtNavn: funn.taxonName,
+          opprinneligAlder: f0.age_navn || '', opprinneligKjonn: f0.gender_navn || '',
           nyArt: null,
         };
         visValgtArt();
 
-        emAntall.value = res.quantity || '';
-        emAktivitet.innerHTML = (res.activityOptions || [])
-          .map((o) => `<option value="${attr(o.id)}">${tekst(activityDisplayName(o.navn))}</option>`).join('');
-        if (res.activityId) emAktivitet.value = res.activityId;
+        emAntall.value = f0.quantity || '';
+        const aktiviteter = await lastAktiviteter();
+        emAktivitet.innerHTML = aktiviteter
+          .map((a) => `<option value="${attr(a.value)}">${tekst(activityDisplayName(a.label))}</option>`).join('');
+        if (f0.activity_navn) {
+          // Bokmål-kanonisk sammenligning, samme mønster som `edit-modal.js`
+          // sin `populateActivitySelect()` — teksten kan vises på nynorsk.
+          const targetNb = activityBokmalName(String(f0.activity_navn).trim());
+          for (let i = 0; i < emAktivitet.options.length; i++) {
+            if (activityBokmalName(emAktivitet.options[i].textContent.trim()) === targetNb) {
+              emAktivitet.selectedIndex = i;
+              break;
+            }
+          }
+        }
+
+        // Alder/kjønn: forhåndsvelg nåværende verdi, men ALDRI stol på
+        // value-sammenligning for å avgjøre om brukeren faktisk endret noe —
+        // AOs tekst (f0.age_navn/gender_navn) kan i prinsippet avvike fra vårt
+        // faste vokabular (ulik skriving av samme verdi hos AO), og da ville
+        // `select.value = ...` stille feile uten at noen la merke til det. Et
+        // 'change'-lytter-flagg er den eneste sikre måten å vite om brukeren
+        // faktisk rørte feltet — se emAlderRort/emKjonnRort under.
+        // Et slikt avvik vises da som «Ikke oppgitt» i modalen selv om AO har
+        // en reell verdi — en visningsfeil, IKKE et lagringsproblem: selve
+        // lagringen slår opp funnets ekte `age_navn`/`gender_navn` på nytt
+        // (ao_edit.bygg_save_body), ikke det denne select-en viser.
+        emAlder.value = emOkt.opprinneligAlder;
+        emKjonn.value = emOkt.opprinneligKjonn;
+        emAlderRort = false;
+        emKjonnRort = false;
 
         // Det vi IKKE endrer her skal stå synlig, så ingen tror det er glemt.
-        const f = res.funn || {};
         emFast.textContent = `Dato, tid og lokalitet endres ikke her: `
-          + `${f.dato || ''} · ${funn.time || ''} · ${funn.siteName}. `
+          + `${f0.dato || ''} · ${funn.time || ''} · ${funn.siteName}. `
           + `Bruk Artsobservasjoner for de feltene.`;
 
         emSkjema.hidden = false;
@@ -1224,13 +1272,21 @@
           endringer.taxon_id = String(emOkt.nyArt.id);
         }
         if (antall !== String(emOkt.opprinneligAntall)) endringer.quantity = antall;
-        if (emAktivitet.value && emAktivitet.value !== String(emOkt.opprinneligAktivitet)) {
+        // Navnet avgjør endring (bokmål-kanonisk, uansett visningsspråk) — samme
+        // sammenligning som `emApne()` brukte til å forhåndsvelge select-en.
+        const aktivitetNavn = emAktivitet.value
+          ? activityBokmalName(emAktivitet.options[emAktivitet.selectedIndex].textContent.trim())
+          : '';
+        if (aktivitetNavn && aktivitetNavn !== activityBokmalName(String(emOkt.opprinneligAktivitetNavn || ''))) {
           endringer.activity_id = emAktivitet.value;
-          // Navnet sendes med så serveren kan BEKREFTE endringen mot AO etterpå -
-          // MÅ være kanonisk bokmål uansett visningsspråk, se activityBokmalName().
-          endringer.activity_navn =
-            activityBokmalName(emAktivitet.options[emAktivitet.selectedIndex].textContent.trim());
+          // Navnet sendes med så serveren kan BEKREFTE endringen mot AO etterpå.
+          endringer.activity_navn = aktivitetNavn;
         }
+        // Kun med hvis brukeren faktisk rørte feltet (ikke value-sammenligning,
+        // se forhåndsutfyllingen i emApne()). Tom streng = eksplisitt «ikke
+        // oppgitt», fraværende nøkkel = urørt/behold nåværende AO-verdi.
+        if (emAlderRort) endringer.age_navn = emAlder.value;
+        if (emKjonnRort) endringer.gender_navn = emKjonn.value;
 
         emLagre.disabled = true;
         emAvbryt.disabled = true;
@@ -1245,30 +1301,31 @@
             method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               loginToken: t.loginToken, authCookie: t.authCookie,
-              sightingId: emOkt.id, formHtml: emOkt.formHtml, funn: emOkt.funn,
-              csrfCookie: emOkt.csrfCookie, endringer,
+              sightingId: emOkt.id, endringer,
             }),
           }).then((x) => x.json());
         } catch (e) {
           emLagre.disabled = false;
           emAvbryt.disabled = false;
-          emSettStatus('Mistet kontakten under lagring. Funnet kan være usynlig for '
-            + 'andre — sjekk «Kontrollér funn» hos Artsobservasjoner.', 'feil');
+          // Åpne+lagre+publiser skjer i ett serverkall (rediger_atomisk) — når
+          // svaret ikke når klienten vet vi ikke om det kallet fullførte før
+          // kontakten gikk, bare at VI ikke fikk vite utfallet.
+          emSettStatus('Mistet kontakten under lagring. Sjekk «Tidligere sendt» på '
+            + 'nytt, eller «Kontrollér funn» hos Artsobservasjoner, før du prøver igjen.', 'feil');
           return;
         }
 
         emAvbryt.disabled = false;
 
         if (!res.ok) {
-          // Serveren har alt publisert funnet tilbake på feilstien.
-          if (emOkt) emOkt.ryddet = true;
           emLagre.disabled = false;
           emSettStatus(res.error || 'Lagringen ble avvist.', 'feil');
+          // Køen var ikke tom: vis det samme varselet som ved sidelast, slik at
+          // brukeren har en vei videre i stedet for bare en feilmelding.
+          if (res.queueNotEmpty) visKoVarsel(res.queueCount);
           return;
         }
 
-        // Lagret og publisert — det er ingenting igjen å rydde.
-        emOkt.ryddet = true;
         oppdaterFunnEtterEndring(emOkt.id, res.ao, endringer);
         sjekkKo();   // scoped publisering kan ha latt andre funn ligge igjen
 
@@ -1337,38 +1394,24 @@
             + tekst(funn.taxonName);
         }
         const metaEl = rad.querySelector('.funn-meta');
-        if (metaEl) metaEl.textContent = [funn.time, funn.activity].filter(Boolean).join(' · ');
+        if (metaEl) {
+          const detaljer = [funn.time, funn.activity].filter(Boolean).join(' · ');
+          metaEl.innerHTML = [tekst(detaljer), rapportorHtml(funn)].filter(Boolean).join(' · ');
+        }
       }
 
-      emAvbryt.addEventListener('click', async () => {
-        // «Avbryt» er en handling, ikke en lukkeknapp: funnet må publiseres tilbake.
-        if (!emOkt || emOkt.ryddet) { emLukkUi(); return; }
-        emAvbryt.disabled = true;
-        emJobber('Publiserer funnet tilbake …');
-        const ok = await emPubliserTilbake(false);
-        emAvbryt.disabled = false;
-        if (ok) emLukkUi();
-      });
+      // Funnet forblir publisert gjennom hele modalen (se kommentaren ved
+      // `emModal` over) — «Avbryt» og «✕» er nå rene lukkeknapper, og siden
+      // kan trygt lukkes eller lastes på nytt uten noe sikkerhetsnett.
+      emAvbryt.addEventListener('click', emLukkUi);
 
-      // «✕» må gjøre nøyaktig det samme som «Avbryt» — ellers er den en snarvei
-      // til å etterlate funnet usynlig.
-      document.getElementById('em-lukk').addEventListener('click', () => emAvbryt.click());
+      document.getElementById('em-lukk').addEventListener('click', emLukkUi);
 
       emModal.addEventListener('click', (e) => {
-        if (e.target === emModal) emAvbryt.click();
+        if (e.target === emModal) emLukkUi();
       });
 
       emLagre.addEventListener('click', emLagreEndring);
-
-      // Sikkerhetsnett. Teksten styrer vi ikke, og den vises ikke alltid — men
-      // sendBeacon rekker som regel fram selv om siden lukkes.
-      window.addEventListener('beforeunload', (e) => {
-        if (!emOkt || emOkt.ryddet) return;
-        emPubliserTilbake(true);
-        e.preventDefault();
-        e.returnValue = '';
-        return '';
-      });
 
       aoListeEl.addEventListener('click', (e) => {
         const endreKnapp = e.target.closest('[data-endre]');

@@ -296,11 +296,14 @@ def bygg_save_body(html, funn, endringer=None):
     Bygg feltlista for `POST /ReviewSighting/Save`, bit-identisk med nettleserens.
 
     `funn` er funnets egne data, i praksis fra `BindSightingsGrid`:
-        taxon_id, dato (DD.MM.YYYY), site_id, site_name, activity_navn
-        og eventuelt activity_id hvis den alt er kjent.
+        taxon_id, dato (DD.MM.YYYY), site_id, site_name, activity_navn,
+        age_navn, gender_navn, og eventuelt activity_id hvis den alt er kjent.
 
     `endringer` overstyrer felt brukeren faktisk rørte, f.eks.
-        {'quantity': '4', 'activity_id': '25', 'taxon_id': '4330'}
+        {'quantity': '4', 'activity_id': '25', 'taxon_id': '4330',
+         'age_navn': 'Adult', 'gender_navn': ''}
+    En tom streng for age_navn/gender_navn betyr eksplisitt «ikke oppgitt» —
+    ulikt fraværende nøkkel, som betyr «urørt, behold funnets nåværende verdi».
 
     **Denne funksjonen gjør ingen nettverkskall, og det er en egenskap som må
     bevares.** Alt funnet trenger skal være hentet FØR `aapne_skjema()` kalles.
@@ -327,16 +330,66 @@ def bygg_save_body(html, funn, endringer=None):
     site_id = str(funn['site_id'])
     gruppe_id = str(funn.get('gruppe_id') or FUGLER_GRUPPE_ID)
 
+    def _slaa_opp(felt_navn, navn, substantiv, bevarer):
+        """
+        Slå opp AOs egen ID for `navn` i valglista, eller kast AoEditError.
+
+        `substantiv` er feltets navn i bestemt grunnform («aktivitet», «alder»,
+        «kjønn») — brukt alene i feilmeldingen («... nåværende {substantiv}.»)
+        OG som grunnlag for genitiv-sammensetninger («{substantiv}s-ID»); alle
+        tre ordene bøyes regelrett med -s, så ett ord holder til begge formene.
+
+        `bevarer` skiller to feilmeldinger som ser ut som samme feil, men ikke
+        er det: en brukerinitiert endring til noe AO ikke har (sjelden, retbar —
+        brukeren velger bare noe annet), mot et forsøk på å BEVARE funnets
+        eksisterende, urørte verdi der navnet fra BindSightingsGrid ikke finner
+        sin make i Edit-skjemaets egen valgliste (uventet — de to bør alltid
+        stemme overens, og hvis ikke er det verdt å vite).
+        """
+        id_ = finn_option_id(options, felt_navn, navn)
+        if id_:
+            return id_
+        if bevarer:
+            raise AoEditError(
+                f'Fant ikke {navn!r} i AOs {substantiv}s-valgliste for å bevare '
+                f'funnets nåværende {substantiv}. Feltet ble ikke rørt, men kunne '
+                'likevel ikke bekreftes — avbryter hele lagringen for å unngå å '
+                'slette det ved et uhell.')
+        raise AoEditError(
+            f'Fant ingen {substantiv}s-ID for {navn!r} i AOs valgliste — avbryter '
+            f'framfor å sende et tomt {substantiv}-felt.')
+
     # Aktivitet: eksplisitt endring > kjent ID > oppslag på navn i AOs egen valgliste.
+    # Når vi havner i oppslaget er det alltid for å BEVARE funnets nåværende
+    # aktivitet — en brukerinitiert endring har alt gitt `aktivitet` sin verdi
+    # via `endringer.get('activity_id')` over, og aldri nådd hit.
     aktivitet = endringer.get('activity_id') or funn.get('activity_id')
     if not aktivitet:
-        aktivitet = finn_option_id(options, _S + 'Activity', funn.get('activity_navn'))
-    if not aktivitet:
-        # Å gjette her ville satt `Activity=0` og slettet aktiviteten fra funnet.
-        raise AoEditError(
-            'Fant ingen aktivitets-ID for '
-            f'{funn.get("activity_navn")!r} i AOs valgliste — avbryter framfor å '
-            'sende et tomt aktivitetsfelt.')
+        aktivitet = _slaa_opp(_S + 'Activity', funn.get('activity_navn'), 'aktivitet',
+                              bevarer=True)
+
+    # Alder (Stage) og kjønn (Gender): samme mønster som Activity over, men med
+    # én forskjell — '0' («ikke oppgitt») er et GYLDIG, oppslagsfritt svar her.
+    # ⚠️ Uten eksplisitt oppløsning her ville `select-uvalgt`-fallbacken i
+    # `SELECT_DEFAULTS` satt begge til '0' — altså SLETTET alder/kjønn fra
+    # funnet — på ENHVER redigering, selv en som bare endrer antall. Det var
+    # allerede situasjonen før disse feltene ble gjort redigerbare, bare
+    # usynlig: Stage/Gender har aldri `selected` i rå HTML (se modulens
+    # docstring punkt 3), så uten denne oppløsningen var de alltid
+    # `select-uvalgt` og alltid nullstilt.
+    alder_navn = endringer.get('age_navn')
+    rort_alder = alder_navn is not None
+    if not rort_alder:
+        alder_navn = funn.get('age_navn')
+    alder = _slaa_opp(_S + 'Stage', alder_navn, 'alder', bevarer=not rort_alder) \
+        if alder_navn else '0'
+
+    kjonn_navn = endringer.get('gender_navn')
+    rort_kjonn = kjonn_navn is not None
+    if not rort_kjonn:
+        kjonn_navn = funn.get('gender_navn')
+    kjonn = _slaa_opp(_S + 'Gender', kjonn_navn, 'kjønn', bevarer=not rort_kjonn) \
+        if kjonn_navn else '0'
 
     # Felt der rå HTML har en ubrukelig verdi. Verdien er en LISTE fordi `Taxon`
     # sendes to ganger. Rekkefølgen bevares fra skjemaet.
@@ -369,6 +422,8 @@ def bygg_save_body(html, funn, endringer=None):
 
     select_verdier = dict(SELECT_DEFAULTS)
     select_verdier[_S + 'Activity'] = str(aktivitet)
+    select_verdier[_S + 'Stage'] = str(alder)
+    select_verdier[_S + 'Gender'] = str(kjonn)
 
     ut = []
     brukt = set()
@@ -643,9 +698,12 @@ def publiser_tilbake(client, sighting_id):
 # ---------------------------------------------------------------------------
 
 # Feltene vi leser tilbake fra AO for å bekrefte at en endring faktisk tok.
-# Flere enn brukeren kan endre, med vilje: `StageName`/`GenderName`/`UnitName`/
-# `DiscoveryMethodName` er nettopp de feltene vi UTELATER fra bodyen, og hvis en
-# AO-endring en dag gjør at de likevel tømmes, er det her det vises.
+# Flere enn brukeren kan endre, med vilje: `UnitName`/`DiscoveryMethodName` er
+# feltene vi UTELATER fra bodyen, og hvis en AO-endring en dag gjør at de
+# likevel tømmes, er det her det vises. `StageName`/`GenderName` var i samme
+# kategori før alder/kjønn ble gjort redigerbare — nå SKRIVER `bygg_save_body()`
+# dem aktivt (se `_slaa_opp()`), og `bekreft()` bruker dem til å verifisere
+# nettopp den endringen, ikke lenger bare som en passiv vakt mot AO.
 # Hvor mange ganger vi prøver å lese funnet tilbake, og pausen mellom.
 # Holdes lavt: brukeren venter på dialogen, og «vet ikke» er et ærlig svar.
 BEKREFT_FORSOK = 3
@@ -671,6 +729,10 @@ def aapne_for_redigering(client, sighting_id, funn):
 
     ⚠️ Funnet er UPUBLISERT når denne returnerer. Kalleren MÅ enten lagre eller
     kalle `avbryt()`. Se `aapne_skjema()`.
+
+    Kalles normalt IKKE direkte — `rediger_atomisk()` kjeder denne sammen med
+    `lagre_og_publiser()` i ett kall, slik at ingen bruker venter i et
+    grensesnitt med funnet i denne tilstanden.
 
     `funn` er funnets egne data fra `BindSightingsGrid` — hentet FØR dette kallet.
     """
@@ -707,7 +769,48 @@ def aapne_for_redigering(client, sighting_id, funn):
             # value="0" er AOs «ikke angitt» og har tom tekst — ikke et reelt valg
             if v and v != '0' and t
         ],
+        # Alder (Stage) og kjønn (Gender) trenger ingen options-liste herfra:
+        # Enkel-AO bruker ALLEREDE det faste, navnebaserte vokabularet AO selv
+        # forstår for disse to feltene (samme tekster som index.html sine
+        # #age/#gender-selects for NYE observasjoner). Nåværende verdi hentes
+        # fra `funn['age_navn']`/`funn['gender_navn']` (returnert i `funn`,
+        # ikke herfra) — oppslag mot AOs ID skjer først ved selve lagringen,
+        # i `bygg_save_body()`.
     }
+
+
+def rediger_atomisk(client, sighting_id, funn, endringer, hent_rad=None):
+    """
+    Åpne, bygg, lagre og publiser — i ett sammenhengende kall.
+
+    Erstatter den tidligere to-kalls-flyten der klienten selv kalte
+    `aapne_for_redigering()` (via et eget HTTP-endepunkt) og satt med et
+    upublisert funn mens hun bestemte seg for hva hun ville endre. Her skjer
+    ALT — også selve åpningen, som er det som gjør funnet upublisert — inni
+    dette ene kallet, slik at ingen bruker noensinne venter i et grensesnitt
+    med et upublisert funn. Vinduet er nå millisekunder på en server, ikke
+    sekunder-til-minutter i en nettleser brukeren kan lukke.
+
+    `funn` MÅ være hentet FØR dette kalles (samme krav som `bygg_save_body()`
+    og `aapne_for_redigering()` hver for seg stiller).
+    """
+    try:
+        åpnet = aapne_for_redigering(client, sighting_id, funn)
+    except Exception:
+        # `aapne_for_redigering()` unpublisher via `aapne_skjema()` FØR den selv
+        # kan feile (f.eks. hvis `parse_edit_form()` ikke finner et påkrevd
+        # felt) — uten dette forsøket blir funnet liggende usynlig med ingen
+        # vei tilbake. Samme nødutgang som `lagre_og_publiser()` bruker lenger
+        # ned i flyten, bare for ÅPNINGS-steget i stedet for lagre/publiser.
+        try:
+            publiser_tilbake(client, sighting_id)
+        except Exception as exc:
+            logger.error(
+                f'[AO-EDIT] KRITISK: klarte ikke publisere funn {sighting_id} '
+                f'tilbake etter en feil ved åpning: {exc}')
+        raise
+    return lagre_og_publiser(client, sighting_id, åpnet['html'], funn, endringer,
+                             hent_rad=hent_rad)
 
 
 def avbryt(client, sighting_id):
@@ -813,6 +916,23 @@ def bekreft(client, sighting_id, funn, endringer, hent_rad=None):
                 f'Aktivitet: ba om {endringer["activity_navn"]!r}, '
                 f'AO har {rad.get("ActivityName")!r}')
 
+    # Membership (`in`), ikke truthy — samme stil som activity_navn over. En
+    # tom streng er et GYLDIG, eksplisitt ønske («sett til ikke oppgitt»), og
+    # skal bekreftes akkurat som enhver annen endring, ikke hoppes over.
+    if 'age_navn' in endringer:
+        ventet = str(endringer['age_navn'] or '').strip().casefold()
+        fikk = str(rad.get('StageName') or '').strip().casefold()
+        if ventet != fikk:
+            avvik.append(
+                f'Alder: ba om {endringer["age_navn"]!r}, AO har {rad.get("StageName")!r}')
+
+    if 'gender_navn' in endringer:
+        ventet = str(endringer['gender_navn'] or '').strip().casefold()
+        fikk = str(rad.get('GenderName') or '').strip().casefold()
+        if ventet != fikk:
+            avvik.append(
+                f'Kjønn: ba om {endringer["gender_navn"]!r}, AO har {rad.get("GenderName")!r}')
+
     return {'bekreftet': not avvik, 'ao': ao, 'avvik': avvik}
 
 
@@ -839,4 +959,9 @@ def funn_fra_rad(rad):
         'site_id': str(rad.get('SiteId') or ''),
         'site_name': navn,
         'activity_navn': rad.get('ActivityName'),
+        'age_navn': rad.get('StageName'),
+        'gender_navn': rad.get('GenderName'),
+        # Kun til VISNING i den lese-only detalje-responsen — bygg_save_body()
+        # leser aldri denne, kun endringer.get('quantity').
+        'quantity': rad.get('Quantity'),
     }
