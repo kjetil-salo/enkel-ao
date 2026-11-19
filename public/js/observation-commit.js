@@ -2,7 +2,7 @@
  * Observasjons-modul for validering, lagring og aktivitets-pills
  */
 
-import { defaultCoObservers, loadActivityPills, speciesDisplayName, activityDisplayName, activityBokmalName, genderBokmalName, unitBokmalName, discoveryMethodBokmalName } from './storage.js?v=v1.60.30';
+import { defaultCoObservers, loadActivityPills, loadSelectedSpeciesGroup, speciesDisplayName, activityDisplayName, activityBokmalName, genderBokmalName, unitBokmalName, discoveryMethodBokmalName } from './storage.js?v=v1.60.30';
 import { showToast } from './ui.js';
 import { t } from './i18n.js?v=v1.60.30';
 import { toLocalISOString } from './utils.js';
@@ -390,12 +390,12 @@ export function setupPillsDragToScroll(el) {
   // Nedoverscrolling/vertikal scrolling skal ikke fanges opp av feltet, men passere uhindret til siden.
 }
 
-export function renderActivityPills(dom, commitFn, speciesGroup = '8') {
+export function renderActivityPills(dom, commitFn) {
   if (!dom.activityPillsEl) return;
   setupPillsDragToScroll(dom.activityPillsEl);
   dom.activityPillsEl.innerHTML = '';
 
-  getActivePills(speciesGroup).forEach(p => {
+  getActivePills().forEach(p => {
     const label = p.label; // kanonisk bokmål-navn, lagret i innstillingene
     const translatedLabel = activityDisplayName(label);
     const short = (p.short || '').trim();
