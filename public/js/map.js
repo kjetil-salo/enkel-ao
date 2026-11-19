@@ -131,23 +131,13 @@ const sites = onlyOwnPrivateSites
 const speciesGroupBanner = document.getElementById('map-species-group-banner');
 function plasserArtsgruppeBanner() {
   if (!speciesGroupBanner || speciesGroupBanner.style.display === 'none') return;
-  const backBtn = document.querySelector('a.back-btn');
-  const fab = document.getElementById('add-site-fab');
-  const backRect = backBtn ? backBtn.getBoundingClientRect() : null;
-  const fabRect = (fab && fab.style.display !== 'none') ? fab.getBoundingClientRect() : null;
-
-  const left = (backRect && backRect.width > 0) ? Math.ceil(backRect.right + 8) : 12;
-  const rightEdge = (fabRect && fabRect.width > 0) ? Math.floor(fabRect.left - 8) : (window.innerWidth - 10);
-  const maxWidth = Math.max(60, rightEdge - left);
-
-  speciesGroupBanner.style.left = `${left}px`;
-  speciesGroupBanner.style.right = 'auto';
-  speciesGroupBanner.style.maxWidth = `${maxWidth}px`;
+  const maxWidth = speciesGroupBanner.clientWidth;
+  if (!maxWidth) return;
   speciesGroupBanner.style.padding = '6px 12px';
 
   let fontSize = 13;
   speciesGroupBanner.style.fontSize = `${fontSize}px`;
-  while (speciesGroupBanner.scrollWidth > maxWidth && fontSize > 8.5) {
+  while (speciesGroupBanner.scrollWidth > speciesGroupBanner.clientWidth && fontSize > 8.5) {
     fontSize -= 0.5;
     speciesGroupBanner.style.fontSize = `${fontSize}px`;
     if (fontSize <= 11) {

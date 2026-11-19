@@ -77,22 +77,36 @@
       box-shadow: 0 4px 12px rgba(0,0,0,0.4);
     }
 
-    .map-species-group-banner {
-      display: none;
+    .map-top-left-bar {
       position: absolute;
       top: 10px;
       left: 10px;
-      right: auto;
-      transform: none;
-      box-sizing: border-box;
+      right: 74px;
       z-index: 1000;
-      max-width: calc(100% - 20px);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      pointer-events: none;
+    }
+
+    .map-top-left-bar .back-btn {
+      position: static;
+      flex-shrink: 0;
+      pointer-events: auto;
+    }
+
+    .map-species-group-banner {
+      display: none;
+      position: static;
+      min-width: 0;
+      flex: 0 1 auto;
+      box-sizing: border-box;
       background: rgba(15, 23, 42, 0.92);
       color: #fef08a;
       border: 1.5px solid #eab308;
       border-radius: 999px;
       padding: 6px 12px;
-      font-size: 13px;
+      font-size: clamp(9.5px, 3vw, 13px);
       font-weight: 600;
       white-space: nowrap;
       overflow: hidden;
@@ -898,7 +912,6 @@
 
   <!-- Fallback-banner når brukerens GPS-posisjon ikke er tilgjengelig -->
   <div class="missing-location-banner" id="missing-location-banner" role="status" aria-live="polite">Din posisjon er ikke tilgjengelig</div>
-  <div class="map-species-group-banner" id="map-species-group-banner" role="status" aria-live="polite"></div>
   <div class="map-sites-status" id="map-sites-status" role="status"></div>
 
   <!-- Sentrert modal-dialog med tilbakemelding på antall nedlastede lokaliteter -->
@@ -918,7 +931,10 @@
     </div>
   </div>
 
-  <a href="/" class="back-btn" data-i18n="settings.back_link">← Tilbake</a>
+  <div class="map-top-left-bar">
+    <a href="/" class="back-btn" data-i18n="settings.back_link">← Tilbake</a>
+    <div class="map-species-group-banner" id="map-species-group-banner" role="status" aria-live="polite"></div>
+  </div>
   <!-- Tre trinn: Alt → Skjul navn → Skjul alt → Alt. Teksten settes av
        map.js (knappetekst() i kart-visning.js) og beskriver hva NESTE trykk
        gjør; verdien her er bare det første trinnet før JS har kjørt. -->
