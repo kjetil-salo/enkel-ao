@@ -70,7 +70,7 @@ from src import email_notify
 from src.utils import parse_user_agent
 from src.ao_import_httpx import (AO2_DRIFTSFEIL, Ao2ImportUavklart, Ao2UtilgjengeligForInnsending,
                                  post_with_curl, number_of_sightings_submitted,
-                                 upload_photo_to_published_sighting)
+                                 upload_photo_to_published_sighting, fetch_new_notifications)
 from src.ao3_import import logg_inn_pa_ao3, send_via_ao3
 from src.ao_sightings import fetch_my_sightings, fetch_raw_row
 from src import ao_edit
@@ -369,6 +369,10 @@ class Handler(SimpleHTTPRequestHandler):
 
         if parsed.path == '/api/ao-queue-count':
             self._handle_ao_queue_count_post()
+            return
+
+        if parsed.path == '/api/ao-messages':
+            self._handle_ao_messages_post()
             return
 
         if parsed.path == '/api/ao-my-sightings':
@@ -1006,6 +1010,36 @@ class Handler(SimpleHTTPRequestHandler):
         except Exception as e:
             logger.error(f'[AO-QUEUE] Kunne ikke hente kø-antall: {e}')
             self._send_json({'count': None}, status=200)
+
+    def _handle_ao_messages_post(self):
+        """
+        Hvor mange uleste meldinger og driftsvarsler brukeren har hos AO.
+
+        Rent opplysende — samme tall AOs eget sideskall allerede viser (det kjører
+        dette kallet på hver side, se `fetch_new_notifications`). Brukes til å
+        synliggjøre at Artsobservasjoner har noe å si, for brukere som sjelden er
+        innom AO lenger siden Enkel-AO dekker hele feltarbeidet.
+
+        Svarer `{'nyeMeldinger': N, 'nyeVarsler': N}`, eller begge `None` hvis AO
+        ikke kunne spørres. Følger ekstern-API-konvensjonen: aldri 500 ut til klienten.
+        """
+        try:
+            data = self._read_json_body()
+            login_token = data.get('loginToken')
+            auth_cookie = data.get('authCookie')
+
+            if not login_token or not auth_cookie:
+                self._send_json({'nyeMeldinger': None, 'nyeVarsler': None}, status=200)
+                return
+
+            result = fetch_new_notifications(login_token, auth_cookie)
+            if result is None:
+                self._send_json({'nyeMeldinger': None, 'nyeVarsler': None}, status=200)
+                return
+            self._send_json(result, status=200)
+        except Exception as e:
+            logger.error(f'[AO-MELDINGER] Kunne ikke hente meldingstall: {e}')
+            self._send_json({'nyeMeldinger': None, 'nyeVarsler': None}, status=200)
 
     def _handle_ao_my_sightings_post(self):
         """

@@ -9,7 +9,7 @@
  */
 import { loadMedobs, saveMedobs } from './storage.js';
 import { attachAoObserverAutocomplete } from './ao-observer-autocomplete.js';
-import { t } from './i18n.js?v=v1.60.31';
+import { t } from './i18n.js?v=v1.61.0';
 
 const MEDOBS_MAX = 10;
 

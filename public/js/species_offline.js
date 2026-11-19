@@ -13,7 +13,7 @@ import {
   isGenericSubspeciesName,
   translateDedicatedSubspeciesToNynorsk,
   isHybridItem,
-} from './species-matcher.js?v=v1.60.31';
+} from './species-matcher.js?v=v1.61.0';
 
 export {
   searchSpecies,

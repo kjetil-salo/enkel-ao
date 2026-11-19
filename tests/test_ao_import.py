@@ -2053,3 +2053,99 @@ def test_ao_queue_count_without_tokens_is_none(monkeypatch):
         assert kalt == []
     finally:
         srv.shutdown()
+
+
+# ---------------------------------------------------------------------------
+# /api/ao-messages — hvor mange uleste meldinger/driftsvarsler brukeren har
+# hos AO (vist bak profilsiden, se docs/ao-meldinger.md)
+# ---------------------------------------------------------------------------
+
+def test_ao_messages_returns_counts(monkeypatch):
+    """Endepunktet skal returnere tallene fra AO uendret."""
+    import server as server_module
+
+    monkeypatch.setattr(server_module, 'fetch_new_notifications',
+                        lambda lt, ac: {'nyeMeldinger': 2, 'nyeVarsler': 1})
+
+    port = 8193
+    srv = start_server(port)
+    time.sleep(0.05)
+    try:
+        r = requests.post(
+            f'http://127.0.0.1:{port}/api/ao-messages',
+            json={'loginToken': 'L', 'authCookie': 'A'},
+            timeout=5,
+        )
+        assert r.status_code == 200
+        assert r.json() == {'nyeMeldinger': 2, 'nyeVarsler': 1}
+    finally:
+        srv.shutdown()
+
+
+def test_ao_messages_none_when_ao_unavailable(monkeypatch):
+    """AO svarer ikke → begge tall None med status 200, aldri 500."""
+    import server as server_module
+
+    monkeypatch.setattr(server_module, 'fetch_new_notifications', lambda lt, ac: None)
+
+    port = 8192
+    srv = start_server(port)
+    time.sleep(0.05)
+    try:
+        r = requests.post(
+            f'http://127.0.0.1:{port}/api/ao-messages',
+            json={'loginToken': 'L', 'authCookie': 'A'},
+            timeout=5,
+        )
+        assert r.status_code == 200
+        assert r.json() == {'nyeMeldinger': None, 'nyeVarsler': None}
+    finally:
+        srv.shutdown()
+
+
+def test_ao_messages_exception_degrades_to_none(monkeypatch):
+    """Et unntak i AO-kallet skal degraderes til None/200, ikke bli en 500."""
+    import server as server_module
+
+    def boom(lt, ac):
+        raise RuntimeError('AO nede')
+
+    monkeypatch.setattr(server_module, 'fetch_new_notifications', boom)
+
+    port = 8191
+    srv = start_server(port)
+    time.sleep(0.05)
+    try:
+        r = requests.post(
+            f'http://127.0.0.1:{port}/api/ao-messages',
+            json={'loginToken': 'L', 'authCookie': 'A'},
+            timeout=5,
+        )
+        assert r.status_code == 200
+        assert r.json() == {'nyeMeldinger': None, 'nyeVarsler': None}
+    finally:
+        srv.shutdown()
+
+
+def test_ao_messages_without_tokens_is_none(monkeypatch):
+    """Uinnlogget bruker skal ikke føre til et AO-kall i det hele tatt."""
+    import server as server_module
+
+    kalt = []
+    monkeypatch.setattr(server_module, 'fetch_new_notifications',
+                        lambda lt, ac: kalt.append(1))
+
+    port = 8190
+    srv = start_server(port)
+    time.sleep(0.05)
+    try:
+        r = requests.post(
+            f'http://127.0.0.1:{port}/api/ao-messages',
+            json={},
+            timeout=5,
+        )
+        assert r.status_code == 200
+        assert r.json() == {'nyeMeldinger': None, 'nyeVarsler': None}
+        assert kalt == []
+    finally:
+        srv.shutdown()
