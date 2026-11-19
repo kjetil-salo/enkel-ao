@@ -2,7 +2,7 @@
  * Observasjons-modul for validering, lagring og aktivitets-pills
  */
 
-import { defaultCoObservers, loadActivityPills, loadSelectedSpeciesGroup, speciesDisplayName, activityDisplayName, activityBokmalName, genderBokmalName, unitBokmalName, discoveryMethodBokmalName } from './storage.js?v=v1.60.31';
+import { defaultCoObservers, loadActivityPills, speciesDisplayName, activityDisplayName, activityBokmalName, genderBokmalName, unitBokmalName, discoveryMethodBokmalName } from './storage.js?v=v1.60.31';
 import { showToast } from './ui.js';
 import { t } from './i18n.js?v=v1.60.31';
 import { toLocalISOString } from './utils.js';
@@ -70,8 +70,14 @@ function getObservationTimestampTo() {
   return toLocalISOString(d);
 }
 
-function getActivePills(speciesGroup = '8') {
-  return loadActivityPills(speciesGroup); // Fulle objekter {label, value, short?}
+function getActivePills() {
+  let gruppe = '8';
+  try {
+    if (localStorage.getItem('ao_species_group_v1') === '11') gruppe = '11';
+  } catch {
+    // localStorage utilgjengelig → bruk standard ('8')
+  }
+  return loadActivityPills(gruppe); // Fulle objekter {label, value, short?}
 }
 
 export function commitObservation(state, dom, callbacks) {
