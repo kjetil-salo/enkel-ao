@@ -6,7 +6,7 @@ import { getNetworkMode, getAllOfflineLocations } from './offline-db.js';
 import { haversine } from './utils.js';
 import { kontoKontekst, sammeKontoKontekst } from './arbeidsliste-sesjon.js';
 // Versjonert import: hard avhengighet til en navngitt eksport.
-import { ensureAoPrivateSites, getCachedPrivateSites, hasFreshPrivateSitesCache, loggInnMedLagretLegitimasjon } from './api.js?v=v1.60.30';
+import { ensureAoPrivateSites, getCachedPrivateSites, hasFreshPrivateSitesCache, loggInnMedLagretLegitimasjon, oppdaterAoTokensFraRespons } from './api.js?v=v1.60.31';
 
 // Serveren kan ikke lenger fornye en sesjon på brukernavn alene — passordet er
 // bundet til logintokenet (v1.60.18), og rader lagret før bindingen er fjernet.
@@ -199,17 +199,21 @@ export function initAutocomplete(placeInput, onSelect, getPosition = null) {
       const data = await response.json();
       if (!isCurrent()) return;
 
-      // Håndter auto-relogin: oppdater auth cookie hvis den ble fornyet
-      if (data.refreshed_auth_cookie) {
-        const tokens = JSON.parse(localStorage.getItem('ao_tokens') || '{}');
-        tokens.authCookie = data.refreshed_auth_cookie;
-        localStorage.setItem('ao_tokens', JSON.stringify(tokens));
-        console.log('[AUTOCOMPLETE] Auth cookie fornyet automatisk');
-
-        // Dispatch custom event for å notifisere ao-direct.html (samme tab)
-        window.dispatchEvent(new CustomEvent('ao_tokens_updated', {
-          detail: { source: 'autocomplete', tokens }
-        }));
+      // Håndter auto-relogin: oppdater auth cookie/logintoken hvis de ble fornyet.
+      // Dette endepunktet bruker snake_case-feltnavn (eldre konvensjon enn resten
+      // av AO-endepunktene), derfor mappet om før den delte hjelpefunksjonen.
+      if (data.refreshed_auth_cookie || data.refreshed_login_token) {
+        const tokens = oppdaterAoTokensFraRespons({
+          refreshedAuthCookie: data.refreshed_auth_cookie,
+          refreshedLoginToken: data.refreshed_login_token,
+        });
+        if (tokens) {
+          console.log('[AUTOCOMPLETE] Auth cookie/logintoken fornyet automatisk');
+          // Dispatch custom event for å notifisere ao-direct.html (samme tab)
+          window.dispatchEvent(new CustomEvent('ao_tokens_updated', {
+            detail: { source: 'autocomplete', tokens }
+          }));
+        }
       }
 
       const lokalitetsnøkkel = (resultat) => resultat.id != null ? String(resultat.id) : resultat.value;

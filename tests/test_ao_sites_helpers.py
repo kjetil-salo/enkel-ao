@@ -247,24 +247,28 @@ def test_mark_env_owned_sites_empty(monkeypatch):
 
 def test_ensure_auth_no_credentials():
     """Test at _ensure_auth returnerer uendret uten credentials."""
-    auth, refreshed = _ensure_auth(None, None, None)
+    auth, refreshed, refreshed_login = _ensure_auth(None, None, None)
     assert auth is None
     assert refreshed is None
+    assert refreshed_login is None
 
 
 def test_ensure_auth_sliding_returns_new_cookie(monkeypatch):
-    """Test at sliding expiration returnerer ny cookie."""
+    """Test at sliding expiration returnerer ny cookie. Sliding expiration rører
+    aldri logintoken (se docs/ao-token-autentisering.md korreksjon 5)."""
     monkeypatch.setattr(
         'src.api_handlers._sliding_expiration',
         lambda auth, user_id, login: 'new-cookie'
     )
-    auth, refreshed = _ensure_auth('old-cookie', '12345', '12345:abc')
+    auth, refreshed, refreshed_login = _ensure_auth('old-cookie', '12345', '12345:abc')
     assert auth == 'new-cookie'
     assert refreshed == 'new-cookie'
+    assert refreshed_login is None
 
 
 def test_ensure_auth_full_relogin_fallback(monkeypatch):
-    """Test at full relogin brukes når sliding feiler og cookie er utløpt."""
+    """Test at full relogin brukes når sliding feiler og cookie er utløpt, og at
+    et eventuelt rotert logintoken fra _full_relogin føres videre."""
     monkeypatch.setattr(
         'src.api_handlers._sliding_expiration',
         lambda auth, user_id, login: None
@@ -275,11 +279,12 @@ def test_ensure_auth_full_relogin_fallback(monkeypatch):
     )
     monkeypatch.setattr(
         'src.api_handlers._full_relogin',
-        lambda user_id, login, username=None, client_ip=None: "relogin-cookie"
+        lambda user_id, login, username=None, client_ip=None: ("relogin-cookie", "rotert-token")
     )
-    auth, refreshed = _ensure_auth('old-cookie', '12345', '12345:abc')
+    auth, refreshed, refreshed_login = _ensure_auth('old-cookie', '12345', '12345:abc')
     assert auth == 'relogin-cookie'
     assert refreshed == 'relogin-cookie'
+    assert refreshed_login == 'rotert-token'
 
 
 def test_ensure_auth_no_refresh_needed(monkeypatch):
@@ -292,9 +297,10 @@ def test_ensure_auth_no_refresh_needed(monkeypatch):
         'src.api_handlers._is_cookie_expired',
         lambda auth, user_id, login: False
     )
-    auth, refreshed = _ensure_auth('valid-cookie', '12345', '12345:abc')
+    auth, refreshed, refreshed_login = _ensure_auth('valid-cookie', '12345', '12345:abc')
     assert auth == 'valid-cookie'
     assert refreshed is None
+    assert refreshed_login is None
 
 
 # --- _save_credentials / _load_credentials ---
@@ -436,19 +442,21 @@ def test_migrate_credentials_file_fjerner_rader_uten_tokenbinding(monkeypatch):
 # --- _full_relogin ---
 
 def test_full_relogin_logintoken_first(monkeypatch):
-    """Test at logintoken-refresh prøves før credentials."""
+    """Test at logintoken-refresh prøves før credentials, og at et eventuelt
+    rotert logintoken fra revivalen føres videre (se korreksjon 6)."""
     from src.api_handlers import _full_relogin
 
     monkeypatch.setattr(
         'src.api_handlers._refresh_with_logintoken',
-        lambda login_token, user_id: 'logintoken-cookie'
+        lambda login_token, user_id: ('logintoken-cookie', 'rotert-logintoken')
     )
     result = _full_relogin('12345', '12345:abc')
-    assert result == 'logintoken-cookie'
+    assert result == ('logintoken-cookie', 'rotert-logintoken')
 
 
 def test_full_relogin_credentials_fallback(monkeypatch):
-    """Test at credentials brukes når logintoken feiler, slått opp på username."""
+    """Test at credentials brukes når logintoken feiler, slått opp på username,
+    og at det ferske logintokenet fra den nye innloggingen føres videre."""
     from src.api_handlers import _full_relogin, _save_credentials
 
     with tempfile.NamedTemporaryFile(suffix='.json', delete=False) as f:
@@ -458,7 +466,7 @@ def test_full_relogin_credentials_fallback(monkeypatch):
         monkeypatch.setattr('src.api_handlers._CREDENTIALS_PATH', tmp_path)
         monkeypatch.setattr(
             'src.api_handlers._refresh_with_logintoken',
-            lambda login_token, user_id: None
+            lambda login_token, user_id: (None, None)
         )
         monkeypatch.setattr(
             'src.api_handlers.login_to_ao',
@@ -469,18 +477,18 @@ def test_full_relogin_credentials_fallback(monkeypatch):
         # user_id her ('12345') er BEVISST forskjellig fra det som ble brukt ved lagring
         # (ustabilt tall) — poenget er at oppslaget skjer på username, ikke user_id.
         result = _full_relogin('12345', '12345:abc', username='testuser')
-        assert result == 'cred-cookie'
+        assert result == ('cred-cookie', 'lt')
     finally:
         os.unlink(tmp_path)
 
 
 def test_full_relogin_no_credentials(monkeypatch):
-    """Test at None returneres uten credentials og logintoken."""
+    """Test at (None, None) returneres uten credentials og logintoken."""
     from src.api_handlers import _full_relogin
 
     monkeypatch.setattr('src.api_handlers._CREDENTIALS_PATH', '/tmp/nonexistent_creds_xyz.json')
     result = _full_relogin('12345', None, username='testuser')
-    assert result is None
+    assert result == (None, None)
 
 
 def test_full_relogin_no_username_skips_credentials_lookup(monkeypatch):
@@ -495,12 +503,12 @@ def test_full_relogin_no_username_skips_credentials_lookup(monkeypatch):
         monkeypatch.setattr('src.api_handlers._CREDENTIALS_PATH', tmp_path)
         monkeypatch.setattr(
             'src.api_handlers._refresh_with_logintoken',
-            lambda login_token, user_id: None
+            lambda login_token, user_id: (None, None)
         )
         _save_credentials('testuser', 'testpass', '12345:abc')
 
         result = _full_relogin('12345', '12345:abc', username=None)
-        assert result is None
+        assert result == (None, None)
     finally:
         os.unlink(tmp_path)
 
@@ -516,7 +524,7 @@ def test_ensure_auth_gir_ikke_sesjon_til_fremmed_med_bare_brukernavn(monkeypatch
     forsok = []
     try:
         monkeypatch.setattr('src.api_handlers._CREDENTIALS_PATH', tmp_path)
-        monkeypatch.setattr('src.api_handlers._refresh_with_logintoken', lambda lt, uid: None)
+        monkeypatch.setattr('src.api_handlers._refresh_with_logintoken', lambda lt, uid: (None, None))
         monkeypatch.setattr('src.api_handlers._is_cookie_expired', lambda *a: True)
         monkeypatch.setattr(
             'src.api_handlers.login_to_ao',
@@ -524,12 +532,14 @@ def test_ensure_auth_gir_ikke_sesjon_til_fremmed_med_bare_brukernavn(monkeypatch
         )
         _save_credentials('offer', 'hemmelig', '111:offerets-token')
 
-        assert _ensure_auth(None, '1', None, username='offer') == (None, None)
-        assert _ensure_auth(None, '1', '1:falsk', username='offer') == (None, None)
+        assert _ensure_auth(None, '1', None, username='offer') == (None, None, None)
+        assert _ensure_auth(None, '1', '1:falsk', username='offer') == (None, None, None)
         assert forsok == []
 
-        # Den ekte klienten med sitt eget token får fortsatt fallbacket
-        assert _ensure_auth(None, '111', '111:offerets-token', username='offer') == ('offerets-sesjon', 'offerets-sesjon')
+        # Den ekte klienten med sitt eget token får fortsatt fallbacket. Fake
+        # login_to_ao her har ingen 'loginToken'-nøkkel — refreshed_login skal
+        # da trygt bli None, ikke kaste KeyError.
+        assert _ensure_auth(None, '111', '111:offerets-token', username='offer') == ('offerets-sesjon', 'offerets-sesjon', None)
     finally:
         os.unlink(tmp_path)
 
@@ -546,7 +556,7 @@ def test_serverens_egen_relogin_spiser_ikke_en_tokenplass(monkeypatch):
 
     try:
         monkeypatch.setattr('src.api_handlers._CREDENTIALS_PATH', tmp_path)
-        monkeypatch.setattr('src.api_handlers._refresh_with_logintoken', lambda lt, uid: None)
+        monkeypatch.setattr('src.api_handlers._refresh_with_logintoken', lambda lt, uid: (None, None))
         bind = []
 
         def fake_login(u, p, bind_token=True):
@@ -556,7 +566,10 @@ def test_serverens_egen_relogin_spiser_ikke_en_tokenplass(monkeypatch):
         monkeypatch.setattr('src.api_handlers.login_to_ao', fake_login)
 
         _save_credentials('bruker', 'pass', '1:klientens-token')
-        assert _full_relogin('1', '1:klientens-token', username='bruker') == 'ny-sesjon'
+        # Serverens eget, nye logintoken skal IKKE bindes i credentials.json (se
+        # assert på 'tokens' under), men SKAL likevel returneres til klienten —
+        # det er klientens egen kopi, ikke en ny rad i passord-fallback-lista.
+        assert _full_relogin('1', '1:klientens-token', username='bruker') == ('ny-sesjon', '9:serverens-token')
 
         assert bind == [False]
         with open(tmp_path) as f:
@@ -594,7 +607,7 @@ def test_full_relogin_logger_klient_ip(monkeypatch, caplog):
     import logging
     from src.api_handlers import _full_relogin
 
-    monkeypatch.setattr('src.api_handlers._refresh_with_logintoken', lambda lt, uid: None)
+    monkeypatch.setattr('src.api_handlers._refresh_with_logintoken', lambda lt, uid: (None, None))
 
     with caplog.at_level(logging.INFO, logger='fugleobs'):
         # Uten brukernavn stopper den tidlig, men IP-en skal allerede være logget
@@ -602,3 +615,66 @@ def test_full_relogin_logger_klient_ip(monkeypatch, caplog):
 
     assert any('ip=203.0.113.77' in r.message for r in caplog.records), \
         'klient-IP mangler i relogin-loggen'
+
+
+def test_handle_ao_sites_search_passes_through_rotated_login_token(monkeypatch):
+    """Et rotert logintoken fra _ensure_auth (korreksjon 6) må nå frontend via
+    handle_ao_sites_search, parallelt med den fornyede .ASPXAUTHNO."""
+    from src import api_handlers
+    from src.api_handlers import handle_ao_sites_search
+
+    monkeypatch.setattr(
+        api_handlers, '_ensure_auth',
+        lambda auth, user_id, login_token, username=None, client_ip=None:
+            ('ny-cookie', 'ny-cookie', 'nytt-rotert-logintoken')
+    )
+
+    class FakeResponse:
+        status_code = 200
+        def raise_for_status(self): pass
+        def json(self): return []
+
+    class FakeClient:
+        def __init__(self, **kwargs): pass
+        def get(self, url, **kwargs): return FakeResponse()
+        def post(self, url, **kwargs): return FakeResponse()
+        def __enter__(self): return self
+        def __exit__(self, *args): pass
+
+    monkeypatch.setattr('httpx.Client', FakeClient)
+
+    sites, refreshed_auth, refreshed_login, auth_failed = handle_ao_sites_search(
+        59.9, 10.7, user_id='123', login_token='123:abc', auth_cookie='gammel-cookie')
+
+    assert refreshed_login == 'nytt-rotert-logintoken'
+
+
+def test_fetch_ao_autocomplete_passes_through_rotated_login_token(monkeypatch):
+    """Samme korreksjon 6-kontrakt som de andre AO-endepunktene: et rotert
+    logintoken fra _ensure_auth skal med i svaret fra fetch_ao_autocomplete."""
+    from src import api_handlers
+    from src.api_handlers import fetch_ao_autocomplete
+
+    monkeypatch.setattr(
+        api_handlers, '_ensure_auth',
+        lambda auth, user_id, login_token, username=None, client_ip=None:
+            ('ny-cookie', 'ny-cookie', 'nytt-rotert-logintoken')
+    )
+
+    class FakeResponse:
+        headers = {'content-type': 'application/json'}
+        url = 'https://www.artsobservasjoner.no/Map/FindSitesByNameForAutocomplete'
+        def raise_for_status(self): pass
+        def json(self): return []
+
+    class FakeClient:
+        def __init__(self, **kwargs): pass
+        def get(self, url, **kwargs): return FakeResponse()
+        def __enter__(self): return self
+        def __exit__(self, *args): pass
+
+    monkeypatch.setattr('httpx.Client', FakeClient)
+
+    data = fetch_ao_autocomplete('Hylkje', login_token='123:abc', auth_cookie='gammel-cookie', user_id='123')
+
+    assert data['refreshed_login_token'] == 'nytt-rotert-logintoken'

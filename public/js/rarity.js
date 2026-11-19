@@ -19,6 +19,7 @@
 
 import { getVisitTimeSpan, visitExists } from './visits.js';
 import { getNetworkMode, isOfflineMode as isAppOfflineMode } from './offline-db.js';
+import { oppdaterAoTokensFraRespons } from './api.js';
 
 const DEBOUNCE_MS = 400;
 const RARITY_CACHE_KEY = 'ao_rarity_cache_v1';
@@ -281,15 +282,7 @@ export function checkRarity(state, dom) {
         const data = await resp.json();
         if (!data || typeof data !== 'object') return;
 
-        if (data.refreshedAuthCookie) {
-          try {
-            const tokens = JSON.parse(localStorage.getItem('ao_tokens') || '{}');
-            tokens.authCookie = data.refreshedAuthCookie;
-            localStorage.setItem('ao_tokens', JSON.stringify(tokens));
-          } catch (e) {
-            // ignorer - samme best-effort som andre AO-kall
-          }
-        }
+        oppdaterAoTokensFraRespons(data);
 
         // Husk svaret på telefonen for senere offline- og hybridbruk
         if ('warning' in data || 'information' in data || 'areas' in data) {

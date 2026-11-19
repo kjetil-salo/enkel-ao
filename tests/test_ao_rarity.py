@@ -240,23 +240,23 @@ class TestCheckTaxonRarity:
 
 class TestGetAoRarity:
     def test_not_logged_in_no_login_token_returns_none_none(self):
-        result, refreshed = get_ao_rarity(1, 2, '2026-09-12', user_id='u1', auth_cookie='c1', login_token=None)
+        result, refreshed, refreshed_login = get_ao_rarity(1, 2, '2026-09-12', user_id='u1', auth_cookie='c1', login_token=None)
         assert (result, refreshed) == (None, None)
 
     def test_not_logged_in_missing_both_cookie_and_userid(self):
-        result, refreshed = get_ao_rarity(1, 2, '2026-09-12', login_token='tok', user_id=None, auth_cookie=None)
+        result, refreshed, refreshed_login = get_ao_rarity(1, 2, '2026-09-12', login_token='tok', user_id=None, auth_cookie=None)
         assert (result, refreshed) == (None, None)
 
     def test_missing_taxon_id_returns_none(self):
-        result, refreshed = get_ao_rarity(None, 2, '2026-09-12', login_token='tok', auth_cookie='c1')
+        result, refreshed, refreshed_login = get_ao_rarity(None, 2, '2026-09-12', login_token='tok', auth_cookie='c1')
         assert (result, refreshed) == (None, None)
 
     def test_missing_site_id_returns_none(self):
-        result, refreshed = get_ao_rarity(1, None, '2026-09-12', login_token='tok', auth_cookie='c1')
+        result, refreshed, refreshed_login = get_ao_rarity(1, None, '2026-09-12', login_token='tok', auth_cookie='c1')
         assert (result, refreshed) == (None, None)
 
     def test_missing_date_returns_none(self):
-        result, refreshed = get_ao_rarity(1, 2, '', login_token='tok', auth_cookie='c1')
+        result, refreshed, refreshed_login = get_ao_rarity(1, 2, '', login_token='tok', auth_cookie='c1')
         assert (result, refreshed) == (None, None)
 
     def test_uses_cached_areas_skips_fetch_site_areas(self, monkeypatch):
@@ -270,7 +270,7 @@ class TestGetAoRarity:
             lambda taxon_id, areas_csv, date_str, auth_cookie, login_token=None: {'warning': None, 'information': None}
         )
 
-        result, refreshed = get_ao_rarity(
+        result, refreshed, refreshed_login = get_ao_rarity(
             1, 2, '2026-09-12', login_token='tok', auth_cookie='c1', location_db=mock_db
         )
         assert result == {'warning': None, 'information': None, 'areas': '12,34'}
@@ -287,7 +287,7 @@ class TestGetAoRarity:
             lambda taxon_id, areas_csv, date_str, auth_cookie, login_token=None: {'warning': 'w', 'information': None}
         )
 
-        result, refreshed = get_ao_rarity(
+        result, refreshed, refreshed_login = get_ao_rarity(
             1, 2, '2026-09-12', login_token='tok', auth_cookie='c1', location_db=mock_db
         )
         assert result == {'warning': 'w', 'information': None, 'areas': '12,34'}
@@ -305,7 +305,7 @@ class TestGetAoRarity:
             lambda taxon_id, areas_csv, date_str, auth_cookie, login_token=None: {'warning': None, 'information': None}
         )
 
-        result, refreshed = get_ao_rarity(
+        result, refreshed, refreshed_login = get_ao_rarity(
             1, 2, '2026-09-12', login_token='tok', auth_cookie='c1', location_db=mock_db
         )
         assert result == {'warning': None, 'information': None, 'areas': '12,34'}
@@ -321,7 +321,7 @@ class TestGetAoRarity:
             lambda taxon_id, areas_csv, date_str, auth_cookie, login_token=None: {'warning': None, 'information': None}
         )
 
-        result, refreshed = get_ao_rarity(
+        result, refreshed, refreshed_login = get_ao_rarity(
             1, 2, '2026-09-12', login_token='tok', auth_cookie='c1', location_db=mock_db
         )
         assert result == {'warning': None, 'information': None, 'areas': '12,34'}
@@ -336,7 +336,7 @@ class TestGetAoRarity:
             lambda *a, **kw: check_called.append(1)
         )
 
-        result, refreshed = get_ao_rarity(
+        result, refreshed, refreshed_login = get_ao_rarity(
             1, 2, '2026-09-12', login_token='tok', auth_cookie='c1', location_db=mock_db
         )
         assert result is None
@@ -348,7 +348,7 @@ class TestGetAoRarity:
             'src.api_handlers.check_taxon_rarity',
             lambda *a, **kw: {'warning': None, 'information': None}
         )
-        result, refreshed = get_ao_rarity(
+        result, refreshed, refreshed_login = get_ao_rarity(
             1, 2, '2026-09-12', login_token='tok', auth_cookie='c1', location_db=None
         )
         assert result == {'warning': None, 'information': None, 'areas': '12,34'}
@@ -357,11 +357,11 @@ class TestGetAoRarity:
         """Innlogget bruker uten gyldig auth_cookie hvor relogin feiler
         (f.eks. AO nede) skal degradere stille, ikke krasje."""
         monkeypatch.setattr('src.api_handlers._sliding_expiration', lambda *a, **kw: None)
-        monkeypatch.setattr('src.api_handlers._full_relogin', lambda *a, **kw: None)
+        monkeypatch.setattr('src.api_handlers._full_relogin', lambda *a, **kw: (None, None))
         fetch_called = []
         monkeypatch.setattr('src.api_handlers.fetch_site_areas', lambda *a, **kw: fetch_called.append(1))
 
-        result, refreshed = get_ao_rarity(
+        result, refreshed, refreshed_login = get_ao_rarity(
             1, 2, '2026-09-12', login_token='tok', user_id='u1', auth_cookie=None, location_db=None
         )
         assert result is None
@@ -469,7 +469,7 @@ class TestAoRarityEndpoint:
     def test_logged_in_success_returns_warning(self, monkeypatch):
         monkeypatch.setattr(
             'src.api_handlers.get_ao_rarity',
-            lambda *a, **kw: ({'warning': {'Header': 'Sjelden art'}, 'information': None}, None)
+            lambda *a, **kw: ({'warning': {'Header': 'Sjelden art'}, 'information': None}, None, None)
         )
         port = 38408
         srv = start_server(port)
@@ -492,7 +492,7 @@ class TestAoRarityEndpoint:
     def test_refreshed_auth_cookie_included_in_response(self, monkeypatch):
         monkeypatch.setattr(
             'src.api_handlers.get_ao_rarity',
-            lambda *a, **kw: ({'warning': None, 'information': None}, 'new-cookie-value')
+            lambda *a, **kw: ({'warning': None, 'information': None}, 'new-cookie-value', None)
         )
         port = 38409
         srv = start_server(port)
@@ -505,6 +505,27 @@ class TestAoRarityEndpoint:
             assert r.status_code == 200
             data = r.json()
             assert data['refreshedAuthCookie'] == 'new-cookie-value'
+        finally:
+            srv.shutdown()
+
+    def test_refreshed_login_token_included_in_response(self, monkeypatch):
+        """Et rotert logintoken fra en vellykket stille revival (korreksjon 6) må
+        også nå frontend, ikke bare den fornyede .ASPXAUTHNO."""
+        monkeypatch.setattr(
+            'src.api_handlers.get_ao_rarity',
+            lambda *a, **kw: ({'warning': None, 'information': None}, 'new-cookie-value', 'nytt-logintoken')
+        )
+        port = 38415
+        srv = start_server(port)
+        time.sleep(0.05)
+        try:
+            r = requests.get(
+                f'http://127.0.0.1:{port}/api/ao-rarity?taxonId=1234&siteId=99&date=2026-09-12',
+                headers={'X-AO-Login-Token': 'tok', 'X-AO-User-Id': 'u1'},
+            )
+            assert r.status_code == 200
+            data = r.json()
+            assert data['refreshedLoginToken'] == 'nytt-logintoken'
         finally:
             srv.shutdown()
 

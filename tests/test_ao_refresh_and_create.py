@@ -261,7 +261,7 @@ def test_private_sites_revives_expired_session(monkeypatch):
 
     def fake_ensure_auth(auth, user_id, login_token, username=None, client_ip=None):
         calls['ensure_auth'] = (auth, user_id, login_token)
-        return 'ny-gyldig-cookie', 'ny-gyldig-cookie'
+        return 'ny-gyldig-cookie', 'ny-gyldig-cookie', None
 
     class FakeResponse:
         def raise_for_status(self):
@@ -289,7 +289,7 @@ def test_private_sites_revives_expired_session(monkeypatch):
     monkeypatch.setattr(api_handlers, '_ensure_auth', fake_ensure_auth)
     monkeypatch.setattr('httpx.Client', FakeClient)
 
-    sites, refreshed, auth_failed = api_handlers.handle_ao_private_sites(
+    sites, refreshed, refreshed_login, auth_failed = api_handlers.handle_ao_private_sites(
         'utlopt-cookie', login_token='123:abc', user_id='123')
 
     # _ensure_auth ble kalt med den utløpte cookien
@@ -298,6 +298,43 @@ def test_private_sites_revives_expired_session(monkeypatch):
     assert calls['seed_cookies']['.ASPXAUTHNO'] == 'ny-gyldig-cookie'
     assert refreshed == 'ny-gyldig-cookie'
     assert len(sites) == 1 and sites[0]['name'] == 'Myra'
+
+
+def test_private_sites_passes_through_rotated_login_token(monkeypatch):
+    """Et rotert logintoken fra _ensure_auth (korreksjon 6) må nå frontend via
+    handle_ao_private_sites, ikke bare den fornyede .ASPXAUTHNO."""
+    from src import api_handlers
+
+    def fake_ensure_auth(auth, user_id, login_token, username=None, client_ip=None):
+        return 'ny-gyldig-cookie', 'ny-gyldig-cookie', 'nytt-rotert-logintoken'
+
+    class FakeResponse:
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {'data': []}
+
+    class FakeClient:
+        def __init__(self, **kwargs):
+            pass
+
+        def post(self, url, **kwargs):
+            return FakeResponse()
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            pass
+
+    monkeypatch.setattr(api_handlers, '_ensure_auth', fake_ensure_auth)
+    monkeypatch.setattr('httpx.Client', FakeClient)
+
+    sites, refreshed, refreshed_login, auth_failed = api_handlers.handle_ao_private_sites(
+        'utlopt-cookie', login_token='123:abc', user_id='123')
+
+    assert refreshed_login == 'nytt-rotert-logintoken'
 
 
 def test_private_sites_without_user_id_skips_ensure_auth(monkeypatch):
@@ -331,7 +368,7 @@ def test_private_sites_without_user_id_skips_ensure_auth(monkeypatch):
     monkeypatch.setattr(api_handlers, '_ensure_auth', fail_ensure_auth)
     monkeypatch.setattr('httpx.Client', FakeClient)
 
-    sites, refreshed, auth_failed = api_handlers.handle_ao_private_sites('cookie', login_token='123:abc')
+    sites, refreshed, refreshed_login, auth_failed = api_handlers.handle_ao_private_sites('cookie', login_token='123:abc')
 
     assert sites == []
     assert refreshed is None
@@ -462,7 +499,7 @@ def test_private_sites_skiller_dod_sesjon_fra_ekte_tom_liste(monkeypatch):
 
     monkeypatch.setattr('httpx.Client', FakeClient)
 
-    sites, refreshed, auth_failed = api_handlers.handle_ao_private_sites('dod-cookie')
+    sites, refreshed, refreshed_login, auth_failed = api_handlers.handle_ao_private_sites('dod-cookie')
 
     assert sites == []
     assert auth_failed is True, 'død sesjon må kunne skilles fra en ekte tom liste'

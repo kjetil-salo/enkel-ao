@@ -119,6 +119,30 @@ export function lagrePrivateAoLokaliteter(sites, via) {
   localStorage.setItem(PRIVATE_SITES_KEY, JSON.stringify({ ts: Date.now(), sites, konto: kontoKontekst() }));
 }
 
+/**
+ * Oppdater lagrede AO-tokens med det serveren eventuelt sendte tilbake etter en
+ * stille sesjonsfornyelse — BÅDE en ny `.ASPXAUTHNO` og et eventuelt nytt, rotert
+ * `logintoken`. AO gir et logintoken nøyaktig ÉN vellykket stille revival (se
+ * docs/ao-token-autentisering.md korreksjon 6); uten å lagre det roterte tokenet
+ * her ville enheten brukt opp sin ene sjanse og falt tilbake til passord for
+ * alltid i stedet for å kunne fornyes via token igjen neste gang.
+ * @param {{refreshedAuthCookie?: string, refreshedLoginToken?: string}} data
+ * @returns {object|null} de oppdaterte tokens, eller null hvis ingenting å oppdatere
+ */
+export function oppdaterAoTokensFraRespons(data) {
+  if (!data || (!data.refreshedAuthCookie && !data.refreshedLoginToken)) return null;
+  try {
+    const tokens = JSON.parse(localStorage.getItem('ao_tokens') || '{}');
+    if (data.refreshedAuthCookie) tokens.authCookie = data.refreshedAuthCookie;
+    if (data.refreshedLoginToken) tokens.loginToken = data.refreshedLoginToken;
+    localStorage.setItem('ao_tokens', JSON.stringify(tokens));
+    return tokens;
+  } catch (e) {
+    console.warn('[AO] Kunne ikke lagre fornyede AO-tokens:', e);
+    return null;
+  }
+}
+
 async function hentPrivateAo2Lokaliteter(tokens) {
   try {
     if (!tokens.authCookie) return;
@@ -151,8 +175,9 @@ export async function fetchAndCachePrivateSites() {
       if (!sammeKonto()) return false;
       let data = await hentPrivateAo2Lokaliteter(tokens);
       if (!sammeKonto()) return false;
-      if (data?.refreshedAuthCookie && tokens.authCookie === JSON.parse(localStorage.getItem('ao_tokens') || '{}').authCookie) {
-        localStorage.setItem('ao_tokens', JSON.stringify({ ...tokens, authCookie: data.refreshedAuthCookie }));
+      if (data && (data.refreshedAuthCookie || data.refreshedLoginToken)
+          && tokens.authCookie === JSON.parse(localStorage.getItem('ao_tokens') || '{}').authCookie) {
+        oppdaterAoTokensFraRespons(data);
       }
       if ((!data || data.needsLogin || data.degradert) && konto.brukernavn.includes('@') && passord) {
         const resp = await fetch('/api/ao-private-sites', {
@@ -309,20 +334,15 @@ export async function fetchAoSites(lat, lon, sizeMeters = 1000, isRetry = false)
   const data = await resp.json();
   if (!data || !sammeKontoKontekst(konto)) return [];
 
-  // Håndter refreshed auth cookie hvis mottatt
-  if (data.refreshedAuthCookie) {
-    try {
-      const savedTokens = JSON.parse(localStorage.getItem('ao_tokens') || '{}');
-      savedTokens.authCookie = data.refreshedAuthCookie;
-      localStorage.setItem('ao_tokens', JSON.stringify(savedTokens));
-      console.log('[AO] Oppdaterte auth cookie fra sliding expiration');
-
+  // Håndter refreshed auth cookie / rotert logintoken hvis mottatt
+  if (data.refreshedAuthCookie || data.refreshedLoginToken) {
+    const savedTokens = oppdaterAoTokensFraRespons(data);
+    if (savedTokens) {
+      console.log('[AO] Oppdaterte auth cookie/logintoken fra sliding expiration');
       // Dispatch custom event for å notifisere ao-direct.html
       window.dispatchEvent(new CustomEvent('ao_tokens_updated', {
         detail: { source: 'ao-sites', tokens: savedTokens }
       }));
-    } catch (e) {
-      console.warn('[AO] Kunne ikke lagre refreshed auth cookie:', e);
     }
   }
 
@@ -408,16 +428,12 @@ export async function fetchAoSitesByBounds(bounds, isRetry = false) {
   const data = await resp.json();
   if (!data || !sammeKontoKontekst(konto)) return [];
 
-  if (data.refreshedAuthCookie) {
-    try {
-      const savedTokens = JSON.parse(localStorage.getItem('ao_tokens') || '{}');
-      savedTokens.authCookie = data.refreshedAuthCookie;
-      localStorage.setItem('ao_tokens', JSON.stringify(savedTokens));
+  if (data.refreshedAuthCookie || data.refreshedLoginToken) {
+    const savedTokens = oppdaterAoTokensFraRespons(data);
+    if (savedTokens) {
       window.dispatchEvent(new CustomEvent('ao_tokens_updated', {
         detail: { source: 'ao-sites-bbox', tokens: savedTokens }
       }));
-    } catch (e) {
-      console.warn('[AO] Kunne ikke lagre refreshed auth cookie:', e);
     }
   }
 

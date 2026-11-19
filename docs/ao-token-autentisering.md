@@ -1,3 +1,47 @@
+# ⚠️ KORREKSJON 6 (2026-11-19): en vellykket stille revival gir et NYTT logintoken — koden kaster det
+
+> **Mulig vei til å fjerne passordlagringen helt.** Kontrollert eksperiment mot ekte AO med
+> testkontoen `kjetil-test@vikebo.com` (frittstående skript, samme kall som
+> `_refresh_with_logintoken()` under — ikke en del av appen eller testsuiten), kjørt 19.11.2026:
+>
+> 1. Fersk innlogging → token A.
+> 2. Stille revival med A → **lyktes**, og AO sendte et **helt nytt, rotert `logintoken`**
+>    tilbake i responsen — ikke bare en ny `.ASPXAUTHNO`.
+> 3. Samme (opprinnelige) token A på nytt → **feilet** som forventet (bekrefter engangsbeviset i
+>    korreksjon 5 under), og A kom uendret tilbake — ingen ny sjanse på det tokenet.
+> 4. Token B (det nye fra steg 2) → **lyktes også**, og ga et **enda et nytt** rotert token (C).
+>
+> Dette er altså IKKE «ett gratis forsøk per innlogging, så passord for alltid» (naturlig
+> lesning av korreksjon 5) — det er en **rullerende kjede**: hver vellykket revival låser opp
+> nøyaktig én til. `_refresh_with_logintoken()` leser i dag kun `.ASPXAUTHNO` fra
+> cookie-jaren og kaster alt annet, inkludert dette roterte logintokenet. Fanges det opp og
+> sendes til klienten (samme mønster som `refreshed_auth_cookie` allerede bruker for
+> `.ASPXAUTHNO`, se `public/js/location.js`), kan kjeden i prinsippet fortsette via token alene,
+> uten noe lagret passord.
+>
+> **Oppfølgingseksperiment (19.11.2026, ~30 min senere, samme testkonto):** fersk innlogging →
+> revival umiddelbart (lyktes, ga rotert token) → **ventet 30 ekte minutter** → revival med det
+> roterte tokenet (**lyktes også**, ga enda et nytt rotert token). Kjeden holder altså ikke bare
+> i rask rekkefølge, men over et reelt tidsintervall.
+>
+> **Ikke bevist ennå:**
+> - Om kjeden holder over LENGRE realistiske intervaller (timer/dager/uker mellom hver reelle
+>   cookie-utløpshendelse) — kun 30 min er testet med reell tid så langt.
+> - Om AO resetter kjeden uavhengig av bruk (f.eks. etter et visst antall dager, eller ved
+>   flere parallelle enheter som ruller samme konto sitt token forskjellig).
+> - Produksjonsraten etter at implementeringen under er deployet: samme metodikk som
+>   korreksjon 5 (grep i `/data/logs/fugleobs.log` etter deploy, sammenlign suksessrate over tid).
+>
+> **Implementert i arbeidskopien (19.11.2026), ikke committet/deployet ennå.**
+> `_refresh_with_logintoken()`, `_full_relogin()` og `_ensure_auth()` returnerer nå også det nye
+> logintokenet, propagert gjennom alle fire silent-reauth-endepunktene
+> (`fetch_ao_autocomplete`, `handle_ao_private_sites`, `handle_ao_sites_search`, `get_ao_rarity`)
+> som `refreshedLoginToken`/`refreshed_login_token` i HTTP-responsen. Frontend
+> (`api.js`, `rarity.js`, `autocomplete.js`, `ao-direct.html`) oppdaterer `ao_tokens.loginToken`
+> via delt `oppdaterAoTokensFraRespons()`. 804 pytest + 542 vitest grønt. Se
+> `[[project_ao_token_revival_faktisk_rate]]`
+> i Claude sitt minne for måleserien dette bygger videre på.
+
 # ⚠️ KORREKSJON 5 (2026-11-18): rotårsaken til at logintoken-revival ALDRI lyktes i prod er funnet
 
 > **Oppdaterer korreksjon 2 under, som trodde URL-fiksen (`/LogOn?ReturnUrl=X`) løste saken.**

@@ -504,6 +504,7 @@
 
     <script type="module">
       import { fjernOverforingssesjon } from './js/arbeidsliste-sesjon.js';
+      import { oppdaterAoTokensFraRespons } from './js/api.js';
       // Last observations fra localStorage
       let observations = [];
       try {
@@ -977,14 +978,18 @@
               body: JSON.stringify({ loginToken, authCookie, userId })
             });
             const result = await response.json();
-            if (result.refreshedAuthCookie) {
-              authCookieInput.value = result.refreshedAuthCookie;
-              // Oppdater localStorage også
-              const tokens = JSON.parse(localStorage.getItem('ao_tokens') || '{}');
-              tokens.authCookie = result.refreshedAuthCookie;
-              localStorage.setItem('ao_tokens', JSON.stringify(tokens));
+            if (result.refreshedAuthCookie || result.refreshedLoginToken) {
+              if (result.refreshedAuthCookie) authCookieInput.value = result.refreshedAuthCookie;
+              if (result.refreshedLoginToken) loginTokenInput.value = result.refreshedLoginToken;
+              // Oppdater localStorage også — inkludert et eventuelt NYTT, rotert
+              // logintoken. Uten dette brukte enheten opp sin ene gratis stille
+              // fornyelse her og falt tilbake til passord for alltid ved neste
+              // utløp (se docs/ao-token-autentisering.md korreksjon 6).
+              oppdaterAoTokensFraRespons(result);
               tokenStatus.className = 'token-status valid';
-              tokenStatus.textContent = '✅ Session fornyet! Ny .ASPXAUTHNO mottatt.';
+              tokenStatus.textContent = result.refreshedAuthCookie
+                ? '✅ Session fornyet! Ny .ASPXAUTHNO mottatt.'
+                : '✅ Nytt logintoken mottatt.';
             } else if (result.error) {
               tokenStatus.className = 'token-status invalid';
               tokenStatus.textContent = '❌ ' + result.error;
