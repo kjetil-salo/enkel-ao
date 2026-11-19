@@ -112,7 +112,9 @@
       overflow: hidden;
       text-overflow: ellipsis;
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
-      pointer-events: none;
+      pointer-events: auto;
+      cursor: pointer;
+      font-family: inherit;
     }
 
     .info-box {
@@ -922,6 +924,17 @@
     </div>
   </div>
 
+  <!-- Hjelpedialog ved trykk på artsgruppe-banneret -->
+  <div class="offline-download-modal-backdrop" id="species-group-help-backdrop" role="dialog" aria-modal="true" aria-labelledby="species-group-help-title">
+    <div class="offline-download-modal" style="text-align:left;">
+      <div id="species-group-help-title" style="font-weight:700;margin-bottom:8px;"></div>
+      <div class="offline-download-modal-text" id="species-group-help-body" style="white-space:pre-line;font-size:14px;"></div>
+      <div style="text-align:center;">
+        <button type="button" class="offline-download-modal-ok-btn" id="species-group-help-ok-btn" data-i18n="common.ok">OK</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Topp-framdriftsindikator under nedlasting -->
   <div class="map-top-progress" id="map-top-progress" role="status" aria-live="polite" style="display:none;">
     <div class="map-top-progress-bar" id="map-top-progress-bar"></div>
@@ -933,7 +946,7 @@
 
   <div class="map-top-left-bar">
     <a href="/" class="back-btn" data-i18n="settings.back_link">← Tilbake</a>
-    <div class="map-species-group-banner" id="map-species-group-banner" role="status" aria-live="polite"></div>
+    <button type="button" class="map-species-group-banner" id="map-species-group-banner" aria-haspopup="dialog"></button>
   </div>
   <!-- Tre trinn: Alt → Skjul navn → Skjul alt → Alt. Teksten settes av
        map.js (knappetekst() i kart-visning.js) og beskriver hva NESTE trykk

@@ -157,6 +157,32 @@ if (speciesGroupBanner) {
     if (fabEl && typeof MutationObserver !== 'undefined') {
       new MutationObserver(plasserArtsgruppeBanner).observe(fabEl, { attributes: true, attributeFilter: ['style'] });
     }
+
+    const helpBackdrop = document.getElementById('species-group-help-backdrop');
+    const helpTitle = document.getElementById('species-group-help-title');
+    const helpBody = document.getElementById('species-group-help-body');
+    const helpOkBtn = document.getElementById('species-group-help-ok-btn');
+    const closeHelp = () => {
+      if (helpBackdrop) helpBackdrop.classList.remove('open');
+    };
+    speciesGroupBanner.addEventListener('click', () => {
+      if (!helpBackdrop) return;
+      if (helpTitle) helpTitle.textContent = t('map.species_group.help_title');
+      if (helpBody) helpBody.textContent = t('map.species_group.help_body');
+      helpBackdrop.classList.add('open');
+      if (helpOkBtn) helpOkBtn.focus();
+    });
+    if (helpOkBtn) helpOkBtn.addEventListener('click', closeHelp);
+    if (helpBackdrop) {
+      helpBackdrop.addEventListener('click', (e) => {
+        if (e.target === helpBackdrop) closeHelp();
+      });
+    }
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && helpBackdrop && helpBackdrop.classList.contains('open')) {
+        closeHelp();
+      }
+    });
   } else {
     speciesGroupBanner.style.display = 'none';
   }

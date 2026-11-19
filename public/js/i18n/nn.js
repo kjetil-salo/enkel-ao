@@ -378,6 +378,8 @@ export default {
   'species.offline_birds_only': 'Offline artsliste dekkjer førebels berre fugl.',
   'map.species_group.only_own_private': '🦌 Berre eigne private',
   'map.species_group.only_own_private_title': 'Pattedyr krev eigen privat lokalitet — viser berre dine eigne private lokalitetar',
+  'map.species_group.help_title': 'Kvifor vert berre eigne private lokalitetar viste?',
+  'map.species_group.help_body': 'Hos Artsobservasjoner kan berre fuglar rapporterast på felles, offentlege lokalitetar. Alle andre artsgrupper (inkludert pattedyr) må rapporterast på dine eigne private lokalitetar.\n\nHar du ikkje ein privat lokalitet der du er no, kan du trykkja på + øvst til høgre for å oppretta ein ny.',
 
   // Nynorsk-visningsnavn for AO-aktivitetskoder. Eksisterende strenger fra
   // tidligere ACTIVITY_NYNORSK_MAP er bevart 1:1.

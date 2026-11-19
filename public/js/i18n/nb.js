@@ -379,6 +379,8 @@ export default {
   'species.offline_birds_only': 'Offline artsliste dekker foreløpig bare fugl.',
   'map.species_group.only_own_private': '🦌 Kun egne private',
   'map.species_group.only_own_private_title': 'Pattedyr krever egen privat lokalitet — viser kun dine egne private lokaliteter',
+  'map.species_group.help_title': 'Hvorfor vises bare egne private lokaliteter?',
+  'map.species_group.help_body': 'Hos Artsobservasjoner kan bare fugler rapporteres på felles, offentlige lokaliteter. Alle andre artsgrupper (inkludert pattedyr) må rapporteres på dine egne private lokaliteter.\n\nHar du ikke en privat lokalitet der du er nå, kan du trykke på + øverst til høyre for å opprette en ny.',
 
   // Kanoniske AO-aktivitetskoder (ID fra Artsobservasjoner). Må alltid matche
   // AO sin bokmålstekst ordrett — brukes som kilde når UI-visning oversettes.
