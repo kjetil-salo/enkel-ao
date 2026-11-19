@@ -5,7 +5,7 @@ import { hentAktivFellestur } from './fellestur-client.js';
 import { lastSpeil, lagreSpeilOgSynk, hentTurMedobservatorer } from './fellestur-sync.js';
 import { translateDedicatedSubspeciesToNynorsk } from './species-matcher.js?v=v1.60.30';
 import { aktivInnhentetListe, lagreEndringerIInnhentetListe, lesInnhentetListe } from './arbeidsliste-lokal.js';
-import { getLanguage, setLanguage, isNynorsk } from './i18n.js?v=v1.60.30';
+import { getLanguage, setLanguage, isNynorsk, getDictionary } from './i18n.js?v=v1.60.30';
 
 export { isNynorsk };
 
@@ -499,107 +499,64 @@ export function speciesDisplayName(species, userLanguage = undefined) {
 }
 
 /**
- * Nynorsk-oversettelse av AO-aktivitetskodene fra public/data/activities.json.
+ * Eldre aliaser som ikke ligger som egne activity.*-nøkler i i18n, men som
+ * fortsatt kan finnes i lagrede observasjoner eller eldre hurtigknapper.
+ */
+const ACTIVITY_ALIASES = {
+  'Stationær': 'activity.23',
+  'Overflyvende': 'activity.24',
+};
+
+const ACTIVITY_BOKMAL_OVERRIDES = {
+  // Noen nynorsk-verdier er identiske med flere bokmål-nøkler (f.eks.
+  // 'Stasjonær' for både 'Stasjonær' og 'Stationær') - sikre at identitet
+  // slår alias, og at Ø/NØ/SØ-retningene mapper til hovedformen.
+  'Stasjonær': 'Stasjonær',
+  'Overflygande': 'Overflygende',
+  'Trekkjande mot Ø': 'Trekkende mot Ø',
+  'Trekkjande mot NØ': 'Trekkende mot NØ',
+  'Trekkjande mot SØ': 'Trekkende mot SØ',
+};
+
+/**
+ * Nynorsk-oversettelse av AO-aktivitetskodene fra i18n-ordbøkene (nb.js / nn.js).
  * Nøkkel er det kanoniske bokmål-navnet AO selv bruker, verdi er
  * nynorsk-visningsnavnet - samme retning som speciesDisplayName() over.
  */
-export const ACTIVITY_NYNORSK_MAP = {
-  // «Ikke oppgitt» finnes ikke i activities.json (egen i18n-nøkkel der det
-  // vises som <option>), men trengs her for at hurtigpillen skal oversettes
-  // riktig til nynorsk - se docs/ukjent-antall-og-uoppgitt-aktivitet.md.
-  'Ikke oppgitt': 'Ikkje oppgjeve',
-  'Stasjonær': 'Stasjonær',
-  'Rastende': 'Rastande',
-  'Overflygende': 'Overflygande',
-  'Næringssøkende': 'Næringssøkjande',
-  'Ved fôring': 'Ved fôring',
-  'Trekkende': 'Trekkjande',
-  'Sang/spill, ikke hekking': 'Song/spel, ikkje hekking',
-  'Lokkelyd, øvrige lyder': 'Lokkelyd, andre lydar',
-  'Revir, ikke hekking': 'Revir, ikkje hekking',
-  'Trekkende mot N': 'Trekkjande mot N',
-  'Trekkende mot NØ': 'Trekkjande mot NA',
-  'Trekkende mot Ø': 'Trekkjande mot A',
-  'Trekkende mot SØ': 'Trekkjande mot SA',
-  'Trekkende mot S': 'Trekkjande mot S',
-  'Trekkende mot SV': 'Trekkjande mot SV',
-  'Trekkende mot V': 'Trekkjande mot V',
-  'Trekkende mot NV': 'Trekkjande mot NV',
-  'Permanent revir': 'Permanent revir',
-  'Sang/spill i hekketid og passende hekkebiotop': 'Song/spel i hekketid og passande hekkebiotop',
-  'Observasjon i hekketid, passende biotop': 'Observasjon i hekketid, passande biotop',
-  'Par i passende hekkebiotop': 'Par i passande hekkebiotop',
-  'Paring/kurtise på mulig hekkeplass': 'Paring/kurtise på mogleg hekkeplass',
-  'Reirbygging': 'Reirbygging',
-  'Reirbesøk?': 'Reirbesøk?',
-  'Besøker bebodd reir': 'Besøkjer bebodd reir',
-  'Reir i bruk': 'Reir i bruk',
-  'Rugende': 'Rugande',
-  'Rugeflekker': 'Rugeflekkar',
-  'Reir med egg eller unger': 'Reir med egg eller ungar',
-  'Reir, unger hørt': 'Reir, ungar høyrt',
-  'Mat til unger': 'Mat til ungar',
-  'Bar ekskrementpose': 'Bar ekskrementpose',
-  'Unger utenfor reir, ikke utvokste': 'Ungar utanfor reir, ikkje utvaksne',
-  'Eggeskall': 'Eggeskall',
-  'Brukt reir': 'Brukt reir',
-  'Engstelig adferd, indikasjon på hekking': 'Engsteleg åtferd, indikasjon på hekking',
-  'Avledningsmanøver': 'Avleiingsmanøver',
-  'Mislykket hekking': 'Mislykka hekking',
-  'Ringmerket': 'Ringmerkt',
-  'Individmerket (kontroll)': 'Individmerkt (kontroll)',
-  'Trekkforsøk': 'Trekkforsøk',
-  'Syk': 'Sjuk',
-  'Død - kollisjon med kraftledning': 'Daud - kollisjon med kraftleidning',
-  'Død - kollisjon med vindturbin': 'Daud - kollisjon med vindturbin',
-  'Død - kollisjon med vindu': 'Daud - kollisjon med vindauge',
-  'Død - kollisjon med fyr': 'Daud - kollisjon med fyr',
-  'Død - kollisjon med fly': 'Daud - kollisjon med fly',
-  'Død - kollisjon med gjerde': 'Daud - kollisjon med gjerde',
-  'Drept av elektrokusjon (strømslag)': 'Drepen av elektrokusjon (straumslag)',
-  'Drept av olje': 'Drepen av olje',
-  'Trafikkdrept': 'Trafikkdrepen',
-  'Garndød': 'Garndaud',
-  'Skadet av fiskeredskap': 'Skadd av fiskereiskap',
-  'Drept av predator': 'Drepen av predator',
-  'Død av sykdom/sult': 'Daud av sjukdom/sult',
-  'Skutt/avlivet': 'Skoten/avliva',
-  'Død - ukjent dødsårsak': 'Daud - ukjend dødsårsak',
-  'Ferske spor': 'Ferske spor',
-  'Eldre spor': 'Eldre spor',
-  'Fersk møkk': 'Fersk møkk',
-  'Eldre møkk': 'Eldre møkk',
-  // Eldre aliaser og hurtigknapper som ikke følger activities.json 1:1.
-  'Stationær': 'Stasjonær',
-  'Overflyvende': 'Overflygande',
-  'Syngende': 'Syngjande',
-  'Spill/sang': 'Spel/song',
-  'Sang/spill': 'Song/spel',
-  'Reir med unger eller hørt unger': 'Reir med ungar eller høyrt ungar',
-};
+export const ACTIVITY_NYNORSK_MAP = (() => {
+  const nb = getDictionary('nb');
+  const nn = getDictionary('nn');
+  const map = {};
+  // «Ikke oppgitt» deler nøkkel (index.common.not_specified) i i18n, men trengs
+  // også her for at hurtigpillen og visningshjelperne skal slå den opp direkte.
+  if (nb['index.common.not_specified'] && nn['index.common.not_specified'] !== undefined) {
+    map[nb['index.common.not_specified']] = nn['index.common.not_specified'];
+  }
+  for (const key of Object.keys(nb)) {
+    if (key.startsWith('activity.') && nn[key] !== undefined) {
+      map[nb[key]] = nn[key];
+    }
+  }
+  for (const [aliasNb, targetKey] of Object.entries(ACTIVITY_ALIASES)) {
+    if (nn[targetKey] !== undefined) {
+      map[aliasNb] = nn[targetKey];
+    }
+  }
+  return map;
+})();
 
 const ACTIVITY_BOKMAL_MAP = (() => {
   const rev = {};
   for (const [nb, nn] of Object.entries(ACTIVITY_NYNORSK_MAP)) {
     if (!rev[nn]) rev[nn] = nb;
   }
-  // Noen nynorsk-verdier er identiske med flere bokmål-nøkler (f.eks.
-  // 'Stasjonær' for både 'Stasjonær' og 'Stationær') - sikre at identitet
-  // slår alias, og at Ø/NØ/SØ-retningene mapper til hovedformen.
-  rev['Stasjonær'] = 'Stasjonær';
-  rev['Overflygande'] = 'Overflygende';
-  rev['Trekkjande mot Ø'] = 'Trekkende mot Ø';
-  rev['Trekkjande mot NØ'] = 'Trekkende mot NØ';
-  rev['Trekkjande mot SØ'] = 'Trekkende mot SØ';
+  Object.assign(rev, ACTIVITY_BOKMAL_OVERRIDES);
   return rev;
 })();
 
 /**
  * Visningsnavn for en AO-aktivitetskode, etter aktivt språk (eller
  * `userLanguage` hvis gitt - samme mønster som speciesDisplayName()).
- * Engelsk har i dag ingen egen oversettelse og faller derfor tilbake til det
- * kanoniske bokmål-navnet, nøyaktig som et nynorsk-navn ville falt tilbake
- * til bokmål ved en manglende nøkkel i ACTIVITY_NYNORSK_MAP.
  * @param {string} label
  * @param {string} [userLanguage]
  * @returns {string}
@@ -626,6 +583,164 @@ export function activityBokmalName(label) {
   if (!label) return '';
   const trimmed = label.trim();
   return ACTIVITY_BOKMAL_MAP[label] || ACTIVITY_BOKMAL_MAP[trimmed] || label;
+}
+
+const GENDER_I18N_KEYS = [
+  'index.common.not_specified',
+  'index.common.gender_hann',
+  'index.common.gender_hunn',
+  'index.common.gender_hunnfarget',
+  'index.common.gender_i_par',
+];
+
+const AGE_I18N_KEYS = [
+  'index.common.not_specified',
+  'index.common.stage_aarsunge',
+  'index.common.stage_fjoraarsunge',
+  'index.common.stage_voksen',
+];
+
+function buildTranslationMaps(keys) {
+  const nb = getDictionary('nb');
+  const nn = getDictionary('nn');
+  const toNn = {};
+  const toNb = {};
+  for (const key of keys) {
+    const labelNb = nb[key];
+    const labelNn = nn[key];
+    if (!labelNb || labelNn === undefined) continue;
+    toNn[labelNb] = labelNn;
+    if (!toNb[labelNn]) toNb[labelNn] = labelNb;
+  }
+  return { toNn, toNb };
+}
+
+const { toNn: GENDER_NYNORSK_MAP, toNb: GENDER_BOKMAL_MAP } = buildTranslationMaps(GENDER_I18N_KEYS);
+const { toNn: AGE_NYNORSK_MAP, toNb: AGE_BOKMAL_MAP } = buildTranslationMaps(AGE_I18N_KEYS);
+
+/**
+ * Visningsnavn for AO-kjønnskode ('Hann', 'Hunn', 'Hunnfarget', 'I par').
+ * Lagret/sendt verdi skal alltid være kanonisk bokmål.
+ * @param {string} label
+ * @param {string} [userLanguage]
+ * @returns {string}
+ */
+export function genderDisplayName(label, userLanguage) {
+  if (!label) return '';
+  const lang = userLanguage !== undefined ? userLanguage : getLanguage();
+  const trimmed = String(label).trim();
+  if (lang === 'nn') {
+    return GENDER_NYNORSK_MAP[label] || GENDER_NYNORSK_MAP[trimmed] || label;
+  }
+  return genderBokmalName(label);
+}
+
+/**
+ * Konverterer et eventuelt nynorsk kjønnsnavn tilbake til kanonisk bokmål.
+ * @param {string} label
+ * @returns {string}
+ */
+export function genderBokmalName(label) {
+  if (!label) return '';
+  const trimmed = String(label).trim();
+  return GENDER_BOKMAL_MAP[label] || GENDER_BOKMAL_MAP[trimmed] || label;
+}
+
+/**
+ * Visningsnavn for AO-alders-/stadiumskode (f.eks. 'Voksen' -> 'Vaksen').
+ * Fuglekoder som 'Adult', 'Egg', 'Pulli', '1K' osv. er like på begge målformer.
+ * Lagret/sendt verdi skal alltid være kanonisk bokmål.
+ * @param {string} label
+ * @param {string} [userLanguage]
+ * @returns {string}
+ */
+export function ageDisplayName(label, userLanguage) {
+  if (!label) return '';
+  const lang = userLanguage !== undefined ? userLanguage : getLanguage();
+  const trimmed = String(label).trim();
+  if (lang === 'nn') {
+    return AGE_NYNORSK_MAP[label] || AGE_NYNORSK_MAP[trimmed] || label;
+  }
+  return ageBokmalName(label);
+}
+
+/**
+ * Konverterer et eventuelt nynorsk alders-/stadiumsnavn tilbake til kanonisk bokmål.
+ * @param {string} label
+ * @returns {string}
+ */
+export function ageBokmalName(label) {
+  if (!label) return '';
+  const trimmed = String(label).trim();
+  return AGE_BOKMAL_MAP[label] || AGE_BOKMAL_MAP[trimmed] || label;
+}
+
+function buildPrefixedTranslationMaps(prefix) {
+  const nb = getDictionary('nb');
+  const keys = ['index.common.not_specified'];
+  for (const key of Object.keys(nb)) {
+    if (key.startsWith(prefix)) keys.push(key);
+  }
+  return buildTranslationMaps(keys);
+}
+
+const { toNn: UNIT_NYNORSK_MAP, toNb: UNIT_BOKMAL_MAP } = buildPrefixedTranslationMaps('unit.');
+const { toNn: DISCOVERY_METHOD_NYNORSK_MAP, toNb: DISCOVERY_METHOD_BOKMAL_MAP } = buildPrefixedTranslationMaps('discovery_method.');
+
+/**
+ * Visningsnavn for AO-enhet (pattedyr, f.eks. 'Individer' -> 'Individ').
+ * Lagret/sendt verdi skal alltid være kanonisk bokmål.
+ * @param {string} label
+ * @param {string} [userLanguage]
+ * @returns {string}
+ */
+export function unitDisplayName(label, userLanguage) {
+  if (!label) return '';
+  const lang = userLanguage !== undefined ? userLanguage : getLanguage();
+  const trimmed = String(label).trim();
+  if (lang === 'nn') {
+    return UNIT_NYNORSK_MAP[label] || UNIT_NYNORSK_MAP[trimmed] || label;
+  }
+  return unitBokmalName(label);
+}
+
+/**
+ * Konverterer et eventuelt nynorsk enhetsnavn tilbake til kanonisk bokmål.
+ * @param {string} label
+ * @returns {string}
+ */
+export function unitBokmalName(label) {
+  if (!label) return '';
+  const trimmed = String(label).trim();
+  return UNIT_BOKMAL_MAP[label] || UNIT_BOKMAL_MAP[trimmed] || label;
+}
+
+/**
+ * Visningsnavn for AO-metode (DiscoveryMethod, pattedyr, f.eks. 'Hørt' -> 'Høyrt').
+ * Lagret/sendt verdi skal alltid være kanonisk bokmål.
+ * @param {string} label
+ * @param {string} [userLanguage]
+ * @returns {string}
+ */
+export function discoveryMethodDisplayName(label, userLanguage) {
+  if (!label) return '';
+  const lang = userLanguage !== undefined ? userLanguage : getLanguage();
+  const trimmed = String(label).trim();
+  if (lang === 'nn') {
+    return DISCOVERY_METHOD_NYNORSK_MAP[label] || DISCOVERY_METHOD_NYNORSK_MAP[trimmed] || label;
+  }
+  return discoveryMethodBokmalName(label);
+}
+
+/**
+ * Konverterer et eventuelt nynorsk metodenavn tilbake til kanonisk bokmål.
+ * @param {string} label
+ * @returns {string}
+ */
+export function discoveryMethodBokmalName(label) {
+  if (!label) return '';
+  const trimmed = String(label).trim();
+  return DISCOVERY_METHOD_BOKMAL_MAP[label] || DISCOVERY_METHOD_BOKMAL_MAP[trimmed] || label;
 }
 
 /**

@@ -26,6 +26,10 @@ const DICTIONARIES = { nb, nn };
 export const DEFAULT_LANGUAGE = 'nb';
 export const SUPPORTED_LANGUAGES = Object.keys(DICTIONARIES);
 
+export function getDictionary(lang = getLanguage()) {
+  return DICTIONARIES[lang] || DICTIONARIES[DEFAULT_LANGUAGE];
+}
+
 function normalizeLanguage(code) {
   if (typeof code !== 'string') return null;
   const norm = code.trim().toLowerCase();

@@ -4,16 +4,19 @@
  * stedet for en egen side. Gjenbruker photo-picker.js og coobserver-picker.js,
  * som også brukes av registrerings-modalen (✎ Flere felt i ②).
  */
-import { saveObservations, lastSaveError, activityDisplayName, activityBokmalName, loadAllowUnknownCount } from './storage.js';
+import { saveObservations, lastSaveError, activityDisplayName, activityBokmalName, ageDisplayName, ageBokmalName, genderDisplayName, genderBokmalName, unitDisplayName, unitBokmalName, discoveryMethodDisplayName, discoveryMethodBokmalName, loadAllowUnknownCount } from './storage.js?v=v1.60.30';
 import { initPhotoPicker } from './photo-picker.js?v=v1.60.30';
 import { initCoObserverPicker } from './coobserver-picker.js';
 import { isoToDate, isoToTime, updateDateTimeInIso } from './datetime-helpers.js';
-import { t } from './i18n.js';
+import { loadSpeciesGroupLists } from './api.js?v=v1.60.30';
+import { t, applyTranslations } from './i18n.js?v=v1.60.30';
+import { isValidPairCount, syncPairGenderOption } from './form-state.js?v=v1.60.30';
 
 let els = null;
 let photoPicker = null;
 let coObserverPicker = null;
-let activitiesPromise = null;
+let _birdAgeOptionsHtml = null;
+let _birdGenderOptionsHtml = null;
 let currentObservations = null;
 let currentIdx = null;
 let currentOnSaved = null;
@@ -31,6 +34,10 @@ function queryEls() {
     activity: document.getElementById('em-activity'),
     age: document.getElementById('em-age'),
     gender: document.getElementById('em-gender'),
+    genderPairHint: document.getElementById('em-gender-pair-hint'),
+    mammalFieldsRow: document.getElementById('em-mammal-fields-row'),
+    unit: document.getElementById('em-unit'),
+    discoveryMethod: document.getElementById('em-discovery-method'),
     place: document.getElementById('em-place'),
     date: document.getElementById('em-date'),
     timeFrom: document.getElementById('em-time-from'),
@@ -51,14 +58,7 @@ function queryEls() {
   };
 }
 
-function loadActivitiesOnce() {
-  if (!activitiesPromise) {
-    activitiesPromise = fetch('/data/activities.json')
-      .then((r) => r.json())
-      .catch((e) => { console.error('Kunne ikke laste aktiviteter:', e); return []; });
-  }
-  return activitiesPromise;
-}
+// Hjelper for å fylle aktiviteter, alder og kjønn per artsgruppe (8 = fugl, 11 = pattedyr)
 
 function closeModal() {
   els.modal.style.display = 'none';
@@ -95,35 +95,139 @@ function ensureInit() {
     if (e.key === 'Escape' && isOpen()) closeModal();
   });
 
+  if (els.count) {
+    els.count.addEventListener('input', () => {
+      syncPairGenderOption(els.gender, els.count.value, { hintEl: els.genderPairHint });
+    });
+  }
+  if (els.gender) {
+    els.gender.addEventListener('change', () => {
+      if (els.genderPairHint && els.gender.value) {
+        els.genderPairHint.textContent = '';
+        els.genderPairHint.style.display = 'none';
+      }
+    });
+  }
+
   els.form.addEventListener('submit', handleSubmit);
 }
 
-async function populateActivitySelect(currentActivity) {
-  const activities = await loadActivitiesOnce();
+async function populateGroupSelects(obs) {
+  if (els.age && _birdAgeOptionsHtml === null) _birdAgeOptionsHtml = els.age.innerHTML;
+  if (els.gender && _birdGenderOptionsHtml === null) _birdGenderOptionsHtml = els.gender.innerHTML;
+
+  const groupId = String((obs.speciesGroupId || (obs.species && obs.species.speciesGroupId) || '8')) === '11' ? '11' : '8';
+  const lister = await loadSpeciesGroupLists(groupId).catch((e) => {
+    console.error('Kunne ikke laste verdilister:', e);
+    return { activities: [] };
+  });
+
   els.activity.innerHTML = '';
   const noneOpt = document.createElement('option');
   noneOpt.value = '';
   noneOpt.textContent = t('index.common.not_specified');
   els.activity.appendChild(noneOpt);
-  activities.forEach((a) => {
+  (lister.activities || []).forEach((a) => {
     const opt = document.createElement('option');
     opt.value = a.value;
+    opt.dataset.canonicalLabel = a.label;
     opt.textContent = activityDisplayName(a.label);
     els.activity.appendChild(opt);
   });
-  if (currentActivity) {
-    // Sammenlign på kanonisk bokmål-form uansett hva som faktisk vises i
-    // <option>-teksten (bokmål eller nynorsk) - unngår å måtte stashe
-    // bokmål-originalen i en egen data-attributt per element.
-    const targetNb = activityBokmalName(currentActivity.trim());
+
+  if (obs.activity) {
+    const targetNb = activityBokmalName(obs.activity.trim());
     for (let i = 0; i < els.activity.options.length; i++) {
-      if (activityBokmalName(els.activity.options[i].text.trim()) === targetNb) {
+      const opt = els.activity.options[i];
+      const optNb = (opt.dataset && opt.dataset.canonicalLabel) || activityBokmalName(opt.text.trim());
+      if (optNb === targetNb) {
         els.activity.selectedIndex = i;
         break;
       }
     }
   } else {
     els.activity.selectedIndex = 0; // «Ikke oppgitt» — funnet har genuint ingen aktivitet
+  }
+
+  if (els.age) {
+    if (groupId === '11' && Array.isArray(lister.stages)) {
+      els.age.innerHTML = '';
+      const noneAge = document.createElement('option');
+      noneAge.value = '';
+      noneAge.textContent = t('index.common.not_specified');
+      els.age.appendChild(noneAge);
+      lister.stages.forEach((s) => {
+        const opt = document.createElement('option');
+        opt.value = s.label;
+        opt.textContent = ageDisplayName(s.label);
+        els.age.appendChild(opt);
+      });
+    } else if (_birdAgeOptionsHtml !== null) {
+      els.age.innerHTML = _birdAgeOptionsHtml;
+      applyTranslations(els.age);
+    }
+    els.age.value = ageBokmalName(obs.age || '');
+  }
+
+  if (els.gender) {
+    if (groupId === '11' && Array.isArray(lister.genders)) {
+      els.gender.innerHTML = '';
+      const noneGender = document.createElement('option');
+      noneGender.value = '';
+      noneGender.textContent = t('index.common.not_specified');
+      els.gender.appendChild(noneGender);
+      lister.genders.forEach((g) => {
+        const opt = document.createElement('option');
+        opt.value = g.label;
+        opt.textContent = genderDisplayName(g.label);
+        els.gender.appendChild(opt);
+      });
+    } else if (_birdGenderOptionsHtml !== null) {
+      els.gender.innerHTML = _birdGenderOptionsHtml;
+      applyTranslations(els.gender);
+    }
+    els.gender.value = genderBokmalName(obs.gender || '');
+    syncPairGenderOption(els.gender, els.count ? els.count.value : '', { hintEl: els.genderPairHint });
+  }
+
+  if (els.mammalFieldsRow) {
+    els.mammalFieldsRow.style.display = groupId === '11' ? 'flex' : 'none';
+  }
+  if (els.unit) {
+    els.unit.innerHTML = '';
+    const noneUnit = document.createElement('option');
+    noneUnit.value = '';
+    noneUnit.textContent = t('index.common.not_specified');
+    els.unit.appendChild(noneUnit);
+    if (groupId === '11' && Array.isArray(lister.units)) {
+      lister.units.forEach((u) => {
+        const opt = document.createElement('option');
+        opt.value = u.label;
+        opt.textContent = unitDisplayName(u.label);
+        els.unit.appendChild(opt);
+      });
+      els.unit.value = unitBokmalName(obs.unit || '');
+    } else {
+      els.unit.value = '';
+    }
+  }
+  if (els.discoveryMethod) {
+    els.discoveryMethod.innerHTML = '';
+    const noneMethod = document.createElement('option');
+    noneMethod.value = '';
+    noneMethod.textContent = t('index.common.not_specified');
+    els.discoveryMethod.appendChild(noneMethod);
+    if (groupId === '11' && Array.isArray(lister.discoveryMethods)) {
+      lister.discoveryMethods.forEach((m) => {
+        const opt = document.createElement('option');
+        opt.value = m.label;
+        opt.textContent = discoveryMethodDisplayName(m.label);
+        els.discoveryMethod.appendChild(opt);
+      });
+      els.discoveryMethod.value = discoveryMethodBokmalName(obs.discoveryMethod || '');
+    } else {
+      els.discoveryMethod.value = '';
+    }
   }
 }
 
@@ -145,8 +249,8 @@ export function openEditModal(observations, index, onSaved) {
 
   els.species.value = (obs.species && obs.species.taxonName) || '';
   els.count.value = obs.count != null ? obs.count : '';
-  els.age.value = obs.age || '';
-  els.gender.value = obs.gender || '';
+  els.age.value = ageBokmalName(obs.age || '');
+  els.gender.value = genderBokmalName(obs.gender || '');
   els.place.value = obs.placeName || '';
   els.date.value = isoToDate(obs.timestamp);
   els.timeFrom.value = isoToTime(obs.timestamp);
@@ -166,7 +270,13 @@ export function openEditModal(observations, index, onSaved) {
 
   coObserverPicker.setSelected(obs.coObservers);
 
-  populateActivitySelect(obs.activity);
+  if (els.genderPairHint) {
+    els.genderPairHint.textContent = '';
+    els.genderPairHint.style.display = 'none';
+  }
+  syncPairGenderOption(els.gender, els.count ? els.count.value : '', { hintEl: els.genderPairHint });
+
+  populateGroupSelects(obs);
 
   els.modal.style.display = 'flex';
 }
@@ -202,10 +312,32 @@ function handleSubmit(e) {
     obs.count = parsedCount;
   }
 
+  const nextGender = els.gender.value ? genderBokmalName(els.gender.value) : '';
+  if (nextGender === 'I par' && !isValidPairCount(obs.count)) {
+    if (els.genderPairHint) {
+      els.genderPairHint.textContent = t('index.gender.pair_requires_even_hint');
+      els.genderPairHint.style.display = 'block';
+    }
+    alert(t('observations.pair_requires_even'));
+    return;
+  }
+
   const actOpt = els.activity.options[els.activity.selectedIndex];
-  obs.activity = (actOpt && actOpt.value !== '') ? activityBokmalName((actOpt.text || '').trim()) : '';
-  obs.age = els.age.value || '';
-  obs.gender = els.gender.value || '';
+  obs.activity = (actOpt && actOpt.value !== '')
+    ? ((actOpt.dataset && actOpt.dataset.canonicalLabel) || activityBokmalName((actOpt.text || '').trim()))
+    : '';
+  obs.age = els.age.value ? ageBokmalName(els.age.value) : '';
+  obs.gender = nextGender;
+  const groupId = String((obs.speciesGroupId || (obs.species && obs.species.speciesGroupId) || '8')) === '11' ? '11' : '8';
+  if (groupId === '11') {
+    const unitVal = els.unit && els.unit.value ? unitBokmalName(els.unit.value) : '';
+    const methodVal = els.discoveryMethod && els.discoveryMethod.value ? discoveryMethodBokmalName(els.discoveryMethod.value) : '';
+    if (unitVal) obs.unit = unitVal; else delete obs.unit;
+    if (methodVal) obs.discoveryMethod = methodVal; else delete obs.discoveryMethod;
+  } else {
+    delete obs.unit;
+    delete obs.discoveryMethod;
+  }
   obs.placeName = els.place.value.trim();
 
   const nyTimestamp = updateDateTimeInIso(obs.timestamp, els.date.value, els.timeFrom.value);

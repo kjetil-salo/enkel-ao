@@ -11,6 +11,7 @@ import {
   searchSpecies,
 } from './species_offline.js?v=v1.60.30';
 import { speciesDisplayName, loadNynorskArtsnavn } from './storage.js?v=v1.60.30';
+import { t } from './i18n.js?v=v1.60.30';
 
 export { searchSpecies };
 
@@ -304,7 +305,7 @@ export async function fetchResults(term, state, dom, callbacks) {
 
   // Ingen treff lokalt (eller ikke-fugl som bruker live-søk mot AO).
   if (forceOffline) {
-    visOfflineTreff([], erFugl ? 'Ingen treff i offline-listen.' : 'Offline artsliste dekker foreløpig bare fugl.');
+    visOfflineTreff([], erFugl ? 'Ingen treff i offline-listen.' : t('species.offline_birds_only'));
     return;
   }
 

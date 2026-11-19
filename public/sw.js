@@ -55,6 +55,7 @@ const STATIC_ASSETS = [
 '/js/visits.js',
 '/js/news-splash.js',
 '/js/first-run-hint.js',
+'/js/species-group-hint.js',
 '/js/species_offline.js',
 '/js/species-matcher.js',
 '/js/version.js',
@@ -84,6 +85,7 @@ const STATIC_ASSETS = [
 '/data/activities.json',
 '/data/norske_arter.json',
 '/data/norske_arter_hierarki.json',
+'/data/pattedyr_lister.json',
 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',
 'https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css',
@@ -98,6 +100,15 @@ const STATIC_ASSETS = [
 ];
 
 let currentNetworkMode = null;
+
+function isDevPreviewHost() {
+try {
+const host = (self.location && self.location.hostname) || '';
+return host === 'localhost' || host === '127.0.0.1' || host.startsWith('ais-dev-') || host.startsWith('ais-pre-');
+} catch {
+return false;
+}
+}
 
 function normalizeSwMode(mode) {
 const str = typeof mode === 'string' ? mode.trim().toLowerCase() : '';
@@ -152,6 +163,17 @@ keys
 .filter((key) => key !== CACHE_NAME && key !== MAP_TILE_CACHE_NAME)
 .map((key) => caches.delete(key)),
 );
+if (isDevPreviewHost()) {
+const appCache = await openCacheSafe(CACHE_NAME);
+if (appCache && typeof appCache.keys === 'function') {
+const reqs = await appCache.keys();
+await Promise.all(
+reqs
+.filter((req) => new URL(req.url).search.startsWith('?v='))
+.map((req) => appCache.delete(req)),
+);
+}
+}
 } catch {
 // Ignorer oppryddingsfeil
 }
@@ -343,8 +365,10 @@ const cache = await openCacheSafe(CACHE_NAME);
 
 // Bruk bare eksakt cachetreff for versjonerte appfiler. En ny ?v= skal
 // hentes fra nettet selv om en eldre eller uversjonert kopi ligger i cachen.
+// I lokalt utviklings-/forhåndsvisningsmiljø revalideres alltid fra nett,
+// slik at kodeendringer uten versjonsbump slår igjennom umiddelbart.
 const url = new URL(request.url);
-if (cache && request.mode !== 'navigate' && /^\?v=v\d+\.\d+\.\d+$/.test(url.search) &&
+if (!isDevPreviewHost() && cache && request.mode !== 'navigate' && /^\?v=v\d+\.\d+\.\d+$/.test(url.search) &&
     (/^\/js\/.+\.js$/.test(url.pathname) || url.pathname === '/style.css')) {
 const cached = await cache.match(request).catch(() => null);
 if (cached) return cached;

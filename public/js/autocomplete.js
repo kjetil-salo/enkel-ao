@@ -145,7 +145,16 @@ export function initAutocomplete(placeInput, onSelect, getPosition = null, getSp
     const pos = getPosition && getPosition();
     const speciesGroup = String((getSpeciesGroup && getSpeciesGroup()) || '8');
     const onlyPrivate = speciesGroup !== '8';
-    const filterSites = (list) => onlyPrivate ? list.filter(s => s && (s.isMine || s.isPrivate)) : list;
+    const isOwnPrivateResult = (s) => {
+      if (!s) return false;
+      if (isMineResult(s)) return true;
+      if (s.id == null) return false;
+      const mineIds = new Set(getCachedPrivateSites().map(site => String(site.id)));
+      return mineIds.has(String(s.id));
+    };
+    const filterSites = (list) => onlyPrivate
+      ? list.filter(isOwnPrivateResult).map(s => ({ ...s, isMine: true, isPrivate: true }))
+      : list;
     const mode = getNetworkMode();
 
     // 1. Streng Offline-modus: Søk utelukkende i lokalt mellomlager (IndexedDB), ingen nettverkskall
@@ -247,7 +256,9 @@ export function initAutocomplete(placeInput, onSelect, getPosition = null, getSp
             color: var(--muted);
             font-size: 0.85em;
           ">
-            Ingen treff. <a href="/profil.html#ao-username" style="color: inherit; text-decoration: underline;">Logg inn</a> for å søke i alle AO-lokaliteter.
+            ${onlyPrivate
+              ? 'Ingen egne private lokaliteter funnet. <a href="/profil.html#ao-username" style="color: inherit; text-decoration: underline;">Logg inn</a> for å finne dine private lokaliteter.'
+              : 'Ingen treff. <a href="/profil.html#ao-username" style="color: inherit; text-decoration: underline;">Logg inn</a> for å søke i alle AO-lokaliteter.'}
           </div>
         `;
         dropdown.style.display = 'block';
@@ -385,13 +396,15 @@ export function initAutocomplete(placeInput, onSelect, getPosition = null, getSp
     const selected = currentResults[index];
     const name = selected.value;
     const id = selected.id;
+    const mineIds = new Set(getCachedPrivateSites().map(site => String(site.id)));
+    const isMine = isMineResult(selected) || (id != null && mineIds.has(String(id)));
 
     invalidateResults();
     placeInput.value = name;
 
     // Callback til parent-komponent
     if (onSelect) {
-      onSelect(name, id);
+      onSelect(name, id, isMine);
     }
   }
 

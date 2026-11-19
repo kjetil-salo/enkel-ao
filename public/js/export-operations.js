@@ -2,7 +2,7 @@
  * Eksport-modul for CSV-eksport, kopiering og sletting av observasjoner
  */
 
-import { toCsv } from './observations.js';
+import { toCsv } from './observations.js?v=v1.60.30';
 import { flashButton, showToast } from './ui.js';
 import { appendSentBatch, loadAoDirectAutoClear } from './storage.js';
 import { t } from './i18n.js?v=v1.60.30';
@@ -15,14 +15,46 @@ let senderTilAo = false;
 const UAVKLARTE_AO_FUNN = 'ao_uavklarte_funn_v1';
 let uavklarteFunnUtenLagring = null;
 
-function aoFunnNøkkel(funn) {
-  return JSON.stringify([funn.species?.taxonName, funn.placeId || funn.placeName, funn.timestamp]);
+export function _aoFunnNøkkel(funn) {
+  const medobs = Array.isArray(funn.coObservers)
+    ? funn.coObservers
+        .map((c) => (typeof c === 'object' && c ? (c.alias || c.name || '') : String(c || '')))
+        .filter(Boolean)
+    : [];
+  return JSON.stringify([
+    'v2',
+    funn.species?.taxonName || '',
+    funn.placeId || funn.placeName || '',
+    funn.timestamp || '',
+    funn.tilKlokkeslett || '',
+    funn.count ?? null,
+    String(funn.speciesGroupId || funn.species?.speciesGroupId || '8'),
+    funn.unit || '',
+    funn.age || '',
+    funn.gender || '',
+    funn.activity || '',
+    funn.discoveryMethod || '',
+    funn.comment || '',
+    funn.privateComment || '',
+    funn.hideUntil || '',
+    Boolean(funn.secondhand),
+    Boolean(funn.uncertain),
+    Boolean(funn.notSpontaneous),
+    Boolean(funn.interesting),
+    Boolean(funn.notRefound),
+    Boolean(funn.notFound),
+    medobs,
+  ]);
 }
 
 function lesUavklarteFunn() {
   if (uavklarteFunnUtenLagring) return uavklarteFunnUtenLagring;
   try {
-    return new Set(JSON.parse(localStorage.getItem(UAVKLARTE_AO_FUNN) || '[]'));
+    const rå = JSON.parse(localStorage.getItem(UAVKLARTE_AO_FUNN) || '[]');
+    if (!Array.isArray(rå)) return new Set();
+    // Ignorer gamle grove 3-feltsnøkler (kun [art, sted, tid]) som ga falske treff
+    // når brukeren hadde et annet eller endret funn på samme art/sted/dato.
+    return new Set(rå.filter((k) => typeof k === 'string' && k.startsWith('["v2",')));
   } catch {
     return new Set();
   }
@@ -31,7 +63,7 @@ function lesUavklarteFunn() {
 function oppdaterUavklarteFunn(funn, uavklart) {
   const nøkler = lesUavklarteFunn();
   for (const observasjon of funn) {
-    const nøkkel = aoFunnNøkkel(observasjon);
+    const nøkkel = _aoFunnNøkkel(observasjon);
     if (uavklart) nøkler.add(nøkkel);
     else nøkler.delete(nøkkel);
   }
@@ -384,6 +416,75 @@ export function _visOfflineInnsendingBekreftelse(antall) {
 }
 
 /**
+ * Viser en egen in-app bekreftelsesdialog i stedet for native window.confirm().
+ * Native confirm() blokkeres stille (returnerer false uten dialog) i sandboxed
+ * iframes og gir dårligere opplevelse i mobil-PWA.
+ */
+function _visBekreftDialog({ id, title, body, confirmText, cancelText = t('common.cancel'), danger = false }) {
+  return new Promise((resolve) => {
+    const eksisterende = id ? document.getElementById(id) : null;
+    if (eksisterende) eksisterende.remove();
+
+    const overlay = document.createElement('div');
+    if (id) overlay.id = id;
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+    Object.assign(overlay.style, {
+      position: 'fixed', inset: '0', zIndex: '10050', background: 'rgba(0,0,0,0.55)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px',
+    });
+
+    const box = document.createElement('div');
+    Object.assign(box.style, {
+      background: 'var(--card-bg, #1e293b)', color: 'var(--text, #f8fafc)',
+      borderRadius: '14px', padding: '20px', maxWidth: '390px', width: '100%',
+      boxShadow: '0 8px 32px rgba(0,0,0,0.35)',
+      border: '1px solid var(--border, rgba(148,163,184,0.25))',
+    });
+
+    const heading = document.createElement('h3');
+    Object.assign(heading.style, { margin: '0 0 10px 0', fontSize: '1.05em' });
+    heading.textContent = title;
+
+    const text = document.createElement('p');
+    Object.assign(text.style, { margin: '0 0 16px 0', fontSize: '0.9em', lineHeight: '1.45' });
+    text.textContent = body;
+
+    const confirmBtn = document.createElement('button');
+    confirmBtn.type = 'button';
+    confirmBtn.dataset.confirmAction = 'ok';
+    confirmBtn.textContent = confirmText;
+    confirmBtn.style.cssText = `padding:10px 14px;border-radius:8px;font-size:0.92em;cursor:pointer;width:100%;margin-top:8px;border:none;background:${danger ? '#dc2626' : 'var(--accent,#3b82f6)'};color:#fff;font-weight:600;`;
+
+    const cancelBtn = document.createElement('button');
+    cancelBtn.type = 'button';
+    cancelBtn.dataset.confirmAction = 'cancel';
+    cancelBtn.textContent = cancelText;
+    cancelBtn.style.cssText = 'padding:10px 14px;border-radius:8px;font-size:0.92em;cursor:pointer;width:100%;margin-top:8px;border:1px solid var(--border,rgba(148,163,184,0.25));background:transparent;color:var(--muted,#94a3b8);';
+
+    box.append(heading, text, confirmBtn, cancelBtn);
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+
+    const svar = (ok) => {
+      document.removeEventListener('keydown', onKeyDown);
+      overlay.remove();
+      resolve(ok);
+    };
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') svar(false);
+    };
+    confirmBtn.addEventListener('click', () => svar(true));
+    cancelBtn.addEventListener('click', () => svar(false));
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) svar(false);
+    });
+    document.addEventListener('keydown', onKeyDown);
+    confirmBtn.focus?.({ preventScroll: true });
+  });
+}
+
+/**
  * Trygg parsing av SSE-hendelser fra rå tekst eller ufullstendig buffer.
  * Håndterer både standard «data: {...}\n\n», delvis overførte buffere og ren JSON.
  * @param {string} text
@@ -456,7 +557,13 @@ export async function handleDirectSend(observations, dom, callbacks) {
 
   if (innhentet) {
     const kopitid = new Date(innhentet.lagretTs * 1000).toLocaleString('nb-NO');
-    if (!confirm(`Lista ble kopiert ${kopitid}. Sjekk hos AO om funnene allerede er sendt fra den andre enheten. Vil du publisere fra denne enheten?`)) return;
+    const godkjent = await _visBekreftDialog({
+      id: 'innhentet-send-confirm-modal',
+      title: t('export.confirm.copied_title'),
+      body: t('export.confirm.copied_body', { kopitid }),
+      confirmText: t('export.confirm.publish_anyway'),
+    });
+    if (!godkjent) return;
   }
 
   // Allerede publiserte funn i lista → la brukeren velge før noe sendes
@@ -473,8 +580,15 @@ export async function handleDirectSend(observations, dom, callbacks) {
   }
 
   const uavklarte = lesUavklarteFunn();
-  if (utvalg.some((o) => uavklarte.has(aoFunnNøkkel(o)))
-      && !confirm('Lista inneholder funn fra en tidligere sending eller AO3-kopi. Har du sjekket både publiserte funn og funn til gjennomgang hos Artsobservasjoner før du prøver igjen?')) return;
+  if (utvalg.some((o) => uavklarte.has(_aoFunnNøkkel(o)))) {
+    const godkjent = await _visBekreftDialog({
+      id: 'uavklarte-send-confirm-modal',
+      title: t('export.confirm.unresolved_title'),
+      body: t('export.confirm.unresolved_body'),
+      confirmText: t('export.confirm.publish_anyway'),
+    });
+    if (!godkjent) return;
+  }
 
   const total = utvalg.length;
 
@@ -567,7 +681,7 @@ export async function handleDirectSend(observations, dom, callbacks) {
     if (senderTilAo) return;
     const sisteUavklarte = lesUavklarteFunn();
     if (!reserveGyldig() || utvalg.some((o) => {
-      const nøkkel = aoFunnNøkkel(o);
+      const nøkkel = _aoFunnNøkkel(o);
       return sisteUavklarte.has(nøkkel) && !uavklarte.has(nøkkel);
     })) {
       dom.aoDirectStatus.textContent = 'Lista eller AO-kontoen er endret. Start sendingen på nytt.';
@@ -594,7 +708,7 @@ export async function handleDirectSend(observations, dom, callbacks) {
     if (resultat?.via === 'ao3' && resultat.published === true && resultat.count === total) {
       completeSuccessfulSend(resultat);
     } else if (resultat?.code === 'ao3_manual') {
-      oppdaterUavklarteFunn(utvalg.filter((o) => !uavklarte.has(aoFunnNøkkel(o))), false);
+      oppdaterUavklarteFunn(utvalg.filter((o) => !uavklarte.has(_aoFunnNøkkel(o))), false);
       if (reserveGyldig()) visAo3Reserve(dom, utvalg, reserveGyldig);
     } else {
       dom.aoDirectStatus.textContent = 'Sending via AO3 kunne ikke bekreftes. Lista er beholdt. '
@@ -798,22 +912,30 @@ export async function handleDirectSend(observations, dom, callbacks) {
     if (notPublished.length || importResult.heldBack) {
       const biter = [];
       if (importResult.count) {
-        biter.push(`✅ ${importResult.count} observasjon${importResult.count !== 1 ? 'er' : ''} publisert.`);
+        const ord = importResult.count === 1
+          ? t('observations.word_singular')
+          : t('observations.word_plural');
+        biter.push(t('export.direct.published_partial', { count: importResult.count, ord }));
       }
       if (notPublished.length) {
         const n = notPublished.length;
-        biter.push(`⚠️ ${n} observasjon${n !== 1 ? 'er' : ''} ble <b>ikke</b> publisert, fordi `
-          + `${n !== 1 ? 'de' : 'den'} ikke kunne gjenfinnes entydig i AOs gjennomgangskø: `
-          + `<span style="opacity:.85">${notPublished.join(', ')}</span>.`);
+        const detaljer = `<span style="opacity:.85">${notPublished.join(', ')}</span>`;
+        biter.push(t(
+          n === 1 ? 'export.direct.not_published_ambiguous_singular' : 'export.direct.not_published_ambiguous_plural',
+          { n, detaljer }
+        ));
       }
       if (importResult.heldBack) {
+        const n = importResult.heldBack;
         const detaljer = importResult.heldBackDetails
           ? ` <span style="opacity:.85">${importResult.heldBackDetails}</span>` : '';
-        biter.push(`⚠️ ${importResult.heldBack} observasjon${importResult.heldBack !== 1 ? 'er' : ''} `
-          + `ble <b>ikke</b> publisert og ligger til gjennomgang på AO.${detaljer}`);
+        biter.push(t(
+          n === 1 ? 'export.direct.held_back_singular' : 'export.direct.held_back_plural',
+          { n, detaljer }
+        ));
       }
-      biter.push('Det som ligger igjen kan publiseres manuelt: '
-        + '<a href="https://www.artsobservasjoner.no/ReviewSighting" target="_blank" rel="noopener">Åpne gjennomgang</a>');
+      biter.push(`${t('export.direct.manual_publish_prefix')}`
+        + `<a href="https://www.artsobservasjoner.no/ReviewSighting" target="_blank" rel="noopener">${t('export.direct.open_review_link')}</a>`);
 
       dom.aoDirectStatus.style.cssText = `display:block;margin-top:8px;padding:10px;border-radius:8px;font-size:0.9rem;background:rgba(234,179,8,0.1);border:1px solid rgba(234,179,8,0.4);color:${_statusColor('error')};`;
       dom.aoDirectStatus.innerHTML = biter.join('<br>');
@@ -826,7 +948,7 @@ export async function handleDirectSend(observations, dom, callbacks) {
     const innloggetViaAo3 = error.code === 'ao2_login_via_ao3';
     const kanBrukeReserve = innloggetViaAo3 || error.code === 'ao2_unavailable_before_import';
     if (importKallStartet && (kanBrukeReserve || importAvvistFørInnsending)) {
-      oppdaterUavklarteFunn(utvalg.filter((o) => !uavklarte.has(aoFunnNøkkel(o))), false);
+      oppdaterUavklarteFunn(utvalg.filter((o) => !uavklarte.has(_aoFunnNøkkel(o))), false);
     }
     if (kanBrukeReserve && reserveGyldig()) {
       if (!username.includes('@')) {
@@ -862,9 +984,15 @@ export async function handleDirectSend(observations, dom, callbacks) {
   }
 }
 
-export function handleClear(observations, dom, callbacks) {
+export async function handleClear(observations, dom, callbacks) {
   if (!observations.length) return;
-  const ok = window.confirm(t('export.clear.confirm'));
+  const ok = await _visBekreftDialog({
+    id: 'clear-observations-confirm-modal',
+    title: t('export.clear.title'),
+    body: t('export.clear.confirm'),
+    confirmText: t('export.clear.confirm_btn'),
+    danger: true,
+  });
   if (!ok) return;
   observations.splice(0, observations.length);
   callbacks.doRenderObservations();

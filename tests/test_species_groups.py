@@ -125,3 +125,21 @@ def test_ao3_prepare_pattedyr():
     assert felter['activityId'] == 23
     assert felter['stageId'] == 58
     assert felter['genderId'] == 1
+
+
+def test_server_species_api_videresender_species_group():
+    import server
+    from urllib.parse import urlparse
+
+    handler = MagicMock()
+    handler._send_json = MagicMock()
+    parsed = urlparse('/api/species?search=elg&speciesGroup=11')
+
+    with patch.object(server, 'handle_species_search', return_value=[{'taxonId': '48103', 'taxonName': 'elg'}]) as mock_search:
+        server.Handler._handle_species_api(handler, parsed)
+
+    mock_search.assert_called_once()
+    assert mock_search.call_args.args[0] == 'elg'
+    assert mock_search.call_args.kwargs.get('species_group') == '11'
+    handler._send_json.assert_called_once()
+

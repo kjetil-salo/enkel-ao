@@ -1665,6 +1665,70 @@ body.theme-light #search:disabled::placeholder {
       @media (prefers-reduced-motion: reduce) {
         .section-lokasjon.coachmark-spot::before { animation: none; }
         .coachmark-bubble { animation: none; }
+        .species-group-toggle.species-group-spot { animation: none; }
+        .species-group-hint-bubble { animation: none; }
+      }
+
+      /* Éngangs-onboarding: mørklegger skjermen og lyser opp artsgruppe-ikonet (🦉/🦌) */
+      body.species-group-hint-active .card {
+        backdrop-filter: none !important;
+      }
+
+      .species-group-hint-dim {
+        position: fixed;
+        inset: 0;
+        z-index: 10000;
+        background: rgba(2, 6, 23, 0.78);
+        animation: coachmark-in 0.25s ease-out;
+      }
+
+      .species-group-toggle.species-group-spot {
+        position: relative;
+        z-index: 10001;
+        background: #1e293b;
+        border: 2px solid #60a5fa;
+        box-shadow:
+          0 0 0 4px rgba(59, 130, 246, 0.55),
+          0 0 28px rgba(59, 130, 246, 0.75);
+        animation: coachmark-pulse 2s ease-in-out infinite;
+      }
+
+      body.theme-light .species-group-toggle.species-group-spot {
+        background: #ffffff;
+        border-color: var(--accent, #2563eb);
+        box-shadow:
+          0 0 0 4px rgba(37, 99, 235, 0.45),
+          0 0 26px rgba(59, 130, 246, 0.65);
+      }
+
+      .species-group-hint-bubble {
+        position: fixed;
+        z-index: 10002;
+        box-sizing: border-box;
+        padding: 16px 18px;
+        border: 1px solid rgba(59, 130, 246, 0.65);
+        border-radius: 14px;
+        background: var(--card-bg, #111827);
+        color: var(--text);
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.55);
+        animation: coachmark-in 0.28s ease-out;
+      }
+
+      .species-group-hint-bubble::before {
+        content: '';
+        position: absolute;
+        top: -8px;
+        left: var(--species-hint-arrow-left, 24px);
+        width: 14px;
+        height: 14px;
+        background: var(--card-bg, #111827);
+        border-left: 1px solid rgba(59, 130, 246, 0.65);
+        border-top: 1px solid rgba(59, 130, 246, 0.65);
+        transform: rotate(45deg);
+      }
+
+      .species-group-hint-body {
+        margin-bottom: 12px;
       }
 
       .obs-meta {
@@ -2415,32 +2479,6 @@ body.theme-clean .obs-group-lock-btn:active {
   font-weight: 600;
 }
 .loc-sort-btn:not([aria-checked="true"]):hover {
-  border-color: var(--accent);
-}
-.species-group-toggle {
-  display: flex;
-  gap: 8px;
-  margin-top: 8px;
-}
-.species-group-btn {
-  flex: 1;
-  min-height: 44px;
-  font-size: 16px;
-  padding: 8px 12px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: transparent;
-  color: var(--text);
-  cursor: pointer;
-  transition: all 0.15s;
-}
-.species-group-btn[aria-checked="true"] {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: #fff;
-  font-weight: 600;
-}
-.species-group-btn:not([aria-checked="true"]):hover {
   border-color: var(--accent);
 }
 .private-site-notice {

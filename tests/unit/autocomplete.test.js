@@ -52,7 +52,7 @@ it('åpner ikke listen igjen når et lokalt treff velges før nettverket svarer'
   vi.spyOn(globalThis, 'fetch').mockImplementation(() => new Promise(resolve => { complete = resolve; }));
   await type('Teststed');
   document.querySelector('.autocomplete-item').click();
-  expect(onSelect).toHaveBeenCalledWith(cached.name, cached.id);
+  expect(onSelect).toHaveBeenCalledWith(cached.name, cached.id, false);
   complete(response([result(2, 'Nytt treff')]));
   await vi.advanceTimersByTimeAsync(1);
   expect(document.querySelector('.autocomplete-dropdown').style.display).toBe('none');
@@ -71,6 +71,30 @@ it('forkaster eldre søk og tømte felt før et sent svar tegnes', async () => {
   expect(items()).toEqual(['Nyeste søk']);
   await type('');
   expect(document.querySelector('.autocomplete-dropdown').style.display).toBe('none');
+});
+
+it('viser og velger kun egne private lokaliteter når artsgruppe ikke er fugl', async () => {
+  cleanup();
+  onSelect = vi.fn();
+  cleanup = initAutocomplete(input, onSelect, null, () => '11');
+
+  await saveOpportunisticOfflineLocations([
+    { id: 10, name: 'Skogen offentlig', lat: 60, lon: 5, isPrivate: false, isMine: false },
+    { id: 11, name: 'Skogen andres privat', lat: 60, lon: 5, isPrivate: true, isMine: false },
+    { id: 12, name: 'Skogen min private', lat: 60, lon: 5, isPrivate: true, isMine: true },
+  ]);
+
+  vi.spyOn(globalThis, 'fetch').mockResolvedValue(response([
+    { id: 20, value: 'Skogen AO offentlig', presentationvalue: 'Skogen AO offentlig', isPrivate: false },
+    { id: 21, value: 'Skogen AO andres privat', presentationvalue: 'Skogen AO andres privat', isPrivate: true },
+    { id: 22, value: 'Skogen AO min gule', presentationvalue: 'Skogen AO min gule', isPrivate: true, ColorString: '#ffff00' },
+  ]));
+
+  await type('Skogen');
+  expect(items()).toEqual(['⭐ Skogen min private★ Min', '⭐ Skogen AO min gule★ Min']);
+
+  document.querySelector('.autocomplete-item').click();
+  expect(onSelect).toHaveBeenCalledWith('Skogen min private', 12, true);
 });
 
 describe('sortLocationAutocompleteResults', () => {

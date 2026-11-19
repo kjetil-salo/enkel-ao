@@ -221,7 +221,7 @@ header {
   position: absolute;
   top: 100%;
   right: 0;
-  z-index: var(--z-modal);
+  z-index: 250;
   width: min(15rem, calc(100vw - 1.5rem));
   padding: var(--space-xs);
   border: 1px solid var(--border-color-medium);
@@ -256,6 +256,44 @@ header {
   .header-menu-links > a:not([hidden]) {
     display: flex;
   }
+}
+
+/* === Artsgruppe-toggle i header (🦉 Fugl ↔ 🦌 Pattedyr) === */
+.species-group-toggle {
+  position: relative;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--color-text);
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: background var(--transition-fast), border-color var(--transition-fast), transform var(--transition-fast);
+}
+
+.species-group-toggle.is-non-bird {
+  background: var(--color-accent-soft);
+  border-color: var(--color-accent);
+}
+
+.species-group-toggle:hover {
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+}
+
+.species-group-toggle:active {
+  transform: scale(0.94);
+}
+
+.species-group-toggle > * {
+  pointer-events: none;
 }
 
 .title {

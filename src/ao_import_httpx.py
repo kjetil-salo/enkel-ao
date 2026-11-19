@@ -810,10 +810,12 @@ def post_with_curl(observations, login_token=None, auth_cookie=None, area_id='',
         'published': True,
         'count': 0,
         'imagesUploaded': 0,
-        'imagesFailed': 0,
+        'imagesFailed': [],
         'notPublished': [],
         'refreshedAuthCookie': None,
     }
+    held_back_total = 0
+    held_back_details = []
     for gid, gruppe_obs in grupper.items():
         res = _post_single_group_with_curl(
             gruppe_obs,
@@ -830,8 +832,20 @@ def post_with_curl(observations, login_token=None, auth_cookie=None, area_id='',
             return res
         samlet['count'] += res.get('count', 0)
         samlet['imagesUploaded'] += res.get('imagesUploaded', 0)
-        samlet['imagesFailed'] += res.get('imagesFailed', 0)
+        samlet['imagesFailed'].extend(res.get('imagesFailed') or [])
         samlet['notPublished'].extend(res.get('notPublished') or [])
+        if res.get('heldBack'):
+            held_back_total += res['heldBack']
+            if res.get('heldBackDetails'):
+                held_back_details.append(res['heldBackDetails'])
+    if held_back_total:
+        samlet['heldBack'] = held_back_total
+        if held_back_details:
+            samlet['heldBackDetails'] = ', '.join(held_back_details)
+    if not samlet['imagesFailed']:
+        del samlet['imagesFailed']
+    if not samlet['notPublished']:
+        del samlet['notPublished']
     return samlet
 
 
@@ -1090,7 +1104,8 @@ def _post_single_group_with_curl(observations, login_token=None, auth_cookie=Non
     if held_back is None:
         raise Ao2ImportUavklart()
 
-    published_count = len(observations) - len(unmatched_for_publish)
+    imported_count = len(observations) - len(unmatched_for_publish)
+    published_count = max(0, imported_count - held_back)
     result = {
         'success': True,
         'message': f'{published_count} observasjoner importert og publisert',
@@ -1109,7 +1124,7 @@ def _post_single_group_with_curl(observations, login_token=None, auth_cookie=Non
         logger.warning(f'[AO-HTTPX] {held_back} observasjon(er) ble ikke publisert: {detaljer or "ukjent årsak"}')
         result['heldBack'] = held_back
         result['heldBackDetails'] = detaljer
-        result['message'] = (f'{published_count} importert, men {held_back} ble ikke publisert '
+        result['message'] = (f'{imported_count} importert, men {held_back} ble ikke publisert '
                              '— de ligger til gjennomgang på AO')
     return result
 

@@ -1937,6 +1937,7 @@ class Handler(SimpleHTTPRequestHandler):
         params = parse_qs(parsed.query)
         search = params.get('search', [''])[0].strip()
         dont_include_sub = params.get('dontIncludeSubSpecies', ['true'])[0]
+        species_group = params.get('speciesGroup', ['8'])[0].strip()
         # Fra v1.59.0 søker frontend i den lokale artslista først, og kaller
         # hit bare når den ikke fant noe. SPECIES_SOURCE=local slår av også det
         # siste AO-kallet, uten at frontend må bygges på nytt - en bryter å vri
@@ -1951,7 +1952,10 @@ class Handler(SimpleHTTPRequestHandler):
             'AO_URL', 'https://www.artsobservasjoner.no'
         )
         try:
-            results = handle_species_search(search, dont_include_sub, ao_base)
+            if species_group and species_group != '8':
+                results = handle_species_search(search, dont_include_sub, ao_base, species_group=species_group)
+            else:
+                results = handle_species_search(search, dont_include_sub, ao_base)
             self._send_json(results)
         except Exception as e:
             self._send_json({'error': 'Feil ved henting fra Artsobservasjoner.'}, status=500)

@@ -145,21 +145,21 @@ test('lagrer hele lista på mobil og henter den inn på Mac med samme konto', as
     await velgFraMeny(hjemme, 'arbeidsliste-lokal');
     await expect(hjemme.locator('#obs-list')).toContainText('Tjeld');
 
-    const bekreftelser: string[] = [];
-    hjemme.on('dialog', (dialog) => {
-      bekreftelser.push(dialog.message());
-      return dialog.message().includes('Sjekk hos AO') ? dialog.accept() : dialog.dismiss();
-    });
     await hjemme.evaluate(() => localStorage.setItem('ao_username', 'B'));
     await hjemme.locator('#ao-direct-btn').click();
+    const modal1 = hjemme.locator('#innhentet-send-confirm-modal');
+    await expect(modal1).toContainText('Lista ble kopiert');
+    await modal1.locator('[data-confirm-action="ok"]').click();
     await expect(hjemme.locator('#ao-direct-status')).toContainText('eierens konto');
     expect(api.publiseringskall()).toBe(0);
 
     await hjemme.evaluate(() => localStorage.setItem('ao_username', 'A'));
     await hjemme.locator('#ao-direct-btn').click();
+    const modal2 = hjemme.locator('#innhentet-send-confirm-modal');
+    await expect(modal2).toContainText('Lista ble kopiert');
+    await modal2.locator('[data-confirm-action="ok"]').click();
     await expect(hjemme.locator('#ao-direct-status')).toContainText('sendt til AO');
     expect(api.publiseringskall()).toBe(1);
-    expect(bekreftelser.some((tekst) => tekst.includes('Lista ble kopiert'))).toBe(true);
     expect(await hjemme.evaluate(() => JSON.parse(localStorage.getItem('ao_tokens')!).authCookie)).toBe('gammel-cookie');
   } finally {
     await Promise.all([mobil.close(), mac.close(), annen.close()]);

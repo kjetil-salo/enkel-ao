@@ -9,7 +9,17 @@ const localStorageMock = {
 };
 vi.stubGlobal('localStorage', localStorageMock);
 
-const { loadMedobs, saveMedobs, defaultCoObservers, saveObservations, loadObservations, saveAoDirectAutoClear, loadAoDirectAutoClear, saveNynorskArtsnavn, loadNynorskArtsnavn, speciesDisplayName, saveLastKnownPosition, loadLastKnownPosition } = await import('../../public/js/storage.js');
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+
+const {
+  loadMedobs, saveMedobs, defaultCoObservers, saveObservations, loadObservations,
+  saveAoDirectAutoClear, loadAoDirectAutoClear, saveNynorskArtsnavn, loadNynorskArtsnavn,
+  speciesDisplayName, saveLastKnownPosition, loadLastKnownPosition,
+  ACTIVITY_NYNORSK_MAP, activityDisplayName, activityBokmalName,
+  genderDisplayName, genderBokmalName, ageDisplayName, ageBokmalName,
+  unitDisplayName, unitBokmalName, discoveryMethodDisplayName, discoveryMethodBokmalName,
+} = await import('../../public/js/storage.js');
 
 // Speiler todayStr() i storage.js — medobs lagres med dagens dato.
 function todayStr() {
@@ -313,5 +323,93 @@ describe('lastKnownPosition', () => {
     expect(saveLastKnownPosition(null)).toBe(false);
     expect(saveLastKnownPosition({ lat: NaN, lon: 5.0 })).toBe(false);
     expect(saveLastKnownPosition({ lat: 60.0, lon: 'ugyldig' })).toBe(false);
+  });
+});
+
+describe('activityDisplayName / activityBokmalName (i18n og AO-integritet)', () => {
+  const activities = JSON.parse(readFileSync(resolve('public/data/activities.json'), 'utf8'));
+  const mammalData = JSON.parse(readFileSync(resolve('public/data/pattedyr_lister.json'), 'utf8'));
+
+  it('dekker alle fugleaktiviteter i activities.json og round-tripper eksakt til kanonisk bokmål', () => {
+    for (const a of activities) {
+      expect(ACTIVITY_NYNORSK_MAP).toHaveProperty(a.label);
+      const nn = activityDisplayName(a.label, 'nn');
+      expect(nn).toBeTruthy();
+      expect(activityBokmalName(nn)).toBe(a.label);
+      expect(activityDisplayName(a.label, 'nb')).toBe(a.label);
+    }
+  });
+
+  it('dekker alle pattedyraktiviteter i pattedyr_lister.json og round-tripper eksakt til kanonisk bokmål', () => {
+    for (const a of mammalData.activities) {
+      expect(ACTIVITY_NYNORSK_MAP).toHaveProperty(a.label);
+      const nn = activityDisplayName(a.label, 'nn');
+      expect(nn).toBeTruthy();
+      expect(activityBokmalName(nn)).toBe(a.label);
+      expect(activityDisplayName(a.label, 'nb')).toBe(a.label);
+    }
+  });
+
+  it('bevarer kjente nynorsk-oversettelser og gamle aliaser', () => {
+    expect(activityDisplayName('Rastende', 'nn')).toBe('Rastande');
+    expect(activityBokmalName('Rastande')).toBe('Rastende');
+    expect(activityDisplayName('Sang/spill', 'nn')).toBe('Song/spel');
+    expect(activityBokmalName('Song/spel')).toBe('Sang/spill');
+    expect(activityDisplayName('Drektig hunn', 'nn')).toBe('Drektig ho');
+    expect(activityBokmalName('Drektig ho')).toBe('Drektig hunn');
+    expect(activityDisplayName('Stationær', 'nn')).toBe('Stasjonær');
+    expect(activityBokmalName('Trekkjande mot Ø')).toBe('Trekkende mot Ø');
+  });
+});
+
+describe('genderDisplayName / ageDisplayName (i18n og kanonisk bokmål)', () => {
+  it('oversetter kjønn til nynorsk og tilbake til kanonisk bokmål', () => {
+    expect(genderDisplayName('Hunn', 'nn')).toBe('Ho');
+    expect(genderDisplayName('Hunnfarget', 'nn')).toBe('Hofarga');
+    expect(genderDisplayName('Hann', 'nn')).toBe('Hann');
+    expect(genderDisplayName('I par', 'nn')).toBe('I par');
+    expect(genderDisplayName('Ikke oppgitt', 'nn')).toBe('Ikkje oppgjeve');
+    expect(genderBokmalName('Ho')).toBe('Hunn');
+    expect(genderBokmalName('Hofarga')).toBe('Hunnfarget');
+    expect(genderBokmalName('Ikkje oppgjeve')).toBe('Ikke oppgitt');
+  });
+
+  it('oversetter pattedyr- og fuglealder til nynorsk og tilbake til kanonisk bokmål', () => {
+    expect(ageDisplayName('Voksen', 'nn')).toBe('Vaksen');
+    expect(ageDisplayName('Årsunge', 'nn')).toBe('Årsunge');
+    expect(ageDisplayName('Fjorårsunge', 'nn')).toBe('Fjorårsunge');
+    expect(ageDisplayName('Adult', 'nn')).toBe('Adult');
+    expect(ageDisplayName('1K', 'nn')).toBe('1K');
+    expect(ageBokmalName('Vaksen')).toBe('Voksen');
+  });
+
+  const mammalData = JSON.parse(readFileSync(resolve('public/data/pattedyr_lister.json'), 'utf8'));
+
+  it('oversetter alle pattedyr-enheter (units) til nynorsk og tilbake til kanonisk bokmål', () => {
+    for (const u of mammalData.units) {
+      const nn = unitDisplayName(u.label, 'nn');
+      expect(nn).toBeTruthy();
+      expect(unitBokmalName(nn)).toBe(u.label);
+      expect(unitDisplayName(u.label, 'nb')).toBe(u.label);
+    }
+    expect(unitDisplayName('Individer', 'nn')).toBe('Individ');
+    expect(unitDisplayName('Kolonier', 'nn')).toBe('Koloniar');
+    expect(unitBokmalName('Individ')).toBe('Individer');
+    expect(unitBokmalName('Koloniar')).toBe('Kolonier');
+  });
+
+  it('oversetter alle pattedyr-metoder (discoveryMethods) til nynorsk og tilbake til kanonisk bokmål', () => {
+    for (const m of mammalData.discoveryMethods) {
+      const nn = discoveryMethodDisplayName(m.label, 'nn');
+      expect(nn).toBeTruthy();
+      expect(discoveryMethodBokmalName(nn)).toBe(m.label);
+      expect(discoveryMethodDisplayName(m.label, 'nb')).toBe(m.label);
+    }
+    expect(discoveryMethodDisplayName('Hørt', 'nn')).toBe('Høyrt');
+    expect(discoveryMethodDisplayName('Observasjon i hånden', 'nn')).toBe('Observasjon i handa');
+    expect(discoveryMethodDisplayName('Artsvalg fra dataprogram', 'nn')).toBe('Artsval frå dataprogram');
+    expect(discoveryMethodDisplayName('Detektor med høyfrekvensopptak', 'nn')).toBe('Detektor med høgfrekvensopptak');
+    expect(discoveryMethodBokmalName('Høyrt')).toBe('Hørt');
+    expect(discoveryMethodBokmalName('Observasjon i handa')).toBe('Observasjon i hånden');
   });
 });

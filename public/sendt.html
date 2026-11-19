@@ -453,6 +453,7 @@
               <select id="em-kjonn"></select>
             </div>
           </div>
+          <p id="em-kjonn-par-hint" style="display:none;margin:4px 0 0;font-size:0.78em;color:#f59e0b;line-height:1.3;" role="status" aria-live="polite"></p>
 
           <div class="em-rad">
             <label for="em-kommentar">Åpen kommentar (synlig for andre)</label>
@@ -544,8 +545,9 @@
     </div>
 
     <script type="module">
-      import { loadSentBatches, loadObservations, saveObservations, SENT_MAX_DAYS, activityDisplayName, activityBokmalName } from '/js/storage.js';
+      import { loadSentBatches, loadObservations, saveObservations, SENT_MAX_DAYS, activityDisplayName, activityBokmalName, ageDisplayName, genderDisplayName, genderBokmalName, unitDisplayName, discoveryMethodDisplayName } from '/js/storage.js';
       import { openShareDialog } from '/js/share.js';
+      import { isValidPairCount, syncPairGenderOption } from '/js/form-state.js';
       // Alias tr (ikke t): denne filen har allerede en lokal `const t = hentTokens();`
       // inne i lastAoFunn() - et import med samme navn ville vært forvirrende å lese,
       // selv om selve skoperingen er trygg.
@@ -561,6 +563,7 @@
         Array.from(document.querySelectorAll('#ao-dager option')).forEach((opt) => {
           opt.textContent = tr('sendt.days_option', { n: opt.value });
         });
+        fyllAlderOgKjonnValg();
       });
       // Importene er versjonert: photo-picker.js har fått ny dropZone-støtte, og
       // bilde-editor.js har fått `settSkygger` og `settZoom`/`vedVisningsendring`
@@ -1146,21 +1149,41 @@
       const emAktivitet = document.getElementById('em-aktivitet');
       const emAlder = document.getElementById('em-alder');
       const emKjonn = document.getElementById('em-kjonn');
+      const emKjonnParHint = document.getElementById('em-kjonn-par-hint');
       const emKommentar = document.getElementById('em-kommentar');
       const emFast = document.getElementById('em-fast');
 
-      // Statisk vokabular — fylles én gang, ikke per åpning av modalen.
-      emAlder.innerHTML = '<option value="">Ikke oppgitt</option>'
-        + ALDER_VALG.map((v) => `<option value="${attr(v)}">${tekst(v)}</option>`).join('');
-      emKjonn.innerHTML = '<option value="">Ikke oppgitt</option>'
-        + KJONN_VALG.map((v) => `<option value="${attr(v)}">${tekst(v)}</option>`).join('');
+      function fyllAlderOgKjonnValg() {
+        const prevAlder = emAlder.value;
+        const prevKjonn = emKjonn.value;
+        emAlder.innerHTML = `<option value="">${tekst(tr('index.common.not_specified'))}</option>`
+          + ALDER_VALG.map((v) => `<option value="${attr(v)}">${tekst(ageDisplayName(v))}</option>`).join('');
+        emKjonn.innerHTML = `<option value="">${tekst(tr('index.common.not_specified'))}</option>`
+          + KJONN_VALG.map((v) => `<option value="${attr(v)}">${tekst(genderDisplayName(v))}</option>`).join('');
+        emAlder.value = prevAlder;
+        emKjonn.value = prevKjonn;
+        syncPairGenderOption(emKjonn, emAntall ? emAntall.value : '', { hintEl: emKjonnParHint });
+      }
+
+      // Statisk vokabular — fylles én gang, ikke per åpning av modalen (og ved språkbytte).
+      fyllAlderOgKjonnValg();
 
       // Satt av faktisk brukerinteraksjon, IKKE av value-sammenligning mot
       // forhåndsutfylt verdi — se begrunnelse der emOkt.opprinneligAlder settes.
       let emAlderRort = false;
       let emKjonnRort = false;
       emAlder.addEventListener('change', () => { emAlderRort = true; });
-      emKjonn.addEventListener('change', () => { emKjonnRort = true; });
+      emKjonn.addEventListener('change', () => {
+        emKjonnRort = true;
+        if (emKjonnParHint && emKjonn.value) {
+          emKjonnParHint.textContent = '';
+          emKjonnParHint.style.display = 'none';
+        }
+      });
+      emAntall.addEventListener('input', () => {
+        const res = syncPairGenderOption(emKjonn, emAntall.value, { hintEl: emKjonnParHint });
+        if (res.cleared) emKjonnRort = true;
+      });
       const emStatus = document.getElementById('em-status');
       const emLagre = document.getElementById('em-lagre');
       const emAvbryt = document.getElementById('em-avbryt');
@@ -1421,6 +1444,11 @@
         emKjonn.value = emOkt.opprinneligKjonn;
         emAlderRort = false;
         emKjonnRort = false;
+        if (emKjonnParHint) {
+          emKjonnParHint.textContent = '';
+          emKjonnParHint.style.display = 'none';
+        }
+        syncPairGenderOption(emKjonn, emAntall.value, { hintEl: emKjonnParHint });
         emKommentar.value = emOkt.opprinneligKommentar;
 
         // Det vi IKKE endrer her skal stå synlig, så ingen tror det er glemt.
@@ -1439,6 +1467,11 @@
         const antall = String(emAntall.value || '').trim();
         if (!antall || Number(antall) < 1) {
           emSettStatus(tr('sendt.count_min_1'), 'feil');
+          emAntall.focus();
+          return;
+        }
+        if (genderBokmalName(emKjonn.value || '') === 'I par' && !isValidPairCount(antall)) {
+          emSettStatus(tr('observations.pair_requires_even'), 'feil');
           emAntall.focus();
           return;
         }
@@ -1809,7 +1842,7 @@
           const rader = iGruppe.map(o => {
             const navn = (o.species && o.species.taxonName) || '';
             const tid = (o.timestamp || '').slice(11, 16);
-            const detaljer = [activityDisplayName(o.activity), o.age, o.gender].filter(Boolean).join(' · ');
+            const detaljer = [activityDisplayName(o.activity), unitDisplayName(o.unit), ageDisplayName(o.age), genderDisplayName(o.gender), discoveryMethodDisplayName(o.discoveryMethod)].filter(Boolean).join(' · ');
             return `<li><span class="antall">${tekst(o.count || '')}</span> ${tekst(navn)}
               <span class="detalj">${tid ? ' – ' + tekst(tid) : ''}${detaljer ? ' · ' + tekst(detaljer) : ''}</span></li>`;
           }).join('');

@@ -2,12 +2,17 @@
  * Observations-modul for håndtering av observasjoner og CSV-eksport
  */
 
-import { defaultCoObservers, loadMedobs, speciesDisplayName, activityDisplayName, activityBokmalName, loadAllowUnknownCount } from './storage.js?v=v1.60.30';
+import { defaultCoObservers, loadMedobs, speciesDisplayName, activityDisplayName, activityBokmalName, ageDisplayName, ageBokmalName, genderDisplayName, genderBokmalName, unitDisplayName, unitBokmalName, discoveryMethodDisplayName, discoveryMethodBokmalName, loadAllowUnknownCount } from './storage.js?v=v1.60.30';
 import { showToast } from './ui.js';
 import { t } from './i18n.js?v=v1.60.30';
 import { toLocalISOString } from './utils.js';
 import { getObservationVisitKey, setVisitLocked } from './visits.js';
-import { openEditModal } from './edit-modal.js';
+import { openEditModal } from './edit-modal.js?v=v1.60.30';
+import { isValidPairCount } from './form-state.js?v=v1.60.30';
+
+function erParObservasjon(obs) {
+  return !!(obs && genderBokmalName(obs.gender || '') === 'I par');
+}
 
 /**
  * Vis modal for å sette fra/til-klokkeslett på alle obs i en gruppe
@@ -429,10 +434,12 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
       }
       primaryTd.appendChild(primaryLine);
 
-      // Underlinje: kun alder/kjønn, og kun når noe faktisk er satt.
+      // Underlinje: enhet, alder, kjønn og metode, og kun når noe faktisk er satt.
       const subParts = [];
-      if (obs.age) subParts.push(obs.age);
-      if (obs.gender) subParts.push(obs.gender);
+      if (obs.unit) subParts.push(unitDisplayName(obs.unit));
+      if (obs.age) subParts.push(ageDisplayName(obs.age));
+      if (obs.gender) subParts.push(genderDisplayName(obs.gender));
+      if (obs.discoveryMethod) subParts.push(discoveryMethodDisplayName(obs.discoveryMethod));
       if (subParts.length) {
         const subline = document.createElement('div');
         subline.className = 'obs-subline';
@@ -506,11 +513,12 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
           minus10Btn.addEventListener('click', (e) => {
             e.stopPropagation();
             if (obs.count == null) return; // ukjent antall - «-» er no-op
-            if (obs.count > 10) {
-              obs.count -= 10;
-            } else {
-              obs.count = 1;
+            const nextCount = obs.count > 10 ? obs.count - 10 : 1;
+            if (erParObservasjon(obs) && !isValidPairCount(nextCount)) {
+              showToast(t('observations.pair_requires_even'));
+              return;
             }
+            obs.count = nextCount;
             obs.tilKlokkeslett = toLocalISOString(new Date());
             span.textContent = String(obs.count);
             saveState();
@@ -528,7 +536,12 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
           e.stopPropagation();
           if (obs.count == null) return; // ukjent antall - «-» er no-op
           if (obs.count > 1) {
-            obs.count--;
+            const nextCount = obs.count - 1;
+            if (erParObservasjon(obs) && !isValidPairCount(nextCount)) {
+              showToast(t('observations.pair_requires_even'));
+              return;
+            }
+            obs.count = nextCount;
             obs.tilKlokkeslett = toLocalISOString(new Date());
             span.textContent = String(obs.count);
             saveState();
@@ -561,7 +574,12 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
         Object.assign(plusBtn.style, btnStyleWithDisplay);
         plusBtn.addEventListener('click', (e) => {
           e.stopPropagation();
-          obs.count = (obs.count == null ? 0 : obs.count) + 1; // ukjent antall - «+» setter 1
+          const nextCount = (obs.count == null ? 0 : obs.count) + 1; // ukjent antall - «+» setter 1
+          if (erParObservasjon(obs) && !isValidPairCount(nextCount)) {
+            showToast(t('observations.pair_requires_even'));
+            return;
+          }
+          obs.count = nextCount;
           obs.tilKlokkeslett = toLocalISOString(new Date());
           span.textContent = String(obs.count);
           saveState();
@@ -578,7 +596,12 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
           Object.assign(plus10Btn.style, btnStyleWithDisplay);
           plus10Btn.addEventListener('click', (e) => {
             e.stopPropagation();
-            obs.count = (obs.count == null ? 0 : obs.count) + 10;
+            const nextCount = (obs.count == null ? 0 : obs.count) + 10;
+            if (erParObservasjon(obs) && !isValidPairCount(nextCount)) {
+              showToast(t('observations.pair_requires_even'));
+              return;
+            }
+            obs.count = nextCount;
             obs.tilKlokkeslett = toLocalISOString(new Date());
             span.textContent = String(obs.count);
             saveState();
@@ -615,6 +638,11 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
               renderCountCell();
               return;
             }
+            if (erParObservasjon(obs)) {
+              showToast(t('observations.pair_requires_even'));
+              renderCountCell();
+              return;
+            }
             obs.count = null;
             obs.tilKlokkeslett = toLocalISOString(new Date());
             saveState();
@@ -623,6 +651,11 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
           }
           const num = parseInt(val, 10);
           if (isNaN(num) || num <= 0) {
+            renderCountCell();
+            return;
+          }
+          if (erParObservasjon(obs) && !isValidPairCount(num)) {
+            showToast(t('observations.pair_requires_even'));
             renderCountCell();
             return;
           }
@@ -735,14 +768,21 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
 // Oppdater samme konstant i src/ao_import.py hvis dette noensinne endrer seg.
 const AO_BOOL_TRUE = 'true';
 
-export function toCsv(observations, { ao3 = false } = {}) {
+export function toCsv(observations, { ao3 = false, speciesGroupId = null } = {}) {
   if (!observations.length) return '';
 
   const SEP = '\t';
+  const erPattedyr = String(speciesGroupId) === '11'
+    || (speciesGroupId == null && observations.every((o) => String(o.speciesGroupId || (o.species && o.species.speciesGroupId) || '8') === '11'));
+
   const header = [
     'Artsnavn',
     'Lokalitetsnavn',
-    'Superlokalitet',
+  ];
+  if (!erPattedyr) {
+    header.push('Superlokalitet');
+  }
+  header.push(
     'Nord',
     'Øst',
     'Nøyaktighet',
@@ -751,9 +791,19 @@ export function toCsv(observations, { ao3 = false } = {}) {
     'Fra klokkeslett',
     'Til klokkeslett',
     'Antall',
+  );
+  if (erPattedyr) {
+    header.push('Enhet');
+  }
+  header.push(
     'Alder',
     'Kjønn',
     'Aktivitet',
+  );
+  if (erPattedyr) {
+    header.push('Metode');
+  }
+  header.push(
     'Kommentar (synlig for alle)',
     'Privat kommentar (kun synlig for deg selv)',
     'Skjul funn til dato',
@@ -794,15 +844,39 @@ export function toCsv(observations, { ao3 = false } = {}) {
     'Bekreftet av',
     'Bekreftet av (fritekst)',
     'Bekreftelsesår',
-  ];
+  );
+
+  const idxSuper = header.indexOf('Superlokalitet');
+  const idxFraDato = header.indexOf('Fra dato');
+  const idxTilDato = header.indexOf('Til dato');
+  const idxFraTid = header.indexOf('Fra klokkeslett');
+  const idxTilTid = header.indexOf('Til klokkeslett');
+  const idxAntall = header.indexOf('Antall');
+  const idxEnhet = header.indexOf('Enhet');
+  const idxAlder = header.indexOf('Alder');
+  const idxKjonn = header.indexOf('Kjønn');
+  const idxAktivitet = header.indexOf('Aktivitet');
+  const idxMetode = header.indexOf('Metode');
+  const idxKommentar = header.indexOf('Kommentar (synlig for alle)');
+  const idxPrivatKommentar = header.indexOf('Privat kommentar (kun synlig for deg selv)');
+  const idxSkjul = header.indexOf('Skjul funn til dato');
+  const idxMedobsStart = header.indexOf('Medobservatør');
+  const idxNatursystem = header.indexOf('Natursystem');
+  const idxBeskrivArtLivs = header.indexOf('Beskriv art som livsmedium');
+  const idxAndrehands = header.indexOf('Andrehånds');
+  const idxUsikker = header.indexOf('Usikker artsbestemming');
+  const idxIkkeSpontan = header.indexOf('Ikke spontan');
+  const idxInteressant = header.indexOf('Interessant observasjon');
+  const idxIkkeGjenfunnet = header.indexOf('Ikke gjenfunnet');
+  const idxIkkeFunnet = header.indexOf('Ikke funnet');
 
   let kolonner = header.map((_, i) => i);
   if (ao3) {
-    // AO3s fuglemal (3.0) har egne navn og mangler disse AO2-feltene.
-    header[2] = 'Hovedlokalitet';
-    header[14] = 'Merknad (synlig for alle)';
-    header[15] = 'Privat merknad (kun synlig for deg selv)';
-    kolonner = kolonner.filter((i) => (i < 28 || i > 33) && i !== 41);
+    // AO3-malen har egne navn og mangler disse AO2-feltene.
+    if (idxSuper !== -1) header[idxSuper] = 'Hovedlokalitet';
+    header[idxKommentar] = 'Merknad (synlig for alle)';
+    header[idxPrivatKommentar] = 'Privat merknad (kun synlig for deg selv)';
+    kolonner = kolonner.filter((i) => (i < idxNatursystem || i > idxBeskrivArtLivs) && i !== idxInteressant);
   }
   const lines = [kolonner.map((i) => header[i]).join(SEP)];
 
@@ -820,16 +894,18 @@ export function toCsv(observations, { ao3 = false } = {}) {
     const sted = ao3 ? obs.placeName : obs.placeId || obs.placeName;
     const place = String(sted || '').replace(/[;\t]/g, ',');
     const count = obs.count != null ? String(obs.count) : '';
+    const unit = unitBokmalName(obs.unit || '').replace(/[;\t]/g, ',');
     const activity = activityBokmalName(obs.activity || '').replace(/[;\t]/g, ',');
-    const age = (obs.age || '').replace(/[;\t]/g, ',');
-    const gender = (obs.gender || '').replace(/[;\t]/g, ',');
+    const age = ageBokmalName(obs.age || '').replace(/[;\t]/g, ',');
+    const gender = genderBokmalName(obs.gender || '').replace(/[;\t]/g, ',');
+    const discoveryMethod = discoveryMethodBokmalName(obs.discoveryMethod || '').replace(/[;\t]/g, ',');
     const comment = (obs.comment || '').replace(/[;\t]/g, ',');
     const privateComment = (obs.privateComment || '').replace(/[;\t]/g, ',');
 
     // Dato (Fra/til = samme dag) – format DD.MM.YYYY
     let dateStr = '';
     let timeStr = '';
-    
+
     if (obs.timestamp) {
       const d = new Date(obs.timestamp);
       if (!isNaN(d.getTime())) {
@@ -856,7 +932,7 @@ export function toCsv(observations, { ao3 = false } = {}) {
         tilTimeStr = `${hh}:${mi}`;
       }
     }
-    
+
     if (!dateStr) {
       const d = new Date();
       const dd = String(d.getDate()).padStart(2, '0');
@@ -865,55 +941,49 @@ export function toCsv(observations, { ao3 = false } = {}) {
       dateStr = `${dd}.${mm}.${yyyy}`;
     }
 
-    const cols = new Array(54).fill('');
+    const cols = new Array(header.length).fill('');
     cols[0] = name;
     cols[1] = place;
-    cols[6] = dateStr;
-    cols[7] = dateStr;
-    cols[8] = timeStr;
-    // Kolonne 9: Bruk tilTimeStr hvis det finnes, ellers samme som fra-tid
-    cols[9] = tilTimeStr ? tilTimeStr : timeStr;
-    cols[10] = count;
-    cols[11] = age;
-    cols[12] = gender;
-    cols[13] = activity;
-    cols[14] = comment;
-    cols[15] = privateComment;
+    cols[idxFraDato] = dateStr;
+    cols[idxTilDato] = dateStr;
+    cols[idxFraTid] = timeStr;
+    cols[idxTilTid] = tilTimeStr ? tilTimeStr : timeStr;
+    cols[idxAntall] = count;
+    if (idxEnhet !== -1) cols[idxEnhet] = unit;
+    cols[idxAlder] = age;
+    cols[idxKjonn] = gender;
+    cols[idxAktivitet] = activity;
+    if (idxMetode !== -1) cols[idxMetode] = discoveryMethod;
+    cols[idxKommentar] = comment;
+    cols[idxPrivatKommentar] = privateComment;
 
-    // Skjul funn til dato (kolonne 16, index 16) — konverter YYYY-MM-DD → DD.MM.YYYY
+    // Skjul funn til dato — konverter YYYY-MM-DD → DD.MM.YYYY
     if (obs.hideUntil) {
       const parts = obs.hideUntil.split('-');
       if (parts.length === 3) {
-        cols[16] = `${parts[2]}.${parts[1]}.${parts[0]}`;
+        cols[idxSkjul] = `${parts[2]}.${parts[1]}.${parts[0]}`;
       }
     }
 
-    // Flere felt-modalen (kolonne 38-43) — se AO_BOOL_TRUE-kommentaren over
+    // Flere felt-modalen — se AO_BOOL_TRUE-kommentaren over
     const avkrysset = ao3 ? 'X' : AO_BOOL_TRUE;
-    if (obs.secondhand) cols[38] = avkrysset;
-    if (obs.uncertain) cols[39] = avkrysset;
-    if (obs.notSpontaneous) cols[40] = avkrysset;
-    if (obs.interesting) cols[41] = AO_BOOL_TRUE;
-    if (obs.notRefound) cols[42] = avkrysset;
-    if (obs.notFound) cols[43] = avkrysset;
-    if (ao3 && (obs.notRefound || obs.notFound)) cols[10] = '';
+    if (obs.secondhand) cols[idxAndrehands] = avkrysset;
+    if (obs.uncertain) cols[idxUsikker] = avkrysset;
+    if (obs.notSpontaneous) cols[idxIkkeSpontan] = avkrysset;
+    if (obs.interesting) cols[idxInteressant] = AO_BOOL_TRUE;
+    if (obs.notRefound) cols[idxIkkeGjenfunnet] = avkrysset;
+    if (obs.notFound) cols[idxIkkeFunnet] = avkrysset;
+    if (ao3 && (obs.notRefound || obs.notFound)) cols[idxAntall] = '';
 
     // Medobservatører (10 kolonner)
     if (Array.isArray(obs.coObservers)) {
       for (let i = 0; i < 10; i++) {
         let v = obs.coObservers[i];
-        // Hvis objekt: alias er unikt hos AO og foretrekkes (navn kan kollidere,
-        // f.eks. flere kontoer med samme PresentationName). Ellers bruk som streng.
         if (v && typeof v === 'object') {
           v = ao3 ? v.name || v.alias : v.alias || v.name;
         }
         if (!v || v === 'undefined' || v === null) v = '';
-        cols[17 + i] = String(v).replace(/[;\t]/g, ',');
-      }
-    } else {
-      // Fyll med tomme strenger hvis ingen coObservers
-      for (let i = 0; i < 10; i++) {
-        cols[17 + i] = '';
+        cols[idxMedobsStart + i] = String(v).replace(/[;\t]/g, ',');
       }
     }
 
@@ -921,6 +991,6 @@ export function toCsv(observations, { ao3 = false } = {}) {
       ? kolonner.map((i) => cols[i].replace(/[\r\n]+/g, ' ')).join(SEP)
       : cols.join(SEP));
   }
-  
+
   return lines.join('\n');
 }

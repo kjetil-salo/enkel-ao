@@ -2,12 +2,13 @@
  * Observasjons-modul for validering, lagring og aktivitets-pills
  */
 
-import { defaultCoObservers, loadActivityPills, speciesDisplayName, activityDisplayName, activityBokmalName } from './storage.js?v=v1.60.30';
+import { defaultCoObservers, loadActivityPills, speciesDisplayName, activityDisplayName, activityBokmalName, genderBokmalName, unitBokmalName, discoveryMethodBokmalName } from './storage.js?v=v1.60.30';
 import { showToast } from './ui.js';
 import { t } from './i18n.js?v=v1.60.30';
 import { toLocalISOString } from './utils.js';
 import { resolveVisitIdForNewObservation, getVisitTimeSpan, isVisitLocked, visitExists } from './visits.js';
 import { celebrateRareFind } from './celebrate.js';
+import { isValidPairCount } from './form-state.js?v=v1.60.30';
 
 function getObservationTimestamp() {
   const isAfterMode = localStorage.getItem('afterRegistrationMode') === '1';
@@ -110,12 +111,24 @@ export function commitObservation(state, dom, callbacks) {
   if (dom.activitySelect && !dom.activitySelect.disabled) {
     const opt = dom.activitySelect.options[dom.activitySelect.selectedIndex];
     if (opt) {
-      activity = opt.value === '' ? '' : activityBokmalName((opt.text || '').trim());
+      activity = opt.value === ''
+        ? ''
+        : ((opt.dataset && opt.dataset.canonicalLabel) || activityBokmalName((opt.text || '').trim()));
     }
   }
 
   let age = dom.ageSelect.value || '';
   let gender = dom.genderSelect.value || '';
+
+  if (genderBokmalName(gender) === 'I par' && !isValidPairCount(count, { unknownCount })) {
+    showToast(t('observations.pair_requires_even'));
+    if (dom.genderPairHint) {
+      dom.genderPairHint.textContent = t('index.gender.pair_requires_even_hint');
+      dom.genderPairHint.style.display = 'block';
+    }
+    if (dom.genderSelect) dom.genderSelect.focus();
+    return;
+  }
 
   const isAfterMode = localStorage.getItem('afterRegistrationMode') === '1';
   const now = new Date();
@@ -163,9 +176,13 @@ export function commitObservation(state, dom, callbacks) {
     return;
   }
 
+  const speciesGroupId = Number(state.selectedSpeciesGroup || (state.selectedSpecies && state.selectedSpecies.speciesGroupId) || 8);
+  const unit = speciesGroupId === 11 && dom.unitSelect ? unitBokmalName(dom.unitSelect.value || '') : '';
+  const discoveryMethod = speciesGroupId === 11 && dom.discoveryMethodSelect ? discoveryMethodBokmalName(dom.discoveryMethodSelect.value || '') : '';
+
   const obs = {
     species: state.selectedSpecies,
-    speciesGroupId: Number(state.selectedSpeciesGroup || (state.selectedSpecies && state.selectedSpecies.speciesGroupId) || 8),
+    speciesGroupId,
     count,
     position: state.currentPosition,
     activity,
@@ -178,6 +195,8 @@ export function commitObservation(state, dom, callbacks) {
     gender,
     coObservers: defaultCoObservers(),
   };
+  if (unit) obs.unit = unit;
+  if (discoveryMethod) obs.discoveryMethod = discoveryMethod;
 
   // Kommentar: fritekst fra flere felt-modalen, med «Estimert antal» lagt til på slutten
   // hvis ca-boksen er hukket av (kan begge være satt samtidig).
@@ -265,6 +284,18 @@ export function commitObservation(state, dom, callbacks) {
   dom.genderSelect.disabled = false; // Hold aktivert
   dom.ageSelect.value = '';
   dom.genderSelect.value = '';
+  if (dom.genderPairHint) {
+    dom.genderPairHint.textContent = '';
+    dom.genderPairHint.style.display = 'none';
+  }
+  if (dom.unitSelect) {
+    dom.unitSelect.disabled = false;
+    dom.unitSelect.value = '';
+  }
+  if (dom.discoveryMethodSelect) {
+    dom.discoveryMethodSelect.disabled = false;
+    dom.discoveryMethodSelect.value = '';
+  }
   if (dom.countEstimatedCheckbox) dom.countEstimatedCheckbox.checked = false;
 
   // Nullstill flere felt-modalen — feltene gjelder kun én registrering
@@ -387,7 +418,7 @@ export function renderActivityPills(dom, commitFn) {
         // p.value her, det ville hoppet bom på nettopp den pillen.
         for (let i = 0; i < dom.activitySelect.options.length; i++) {
           const opt = dom.activitySelect.options[i];
-          if (opt.value === p.value || activityBokmalName(opt.text.trim()) === label) {
+          if (opt.value === p.value || (opt.dataset && opt.dataset.canonicalLabel === label) || activityBokmalName(opt.text.trim()) === label) {
             dom.activitySelect.selectedIndex = i;
             break;
           }
