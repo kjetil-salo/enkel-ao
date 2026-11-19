@@ -11,18 +11,22 @@ from datetime import datetime
 AO_BOOL_TRUE = 'true'
 
 
-def observations_to_csv(observations):
+def observations_to_csv(observations, species_group_id='8'):
     """
     Konverter observations array til AO CSV-format.
 
     Format matcher observations.js toCsv() funksjonen:
     Header + data-rader med tab-separerte verdier.
     """
+    er_pattedyr = str(species_group_id) == '11'
     # CSV Header - VIKTIG: Må matche nøyaktig det AO forventer
     header_cols = [
         'Artsnavn',
         'Lokalitetsnavn',
-        'Superlokalitet',
+    ]
+    if not er_pattedyr:
+        header_cols.append('Superlokalitet')
+    header_cols.extend([
         'Nord',
         'Øst',
         'Nøyaktighet',
@@ -31,13 +35,21 @@ def observations_to_csv(observations):
         'Fra klokkeslett',
         'Til klokkeslett',
         'Antall',
+    ])
+    if er_pattedyr:
+        header_cols.append('Enhet')
+    header_cols.extend([
         'Alder',
         'Kjønn',
         'Aktivitet',
+    ])
+    if er_pattedyr:
+        header_cols.append('Metode')
+    header_cols.extend([
         'Kommentar (synlig for alle)',
         'Privat kommentar (kun synlig for deg selv)',
         'Skjul funn til dato',
-    ]
+    ])
 
     # Legg til 10 medobservatør-kolonner
     for i in range(10):
@@ -121,7 +133,10 @@ def observations_to_csv(observations):
         row = [
             species_name,
             place_col,
-            '',  # Superlokalitet
+        ]
+        if not er_pattedyr:
+            row.append('')  # Superlokalitet
+        row.extend([
             '',  # Nord (lat)
             '',  # Øst (lon)
             '',  # Nøyaktighet
@@ -134,13 +149,21 @@ def observations_to_csv(observations):
             # stedet ble str(None) == 'None' sendt til AO som verdien i Antall-kolonnen,
             # og AO avviste raden («Ugyldig verdi: ikke et heltall», feltverifisert 16.11.2026).
             '' if obs.get('count') is None else str(obs['count']),
+        ])
+        if er_pattedyr:
+            row.append(obs.get('unit', ''))
+        row.extend([
             obs.get('age', ''),
             obs.get('gender', ''),
             obs.get('activity', ''),
+        ])
+        if er_pattedyr:
+            row.append(obs.get('discoveryMethod', ''))
+        row.extend([
             obs.get('comment', ''),
             private_comment_col,
             hide_until_str,
-        ]
+        ])
 
         # Medobservatører (maks 10)
         co_obs = obs.get('coObservers', [])

@@ -112,15 +112,25 @@ def logg_inn_pa_ao3(epost, passord, *, med_lokaliteter=False):
         return None
 
 
-@lru_cache(maxsize=1)
-def _verdilister():
+@lru_cache(maxsize=8)
+def _verdilister(gruppe_id=8):
     svar = httpx.get(AO3 + '/lists/Lists/GetAllLists', params={'languageCode': 'nb'},
                      headers=_AO3_HEADERS, timeout=8).raise_for_status().json()
-    fugl = {navn: next(r for r in svar[navn] if r['speciesGroupId'] == 8)
-            for navn in ('speciesGroupActivities', 'speciesGroupStages', 'speciesGroupGenders')}
-    aktiviteter = [a for kategori in fugl['speciesGroupActivities']['activityCategories'] for a in kategori['activity']]
-    return tuple({r['resourceLabel'].strip().casefold(): r['id'] for r in rader}
-                 for rader in (aktiviteter, fugl['speciesGroupStages']['stages'], fugl['speciesGroupGenders']['genders']))
+    gruppe = {navn: next((r for r in svar[navn] if r['speciesGroupId'] == gruppe_id), {})
+              for navn in ('speciesGroupActivities', 'speciesGroupStages', 'speciesGroupGenders',
+                           'speciesGroupUnits', 'speciesGroupDiscoveryMethods')}
+    aktiviteter = [a for kategori in gruppe['speciesGroupActivities'].get('activityCategories', [])
+                   for a in kategori.get('activity', [])]
+    return tuple(
+        {r['resourceLabel'].strip().casefold(): r['id'] for r in rader}
+        for rader in (
+            aktiviteter,
+            gruppe['speciesGroupStages'].get('stages', []),
+            gruppe['speciesGroupGenders'].get('genders', []),
+            gruppe['speciesGroupUnits'].get('units', []),
+            gruppe['speciesGroupDiscoveryMethods'].get('discoveryMethods', []),
+        )
+    )
 
 
 @lru_cache(maxsize=2048)
@@ -149,6 +159,7 @@ def _prepare(funn):
     art = funn['species']
     takson = int(art['taxonId'])
     sted = int(funn['placeId'])
+    gruppe_id = int(funn.get('speciesGroupId') or art.get('speciesGroupId') or 8)
     # Ukjent antall (se docs/ukjent-antall-og-uoppgitt-aktivitet.md) gir count=None —
     # 0 er aldri et ekte antall, så den eksisterende min(...)<1-sjekken under fanger
     # det uttrykt og sender funnet til manuell AO3-import i stedet for å kaste.
@@ -157,10 +168,13 @@ def _prepare(funn):
         raise _KanIkkeSende('Bruk AO3-importen for funn uten entydig art, lokalitet eller antall.')
     ao3_art = _ao3_art(takson)
     navn = ((ao3_art.get('vernacularName') or {}).get('name') or '').strip().casefold()
-    if ao3_art['speciesGroupId'] != 8 or navn != art['taxonName'].strip().casefold():
+    if ao3_art['speciesGroupId'] != gruppe_id or navn != art['taxonName'].strip().casefold():
         raise _KanIkkeSende('Artens navn og ID kunne ikke verifiseres i AO3.')
 
-    aktiviteter, alder, kjønn = _verdilister()
+    verdier_tuple = _verdilister(gruppe_id) if gruppe_id != 8 else _verdilister()
+    aktiviteter, alder, kjønn = verdier_tuple[:3]
+    enheter = verdier_tuple[3] if len(verdier_tuple) > 3 else {}
+    metoder = verdier_tuple[4] if len(verdier_tuple) > 4 else {}
     fra = _lokal_tid(funn['timestamp'])
     til = _lokal_tid(funn['tilKlokkeslett']) if funn.get('tilKlokkeslett') else fra
     felter = {
@@ -177,7 +191,11 @@ def _prepare(funn):
     if til.date() != fra.date():
         felter['endDate'] = _dato(til)
     for appfelt, ao3felt, verdier in (
-        ('activity', 'activityId', aktiviteter), ('age', 'stageId', alder), ('gender', 'genderId', kjønn),
+        ('activity', 'activityId', aktiviteter),
+        ('age', 'stageId', alder),
+        ('gender', 'genderId', kjønn),
+        ('unit', 'unitId', enheter),
+        ('discoveryMethod', 'discoveryMethodId', metoder),
     ):
         if verdi := (funn.get(appfelt) or '').strip().casefold():
             felter[ao3felt] = verdier[verdi]

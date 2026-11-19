@@ -154,10 +154,11 @@ export function mergeAoSitesWithPrivateCache(sites, referencePosition, searchRad
  *   eller 'avstand' (kun avstand, uavhengig av type)
  * @returns {Array} - Oppdatert liste med sites
  */
-export function setAoSiteSuggestions(sites, currentPosition, dropdown, aoSitesEl, placeInput, setCurrentPlace, searchRadiusMeters, sortMode = 'standard') {
+export function setAoSiteSuggestions(sites, currentPosition, dropdown, aoSitesEl, placeInput, setCurrentPlace, searchRadiusMeters, sortMode = 'standard', onlyMine = false) {
   console.log('currentPosition:', currentPosition);
 
-  const currentAoSites = mergeAoSitesWithPrivateCache(sites, currentPosition, searchRadiusMeters);
+  const mergedSites = mergeAoSitesWithPrivateCache(sites, currentPosition, searchRadiusMeters);
+  const currentAoSites = onlyMine ? mergedSites.filter(s => s && s.isMine) : mergedSites;
 
   if (!dropdown) return currentAoSites;
   
@@ -167,7 +168,9 @@ export function setAoSiteSuggestions(sites, currentPosition, dropdown, aoSitesEl
 
   if (!currentAoSites.length) {
     dropdown.style.display = 'none';
-    aoSitesEl.innerHTML = t('location.no_sites_nearby');
+    aoSitesEl.innerHTML = onlyMine
+      ? 'Ingen egne private lokaliteter i nærheten. Pattedyr må rapporteres på en egen privat lokalitet — opprett en ny eller søk.'
+      : t('location.no_sites_nearby');
     aoSitesEl.style.display = 'block';
     return currentAoSites;
   }

@@ -310,12 +310,19 @@
               placeholder="F.eks. Osen, Herdla …"
             />
             <div class="result-empty" id="ao-sites" style="display:none; margin-top:4px;"></div>
+            <div class="private-site-notice" id="private-site-notice" style="display:none;">
+              Pattedyr kan bare rapporteres på egne private lokaliteter.
+            </div>
           </div>
           </div><!-- /loc-full -->
         </fieldset>
 
         <fieldset class="section-main section-observasjon" style="margin:0 0 16px 0;padding:0 6px 12px 6px;box-sizing:border-box;">
           <legend>② Registrer art</legend>
+          <div class="species-group-toggle" role="radiogroup" aria-label="Artsgruppe">
+            <button type="button" id="species-group-birds" class="species-group-btn" role="radio" aria-checked="true" data-group="8">🐦 Fugl</button>
+            <button type="button" id="species-group-mammals" class="species-group-btn" role="radio" aria-checked="false" data-group="11">🦌 Pattedyr</button>
+          </div>
           <!-- TODO: Skjul status-raden til søk faktisk pågår. Vis kun når brukeren har begynt å skrive (>0 tegn). -->
           <div class="status-row" style="display:none;">
             <div class="status-left">

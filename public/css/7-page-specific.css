@@ -2417,6 +2417,40 @@ body.theme-clean .obs-group-lock-btn:active {
 .loc-sort-btn:not([aria-checked="true"]):hover {
   border-color: var(--accent);
 }
+.species-group-toggle {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+.species-group-btn {
+  flex: 1;
+  min-height: 44px;
+  font-size: 16px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.species-group-btn[aria-checked="true"] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+  font-weight: 600;
+}
+.species-group-btn:not([aria-checked="true"]):hover {
+  border-color: var(--accent);
+}
+.private-site-notice {
+  margin-top: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--accent);
+  color: var(--text);
+  font-size: 0.9em;
+}
 
 /* Stor, touch-vennlig thumb for kalde hender/hansker */
 .radius-row input[type="range"]::-webkit-slider-runnable-track {

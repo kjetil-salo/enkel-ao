@@ -74,6 +74,7 @@ const appState = {
   activeIndex: -1,
   debounceTimer: null,
   selectedSpecies: null,
+  selectedSpeciesGroup: '8',
   searchPulseTimeout: null,
   observations: [],
   currentPosition: null,
@@ -177,6 +178,7 @@ const callbacks = {
   saveState,
   lesLagretListe: lesArbeidslisteForOverforing,
   renderResults: () => renderResults(appState, dom),
+  getSpeciesGroup: () => appState.selectedSpeciesGroup,
 };
 appState._callbacks = callbacks;
 
@@ -635,7 +637,8 @@ function expandLocation() {
       dom.placeInput,
       makeSetCurrentPlaceAndUpdate(),
       appState.currentAoSizeMeters,
-      appState.locationSortMode
+      appState.locationSortMode,
+      appState.selectedSpeciesGroup !== '8'
     );
     updateLocationTuningVisibility();
   }
@@ -815,7 +818,8 @@ function handlePositionUpdate(position, sites, radiusUsed = appState.currentAoSi
     dom.placeInput,
     makeSetCurrentPlaceAndUpdate(),
     radiusForMerge,
-    appState.locationSortMode
+    appState.locationSortMode,
+    appState.selectedSpeciesGroup !== '8'
   );
   if (!isOfflineMode() && appState.currentAoSites && appState.currentAoSites.length > 0) {
     saveOpportunisticOfflineLocations(appState.currentAoSites).catch(() => {});
@@ -862,9 +866,134 @@ function setLocationSortMode(mode) {
       dom.placeInput,
       makeSetCurrentPlaceAndUpdate(),
       appState.currentAoSizeMeters,
-      appState.locationSortMode
+      appState.locationSortMode,
+      appState.selectedSpeciesGroup !== '8'
     );
   }
+}
+
+let _birdAgeOptionsHtml = null;
+let _birdGenderOptionsHtml = null;
+
+async function oppdaterVerdilisterForArtsgruppe(groupId) {
+  try {
+    if (dom.ageSelect && _birdAgeOptionsHtml === null) {
+      _birdAgeOptionsHtml = dom.ageSelect.innerHTML;
+    }
+    if (dom.genderSelect && _birdGenderOptionsHtml === null) {
+      _birdGenderOptionsHtml = dom.genderSelect.innerHTML;
+    }
+    const lister = await loadSpeciesGroupLists(groupId);
+    if (dom.activitySelect) {
+      dom.activitySelect.innerHTML = '';
+      const noneOpt = document.createElement('option');
+      noneOpt.value = '';
+      noneOpt.textContent = t('index.common.not_specified');
+      dom.activitySelect.appendChild(noneOpt);
+      (lister.activities || []).forEach(a => {
+        const opt = document.createElement('option');
+        opt.value = a.value;
+        opt.textContent = groupId === '8' ? activityDisplayName(a.label) : a.label;
+        if (a.selected) opt.selected = true;
+        dom.activitySelect.appendChild(opt);
+      });
+    }
+    if (dom.ageSelect) {
+      if (groupId === '11' && Array.isArray(lister.stages)) {
+        dom.ageSelect.innerHTML = '<option value="">Ikke oppgitt</option>';
+        lister.stages.forEach(s => {
+          const opt = document.createElement('option');
+          opt.value = s.value;
+          opt.textContent = s.label;
+          dom.ageSelect.appendChild(opt);
+        });
+      } else if (groupId === '8' && _birdAgeOptionsHtml !== null) {
+        dom.ageSelect.innerHTML = _birdAgeOptionsHtml;
+      }
+    }
+    if (dom.genderSelect) {
+      if (groupId === '11' && Array.isArray(lister.genders)) {
+        dom.genderSelect.innerHTML = '<option value="">Ikke oppgitt</option>';
+        lister.genders.forEach(g => {
+          const opt = document.createElement('option');
+          opt.value = g.value;
+          opt.textContent = g.label;
+          dom.genderSelect.appendChild(opt);
+        });
+      } else if (groupId === '8' && _birdGenderOptionsHtml !== null) {
+        dom.genderSelect.innerHTML = _birdGenderOptionsHtml;
+      }
+    }
+  } catch (e) {
+    console.warn('Kunne ikke laste verdilister for artsgruppe', groupId, e);
+  }
+}
+
+function erValgtLokalitetPrivat() {
+  if (!appState.currentPlaceId) return false;
+  const mineIds = new Set(getCachedPrivateSites().map(s => String(s.id)));
+  if (mineIds.has(String(appState.currentPlaceId))) return true;
+  return (appState.currentAoSites || []).some(s => s && s.isMine && String(s.id) === String(appState.currentPlaceId));
+}
+
+function oppdaterPrivatLokalitetVarsel() {
+  const notice = document.getElementById('private-site-notice');
+  if (!notice) return;
+  const kreverPrivat = appState.selectedSpeciesGroup !== '8';
+  notice.style.display = kreverPrivat && !erValgtLokalitetPrivat() ? 'block' : 'none';
+}
+
+function setSpeciesGroup(groupId) {
+  const gruppe = String(groupId) === '11' ? '11' : '8';
+  if (appState.selectedSpeciesGroup === gruppe) return;
+  appState.selectedSpeciesGroup = gruppe;
+
+  const birdsBtn = document.getElementById('species-group-birds');
+  const mammalsBtn = document.getElementById('species-group-mammals');
+  if (birdsBtn) birdsBtn.setAttribute('aria-checked', String(gruppe === '8'));
+  if (mammalsBtn) mammalsBtn.setAttribute('aria-checked', String(gruppe === '11'));
+
+  // Nullstill valgt art ved bytte av gruppe
+  appState.selectedSpecies = null;
+  appState.currentResults = [];
+  appState.activeIndex = -1;
+  if (dom.input) {
+    dom.input.value = '';
+    dom.input.placeholder = gruppe === '11' ? 'Skriv pattedyrart her …' : t('index.search_placeholder');
+  }
+  if (dom.resultsEl) dom.resultsEl.innerHTML = '';
+
+  // Ikke-fugl kan bare rapporteres på egne private lokaliteter
+  if (gruppe !== '8' && appState.currentPlaceName && !erValgtLokalitetPrivat()) {
+    appState.currentPlaceName = '';
+    appState.currentPlaceId = null;
+    if (dom.placeInput) {
+      dom.placeInput.value = '';
+      dom.placeInput.dataset.autofilled = 'false';
+    }
+    expandLocation();
+    showToast('Pattedyr krever egen privat lokalitet', { borderColor: '#f59e0b', duration: 3000 });
+  }
+  oppdaterPrivatLokalitetVarsel();
+
+  const visDropdown = !erEtterregistreringsmodus();
+  const baseSites = appState.lastBboxSites && appState.lastBboxSites.length
+    ? appState.lastBboxSites
+    : (appState.currentAoSites || []);
+  appState.currentAoSites = setAoSiteSuggestions(
+    baseSites,
+    appState.currentPosition,
+    visDropdown ? dom.aoSitesDropdown : null,
+    dom.aoSitesEl,
+    dom.placeInput,
+    makeSetCurrentPlaceAndUpdate(),
+    appState.currentAoSizeMeters,
+    appState.locationSortMode,
+    gruppe !== '8'
+  );
+
+  oppdaterVerdilisterForArtsgruppe(gruppe);
+  updateSectionStates(appState, dom);
 }
 
 // ============================================================
@@ -883,6 +1012,10 @@ function setupEventListeners() {
     dom.locSortStandardBtn.setAttribute('aria-checked', String(appState.locationSortMode === 'standard'));
     dom.locSortStandardBtn.addEventListener('click', () => setLocationSortMode('standard'));
   }
+  const birdsGroupBtn = document.getElementById('species-group-birds');
+  const mammalsGroupBtn = document.getElementById('species-group-mammals');
+  if (birdsGroupBtn) birdsGroupBtn.addEventListener('click', () => setSpeciesGroup('8'));
+  if (mammalsGroupBtn) mammalsGroupBtn.addEventListener('click', () => setSpeciesGroup('11'));
   if (dom.locSortAvstandBtn) {
     dom.locSortAvstandBtn.setAttribute('aria-checked', String(appState.locationSortMode === 'avstand'));
     dom.locSortAvstandBtn.addEventListener('click', () => setLocationSortMode('avstand'));

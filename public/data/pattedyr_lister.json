@@ -1,0 +1,362 @@
+{
+  "speciesGroupId": 11,
+  "name": "Pattedyr",
+  "activities": [
+    {
+      "value": "80",
+      "label": "Drektig hunn",
+      "category": "Sikker reproduksjon"
+    },
+    {
+      "value": "79",
+      "label": "Ammende/lakterende hunn",
+      "category": "Sikker reproduksjon"
+    },
+    {
+      "value": "85",
+      "label": "Hunn med unge(r)",
+      "category": "Sikker reproduksjon"
+    },
+    {
+      "value": "101",
+      "label": "Yngleplass/unger",
+      "category": "Sikker reproduksjon"
+    },
+    {
+      "value": "95",
+      "label": "Reirbyggende/brukt bo/hus",
+      "category": "Sannsynlig reproduksjon"
+    },
+    {
+      "value": "52",
+      "label": "Sang/spill",
+      "category": "Sannsynlig reproduksjon"
+    },
+    {
+      "value": "125",
+      "label": "Paring (eller seremonier)",
+      "category": "Sannsynlig reproduksjon"
+    },
+    {
+      "value": "25",
+      "label": "Næringssøkende",
+      "category": "Stasjonær"
+    },
+    {
+      "value": "86",
+      "label": "Hvilende",
+      "category": "Stasjonær"
+    },
+    {
+      "value": "60",
+      "label": "Dvale",
+      "category": "Stasjonær"
+    },
+    {
+      "value": "57",
+      "label": "Svømmende",
+      "category": "Stasjonær"
+    },
+    {
+      "value": "65",
+      "label": "Syk",
+      "category": "Stasjonær"
+    },
+    {
+      "value": "23",
+      "label": "Stasjonær",
+      "category": "Stasjonær",
+      "selected": true
+    },
+    {
+      "value": "90",
+      "label": "Kamper mellom hanner",
+      "category": "Stasjonær"
+    },
+    {
+      "value": "83",
+      "label": "Hann med velutviklet bitestikkel",
+      "category": "Stasjonær"
+    },
+    {
+      "value": "27",
+      "label": "Lokkelyd, øvrige lyder",
+      "category": "Stasjonær"
+    },
+    {
+      "value": "84",
+      "label": "Hopp",
+      "category": "Stasjonær"
+    },
+    {
+      "value": "91",
+      "label": "Konstant kurs, regelmessig dykking",
+      "category": "Stasjonær"
+    },
+    {
+      "value": "100",
+      "label": "Variabel kurs/uregelmessig dykking",
+      "category": "Stasjonær"
+    },
+    {
+      "value": "92",
+      "label": "Langsom forflytning, lang tid ved overflaten",
+      "category": "Stasjonær"
+    },
+    {
+      "value": "93",
+      "label": "Nærmer seg båten",
+      "category": "Stasjonær"
+    },
+    {
+      "value": "94",
+      "label": "Overvintringsplass",
+      "category": "Stasjonær"
+    },
+    {
+      "value": "63",
+      "label": "Hår/skjelettrester",
+      "category": "Spor"
+    },
+    {
+      "value": "98",
+      "label": "Spor etter voksent dyr med unge(r)",
+      "category": "Spor"
+    },
+    {
+      "value": "62",
+      "label": "Bytte-/matrester",
+      "category": "Spor"
+    },
+    {
+      "value": "46",
+      "label": "Ferske gnagespor/hull",
+      "category": "Spor"
+    },
+    {
+      "value": "81",
+      "label": "Gnagespor",
+      "category": "Spor"
+    },
+    {
+      "value": "42",
+      "label": "Ferske spor",
+      "category": "Spor"
+    },
+    {
+      "value": "43",
+      "label": "Eldre spor",
+      "category": "Spor"
+    },
+    {
+      "value": "44",
+      "label": "Fersk møkk",
+      "category": "Spor"
+    },
+    {
+      "value": "45",
+      "label": "Eldre møkk",
+      "category": "Spor"
+    },
+    {
+      "value": "72",
+      "label": "Trafikkdrept",
+      "category": "Død"
+    },
+    {
+      "value": "96",
+      "label": "Skutt/avlivet",
+      "category": "Død"
+    },
+    {
+      "value": "77",
+      "label": "Drept av predator",
+      "category": "Død"
+    },
+    {
+      "value": "76",
+      "label": "Garndød",
+      "category": "Død"
+    },
+    {
+      "value": "124",
+      "label": "Funnet død",
+      "category": "Død"
+    },
+    {
+      "value": "69",
+      "label": "Død - kollisjon med vindturbin",
+      "category": "Død"
+    }
+  ],
+  "stages": [
+    {
+      "value": "32",
+      "label": "Årsunge"
+    },
+    {
+      "value": "33",
+      "label": "Fjorårsunge"
+    },
+    {
+      "value": "58",
+      "label": "Voksen"
+    }
+  ],
+  "genders": [
+    {
+      "value": "1",
+      "label": "Hann"
+    },
+    {
+      "value": "2",
+      "label": "Hunn"
+    },
+    {
+      "value": "4",
+      "label": "I par"
+    }
+  ],
+  "units": [
+    {
+      "value": "9",
+      "label": "Individer"
+    },
+    {
+      "value": "14",
+      "label": "Bol/hi"
+    },
+    {
+      "value": "10",
+      "label": "Kolonier"
+    },
+    {
+      "value": "16",
+      "label": "Flaggermuskasse"
+    }
+  ],
+  "discoveryMethods": [
+    {
+      "value": "1",
+      "label": "Observasjon"
+    },
+    {
+      "value": "32",
+      "label": "Felle"
+    },
+    {
+      "value": "37",
+      "label": "Garnfiske"
+    },
+    {
+      "value": "31",
+      "label": "Hydrofon"
+    },
+    {
+      "value": "54",
+      "label": "Hørt"
+    },
+    {
+      "value": "27",
+      "label": "Nattkikkert"
+    },
+    {
+      "value": "63",
+      "label": "Radiometri"
+    },
+    {
+      "value": "66",
+      "label": "Viltkamera"
+    },
+    {
+      "value": "29",
+      "label": "Ultralyddetektor"
+    },
+    {
+      "value": "65",
+      "label": "Ultralyddetektor og observasjon"
+    },
+    {
+      "value": "62",
+      "label": "Observasjon i hånden"
+    },
+    {
+      "value": "61",
+      "label": "Observasjon i søvn/dvale"
+    },
+    {
+      "value": "2",
+      "label": "Mistnett"
+    },
+    {
+      "value": "15",
+      "label": "Håving"
+    },
+    {
+      "value": "55",
+      "label": "Artsvalg fra dataprogram"
+    },
+    {
+      "value": "18",
+      "label": "Autobox"
+    },
+    {
+      "value": "19",
+      "label": "Autobox med frekvensdeling"
+    },
+    {
+      "value": "20",
+      "label": "Autobox med heterodyne"
+    },
+    {
+      "value": "21",
+      "label": "Autobox med høyfrekvensopptak"
+    },
+    {
+      "value": "22",
+      "label": "Autobox med tidsekspansjon"
+    },
+    {
+      "value": "23",
+      "label": "Detektor med frekvensdeling"
+    },
+    {
+      "value": "24",
+      "label": "Detektor med heterodyne"
+    },
+    {
+      "value": "25",
+      "label": "Detektor med heterodyne og tidsekspansjon"
+    },
+    {
+      "value": "26",
+      "label": "Detektor med høyfrekvensopptak"
+    },
+    {
+      "value": "58",
+      "label": "Lydopptak"
+    },
+    {
+      "value": "59",
+      "label": "Lydopptak og observasjon"
+    },
+    {
+      "value": "64",
+      "label": "Transponder"
+    }
+  ],
+  "determinationMethods": [
+    {
+      "value": "1",
+      "label": "Mikroskopert"
+    },
+    {
+      "value": "2",
+      "label": "Gensekvensering"
+    },
+    {
+      "value": "3",
+      "label": "Miljø-DNA"
+    }
+  ]
+}

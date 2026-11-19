@@ -2104,6 +2104,7 @@ class Handler(SimpleHTTPRequestHandler):
 
         params = parse_qs(parsed.query)
         term = params.get('term', [''])[0].strip()
+        species_group_id = params.get('speciesGroupId', ['8'])[0].strip()
         login_token = self.headers.get('X-AO-Login-Token', '').strip()
         auth_cookie = self.headers.get('X-AO-Auth-Cookie', '').strip()
         user_id = self.headers.get('X-AO-User-Id', '').strip()
@@ -2119,11 +2120,11 @@ class Handler(SimpleHTTPRequestHandler):
             self._send_json({'results': [], 'refreshed_auth_cookie': None})
             return
 
-        logger.debug(f'[AO-AUTOCOMPLETE] Søk: term={term}, autentisert={bool(login_token and auth_cookie)}, user_id={user_id}, pos={lat},{lon}')
+        logger.debug(f'[AO-AUTOCOMPLETE] Søk: term={term}, speciesGroupId={species_group_id}, autentisert={bool(login_token and auth_cookie)}, user_id={user_id}, pos={lat},{lon}')
 
         try:
             # Kall autocomplete med lokal DB + AO
-            data = fetch_ao_autocomplete(
+            kwargs = dict(
                 term=term,
                 login_token=login_token if login_token else None,
                 auth_cookie=auth_cookie if auth_cookie else None,
@@ -2134,6 +2135,9 @@ class Handler(SimpleHTTPRequestHandler):
                 username=username if username else None,
                 client_ip=self._client_ip(),
             )
+            if species_group_id and species_group_id != '8':
+                kwargs['species_group_id'] = species_group_id
+            data = fetch_ao_autocomplete(**kwargs)
             # data er nå {'results': [...], 'refreshed_auth_cookie': ...}
             self._send_json(data)
         except Exception as e:

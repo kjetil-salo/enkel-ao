@@ -165,6 +165,7 @@ export function commitObservation(state, dom, callbacks) {
 
   const obs = {
     species: state.selectedSpecies,
+    speciesGroupId: Number(state.selectedSpeciesGroup || (state.selectedSpecies && state.selectedSpecies.speciesGroupId) || 8),
     count,
     position: state.currentPosition,
     activity,
