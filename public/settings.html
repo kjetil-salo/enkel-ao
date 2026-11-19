@@ -7,7 +7,7 @@
     <link rel="icon" href="/favicon.png" type="image/png" />
     <link rel="apple-touch-icon" href="/icon-192.png" />
     <link rel="manifest" href="/manifest.json">
-    <link rel="stylesheet" href="style.css?v=v1.60.31" />
+    <link rel="stylesheet" href="style.css?v=v1.61.0" />
       <style>
         .settings-card {
           background: var(--card-bg, #111827);
@@ -441,16 +441,16 @@
     <script type="module">
       import { fjernOverforingssesjon } from './js/arbeidsliste-sesjon.js';
       import { apneInnhentetListe, lagreInnhentetKopi, lesInnhentetListe, lukkInnhentetListe } from './js/arbeidsliste-lokal.js';
-      import { loadActivityPills, saveActivityPills, ACTIVITY_SHORT_SUGGESTIONS, activityDisplayName, activityBokmalName } from './js/storage.js?v=v1.60.31';
-      import { loadActivities, loadSpeciesGroupLists, fetchAoSitesByBounds, hasActiveAoLogin, ensureAoTokens, getCachedPrivateSites } from './js/api.js?v=v1.60.31';
-      import { shouldShowOthersPrivateSites } from './js/location.js?v=v1.60.31';
+      import { loadActivityPills, saveActivityPills, ACTIVITY_SHORT_SUGGESTIONS, activityDisplayName, activityBokmalName } from './js/storage.js?v=v1.61.0';
+      import { loadActivities, loadSpeciesGroupLists, fetchAoSitesByBounds, hasActiveAoLogin, ensureAoTokens, getCachedPrivateSites } from './js/api.js?v=v1.61.0';
+      import { shouldShowOthersPrivateSites } from './js/location.js?v=v1.61.0';
       import {
         getOfflineStorageStats,
         syncOfflineAreas,
         clearAllOfflineData,
         clearAppCachesPreservingMapTiles,
-      } from './js/offline-db.js?v=v1.60.31';
-      import { t, getLanguage, setLanguage, getAvailableLanguages, applyTranslations } from './js/i18n.js?v=v1.60.31';
+      } from './js/offline-db.js?v=v1.61.0';
+      import { t, getLanguage, setLanguage, getAvailableLanguages, applyTranslations } from './js/i18n.js?v=v1.61.0';
 
       // Service Worker registreres og modus synkroniseres av offline-db.js (importert over).
 
@@ -968,9 +968,9 @@
       // <script> uten egen import. Nøyaktig det som manglet her og ga «ReferenceError»
       // på sikkerhetskopi-knappene (rapportert 14.11.2026, v1.60.19). AO-innlogging
       // flyttet til egen profilside i v1.60.21.
-      import { t } from './js/i18n.js?v=v1.60.31';
+      import { t } from './js/i18n.js?v=v1.61.0';
       import { apneInnhentetListe, lagreInnhentetKopi, lesInnhentetListe, lukkInnhentetListe } from './js/arbeidsliste-lokal.js';
-      import { loadAllowUnknownCount, saveAllowUnknownCount, loadAllowEstimatedCount, saveAllowEstimatedCount } from './js/storage.js?v=v1.60.31';
+      import { loadAllowUnknownCount, saveAllowUnknownCount, loadAllowEstimatedCount, saveAllowEstimatedCount } from './js/storage.js?v=v1.61.0';
 
       // Tema-avhengig statusfarge. Brukt av statusboksene i denne modulen («Hent nyeste
       // versjon», sikkerhetskopi). Fantes i AO-innlogging-blokken før den flyttet til egen

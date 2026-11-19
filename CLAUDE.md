@@ -858,6 +858,16 @@ AO_URL=http://localhost:8080 AO_MOBILE_URL=http://localhost:8080 python3 server.
 - **Fly production deploy**: `update-app.sh production` kjører automatisk `python3 -m pytest --maxfail=3` først. Deploy avbrytes hvis tester feiler.
 
 ### Versjonering
+
+**Patch eller minor? Vurder det eksplisitt FØR du velger tall — ikke bare øk siste siffer.**
+Historikken viser at patch (`v1.X.Y` → `v1.X.(Y+1)`) brukes for rettelser og
+videre finpuss PÅ et allerede eksisterende tema (f.eks. hele offline-kart-arbeidet
+holdt seg i `v1.60.x` gjennom mange delleveranser). Minor (`v1.X.0` → `v1.(X+1).0`)
+brukes når noe NYTT og avgrenset starter — en egen funksjon som ikke er en
+fortsettelse av det forrige temaet. Spør: «er dette en justering av det vi allerede
+jobbet med, eller noe som får sin egen overskrift i changelogen?» Usikker → spør
+brukeren i stedet for å anta patch.
+
 Ved ny versjon, gjør alltid følgende:
 1. Oppdater `VERSION` i `public/js/version.js` (brukes av `help.html`/`feedback.html` footers via import)
 2. **`public/index.html` har flere egne versjonsreferanser** — to inline `VERSION`-konstanter

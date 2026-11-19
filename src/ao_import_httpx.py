@@ -177,6 +177,45 @@ def number_of_sightings_submitted(login_token, auth_cookie, *, forbereder_import
     )
 
 
+def fetch_new_notifications(login_token, auth_cookie):
+    """
+    Hvor mange uleste meldinger/varsler brukeren har hos AO.
+
+    AOs eget sideskall gjør dette kallet på HVER side (bekreftet i nettverkstrafikk
+    19.11.2026) — en GET mot et rent JSON-endepunkt, ingen CSRF nødvendig.
+    `numberOfNewMessages` ↔ Innboks (/Communication/Inbox, private samtaler),
+    `numberOfUnreadNotifications` ↔ Driftsmeldinger (/Notification/History,
+    valideringsstatus og kommentarer). Se docs/ao-meldinger.md.
+
+    Returnerer {'nyeMeldinger': int, 'nyeVarsler': int} eller None ved feil/uinnlogget.
+    """
+    cookies = {
+        'logintoken': login_token,
+        '.ASPXAUTHNO': auth_cookie,
+        'AcceptCookies': '1',
+    }
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:147.0) Gecko/20100101 Firefox/147.0',
+        'X-Requested-With': 'XMLHttpRequest',
+        'Accept': '*/*',
+    }
+    try:
+        with httpx.Client() as client:
+            resp = client.get(
+                'https://www.artsobservasjoner.no/Notification/NewNotifications',
+                cookies=cookies, headers=headers, timeout=10,
+            )
+        if resp.status_code != 200:
+            return None
+        data = resp.json()
+        return {
+            'nyeMeldinger': int(data.get('numberOfNewMessages', 0)),
+            'nyeVarsler': int(data.get('numberOfUnreadNotifications', 0)),
+        }
+    except Exception:
+        return None
+
+
 def review_queue_rows(login_token, auth_cookie, size=200):
     """
     Hent gjennomgangskøen som JSON fra AOs eget Kendo-grid-endepunkt.

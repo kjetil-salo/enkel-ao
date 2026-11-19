@@ -7,7 +7,7 @@
     <link rel="icon" href="/favicon.png" type="image/png" />
     <link rel="apple-touch-icon" href="/icon-192.png" />
     <link rel="manifest" href="/manifest.json">
-    <link rel="stylesheet" href="style.css?v=v1.60.31" />
+    <link rel="stylesheet" href="style.css?v=v1.61.0" />
       <style>
         .settings-card {
           background: var(--card-bg, #111827);
@@ -84,12 +84,20 @@
           🚪 Fjern innlogging fra denne enheten
         </button>
       </div>
+
+      <div id="ao-messages-section" style="display:none;margin-top:22px;padding-top:18px;border-top:1px solid rgba(148,163,184,0.12);">
+        <h3 style="margin:0 0 4px 0;font-size:1em;color:var(--text,#e5e7eb);" data-i18n="settings.ao_messages.heading">Meldinger fra Artsobservasjoner</h3>
+        <p style="font-size:0.82em;color:var(--muted,#aaa);margin:0 0 12px 0;" data-i18n="settings.ao_messages.desc">
+          De fleste er sjelden innom artsobservasjoner.no lenger — her ser du om noen venter på svar derfra, f.eks. en admin som ber deg rette et funn.
+        </p>
+        <div id="ao-messages-body" style="font-size:0.88em;"></div>
+      </div>
     </div>
 
     <script type="module">
-      import { t, applyTranslations } from './js/i18n.js?v=v1.60.31';
+      import { t, applyTranslations } from './js/i18n.js?v=v1.61.0';
       import { fjernOverforingssesjon, kontoKontekst, sammeKontoKontekst } from './js/arbeidsliste-sesjon.js';
-      import { lagrePrivateAoLokaliteter } from './js/api.js?v=v1.60.31';
+      import { lagrePrivateAoLokaliteter } from './js/api.js?v=v1.61.0';
 
       applyTranslations();
       document.title = t('profile.page_title');
@@ -106,6 +114,8 @@
         fjernOverforingssesjon();
         localStorage.removeItem('ao_tokens');
         localStorage.removeItem('ao_private_sites');
+        localStorage.removeItem('ao_messages_cache_v1');
+        document.getElementById('ao-messages-section').style.display = 'none';
       }
 
       aoUsernameInput.addEventListener('input', () => {
@@ -192,6 +202,7 @@
             if (!lagret.userId) lagret.userId = result.userId;
             localStorage.setItem('ao_tokens', JSON.stringify(lagret));
             loginStatus.textContent = t('settings.ao_login.success', { id: result.userId });
+            loadAoMessages({ force: true });
           } else if ((result.code === 'ao2_unavailable_before_import' || resp.status === 401) && !username.includes('@')) {
             throw new Error(t('settings.ao_login.ao3_requires_email'));
           } else {
@@ -226,14 +237,86 @@
         localStorage.removeItem('ao_password');
         localStorage.removeItem('ao_tokens');
         localStorage.removeItem('ao_private_sites');
+        localStorage.removeItem('ao_messages_cache_v1');
         aoUsernameInput.value = '';
         aoPasswordInput.value = '';
         loginStatus.style.cssText = `display:block;margin-top:8px;padding:10px;border-radius:8px;font-size:0.85em;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.3);color:${_sc('info')};`;
         loginStatus.textContent = t('settings.ao_login.cleared');
         updateClearLoginVisibility();
+        document.getElementById('ao-messages-section').style.display = 'none';
       });
 
       updateClearLoginVisibility();
+
+      // Meldinger fra Artsobservasjoner (ligger bak profilsiden foreløpig — se
+      // docs/ao-meldinger.md for hvorfor dette ikke fikk et eget header-ikon ennå).
+      // Rent opplysende, samme ekstern-API-konvensjon som resten av appen: en
+      // AO-feil eller manglende innlogging gir aldri en feilmelding brukeren må
+      // forholde seg til, bare en stille skjult/uendret seksjon.
+      const AO_MESSAGES_CACHE_KEY = 'ao_messages_cache_v1';
+      const AO_MESSAGES_CACHE_TTL_MS = 10 * 60 * 1000;
+      const aoMessagesSection = document.getElementById('ao-messages-section');
+      const aoMessagesBody = document.getElementById('ao-messages-body');
+
+      function renderAoMessages(data) {
+        if (!data || (data.nyeMeldinger == null && data.nyeVarsler == null)) {
+          aoMessagesBody.innerHTML = `<p style="margin:0;color:var(--muted,#aaa);">${t('settings.ao_messages.unknown')}</p>`;
+          return;
+        }
+        const total = (data.nyeMeldinger || 0) + (data.nyeVarsler || 0);
+        if (total === 0) {
+          aoMessagesBody.innerHTML = `<p style="margin:0;">${t('settings.ao_messages.none')}</p>`;
+          return;
+        }
+        const linkStyle = 'display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border-radius:8px;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.3);color:inherit;text-decoration:none;';
+        let html = '<div style="display:flex;flex-direction:column;gap:8px;">';
+        if (data.nyeMeldinger) {
+          html += `<a href="https://www.artsobservasjoner.no/Communication/Inbox" target="_blank" rel="noopener" style="${linkStyle}">`
+            + `<span>${t('settings.ao_messages.inbox', { n: data.nyeMeldinger })}</span>`
+            + `<span style="color:#60a5fa;font-weight:600;">${t('settings.ao_messages.open_inbox')}</span></a>`;
+        }
+        if (data.nyeVarsler) {
+          html += `<a href="https://www.artsobservasjoner.no/Notification/History" target="_blank" rel="noopener" style="${linkStyle}">`
+            + `<span>${t('settings.ao_messages.notifications', { n: data.nyeVarsler })}</span>`
+            + `<span style="color:#60a5fa;font-weight:600;">${t('settings.ao_messages.open_notifications')}</span></a>`;
+        }
+        html += '</div>';
+        aoMessagesBody.innerHTML = html;
+      }
+
+      async function loadAoMessages({ force = false } = {}) {
+        const tokens = JSON.parse(localStorage.getItem('ao_tokens') || '{}');
+        if (!tokens.loginToken || !tokens.authCookie) {
+          aoMessagesSection.style.display = 'none';
+          return;
+        }
+        aoMessagesSection.style.display = 'block';
+        const username = aoUsernameInput.value.trim();
+        if (!force) {
+          try {
+            const cached = JSON.parse(localStorage.getItem(AO_MESSAGES_CACHE_KEY) || 'null');
+            if (cached && cached.username === username && Date.now() - cached.ts < AO_MESSAGES_CACHE_TTL_MS) {
+              renderAoMessages(cached.data);
+              return;
+            }
+          } catch (e) { /* korrupt cache, hent på nytt */ }
+        }
+        aoMessagesBody.innerHTML = '<p style="margin:0;color:var(--muted,#aaa);">⏳ …</p>';
+        try {
+          const resp = await fetch('/api/ao-messages', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ loginToken: tokens.loginToken, authCookie: tokens.authCookie }),
+          });
+          const data = await resp.json();
+          renderAoMessages(data);
+          localStorage.setItem(AO_MESSAGES_CACHE_KEY, JSON.stringify({ username, ts: Date.now(), data }));
+        } catch (e) {
+          renderAoMessages(null);
+        }
+      }
+
+      loadAoMessages();
     </script>
   </body>
 </html>

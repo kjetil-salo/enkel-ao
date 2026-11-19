@@ -4,11 +4,11 @@
  * stedet for en egen side. Gjenbruker photo-picker.js og coobserver-picker.js,
  * som også brukes av registrerings-modalen (✎ Flere felt i ②).
  */
-import { saveObservations, lastSaveError, activityDisplayName, activityBokmalName, ageDisplayName, ageBokmalName, genderDisplayName, genderBokmalName, unitDisplayName, unitBokmalName, discoveryMethodDisplayName, discoveryMethodBokmalName, loadAllowUnknownCount } from './storage.js?v=v1.60.31';
-import { initPhotoPicker } from './photo-picker.js?v=v1.60.31';
+import { saveObservations, lastSaveError, activityDisplayName, activityBokmalName, ageDisplayName, ageBokmalName, genderDisplayName, genderBokmalName, unitDisplayName, unitBokmalName, discoveryMethodDisplayName, discoveryMethodBokmalName, loadAllowUnknownCount } from './storage.js?v=v1.61.0';
+import { initPhotoPicker } from './photo-picker.js?v=v1.61.0';
 import { initCoObserverPicker } from './coobserver-picker.js';
 import { isoToDate, isoToTime, updateDateTimeInIso } from './datetime-helpers.js';
-import { loadSpeciesGroupLists } from './api.js?v=v1.60.30';
+import { loadSpeciesGroupLists } from './api.js?v=v1.61.0';
 import { t, applyTranslations } from './i18n.js?v=v1.60.30';
 import { isValidPairCount, syncPairGenderOption } from './form-state.js?v=v1.60.30';
 
