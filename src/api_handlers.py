@@ -54,10 +54,12 @@ def fetch_ao_autocomplete(term: str, login_token: str = None, auth_cookie: str =
         species_group_id: Artsgruppe-ID ('8' = fugler, '11' = pattedyr)
 
     Returns:
-        Dict med 'results' (liste) og 'refreshed_auth_cookie' (str eller None)
+        Dict med 'results' (liste), 'refreshed_auth_cookie' (str eller None) og
+        'refreshed_login_token' (str eller None, se docs/ao-token-autentisering.md
+        korreksjon 6)
     """
     if not term or len(term) < 2:
-        return {'results': [], 'refreshed_auth_cookie': None}
+        return {'results': [], 'refreshed_auth_cookie': None, 'refreshed_login_token': None}
 
     gruppe_id = _normaliser_artsgruppe(species_group_id)
 
@@ -87,17 +89,18 @@ def fetch_ao_autocomplete(term: str, login_token: str = None, auth_cookie: str =
             logger.warning(f'[AO-AUTOCOMPLETE] Lokal DB-søk feilet: {e}')
 
     refreshed_auth_cookie = None
+    refreshed_login_token = None
     is_logged_in = bool(login_token and (auth_cookie or user_id))
 
     # Prøv AO bare hvis innlogget
     if not is_logged_in:
         if local_results:
-            return {'results': local_results, 'refreshed_auth_cookie': None}
-        return {'results': [], 'refreshed_auth_cookie': None, 'not_logged_in': True}
+            return {'results': local_results, 'refreshed_auth_cookie': None, 'refreshed_login_token': None}
+        return {'results': [], 'refreshed_auth_cookie': None, 'refreshed_login_token': None, 'not_logged_in': True}
 
     # Sørg for gyldig auth (sliding expiration → logintoken → credentials)
     if user_id and login_token:
-        auth_cookie, refreshed_auth_cookie = _ensure_auth(auth_cookie, user_id, login_token, username=username, client_ip=client_ip)
+        auth_cookie, refreshed_auth_cookie, refreshed_login_token = _ensure_auth(auth_cookie, user_id, login_token, username=username, client_ip=client_ip)
 
     base_url = os.getenv('AO_URL', 'https://www.artsobservasjoner.no')
     params = {
@@ -131,14 +134,14 @@ def fetch_ao_autocomplete(term: str, login_token: str = None, auth_cookie: str =
                 logger.warning(f'[AO-AUTOCOMPLETE] Auth utløpt — redirectet til innloggingsside for term={term}')
                 # Returner lokale resultater selv om AO-auth feilet
                 if local_results:
-                    return {'results': local_results, 'refreshed_auth_cookie': refreshed_auth_cookie, 'auth_expired': True}
-                return {'results': [], 'refreshed_auth_cookie': refreshed_auth_cookie, 'auth_expired': True}
+                    return {'results': local_results, 'refreshed_auth_cookie': refreshed_auth_cookie, 'refreshed_login_token': refreshed_login_token, 'auth_expired': True}
+                return {'results': [], 'refreshed_auth_cookie': refreshed_auth_cookie, 'refreshed_login_token': refreshed_login_token, 'auth_expired': True}
 
             # Sjekk om responsen er JSON
             content_type = response.headers.get('content-type', '')
             if 'application/json' not in content_type:
                 logger.warning(f'[AO-AUTOCOMPLETE] Ikke-JSON respons. Første 500 tegn: {response.text[:500]}')
-                return {'results': local_results, 'refreshed_auth_cookie': refreshed_auth_cookie}
+                return {'results': local_results, 'refreshed_auth_cookie': refreshed_auth_cookie, 'refreshed_login_token': refreshed_login_token}
 
             ao_results = response.json()
 
@@ -146,11 +149,11 @@ def fetch_ao_autocomplete(term: str, login_token: str = None, auth_cookie: str =
             ao_ids = {r.get('id') for r in ao_results if r.get('id') is not None}
             merged = ao_results + [r for r in local_results if r['id'] not in ao_ids]
 
-            return {'results': merged, 'refreshed_auth_cookie': refreshed_auth_cookie}
+            return {'results': merged, 'refreshed_auth_cookie': refreshed_auth_cookie, 'refreshed_login_token': refreshed_login_token}
     except Exception as e:
         logger.error(f'[AO-AUTOCOMPLETE] Feil ved henting: {e}')
         # Ved AO-feil, returner lokale resultater
-        return {'results': local_results, 'refreshed_auth_cookie': refreshed_auth_cookie}
+        return {'results': local_results, 'refreshed_auth_cookie': refreshed_auth_cookie, 'refreshed_login_token': refreshed_login_token}
 
 
 
@@ -351,9 +354,12 @@ def login_to_ao(username: str, password: str, bind_token: bool = True, *, diskre
     Logger inn på Artsobservasjoner med brukernavn/passord.
 
     `bind_token=False` brukes når SERVEREN logger inn på brukerens vegne
-    (`_full_relogin`). Tokenet AO gir da, ser klienten aldri — å binde det ville
-    bare presset brukerens egne, gyldige avtrykk nærmere taket uten at noen kan
-    bruke det nye.
+    (`_full_relogin`). Det nye tokenet BINDES ikke i credentials.json (ville bare
+    presset brukerens egne, gyldige avtrykk nærmere tokenslitasje-taket uten at
+    noen kan bruke det nye) — men `_full_relogin` sender det likevel videre til
+    klienten (se returverdien der), slik at klienten kan oppdatere sin lagrede
+    kopi og ha en gyldig billett til neste stille revival i stedet for å gå
+    tomhendt. Binding og klient-utlevering er to uavhengige spørsmål.
 
     `diskret=True` utelater brukernavn og sesjonsdata fra overføringsloggen.
 
@@ -475,7 +481,7 @@ def login_to_ao(username: str, password: str, bind_token: bool = True, *, diskre
         }
 
 
-def _refresh_with_logintoken(login_token: str, user_id: str) -> str:
+def _refresh_with_logintoken(login_token: str, user_id: str) -> tuple:
     """Gjenoppretter .ASPXAUTHNO via logintoken (AO sin "husk meg"-auto-login).
 
     VIKTIG — mekanisme (revidert 2026-09-16, se docs/ao-token-autentisering.md):
@@ -489,14 +495,21 @@ def _refresh_with_logintoken(login_token: str, user_id: str) -> str:
     - `logintoken_ssl=1` er PÅKREVD.
     - Ingen .ASPXAUTHNO må sendes: en gammel/død cookie kortslutter auto-login.
 
-    logintoken har ~1 års levetid, så dette gir langvarig sesjon uten passord.
+    logintoken har ~1 års levetid, så dette gir langvarig sesjon uten passord. Men AO gir et
+    enkelt logintoken nøyaktig ÉN vellykket stille revival (verifisert empirisk 19.11.2026,
+    se docs/ao-token-autentisering.md korreksjon 6) — derfor fanges et eventuelt NYTT, rotert
+    logintoken her opp og returneres, slik at klienten kan oppdatere sin lagrede kopi og
+    dermed ha en gyldig billett til NESTE gang sesjonen utløper. Uten dette ville hver enhet
+    fått nøyaktig én gratis fornyelse i hele sin levetid, og falt tilbake til passord for alltid.
     Cookies settes på CLIENT-nivå for å videresendes ved redirects.
 
     Returns:
-        Ny .ASPXAUTHNO hvis vellykket, ellers None.
+        Tuple (ny_auth_cookie_eller_None, nytt_logintoken_eller_None). Det roterte
+        logintokenet kan være satt selv om revival feiler (se cookie_jar-sjekken
+        under) — begge kan derfor være uavhengige av hverandre.
     """
     if not login_token:
-        return None
+        return None, None
 
     logger.debug(f'[LOGINTOKEN-REFRESH] Prøver husk-meg-revival med logintoken: {mask_token(login_token)}')
 
@@ -514,18 +527,26 @@ def _refresh_with_logintoken(login_token: str, user_id: str) -> str:
                 follow_redirects=True
             )
 
+            new_login_token = None
+            for cookie in client.cookies.jar:
+                if cookie.name == 'logintoken' and cookie.value and cookie.value != login_token:
+                    new_login_token = cookie.value
+
             # Revival mislyktes hvis vi fortsatt står på login-siden (ingen redirect skjedde)
             if '/LogOn' in str(response.url):
                 logger.warning(
                     f'[LOGINTOKEN-REFRESH] AO nektet revival for user_id={user_id} '
                     f'— ble værende på {response.url} (status={response.status_code})'
                 )
-                return None
+                return None, new_login_token
 
             for cookie in client.cookies.jar:
                 if cookie.name == '.ASPXAUTHNO' and cookie.value:
-                    logger.info(f'[LOGINTOKEN-REFRESH] Session gjenopprettet via husk-meg: {mask_token(cookie.value)}')
-                    return cookie.value
+                    logger.info(
+                        f'[LOGINTOKEN-REFRESH] Session gjenopprettet via husk-meg: {mask_token(cookie.value)}'
+                        + (f', nytt rotert logintoken: {mask_token(new_login_token)}' if new_login_token else '')
+                    )
+                    return cookie.value, new_login_token
 
             # Ingen auth-cookie: AO redirectet oss videre, men satte den ikke.
             # Cookie-navnene viser om AO ignorerte token eller ga noe uventet.
@@ -534,13 +555,13 @@ def _refresh_with_logintoken(login_token: str, user_id: str) -> str:
                 f'[LOGINTOKEN-REFRESH] Ingen .ASPXAUTHNO mottatt for user_id={user_id} '
                 f'(status={response.status_code}, sluttside={response.url}, cookies: {cookie_names})'
             )
-        return None
+        return None, new_login_token
     except Exception as e:
         logger.error(f'[LOGINTOKEN-REFRESH] Feil: {e}')
-        return None
+        return None, None
 
 
-def _full_relogin(user_id: str, login_token: str = None, username: str = None, client_ip: str = None) -> str:
+def _full_relogin(user_id: str, login_token: str = None, username: str = None, client_ip: str = None) -> tuple:
     """Fornyer session. Prøver logintoken først, deretter credentials fra disk.
 
     `username` (brukerens AO-innloggingsnavn, sendt av klienten som `X-AO-Username`)
@@ -554,17 +575,22 @@ def _full_relogin(user_id: str, login_token: str = None, username: str = None, c
     docs/ao-token-autentisering.md korreksjon 4).
 
     Returns:
-        Ny .ASPXAUTHNO hvis vellykket, ellers None.
+        Tuple (ny_auth_cookie_eller_None, nytt_logintoken_eller_None). Et nytt
+        logintoken kan følge med BÅDE fra steg 1 (rotert av AO ved en vellykket
+        stille revival) og fra steg 2 (en helt fersk innlogging gir alltid et
+        nytt logintoken) — se docs/ao-token-autentisering.md korreksjon 6.
+        Klienten oppdaterer sin lagrede kopi med dette, slik at neste utløp
+        igjen kan fornyes via token i stedet for passord.
     """
     # Denne funksjonen kalles KUN når sliding expiration feilet (cookie utløpt).
     logger.info(f'[AUTH-RELOGIN-REQUIRED] Sliding expiration feilet for user_id={user_id} (ip={client_ip}), må logge inn på nytt')
 
     # Steg 1: Prøv logintoken-refresh (ingen credentials nødvendig)
     if login_token:
-        new_cookie = _refresh_with_logintoken(login_token, user_id)
+        new_cookie, rotated_login_token = _refresh_with_logintoken(login_token, user_id)
         if new_cookie:
             logger.info(f'[AUTH-RELOGIN-RESULT] Logintoken-refresh vellykket for user_id={user_id} (ip={client_ip})')
-            return new_cookie
+            return new_cookie, rotated_login_token
     else:
         # Uten token er revival umulig — skiller «AO nektet» fra «token kom aldri fram»
         logger.warning(f'[LOGINTOKEN-REFRESH] Hoppet over for user_id={user_id} (ip={client_ip}) — klienten sendte ingen logintoken')
@@ -573,21 +599,25 @@ def _full_relogin(user_id: str, login_token: str = None, username: str = None, c
     # utlevert kun mot et logintoken fra en innlogging med samme passord)
     if not username:
         logger.warning(f'[AUTH-RELOGIN-RESULT] Intet brukernavn oppgitt for user_id={user_id} (ip={client_ip}) — kan ikke slå opp lagrede credentials')
-        return None
+        return None, None
 
     creds = _load_credentials(username, login_token)
     if not creds:
         logger.warning(f'[AUTH-RELOGIN-RESULT] Ingen lagrede credentials for bruker={username} bundet til dette logintokenet (user_id={user_id}, ip={client_ip}) — bruker må logge inn manuelt')
-        return None
+        return None, None
 
     saved_username, password = creds
     try:
+        # bind_token=False: dette nye logintokenet skal IKKE bindes i credentials.json
+        # (det ville presset brukerens eget tokenslitasje-tak nærmere uten grunn, se
+        # test_serverens_egen_relogin_spiser_ikke_en_tokenplass). Klienten FÅR det likevel
+        # tilbake i responsen (se returverdien) — det er en annen ting enn å binde det.
         result = login_to_ao(saved_username, password, bind_token=False)
         logger.info(f'[AUTH-RELOGIN-RESULT] Credentials-relogin vellykket for bruker={saved_username} (user_id={user_id}, ip={client_ip})')
-        return result['authCookie']
+        return result['authCookie'], result.get('loginToken')
     except Exception as e:
         logger.warning(f'[AUTH-RELOGIN-RESULT] Credentials-relogin feilet for bruker={username} (user_id={user_id}, ip={client_ip}): {e}')
-        return None
+        return None, None
 
 
 def handle_species_search(search_term, dont_include_sub='true', ao_base_url='https://www.artsobservasjoner.no', species_group='8'):
@@ -714,11 +744,12 @@ def handle_ao_private_sites(auth_cookie: str, ao_base_url: str = 'https://www.ar
     """
     Hent alle brukerens private lokasjoner via BindUserSitesGrid.
 
-    Returnerer tuple: (sites, refreshed_auth_cookie, auth_failed)
+    Returnerer tuple: (sites, refreshed_auth_cookie, refreshed_login_token, auth_failed)
     hvor sites er liste med dicts: { id, name, lat, lon, acc },
     refreshed_auth_cookie er ny .ASPXAUTHNO hvis sesjonen ble fornyet (ellers None),
-    og auth_failed sier om den tomme lista skyldes en død sesjon.
-    Koordinater er konvertert fra EPSG:3857 til WGS84.
+    refreshed_login_token er et eventuelt NYTT, rotert logintoken (ellers None, se
+    docs/ao-token-autentisering.md korreksjon 6), og auth_failed sier om den tomme
+    lista skyldes en død sesjon. Koordinater er konvertert fra EPSG:3857 til WGS84.
 
     **`auth_failed` finnes fordi en tom liste ellers er tvetydig**: den betyr
     enten «brukeren har ingen private lokaliteter» eller «sesjonen er død».
@@ -735,8 +766,9 @@ def handle_ao_private_sites(auth_cookie: str, ao_base_url: str = 'https://www.ar
     """
     # Sørg for gyldig auth (sliding expiration → logintoken → credentials)
     refreshed_auth_cookie = None
+    refreshed_login_token = None
     if user_id and login_token:
-        auth_cookie, refreshed_auth_cookie = _ensure_auth(auth_cookie, user_id, login_token, username=username, client_ip=client_ip)
+        auth_cookie, refreshed_auth_cookie, refreshed_login_token = _ensure_auth(auth_cookie, user_id, login_token, username=username, client_ip=client_ip)
 
     url_grid = f'{ao_base_url}/Site/BindUserSitesGrid?UserSitesGrid-size=500'
     seed_cookies = {'.ASPXAUTHNO': auth_cookie, 'AcceptCookies': '1'}
@@ -763,12 +795,12 @@ def handle_ao_private_sites(auth_cookie: str, ao_base_url: str = 'https://www.ar
         resp_url = str(getattr(response, 'url', '') or '')
         if '/LogOn' in resp_url:
             logger.warning('[AO-PRIVATE-SITES] Ble sendt til /LogOn — sesjon er utløpt')
-            return [], refreshed_auth_cookie, True
+            return [], refreshed_auth_cookie, refreshed_login_token, True
         try:
             data = response.json()
         except ValueError:
             logger.warning('[AO-PRIVATE-SITES] Fikk ikke-JSON svar fra AO — sesjon er trolig utløpt')
-            return [], refreshed_auth_cookie, True
+            return [], refreshed_auth_cookie, refreshed_login_token, True
 
     sites = []
     for item in data.get('data', []):
@@ -783,7 +815,7 @@ def handle_ao_private_sites(auth_cookie: str, ao_base_url: str = 'https://www.ar
         sites.append({'id': site_id, 'name': name, 'lat': lat, 'lon': lon, 'acc': acc})
 
     logger.info(f'[AO-PRIVATE-SITES] Hentet {len(sites)} private lokasjoner')
-    return sites, refreshed_auth_cookie, False
+    return sites, refreshed_auth_cookie, refreshed_login_token, False
 
 
 def _wgs84_to_mercator(lat, lon):
@@ -822,10 +854,13 @@ def _ensure_auth(ao_auth, ao_user_id, login_token, username=None, client_ip=None
        slått opp på `username`, se _load_credentials-docstring)
 
     Returns:
-        tuple: (ao_auth, refreshed_auth_cookie_or_None)
+        tuple: (ao_auth, refreshed_auth_cookie_or_None, refreshed_login_token_or_None).
+        Det tredje elementet er et eventuelt NYTT, rotert logintoken fra en vellykket
+        full relogin (se `_full_relogin` og docs/ao-token-autentisering.md korreksjon 6)
+        — aldri satt av sliding expiration, som ikke rører logintoken.
     """
     if not ao_user_id:
-        return ao_auth, None
+        return ao_auth, None, None
 
     refreshed = None
 
@@ -833,15 +868,15 @@ def _ensure_auth(ao_auth, ao_user_id, login_token, username=None, client_ip=None
     if ao_auth:
         new_cookie = _sliding_expiration(ao_auth, ao_user_id, login_token)
         if new_cookie:
-            return new_cookie, new_cookie
+            return new_cookie, new_cookie, None
 
     # Steg 2: Hvis ingen auth eller sliding feilet, prøv full relogin
     if not ao_auth or _is_cookie_expired(ao_auth, ao_user_id, login_token):
-        new_cookie = _full_relogin(ao_user_id, login_token, username=username, client_ip=client_ip)
+        new_cookie, refreshed_login_token = _full_relogin(ao_user_id, login_token, username=username, client_ip=client_ip)
         if new_cookie:
-            return new_cookie, new_cookie
+            return new_cookie, new_cookie, refreshed_login_token
 
-    return ao_auth, refreshed
+    return ao_auth, refreshed, None
 
 
 def _is_cookie_expired(auth_cookie, user_id, login_token):
@@ -1143,7 +1178,10 @@ def handle_ao_sites_search(lat=None, lon=None, size_m=600.0, ao_mobile_base_url=
     Resultater merges med AO som prioritet, og AO-resultater lagres i lokal DB.
 
     Returns:
-        tuple: (sites_list, refreshed_auth_cookie_or_None, auth_failed_bool)
+        tuple: (sites_list, refreshed_auth_cookie_or_None, refreshed_login_token_or_None,
+        auth_failed_bool). refreshed_login_token er et eventuelt NYTT, rotert logintoken
+        (se docs/ao-token-autentisering.md korreksjon 6), aldri rørt av
+        `_fetch_private_site_ids`s egen cookie-oppdatering lenger ned.
     """
     explicit_bbox = None
     if north is not None and south is not None and east is not None and west is not None and str(north) != '' and str(south) != '' and str(east) != '' and str(west) != '':
@@ -1182,7 +1220,7 @@ def handle_ao_sites_search(lat=None, lon=None, size_m=600.0, ao_mobile_base_url=
     ao_auth = auth_cookie or os.getenv('AO_AUTH_COOKIE')
 
     # Sørg for gyldig auth
-    ao_auth, refreshed_auth_cookie = _ensure_auth(ao_auth, ao_user_id, login_token, username=username, client_ip=client_ip)
+    ao_auth, refreshed_auth_cookie, refreshed_login_token = _ensure_auth(ao_auth, ao_user_id, login_token, username=username, client_ip=client_ip)
 
     # Beregn bounding box
     bbox = explicit_bbox if explicit_bbox else _compute_bbox(lat, lon, size_m)
@@ -1256,13 +1294,13 @@ def handle_ao_sites_search(lat=None, lon=None, size_m=600.0, ao_mobile_base_url=
         # Sorter brukerens egne først
         sites.sort(key=lambda s: (0 if s.get('isMine') else 1))
 
-        return sites, refreshed_auth_cookie, auth_failed
+        return sites, refreshed_auth_cookie, refreshed_login_token, auth_failed
     except Exception as e:
         logger.error(f'Feil ved henting av AO-lokaliteter: {repr(e)}')
         # Hvis AO feiler men vi har lokale resultater, returner dem
         if local_sites:
             logger.info(f'AO feilet, returnerer {len(local_sites)} lokale resultater')
-            return local_sites, refreshed_auth_cookie, auth_failed
+            return local_sites, refreshed_auth_cookie, refreshed_login_token, auth_failed
         raise
 
 
@@ -1379,15 +1417,16 @@ def get_ao_rarity(taxon_id, site_id, date_str: str, user_id: str = None, login_t
     brukeren merker, jf. «External API Error Handling»-konvensjonen.
 
     Returns:
-        tuple: (result_dict_eller_None, refreshed_auth_cookie_eller_None)
+        tuple: (result_dict_eller_None, refreshed_auth_cookie_eller_None,
+        refreshed_login_token_eller_None)
     """
     is_logged_in = bool(login_token and (auth_cookie or user_id))
     if not is_logged_in or not taxon_id or not site_id or not date_str:
-        return None, None
+        return None, None, None
 
-    auth_cookie, refreshed_auth_cookie = _ensure_auth(auth_cookie, user_id, login_token, username=username, client_ip=client_ip)
+    auth_cookie, refreshed_auth_cookie, refreshed_login_token = _ensure_auth(auth_cookie, user_id, login_token, username=username, client_ip=client_ip)
     if not auth_cookie:
-        return None, refreshed_auth_cookie
+        return None, refreshed_auth_cookie, refreshed_login_token
 
     areas_csv = None
     if location_db:
@@ -1405,9 +1444,9 @@ def get_ao_rarity(taxon_id, site_id, date_str: str, user_id: str = None, login_t
                 logger.warning(f'[AO-RARITY] Kunne ikke cache Areas for site {site_id}: {e}')
 
     if not areas_csv:
-        return None, refreshed_auth_cookie
+        return None, refreshed_auth_cookie, refreshed_login_token
 
     result = check_taxon_rarity(taxon_id, areas_csv, date_str, auth_cookie, login_token)
     if result is not None:
         result['areas'] = areas_csv
-    return result, refreshed_auth_cookie
+    return result, refreshed_auth_cookie, refreshed_login_token

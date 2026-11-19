@@ -190,7 +190,7 @@ def test_ao_sites_default_size(monkeypatch):
 
     monkeypatch.setattr('httpx.Client', FakeClient)
 
-    sites, refreshed_auth, auth_failed = handle_ao_sites_search(59.9, 10.7)
+    sites, refreshed_auth, refreshed_login, auth_failed = handle_ao_sites_search(59.9, 10.7)
     assert len(called_urls) == 1
     # Default size er 600 meter
     assert 'minX=' in called_urls[0]
@@ -232,7 +232,7 @@ def test_ao_sites_super_via_local_db_parent(monkeypatch):
         {'id': 2, 'name': 'Hylkjebukta', 'lat': 60.452, 'lon': 5.444, 'isPrivate': False, 'isSuper': False, 'parentId': 1, '_source': 'local_db', '_distance': 50},
     ]
 
-    sites, _, _ = handle_ao_sites_search(60.456, 5.446, size_m=1000, location_db=mock_db)
+    sites, _, _, _ = handle_ao_sites_search(60.456, 5.446, size_m=1000, location_db=mock_db)
 
     hylkje = next(s for s in sites if s.get('id') == 1)
     hylkjebukta = next(s for s in sites if s.get('id') == 2)

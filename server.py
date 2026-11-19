@@ -2006,7 +2006,7 @@ class Handler(SimpleHTTPRequestHandler):
                     'east': east_raw,
                     'west': west_raw,
                 }
-            sites, refreshed_auth_cookie, auth_failed = handle_ao_sites_search(
+            sites, refreshed_auth_cookie, refreshed_login_token, auth_failed = handle_ao_sites_search(
                 lat_raw, lon_raw, size_raw, ao_mobile_base, user_id, login_token, auth_cookie,
                 location_db=_location_db, username=username, client_ip=self._client_ip(), **bbox_kwargs
             )
@@ -2015,6 +2015,9 @@ class Handler(SimpleHTTPRequestHandler):
             if refreshed_auth_cookie:
                 response_data['refreshedAuthCookie'] = refreshed_auth_cookie
                 logger.debug(f'Sender refreshed auth cookie til frontend: {mask_token(refreshed_auth_cookie)}')
+            if refreshed_login_token:
+                response_data['refreshedLoginToken'] = refreshed_login_token
+                logger.debug(f'Sender rotert logintoken til frontend: {mask_token(refreshed_login_token)}')
             if auth_failed:
                 response_data['authRequired'] = True
                 logger.debug(f'Auth feilet - sender authRequired=true til frontend')
@@ -2037,12 +2040,14 @@ class Handler(SimpleHTTPRequestHandler):
             return
         ao_base = os.environ.get('AO_URL', 'https://www.artsobservasjoner.no')
         try:
-            sites, refreshed_auth_cookie, auth_failed = handle_ao_private_sites(
+            sites, refreshed_auth_cookie, refreshed_login_token, auth_failed = handle_ao_private_sites(
                 auth_cookie, ao_base, login_token=login_token, user_id=user_id, username=username,
                 client_ip=self._client_ip())
             response_data = {'sites': sites}
             if refreshed_auth_cookie:
                 response_data['refreshedAuthCookie'] = refreshed_auth_cookie
+            if refreshed_login_token:
+                response_data['refreshedLoginToken'] = refreshed_login_token
             # Skiller «ingen private lokaliteter» fra «sesjonen er død». Klienten
             # cacher svaret i 24 timer, og skal ALDRI cache et degradert svar.
             if auth_failed:
@@ -2121,7 +2126,7 @@ class Handler(SimpleHTTPRequestHandler):
             lat, lon = None, None
 
         if not term or len(term) < 2:
-            self._send_json({'results': [], 'refreshed_auth_cookie': None})
+            self._send_json({'results': [], 'refreshed_auth_cookie': None, 'refreshed_login_token': None})
             return
 
         logger.debug(f'[AO-AUTOCOMPLETE] Søk: term={term}, speciesGroupId={species_group_id}, autentisert={bool(login_token and auth_cookie)}, user_id={user_id}, pos={lat},{lon}')
@@ -2142,11 +2147,11 @@ class Handler(SimpleHTTPRequestHandler):
             if species_group_id and species_group_id != '8':
                 kwargs['species_group_id'] = species_group_id
             data = fetch_ao_autocomplete(**kwargs)
-            # data er nå {'results': [...], 'refreshed_auth_cookie': ...}
+            # data er nå {'results': [...], 'refreshed_auth_cookie': ..., 'refreshed_login_token': ...}
             self._send_json(data)
         except Exception as e:
             logger.error(f'[AO-AUTOCOMPLETE] Feil: {e}')
-            self._send_json({'results': [], 'refreshed_auth_cookie': None})
+            self._send_json({'results': [], 'refreshed_auth_cookie': None, 'refreshed_login_token': None})
 
     def _handle_ao_rarity_api(self, parsed):
         """Sjeldenhetsvarsel: proxy for AOs sanntidsvalidering (art x lokalitet x dato).
@@ -2168,7 +2173,7 @@ class Handler(SimpleHTTPRequestHandler):
             return
 
         try:
-            result, refreshed_auth_cookie = get_ao_rarity(
+            result, refreshed_auth_cookie, refreshed_login_token = get_ao_rarity(
                 taxon_id, site_id, date_str,
                 user_id=user_id, login_token=login_token, auth_cookie=auth_cookie,
                 location_db=_location_db, username=username, client_ip=self._client_ip(),
@@ -2176,6 +2181,8 @@ class Handler(SimpleHTTPRequestHandler):
             response_data = result or {}
             if refreshed_auth_cookie:
                 response_data['refreshedAuthCookie'] = refreshed_auth_cookie
+            if refreshed_login_token:
+                response_data['refreshedLoginToken'] = refreshed_login_token
             self._send_json(response_data)
         except Exception as e:
             logger.warning(f'[AO-RARITY] Feil: {e}')

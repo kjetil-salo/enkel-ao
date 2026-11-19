@@ -13,7 +13,7 @@ vi.stubGlobal('localStorage', localStorageMock);
 const fetchMock = vi.fn();
 vi.stubGlobal('fetch', fetchMock);
 
-const { searchSpecies, fetchAoSites, logPageView, loadActivities, createAoSite, fetchAndCachePrivateSites, getCachedPrivateSites, hasFreshPrivateSitesCache, loggInnMedLagretLegitimasjon } = await import('../../public/js/api.js');
+const { searchSpecies, fetchAoSites, logPageView, loadActivities, createAoSite, fetchAndCachePrivateSites, getCachedPrivateSites, hasFreshPrivateSitesCache, loggInnMedLagretLegitimasjon, oppdaterAoTokensFraRespons } = await import('../../public/js/api.js');
 
 beforeEach(() => {
   Object.keys(store).forEach(k => delete store[k]);
@@ -263,6 +263,59 @@ describe('fetchAoSites', () => {
     const result = await fetchAoSites(59.9, 10.7);
     expect(result).toHaveLength(1);
     expect(result[0].name).toBe('Gyldig');
+  });
+
+  it('lagrer et rotert logintoken fra en stille revival (korreksjon 6)', async () => {
+    // AO gir et logintoken nøyaktig ÉN vellykket stille revival (se
+    // docs/ao-token-autentisering.md korreksjon 6) — uten å lagre det roterte
+    // tokenet her ville enheten brukt opp sin ene sjanse for godt.
+    store.ao_tokens = JSON.stringify({ authCookie: 'gammel-cookie', loginToken: 'gammelt-token', userId: '1' });
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve({
+        sites: [],
+        refreshedAuthCookie: 'ny-cookie',
+        refreshedLoginToken: 'nytt-rotert-logintoken',
+      }),
+    });
+
+    await fetchAoSites(59.9, 10.7);
+
+    const lagret = JSON.parse(store.ao_tokens);
+    expect(lagret.authCookie).toBe('ny-cookie');
+    expect(lagret.loginToken).toBe('nytt-rotert-logintoken');
+  });
+});
+
+// ─── oppdaterAoTokensFraRespons ────────────────────────────────
+
+describe('oppdaterAoTokensFraRespons', () => {
+  beforeEach(() => {
+    store.ao_tokens = JSON.stringify({ authCookie: 'gammel-cookie', loginToken: 'gammelt-token', userId: '1' });
+  });
+
+  it('oppdaterer begge felt når begge er mottatt', () => {
+    const resultat = oppdaterAoTokensFraRespons({ refreshedAuthCookie: 'ny-cookie', refreshedLoginToken: 'nytt-token' });
+    expect(resultat.authCookie).toBe('ny-cookie');
+    expect(resultat.loginToken).toBe('nytt-token');
+    expect(JSON.parse(store.ao_tokens)).toEqual(resultat);
+  });
+
+  it('oppdaterer kun logintoken når bare det er mottatt', () => {
+    const resultat = oppdaterAoTokensFraRespons({ refreshedLoginToken: 'nytt-token' });
+    expect(resultat.authCookie).toBe('gammel-cookie');
+    expect(resultat.loginToken).toBe('nytt-token');
+  });
+
+  it('gjør ingenting og returnerer null uten noe å oppdatere', () => {
+    const resultat = oppdaterAoTokensFraRespons({});
+    expect(resultat).toBeNull();
+    expect(JSON.parse(store.ao_tokens).loginToken).toBe('gammelt-token');
+  });
+
+  it('gjør ingenting for en tom/manglende respons', () => {
+    expect(oppdaterAoTokensFraRespons(null)).toBeNull();
+    expect(oppdaterAoTokensFraRespons(undefined)).toBeNull();
   });
 });
 
