@@ -1082,7 +1082,7 @@
       var titleEl = document.getElementById('species-group-help-title');
       var bodyEl = document.getElementById('species-group-help-body');
       var okBtn = document.getElementById('species-group-help-ok-btn');
-      var closeHelp = function() { backdrop.classList.remove('open'); };
+      var closeHelp = function() { backdrop.style.display = 'none'; };
       banner.addEventListener('click', function() {
         var nn = typeof window.__isNynorsk === 'function' ? window.__isNynorsk() : false;
         if (titleEl) {
@@ -1095,7 +1095,7 @@
             ? 'Hos Artsobservasjoner kan berre fuglar rapporterast på felles, offentlege lokalitetar. Alle andre artsgrupper (inkludert pattedyr) må rapporterast på dine eigne private lokalitetar.\n\nHar du ikkje ein privat lokalitet der du er no, kan du trykkja på + øvst til høgre for å oppretta ein ny.'
             : 'Hos Artsobservasjoner kan bare fugler rapporteres på felles, offentlige lokaliteter. Alle andre artsgrupper (inkludert pattedyr) må rapporteres på dine egne private lokaliteter.\n\nHar du ikke en privat lokalitet der du er nå, kan du trykke på + øverst til høyre for å opprette en ny.';
         }
-        backdrop.classList.add('open');
+        backdrop.style.display = 'flex';
         if (okBtn) okBtn.focus();
       });
       if (okBtn) okBtn.addEventListener('click', closeHelp);
@@ -1103,7 +1103,7 @@
         if (e.target === backdrop) closeHelp();
       });
       document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape' && backdrop.classList.contains('open')) closeHelp();
+        if (e.key === 'Escape' && backdrop.style.display === 'flex') closeHelp();
       });
     })();
   </script>

@@ -163,7 +163,7 @@ if (speciesGroupBanner) {
     const helpBody = document.getElementById('species-group-help-body');
     const helpOkBtn = document.getElementById('species-group-help-ok-btn');
     const closeHelp = () => {
-      if (helpBackdrop) helpBackdrop.classList.remove('open');
+      if (helpBackdrop) helpBackdrop.style.display = 'none';
     };
     if (!speciesGroupBanner.dataset.helpBound) {
       speciesGroupBanner.dataset.helpBound = '1';
@@ -171,7 +171,7 @@ if (speciesGroupBanner) {
         if (!helpBackdrop) return;
         if (helpTitle) helpTitle.textContent = t('map.species_group.help_title');
         if (helpBody) helpBody.textContent = t('map.species_group.help_body');
-        helpBackdrop.classList.add('open');
+        helpBackdrop.style.display = 'flex';
         if (helpOkBtn) helpOkBtn.focus();
       });
       if (helpOkBtn) helpOkBtn.addEventListener('click', closeHelp);
@@ -181,7 +181,7 @@ if (speciesGroupBanner) {
         });
       }
       document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && helpBackdrop && helpBackdrop.classList.contains('open')) {
+        if (e.key === 'Escape' && helpBackdrop && helpBackdrop.style.display === 'flex') {
           closeHelp();
         }
       });
