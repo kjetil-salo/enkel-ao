@@ -29,11 +29,20 @@ from src.utils import mask_token
 from src.ao_import_httpx import AO2_DRIFTSFEIL, fetch_csrf_tokens
 
 
-def fetch_ao_autocomplete(term: str, login_token: str = None, auth_cookie: str = None, user_id: str = None, location_db=None, lat: float = None, lon: float = None, username: str = None, client_ip: str = None) -> dict:
+STOETTEDE_ARTSGRUPPER = frozenset({'8', '11'})
+
+
+def _normaliser_artsgruppe(verdi) -> str:
+    """Returner gyldig artsgruppe-ID ('8' = fugler, '11' = pattedyr), ellers '8'."""
+    s = str(verdi or '').strip()
+    return s if s in STOETTEDE_ARTSGRUPPER else '8'
+
+
+def fetch_ao_autocomplete(term: str, login_token: str = None, auth_cookie: str = None, user_id: str = None, location_db=None, lat: float = None, lon: float = None, username: str = None, client_ip: str = None, species_group_id: str = '8') -> dict:
     """
     Hent autocomplete-forslag for lokaliteter.
 
-    Søker først i lokal DB (hvis tilgjengelig), deretter i AO (hvis innlogget).
+    Søker først i lokal DB (hvis tilgjengelig og artsgruppe er fugl), deretter i AO (hvis innlogget).
     Uten innlogging returneres kun lokale resultater.
 
     Args:
@@ -42,6 +51,7 @@ def fetch_ao_autocomplete(term: str, login_token: str = None, auth_cookie: str =
         auth_cookie: Optional .ASPXAUTHNO cookie (for å inkludere private lokaliteter)
         user_id: Optional bruker-ID (for auto-relogin)
         location_db: Optional LocationDB-instans for lokalt søk
+        species_group_id: Artsgruppe-ID ('8' = fugler, '11' = pattedyr)
 
     Returns:
         Dict med 'results' (liste), 'refreshed_auth_cookie' (str eller None) og
@@ -51,9 +61,11 @@ def fetch_ao_autocomplete(term: str, login_token: str = None, auth_cookie: str =
     if not term or len(term) < 2:
         return {'results': [], 'refreshed_auth_cookie': None, 'refreshed_login_token': None}
 
-    # Søk i lokal DB først (alltid tilgjengelig, ingen innlogging nødvendig)
+    gruppe_id = _normaliser_artsgruppe(species_group_id)
+
+    # Søk i lokal DB først (kun for fugl — andre artsgrupper krever egne private lokaliteter)
     local_results = []
-    if location_db:
+    if location_db and gruppe_id == '8':
         try:
             local_sites = location_db.search_by_name(term, limit=20, lat=lat, lon=lon)
             # Konverter til AO autocomplete-format
@@ -92,7 +104,7 @@ def fetch_ao_autocomplete(term: str, login_token: str = None, auth_cookie: str =
 
     base_url = os.getenv('AO_URL', 'https://www.artsobservasjoner.no')
     params = {
-        'speciesGroupId': '8',  # Fugler
+        'speciesGroupId': gruppe_id,
         'term': term,
         'searchSitesAlsoByExternalId': 'False'
     }
@@ -608,10 +620,12 @@ def _full_relogin(user_id: str, login_token: str = None, username: str = None, c
         return None, None
 
 
-def handle_species_search(search_term, dont_include_sub='true', ao_base_url='https://www.artsobservasjoner.no'):
+def handle_species_search(search_term, dont_include_sub='true', ao_base_url='https://www.artsobservasjoner.no', species_group='8'):
     """Håndter søk etter arter via Artsobservasjoner.no."""
     if not search_term.strip():
         return []
+
+    gruppe_id = _normaliser_artsgruppe(species_group)
 
     # Bygg URL til Artsobservasjoner
     query_params = {
@@ -619,7 +633,7 @@ def handle_species_search(search_term, dont_include_sub='true', ao_base_url='htt
         'returnformat': 'html',
         'onlyReportable': 'true',
         'dontIncludeSubSpecies': dont_include_sub,
-        'speciesGroup': '8',
+        'speciesGroup': gruppe_id,
         'language': '4',
     }
     ao_url = ao_base_url + '/Taxon/PickerSearch?' + urlencode(query_params)

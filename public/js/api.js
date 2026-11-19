@@ -248,15 +248,18 @@ function setCachedSpecies(key, data) {
  * @param {boolean} includeSubtaxa - Om undertaxa skal inkluderes
  * @returns {Promise<Array>} - Liste med arter
  */
-export async function searchSpecies(term, includeSubtaxa = false) {
+export async function searchSpecies(term, includeSubtaxa = false, speciesGroup = '8') {
   const q = term.trim();
 
   if (q.length < 2) {
     return [];
   }
 
-  // Cache-nøkkel: søkestreng (lowercase) + includeSubtaxa
-  const cacheKey = `${q.toLowerCase()}::${includeSubtaxa ? 'sub' : 'nosub'}`;
+  const gruppe = String(speciesGroup || '8') === '11' ? '11' : '8';
+
+  // Cache-nøkkel: behold eksisterende format for fugl ('8'), prefiks for andre grupper
+  const baseKey = `${q.toLowerCase()}::${includeSubtaxa ? 'sub' : 'nosub'}`;
+  const cacheKey = gruppe === '8' ? baseKey : `${gruppe}::${baseKey}`;
 
   // Sjekk cache
   const cached = getCachedSpecies(cacheKey);
@@ -266,6 +269,9 @@ export async function searchSpecies(term, includeSubtaxa = false) {
 
   let url = `/api/species?search=${encodeURIComponent(q)}`;
   url += `&dontIncludeSubSpecies=${includeSubtaxa ? 'false' : 'true'}`;
+  if (gruppe !== '8') {
+    url += `&speciesGroup=${encodeURIComponent(gruppe)}`;
+  }
 
   const resp = await fetch(url);
   if (!resp.ok) {
@@ -683,4 +689,23 @@ export function logPageView() {
 export async function loadActivities() {
   const resp = await fetch('/data/activities.json');
   return await resp.json();
+}
+
+let _pattedyrListerCache = null;
+
+/**
+ * Last verdilister (aktiviteter, alder, kjønn m.m.) for valgt artsgruppe.
+ * @param {string|number} speciesGroup - '8' (fugl) eller '11' (pattedyr)
+ * @returns {Promise<Object>}
+ */
+export async function loadSpeciesGroupLists(speciesGroup = '8') {
+  if (String(speciesGroup) === '11') {
+    if (!_pattedyrListerCache) {
+      const resp = await fetch('/data/pattedyr_lister.json');
+      _pattedyrListerCache = await resp.json();
+    }
+    return _pattedyrListerCache;
+  }
+  const activities = await loadActivities();
+  return { speciesGroupId: 8, name: 'Fugler', activities };
 }

@@ -25,30 +25,19 @@ export const CURRENT_NEWS_SPLASH = {
   items: [
     {
       title: '📖 Nynorsk',
-      body: 'Appen finnes nå på nynorsk, i tillegg til bokmål. Velg under '
-        + '⚙️ Innstillinger → Språk — hele appen bytter med en gang: søket, '
-        + 'registreringen, meldingene og hele hjelpesiden.',
+      body: 'Appen finnes nå på nynorsk, i tillegg til bokmål. Velg under ⚙️ Innstillinger → Språk — hele appen bytter med en gang: søket, registreringen, meldingene og hele hjelpesiden.',
       image: {
         src: '/img/nyhet-nynorsk.jpg',
-        alt: 'Illustrasjon av Espen Bore Hollund og Ivar Aasen side om side, '
-          + 'med norsk fjellandskap og en fugl i bakgrunnen.',
+        alt: 'Illustrasjon av Espen Bore Hollund og Ivar Aasen side om side, med norsk fjellandskap og en fugl i bakgrunnen.',
       },
     },
     {
       title: '💻 Rakk du ikke å sende inn før du kom hjem?',
-      body: 'Lagre en privat kopi av arbeidslista fra ⋯-menyen på mobilen '
-        + 'før du legger den fra deg. Hjemme åpner du samme meny på Mac '
-        + 'eller PC, logger inn med samme AO-konto, og henter listen inn '
-        + 'der — klar til å se gjennom funnene før du publiserer.',
+      body: 'Lagre en privat kopi av arbeidslista fra ⋯-menyen på mobilen før du legger den fra deg. Hjemme åpner du samme meny på Mac eller PC, logger inn med samme AO-konto, og henter listen inn der — klar til å se gjennom funnene før du publiserer.',
     },
     {
       title: '🙌 Dette er Espen sitt verk',
-      body: 'Espen Bore Hollund bygde den første nynorsk-versjonen av appen '
-        + 'og oversatte alt innholdet selv, side for side — språkvelgeren '
-        + 'du ser i dag bygger videre på koden hans. Enkel-AO er åpen '
-        + 'kildekode, og dette er akkurat slik det er ment å virke: koden '
-        + 'ligger ute, og den som savner noe kan bygge det og sende det '
-        + 'tilbake.',
+      body: 'Espen Bore Hollund bygde den første nynorsk-versjonen av appen og oversatte alt innholdet selv, side for side — språkvelgeren du ser i dag bygger videre på koden hans. Enkel-AO er åpen kildekode, og dette er akkurat slik det er ment å virke: koden ligger ute, og den som savner noe kan bygge det og sende det tilbake.',
     },
   ],
 };

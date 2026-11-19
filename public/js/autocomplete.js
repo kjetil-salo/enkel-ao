@@ -84,7 +84,7 @@ export function sortLocationAutocompleteResults(results) {
  * @param {HTMLInputElement} placeInput - Stedsnavn input-felt
  * @param {Function} onSelect - Callback når bruker velger lokalitet (name, id)
  */
-export function initAutocomplete(placeInput, onSelect, getPosition = null) {
+export function initAutocomplete(placeInput, onSelect, getPosition = null, getSpeciesGroup = null) {
   if (!placeInput) return;
 
   let debounceTimer = null;
@@ -143,11 +143,23 @@ export function initAutocomplete(placeInput, onSelect, getPosition = null) {
     }
 
     const pos = getPosition && getPosition();
+    const speciesGroup = String((getSpeciesGroup && getSpeciesGroup()) || '8');
+    const onlyPrivate = speciesGroup !== '8';
+    const isOwnPrivateResult = (s) => {
+      if (!s) return false;
+      if (isMineResult(s)) return true;
+      if (s.id == null) return false;
+      const mineIds = new Set(getCachedPrivateSites().map(site => String(site.id)));
+      return mineIds.has(String(s.id));
+    };
+    const filterSites = (list) => onlyPrivate
+      ? list.filter(isOwnPrivateResult).map(s => ({ ...s, isMine: true, isPrivate: true }))
+      : list;
     const mode = getNetworkMode();
 
     // 1. Streng Offline-modus: Søk utelukkende i lokalt mellomlager (IndexedDB), ingen nettverkskall
     if (mode === 'offline') {
-      const localResults = await searchOfflineAutocomplete(term, pos);
+      const localResults = filterSites(await searchOfflineAutocomplete(term, pos));
       if (!isCurrent()) return;
       currentResults = localResults;
       renderResults(localResults);
@@ -155,7 +167,7 @@ export function initAutocomplete(placeInput, onSelect, getPosition = null) {
     }
 
     // Vis lokale treff straks, men suppler dem: et tekstsøk kan ha flere treff på nettet.
-    let localResults = await searchOfflineAutocomplete(term, pos, mode === 'hybrid');
+    let localResults = filterSites(await searchOfflineAutocomplete(term, pos, mode === 'hybrid'));
     if (!isCurrent()) return;
     if (localResults.length > 0) {
       currentResults = localResults;
@@ -170,7 +182,7 @@ export function initAutocomplete(placeInput, onSelect, getPosition = null) {
       const privateLokaliteterHentet = privateLokaliteterVarCachet || await ensureAoPrivateSites();
       if (!isCurrent()) return;
       if (privateLokaliteterHentet && !privateLokaliteterVarCachet) {
-        localResults = await searchOfflineAutocomplete(term, pos, mode === 'hybrid');
+        localResults = filterSites(await searchOfflineAutocomplete(term, pos, mode === 'hybrid'));
         if (!isCurrent()) return;
         if (localResults.length) {
           currentResults = localResults;
@@ -195,6 +207,9 @@ export function initAutocomplete(placeInput, onSelect, getPosition = null) {
       if (pos && typeof pos.lat === 'number' && typeof pos.lon === 'number') {
         url += `&lat=${pos.lat}&lon=${pos.lon}`;
       }
+      if (onlyPrivate) {
+        url += `&speciesGroupId=${encodeURIComponent(speciesGroup)}`;
+      }
       const response = await fetch(url, { headers });
       const data = await response.json();
       if (!isCurrent()) return;
@@ -218,7 +233,7 @@ export function initAutocomplete(placeInput, onSelect, getPosition = null) {
 
       const lokalitetsnøkkel = (resultat) => resultat.id != null ? String(resultat.id) : resultat.value;
       const merged = new Map(localResults.map(resultat => [lokalitetsnøkkel(resultat), resultat]));
-      for (const resultat of data.results || []) {
+      for (const resultat of filterSites(data.results || [])) {
         const nøkkel = lokalitetsnøkkel(resultat);
         if (merged.get(nøkkel)?.isMine && !resultat.isMine) continue;
         merged.set(nøkkel, resultat);
@@ -245,7 +260,9 @@ export function initAutocomplete(placeInput, onSelect, getPosition = null) {
             color: var(--muted);
             font-size: 0.85em;
           ">
-            Ingen treff. <a href="/profil.html#ao-username" style="color: inherit; text-decoration: underline;">Logg inn</a> for å søke i alle AO-lokaliteter.
+            ${onlyPrivate
+              ? 'Ingen egne private lokaliteter funnet. <a href="/profil.html#ao-username" style="color: inherit; text-decoration: underline;">Logg inn</a> for å finne dine private lokaliteter.'
+              : 'Ingen treff. <a href="/profil.html#ao-username" style="color: inherit; text-decoration: underline;">Logg inn</a> for å søke i alle AO-lokaliteter.'}
           </div>
         `;
         dropdown.style.display = 'block';
@@ -383,13 +400,15 @@ export function initAutocomplete(placeInput, onSelect, getPosition = null) {
     const selected = currentResults[index];
     const name = selected.value;
     const id = selected.id;
+    const mineIds = new Set(getCachedPrivateSites().map(site => String(site.id)));
+    const isMine = isMineResult(selected) || (id != null && mineIds.has(String(id)));
 
     invalidateResults();
     placeInput.value = name;
 
     // Callback til parent-komponent
     if (onSelect) {
-      onSelect(name, id);
+      onSelect(name, id, isMine);
     }
   }
 

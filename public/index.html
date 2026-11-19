@@ -101,6 +101,28 @@
           </div>
           <div class="header-actions">
             <a href="/profil.html" id="ao-status-dot" class="ao-status-dot" aria-label="Ikke innlogget mot Artsobservasjoner. Trykk for å logge inn.">Logg inn</a>
+            <button type="button" class="species-group-toggle" id="species-group-trigger" aria-pressed="false" aria-label="Artsgruppe: Fugl. Trykk for å bytte til pattedyr." title="Artsgruppe: Fugl – trykk for å bytte til pattedyr"><span id="species-group-icon" aria-hidden="true">🦉</span></button>
+            <script>
+              (function() {
+                try {
+                  var nn = typeof window.__isNynorsk === 'function' ? window.__isNynorsk() : false;
+                  var trigger = document.getElementById('species-group-trigger');
+                  var icon = document.getElementById('species-group-icon');
+                  if (localStorage.getItem('ao_species_group_v1') === '11') {
+                    if (icon) icon.textContent = '🦌';
+                    if (trigger) {
+                      trigger.classList.add('is-non-bird');
+                      trigger.setAttribute('aria-pressed', 'true');
+                      trigger.setAttribute('aria-label', nn ? 'Artsgruppe: Pattedyr. Trykk for å byta til fugl.' : 'Artsgruppe: Pattedyr. Trykk for å bytte til fugl.');
+                      trigger.title = nn ? 'Artsgruppe: Pattedyr – trykk for å byta til fugl' : 'Artsgruppe: Pattedyr – trykk for å bytte til fugl';
+                    }
+                  } else if (trigger && nn) {
+                    trigger.setAttribute('aria-label', 'Artsgruppe: Fugl. Trykk for å byta til pattedyr.');
+                    trigger.title = 'Artsgruppe: Fugl – trykk for å byta til pattedyr';
+                  }
+                } catch (e) {}
+              })();
+            </script>
             <!-- Fellestur hører hjemme i nav-ikonraden, ikke i ④ Send inn der den
                  lå før: en tur må startes FØR man registrerer noe, ellers havner
                  ikke funnene i den delte loggen. ④ står dessuten grå og død
@@ -203,12 +225,12 @@
           // ved trykk utenfor og Escape, uten å stjele fokus fra skjemaet.
           const headerMenu = document.getElementById('header-menu');
           document.addEventListener('pointerdown', (event) => {
-            if (!headerMenu.contains(event.target)) headerMenu.open = false;
+            if (headerMenu && !headerMenu.contains(event.target)) headerMenu.open = false;
           });
           document.addEventListener('keydown', (event) => {
-            if (event.key === 'Escape' && headerMenu.open) {
+            if (event.key === 'Escape' && headerMenu && headerMenu.open) {
               headerMenu.open = false;
-              headerMenu.querySelector('summary').focus();
+              headerMenu.querySelector('summary')?.focus();
             }
           });
         </script>
@@ -310,6 +332,9 @@
               placeholder="F.eks. Osen, Herdla …"
             />
             <div class="result-empty" id="ao-sites" style="display:none; margin-top:4px;"></div>
+            <div class="private-site-notice" id="private-site-notice" style="display:none;" data-i18n="index.species_group.private_site_required">
+              Pattedyr kan bare rapporteres på egne private lokaliteter.
+            </div>
           </div>
           </div><!-- /loc-full -->
         </fieldset>
@@ -403,9 +428,9 @@
           </div>
           <div class="row" style="margin-top:12px;display:flex;gap:8px;">
             <div style="flex:1;">
-              <label for="age" style="font-size:0.8em;color:var(--muted);">Alder</label>
+              <label for="age" style="font-size:0.8em;color:var(--muted);" data-i18n="index.field.age">Alder</label>
               <select id="age" disabled style="width:100%;">
-                <option value="">Ikke oppgitt</option>
+                <option value="" data-i18n="index.common.not_specified">Ikke oppgitt</option>
                 <option value="Adult">Adult</option>
                 <option value="Egg">Egg</option>
                 <option value="Pulli">Pulli</option>
@@ -432,13 +457,28 @@
               </select>
             </div>
             <div style="flex:1;">
-              <label for="gender" style="font-size:0.8em;color:var(--muted);">Kjønn</label>
+              <label for="gender" style="font-size:0.8em;color:var(--muted);" data-i18n="index.field.gender">Kjønn</label>
               <select id="gender" disabled style="width:100%;">
-                <option value="">Ikke oppgitt</option>
-                <option value="Hann">Hann</option>
-                <option value="Hunn">Hunn</option>
-                <option value="Hunnfarget">Hunnfarget</option>
-                <option value="I par">I par</option>
+                <option value="" data-i18n="index.common.not_specified">Ikke oppgitt</option>
+                <option value="Hann" data-i18n="index.common.gender_hann">Hann</option>
+                <option value="Hunn" data-i18n="index.common.gender_hunn">Hunn</option>
+                <option value="Hunnfarget" data-i18n="index.common.gender_hunnfarget">Hunnfarget</option>
+                <option value="I par" data-i18n="index.common.gender_i_par">I par</option>
+              </select>
+            </div>
+          </div>
+          <div id="gender-pair-hint" style="display:none;margin-top:4px;font-size:0.78em;color:#f59e0b;line-height:1.3;" role="status" aria-live="polite"></div>
+          <div id="mammal-fields-row" class="row" style="margin-top:8px;display:none;gap:8px;">
+            <div style="flex:1;">
+              <label for="unit" style="font-size:0.8em;color:var(--muted);" data-i18n="index.field.unit">Enhet</label>
+              <select id="unit" disabled style="width:100%;">
+                <option value="" data-i18n="index.common.not_specified">Ikke oppgitt</option>
+              </select>
+            </div>
+            <div style="flex:1;">
+              <label for="discovery-method" style="font-size:0.8em;color:var(--muted);" data-i18n="index.field.method">Metode</label>
+              <select id="discovery-method" disabled style="width:100%;">
+                <option value="" data-i18n="index.common.not_specified">Ikke oppgitt</option>
               </select>
             </div>
           </div>
@@ -587,7 +627,17 @@
       // Bruk inline versjon her: /js/version.js kan selv være cachet i gammel versjon.
       const VERSION = 'v1.61.0';
       if ('serviceWorker' in navigator) {
+        const hadController = Boolean(navigator.serviceWorker.controller);
         navigator.serviceWorker.register(`/sw.js?v=${VERSION}`).catch(() => {});
+        const isDevHost = location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.hostname.startsWith('ais-dev-') || location.hostname.startsWith('ais-pre-');
+        if (hadController && isDevHost) {
+          let reloaded = false;
+          navigator.serviceWorker.addEventListener('controllerchange', () => {
+            if (reloaded) return;
+            reloaded = true;
+            window.location.reload();
+          });
+        }
       }
     </script>
     <footer class="footer-credit">Versjon <span id="version"></span>  |  <a href="/changelog.html" style="color:var(--accent);text-decoration:none;">Endringslogg</a>  |  <a href="/feedback.html" style="color:var(--accent);text-decoration:none;">Gi tilbakemelding</a>  |  © 2026 Kjetil Salomonsen</footer>
@@ -1044,7 +1094,7 @@
             <select id="em-activity" style="width:100%;margin-top:4px;padding:8px;border-radius:8px;border:1px solid rgba(148,163,184,0.15);background:rgba(255,255,255,0.02);color:var(--text);box-sizing:border-box;"></select>
           </label>
           <div style="display:flex;gap:8px;">
-            <label style="display:block;flex:1;color:var(--muted);font-size:0.85em;margin:8px 0 0 0;">Alder
+            <label style="display:block;flex:1;color:var(--muted);font-size:0.85em;margin:8px 0 0 0;"><span data-i18n="index.field.age">Alder</span>
               <select id="em-age" style="width:100%;margin-top:4px;padding:8px;border-radius:8px;border:1px solid rgba(148,163,184,0.15);background:rgba(255,255,255,0.02);color:var(--text);box-sizing:border-box;">
                 <option value="" data-i18n="index.common.not_specified">Ikke oppgitt</option>
                 <option value="Adult">Adult</option>
@@ -1059,13 +1109,26 @@
                 <option value="7K">7K</option><option value="7K+">7K+</option><option value="7K-">7K-</option>
               </select>
             </label>
-            <label style="display:block;flex:1;color:var(--muted);font-size:0.85em;margin:8px 0 0 0;">Kjønn
+            <label style="display:block;flex:1;color:var(--muted);font-size:0.85em;margin:8px 0 0 0;"><span data-i18n="index.field.gender">Kjønn</span>
               <select id="em-gender" style="width:100%;margin-top:4px;padding:8px;border-radius:8px;border:1px solid rgba(148,163,184,0.15);background:rgba(255,255,255,0.02);color:var(--text);box-sizing:border-box;">
                 <option value="" data-i18n="index.common.not_specified">Ikke oppgitt</option>
-                <option value="Hann">Hann</option>
+                <option value="Hann" data-i18n="index.common.gender_hann">Hann</option>
                 <option value="Hunn" data-i18n="index.common.gender_hunn">Hunn</option>
                 <option value="Hunnfarget" data-i18n="index.common.gender_hunnfarget">Hunnfarget</option>
-                <option value="I par">I par</option>
+                <option value="I par" data-i18n="index.common.gender_i_par">I par</option>
+              </select>
+            </label>
+          </div>
+          <div id="em-gender-pair-hint" style="display:none;margin-top:4px;font-size:0.78em;color:#f59e0b;line-height:1.3;" role="status" aria-live="polite"></div>
+          <div id="em-mammal-fields-row" style="display:none;gap:8px;">
+            <label style="display:block;flex:1;color:var(--muted);font-size:0.85em;margin:8px 0 0 0;"><span data-i18n="index.field.unit">Enhet</span>
+              <select id="em-unit" style="width:100%;margin-top:4px;padding:8px;border-radius:8px;border:1px solid rgba(148,163,184,0.15);background:rgba(255,255,255,0.02);color:var(--text);box-sizing:border-box;">
+                <option value="" data-i18n="index.common.not_specified">Ikke oppgitt</option>
+              </select>
+            </label>
+            <label style="display:block;flex:1;color:var(--muted);font-size:0.85em;margin:8px 0 0 0;"><span data-i18n="index.field.method">Metode</span>
+              <select id="em-discovery-method" style="width:100%;margin-top:4px;padding:8px;border-radius:8px;border:1px solid rgba(148,163,184,0.15);background:rgba(255,255,255,0.02);color:var(--text);box-sizing:border-box;">
+                <option value="" data-i18n="index.common.not_specified">Ikke oppgitt</option>
               </select>
             </label>
           </div>

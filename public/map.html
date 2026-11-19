@@ -77,6 +77,46 @@
       box-shadow: 0 4px 12px rgba(0,0,0,0.4);
     }
 
+    .map-top-left-bar {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      right: 74px;
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      pointer-events: none;
+    }
+
+    .map-top-left-bar .back-btn {
+      position: static;
+      flex-shrink: 0;
+      pointer-events: auto;
+    }
+
+    .map-species-group-banner {
+      display: none;
+      position: static;
+      min-width: 0;
+      flex: 0 1 auto;
+      box-sizing: border-box;
+      background: rgba(15, 23, 42, 0.92);
+      color: #fef08a;
+      border: 1.5px solid #eab308;
+      border-radius: 999px;
+      padding: 6px 12px;
+      font-size: clamp(9.5px, 3vw, 13px);
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+      pointer-events: auto;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
     .info-box {
       position: absolute;
       bottom: 34px;
@@ -884,6 +924,17 @@
     </div>
   </div>
 
+  <!-- Hjelpedialog ved trykk på artsgruppe-banneret -->
+  <div class="offline-download-modal-backdrop" id="species-group-help-backdrop" role="dialog" aria-modal="true" aria-labelledby="species-group-help-title">
+    <div class="offline-download-modal" style="text-align:left;">
+      <div id="species-group-help-title" style="font-weight:700;margin-bottom:8px;"></div>
+      <div class="offline-download-modal-text" id="species-group-help-body" style="white-space:pre-line;font-size:14px;"></div>
+      <div style="text-align:center;">
+        <button type="button" class="offline-download-modal-ok-btn" id="species-group-help-ok-btn" data-i18n="common.ok">OK</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Topp-framdriftsindikator under nedlasting -->
   <div class="map-top-progress" id="map-top-progress" role="status" aria-live="polite" style="display:none;">
     <div class="map-top-progress-bar" id="map-top-progress-bar"></div>
@@ -893,7 +944,10 @@
     </div>
   </div>
 
-  <a href="/" class="back-btn" data-i18n="settings.back_link">← Tilbake</a>
+  <div class="map-top-left-bar">
+    <a href="/" class="back-btn" data-i18n="settings.back_link">← Tilbake</a>
+    <button type="button" class="map-species-group-banner" id="map-species-group-banner" aria-haspopup="dialog"></button>
+  </div>
   <!-- Tre trinn: Alt → Skjul navn → Skjul alt → Alt. Teksten settes av
        map.js (knappetekst() i kart-visning.js) og beskriver hva NESTE trykk
        gjør; verdien her er bare det første trinnet før JS har kjørt. -->
@@ -1019,5 +1073,39 @@
        selv om siden lastes på nytt — helt til noe endrer selve URL-en. Samme mønster
        som main.js i index.html. -->
   <script type="module" src="/js/map.js?v=v1.61.0"></script>
+  <script>
+    (function() {
+      var banner = document.getElementById('map-species-group-banner');
+      var backdrop = document.getElementById('species-group-help-backdrop');
+      if (!banner || !backdrop || banner.dataset.helpBound) return;
+      banner.dataset.helpBound = '1';
+      var titleEl = document.getElementById('species-group-help-title');
+      var bodyEl = document.getElementById('species-group-help-body');
+      var okBtn = document.getElementById('species-group-help-ok-btn');
+      var closeHelp = function() { backdrop.style.display = 'none'; };
+      banner.addEventListener('click', function() {
+        var nn = typeof window.__isNynorsk === 'function' ? window.__isNynorsk() : false;
+        if (titleEl) {
+          titleEl.textContent = nn
+            ? 'Kvifor vert berre eigne private lokalitetar viste?'
+            : 'Hvorfor vises bare egne private lokaliteter?';
+        }
+        if (bodyEl) {
+          bodyEl.textContent = nn
+            ? 'Hos Artsobservasjoner kan berre fuglar rapporterast på felles, offentlege lokalitetar. Alle andre artsgrupper (inkludert pattedyr) må rapporterast på dine eigne private lokalitetar.\n\nHar du ikkje ein privat lokalitet der du er no, kan du trykkja på + øvst til høgre for å oppretta ein ny.'
+            : 'Hos Artsobservasjoner kan bare fugler rapporteres på felles, offentlige lokaliteter. Alle andre artsgrupper (inkludert pattedyr) må rapporteres på dine egne private lokaliteter.\n\nHar du ikke en privat lokalitet der du er nå, kan du trykke på + øverst til høyre for å opprette en ny.';
+        }
+        backdrop.style.display = 'flex';
+        if (okBtn) okBtn.focus();
+      });
+      if (okBtn) okBtn.addEventListener('click', closeHelp);
+      backdrop.addEventListener('click', function(e) {
+        if (e.target === backdrop) closeHelp();
+      });
+      document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && backdrop.style.display === 'flex') closeHelp();
+      });
+    })();
+  </script>
 </body>
 </html>

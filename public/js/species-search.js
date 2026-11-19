@@ -11,6 +11,7 @@ import {
   searchSpecies,
 } from './species_offline.js?v=v1.61.0';
 import { speciesDisplayName, loadNynorskArtsnavn } from './storage.js?v=v1.61.0';
+import { t } from './i18n.js?v=v1.61.0';
 
 export { searchSpecies };
 
@@ -291,22 +292,20 @@ export async function fetchResults(term, state, dom, callbacks) {
   // gjest hos. Tallene oppdateres av tools/sync_species.py og følger med i
   // imaget. Dette er motsatt av lokalitetssøket, der LocationDB er 78 MB og
   // må ligge serverside.
-  const lokale = await searchOfflineSpecies(q, includeSubtaxa, userLanguage);
-  if (lokale.length) {
-    visOfflineTreff(lokale, '');
-    return;
+  const speciesGroup = String((callbacks.getSpeciesGroup && callbacks.getSpeciesGroup()) || '8');
+  const erFugl = speciesGroup === '8';
+
+  if (erFugl) {
+    const lokale = await searchOfflineSpecies(q, includeSubtaxa, userLanguage);
+    if (lokale.length) {
+      visOfflineTreff(lokale, '');
+      return;
+    }
   }
 
-  // Ingen treff lokalt: da er det enten en helt ny art, en underart lista ikke
-  // har, eller en skrivemåte AO kjenner og vi ikke. Først da spør vi AO.
-  //
-  // NB ved endringer her: denne fila importeres med ?v= fra main.js, og
-  // Cloudflare holder på en gitt URL i fire timer. Deployer du to ganger med
-  // SAMME versjon, serveres den første varianten videre - verifisert i
-  // staging 30.10.2026, der lokalsøket så ut til å ikke virke fordi edge
-  // fortsatt leverte forrige bygg av akkurat denne fila. Bump versjonen.
+  // Ingen treff lokalt (eller ikke-fugl som bruker live-søk mot AO).
   if (forceOffline) {
-    visOfflineTreff([], 'Ingen treff i offline-listen.');
+    visOfflineTreff([], erFugl ? 'Ingen treff i offline-listen.' : t('species.offline_birds_only'));
     return;
   }
 
@@ -320,36 +319,35 @@ export async function fetchResults(term, state, dom, callbacks) {
   }
 
   try {
-    let data = await withTimeout(fetchAoSpecies(q, includeSubtaxa), 10000);
+    let data = await withTimeout(fetchAoSpecies(q, includeSubtaxa, speciesGroup), 10000);
 
-    // AO sitt eget søk har ikke nynorsk-synonymer på underarter (f.eks. gir søk på
-    // "raudveng" bare hovedarten rødvingetrost fra AO, uten underartene coburni og
-    // iliacus). Vi oversetter derfor nynorske søketermer til bokmål og henter også
-    // når includeSubtaxa er aktivert og søketermen ikke er del av bokmålsnavnet.
-    try {
-      const nynorskMatches = await findBokmalByNynorskTerm(q);
-      const existingNames = new Set(data.map((d) => (d.taxonName || '').toLowerCase()));
-      const qLower = q.toLowerCase();
-      const extraTerms = nynorskMatches.filter((name) => {
-        const nameLower = name.toLowerCase();
-        if (!existingNames.has(nameLower)) return true;
-        return includeSubtaxa && !nameLower.includes(qLower);
-      });
-      if (extraTerms.length) {
-        const extraResultsArrays = await Promise.all(
-          extraTerms.map((name) => fetchAoSpecies(name, includeSubtaxa).catch(() => []))
-        );
-        const seenIds = new Set(data.map((d) => String(d.taxonId ?? d.id)));
-        for (const extra of extraResultsArrays.flat()) {
-          const extraKey = String(extra.taxonId ?? extra.id);
-          if (!seenIds.has(extraKey)) {
-            data.push(extra);
-            seenIds.add(extraKey);
+    // AO sitt eget søk har ikke nynorsk-synonymer på underarter (gjelder fugl).
+    if (erFugl) {
+      try {
+        const nynorskMatches = await findBokmalByNynorskTerm(q);
+        const existingNames = new Set(data.map((d) => (d.taxonName || '').toLowerCase()));
+        const qLower = q.toLowerCase();
+        const extraTerms = nynorskMatches.filter((name) => {
+          const nameLower = name.toLowerCase();
+          if (!existingNames.has(nameLower)) return true;
+          return includeSubtaxa && !nameLower.includes(qLower);
+        });
+        if (extraTerms.length) {
+          const extraResultsArrays = await Promise.all(
+            extraTerms.map((name) => fetchAoSpecies(name, includeSubtaxa, speciesGroup).catch(() => []))
+          );
+          const seenIds = new Set(data.map((d) => String(d.taxonId ?? d.id)));
+          for (const extra of extraResultsArrays.flat()) {
+            const extraKey = String(extra.taxonId ?? extra.id);
+            if (!seenIds.has(extraKey)) {
+              data.push(extra);
+              seenIds.add(extraKey);
+            }
           }
         }
+      } catch (e) {
+        console.warn('Nynorsk-oversettelse av søketerm feilet, fortsetter uten:', e);
       }
-    } catch (e) {
-      console.warn('Nynorsk-oversettelse av søketerm feilet, fortsetter uten:', e);
     }
 
     const enriched = await enrichAoSpeciesResults(data);
@@ -365,6 +363,15 @@ export async function fetchResults(term, state, dom, callbacks) {
 
     callbacks.updateStatus('idle', 'Klar for søk');
   } catch (err) {
+    if (!erFugl) {
+      state.currentResults = [];
+      state.activeIndex = -1;
+      renderResults(state, dom);
+      dom.emptyMsgEl.style.display = 'block';
+      dom.emptyMsgEl.textContent = 'Kunne ikke søke etter pattedyr uten nettverk.';
+      callbacks.updateStatus('error', 'Nettverksfeil');
+      return;
+    }
     const serverNede = err instanceof TypeError;
     console.warn(
       serverNede

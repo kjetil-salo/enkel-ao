@@ -10,7 +10,7 @@
 // og en manglende navngitt eksport gir SyntaxError som stopper HELE main.js,
 // ikke bare den ene funksjonen. Bump ved hver nye eksport vi blir avhengige
 // av. Samme fallgruve som storage.js-importen under og map.js sin api.js-import.
-import { logPageView, loadActivities, fetchAoSites, ensureAoPrivateSites } from './api.js?v=v1.61.0';
+import { logPageView, loadActivities, fetchAoSites, ensureAoPrivateSites, getCachedPrivateSites, loadSpeciesGroupLists } from './api.js?v=v1.61.0';
 // Versjonert import: denne linjen har en HARD avhengighet til to navngitte
 // eksporter (loadAoDirectAutoClear/saveAoDirectAutoClear) som ikke fantes i
 // tiderligere versjoner av storage.js. Uten ?v= her kan Cloudflare servere en
@@ -19,14 +19,14 @@ import { logPageView, loadActivities, fetchAoSites, ensureAoPrivateSites } from 
 // altså hele appen, se samme fallgruve for map.js/location.js (v1.53.15) og
 // sjekklisten i CLAUDE.md. Bump SAMTIDIG som index.html sin egen ?v=-tag for
 // main.js, hver gang storage.js får en ny eksport main.js begynner å bruke.
-import { loadObservations, saveObservations, loadAoSearchRadius, saveAoSearchRadius, loadLocationSortMode, saveLocationSortMode, loadAoDirectAutoClear, saveAoDirectAutoClear, saveLastKnownPosition, loadLastKnownPosition, activityDisplayName, lesArbeidslisteForOverforing, loadAllowUnknownCount, loadAllowEstimatedCount } from './storage.js?v=v1.61.0';
+import { loadObservations, saveObservations, loadAoSearchRadius, saveAoSearchRadius, loadLocationSortMode, saveLocationSortMode, loadAoDirectAutoClear, saveAoDirectAutoClear, saveLastKnownPosition, loadLastKnownPosition, activityDisplayName, activityBokmalName, genderDisplayName, ageDisplayName, unitDisplayName, discoveryMethodDisplayName, lesArbeidslisteForOverforing, loadAllowUnknownCount, loadAllowEstimatedCount } from './storage.js?v=v1.61.0';
 import { setStatus, setLocationStatus, showToast, showOfflineNotAvailableDialog, haversine, MODE_SPLASH_DURATION_MS } from './ui.js?v=v1.61.0';
 import { t, applyTranslations } from './i18n.js?v=v1.61.0';
 import { DEFAULT_MAP_CENTER, setAoSiteSuggestions, initLocation, openMap, openMapPage, updateCreateSiteBtnVisibility, initCreateSite } from './location.js?v=v1.61.0';
 // Versjonert import: observations.js sitt eget innhold (ikke bare hvilke
 // eksporter den har) endret seg vesentlig i dag (speciesDisplayName-bruk i
 // ③-lista og slett-toasten). En stale cachet kopi av selve FILEN - ikke bare
-// manglende eksport - er like reell en fallgruve: main.js sin import her har
+// mangende eksport - er like reell en fallgruve: main.js sin import her har
 // ALDRI vært versjonert, så en nettleser som besøkte siden tidligere i dag
 // (før nynorsk-arbeidet) kan sitte igjen med gammel oppførsel i opptil 4
 // timer, uten noen SyntaxError som varsler om det (funksjonene fantes jo
@@ -36,7 +36,7 @@ import { renderObservations } from './observations.js?v=v1.61.0';
 import { getVisitTimeSpan, isVisitLocked, visitExists } from './visits.js';
 
 // Nye moduler
-import { updateSectionStates, pulseSearchFieldAndFocus } from './form-state.js';
+import { updateSectionStates, pulseSearchFieldAndFocus, syncPairGenderOption } from './form-state.js?v=v1.61.0';
 // Versjonert import: samme begrunnelse som observations.js over - selve
 // innholdet i species-search.js (online-søk beriker nå med nynorsk via
 // getNynorskByLatin) endret vesentlig i dag, uten at denne importen noen
@@ -51,6 +51,7 @@ import { openShareDialog } from './share.js';
 import { initAutocomplete } from './autocomplete.js?v=v1.61.0';
 import { initNewsSplash } from './news-splash.js?v=v1.61.0';
 import { initFirstRunHint, shouldShowHint } from './first-run-hint.js?v=v1.61.0';
+import { initSpeciesGroupHint } from './species-group-hint.js?v=v1.61.0';
 import { hentAktivFellestur, forlatFellestur } from './fellestur-client.js';
 import { oppdaterSpeilFraServer, hentSpeilVersjon, lastSpeil } from './fellestur-sync.js';
 import { aktivInnhentetListe, lukkInnhentetListe } from './arbeidsliste-lokal.js';
@@ -69,22 +70,43 @@ import {
 // ============================================================
 // Applikasjonstilstand
 // ============================================================
+const SPECIES_GROUP_STORAGE_KEY = 'ao_species_group_v1';
+
+function loadSelectedSpeciesGroup() {
+  try {
+    return localStorage.getItem(SPECIES_GROUP_STORAGE_KEY) === '11' ? '11' : '8';
+  } catch {
+    return '8';
+  }
+}
+
+function saveSelectedSpeciesGroup(groupId) {
+  try {
+    localStorage.setItem(SPECIES_GROUP_STORAGE_KEY, groupId);
+  } catch {
+    // Ikke kritisk om localStorage er utilgjengelig
+  }
+}
+
 const appState = {
   currentResults: [],
   activeIndex: -1,
   debounceTimer: null,
   selectedSpecies: null,
+  selectedSpeciesGroup: loadSelectedSpeciesGroup(),
   searchPulseTimeout: null,
   observations: [],
   currentPosition: null,
   currentPlaceName: '',
   currentPlaceId: null,
+  currentPlaceIsMine: false,
   // Satt når man hopper tilbake til et besøk med blyanten i ③. Da er nye
   // observasjoner etterregistreringer *inni* det besøket, og arver besøkets
   // klokkeslett i stedet for å få «nå». Nullstilles så snart plassen endres
   // på en hvilken som helst annen måte.
   etterregVisitKey: null,
   currentAoSites: [],
+  unfilteredAoSites: [],
   // Siste ikke-tomme bbox-resultat FØR privat-cache-merge (rå input til
   // setAoSiteSuggestions/mergeAoSitesWithPrivateCache), pluss posisjon,
   // søkeradius og tidspunkt det ble hentet MED — brukt som fallback i
@@ -150,6 +172,10 @@ const dom = {
   sectionAktivitet: document.querySelector('.row .activity-input-row'),
   ageSelect: document.getElementById('age'),
   genderSelect: document.getElementById('gender'),
+  genderPairHint: document.getElementById('gender-pair-hint'),
+  mammalFieldsRow: document.getElementById('mammal-fields-row'),
+  unitSelect: document.getElementById('unit'),
+  discoveryMethodSelect: document.getElementById('discovery-method'),
   countEstimatedCheckbox: document.getElementById('count-estimated'),
   countEstimatedRow: document.getElementById('count-estimated-row'),
   countUnknownCheckbox: document.getElementById('count-unknown'),
@@ -177,6 +203,7 @@ const callbacks = {
   saveState,
   lesLagretListe: lesArbeidslisteForOverforing,
   renderResults: () => renderResults(appState, dom),
+  getSpeciesGroup: () => appState.selectedSpeciesGroup,
 };
 appState._callbacks = callbacks;
 
@@ -625,17 +652,20 @@ function expandLocation() {
   // etterregistrering. GPS-hentingen under beholdes likevel — den mater
   // kartknappen og autocomplete-sorteringen — den skal bare ikke tegne noe.
   const visDropdown = !erEtterregistreringsmodus();
-  const hadCachedSites = !!(appState.currentAoSites && appState.currentAoSites.length && dom.placeInput);
-  if (hadCachedSites) {
+  const baseSites = hentUfiltrerteLokaliteter();
+  const hadCachedSites = !!(baseSites.length && dom.placeInput);
+  const hasPrivateForNonBird = appState.selectedSpeciesGroup !== '8' && getCachedPrivateSites().length > 0;
+  if (hadCachedSites || (hasPrivateForNonBird && dom.placeInput)) {
     appState.currentAoSites = setAoSiteSuggestions(
-      appState.currentAoSites,
+      baseSites,
       appState.currentPosition,
       visDropdown ? dom.aoSitesDropdown : null,
       dom.aoSitesEl,
       dom.placeInput,
       makeSetCurrentPlaceAndUpdate(),
       appState.currentAoSizeMeters,
-      appState.locationSortMode
+      appState.locationSortMode,
+      appState.selectedSpeciesGroup !== '8'
     );
     updateLocationTuningVisibility();
   }
@@ -695,14 +725,16 @@ function varsleLokalitetValgt() {
 document.addEventListener('lokalitet:valgt', scrollToArtAntallRow);
 
 function makeSetCurrentPlaceAndUpdate() {
-  return (name, siteId = null) => {
+  return (name, siteId = null, isMine = null) => {
     avsluttEtterregistrering();
     appState.currentPlaceName = name;
     appState.currentPlaceId = siteId;
+    appState.currentPlaceIsMine = isMine === true || (isMine !== false && erIdEgenPrivat(siteId));
     if (dom.placeInput) {
       dom.placeInput.value = name;
       dom.placeInput.dataset.autofilled = 'true';
     }
+    oppdaterPrivatLokalitetVarsel();
     updateSectionStates(appState, dom);
     collapseLocation();
     pulseSearchFieldAndFocus(appState, dom);
@@ -807,6 +839,7 @@ function handlePositionUpdate(position, sites, radiusUsed = appState.currentAoSi
   // er fortsatt verdt å ta vare på i appState: autocomplete sorterer etter
   // avstand fra appState.currentPosition. Null-dropdown gjør at
   // setAoSiteSuggestions kun merger og returnerer, uten å tegne noe.
+  appState.unfilteredAoSites = bboxSites;
   appState.currentAoSites = setAoSiteSuggestions(
     bboxSites,
     appState.currentPosition,
@@ -815,11 +848,13 @@ function handlePositionUpdate(position, sites, radiusUsed = appState.currentAoSi
     dom.placeInput,
     makeSetCurrentPlaceAndUpdate(),
     radiusForMerge,
-    appState.locationSortMode
+    appState.locationSortMode,
+    appState.selectedSpeciesGroup !== '8'
   );
   if (!isOfflineMode() && appState.currentAoSites && appState.currentAoSites.length > 0) {
     saveOpportunisticOfflineLocations(appState.currentAoSites).catch(() => {});
   }
+  oppdaterPrivatLokalitetVarsel();
   updateSectionStates(appState, dom);
   updateMapBtnVisibility();
   updateCreateSiteBtnVisibility(appState.currentPosition);
@@ -839,12 +874,12 @@ function handlePositionUpdate(position, sites, radiusUsed = appState.currentAoSi
         ? { ...lastKnown, isFallback: true, isLastKnown: true }
         : DEFAULT_MAP_CENTER;
     }
-    openMapPage(mapCenter, appState.currentAoSites, appState.currentAoSizeMeters);
+    openMapPage(mapCenter, appState.currentAoSites, appState.currentAoSizeMeters, appState.selectedSpeciesGroup);
   }
 }
 
 // Bytt sorteringsmodus for lokasjonsforslaget. Gjenbruker allerede hentede
-// sites (appState.currentAoSites) — trenger ikke ny GPS-runde for å sortere om.
+// sites — trenger ikke ny GPS-runde for å sortere om.
 function setLocationSortMode(mode) {
   if (mode !== 'standard' && mode !== 'avstand') return;
   appState.locationSortMode = mode;
@@ -853,18 +888,302 @@ function setLocationSortMode(mode) {
   if (dom.locSortStandardBtn) dom.locSortStandardBtn.setAttribute('aria-checked', String(mode === 'standard'));
   if (dom.locSortAvstandBtn) dom.locSortAvstandBtn.setAttribute('aria-checked', String(mode === 'avstand'));
 
-  if (appState.currentAoSites && appState.currentAoSites.length) {
+  const baseSites = hentUfiltrerteLokaliteter();
+  if (baseSites.length || (appState.selectedSpeciesGroup !== '8' && getCachedPrivateSites().length)) {
     appState.currentAoSites = setAoSiteSuggestions(
-      appState.currentAoSites,
+      baseSites,
       appState.currentPosition,
       dom.aoSitesDropdown,
       dom.aoSitesEl,
       dom.placeInput,
       makeSetCurrentPlaceAndUpdate(),
       appState.currentAoSizeMeters,
-      appState.locationSortMode
+      appState.locationSortMode,
+      appState.selectedSpeciesGroup !== '8'
     );
   }
+}
+
+let _birdAgeOptionsHtml = null;
+let _birdGenderOptionsHtml = null;
+
+async function oppdaterVerdilisterForArtsgruppe(groupId) {
+  try {
+    if (dom.ageSelect && _birdAgeOptionsHtml === null) {
+      _birdAgeOptionsHtml = dom.ageSelect.innerHTML;
+    }
+    if (dom.genderSelect && _birdGenderOptionsHtml === null) {
+      _birdGenderOptionsHtml = dom.genderSelect.innerHTML;
+    }
+    const prevActOpt = dom.activitySelect && dom.activitySelect.selectedIndex >= 0
+      ? dom.activitySelect.options[dom.activitySelect.selectedIndex]
+      : null;
+    const prevActNb = prevActOpt && prevActOpt.value !== ''
+      ? ((prevActOpt.dataset && prevActOpt.dataset.canonicalLabel) || activityBokmalName((prevActOpt.text || '').trim()))
+      : '';
+    const prevHadEmptyAct = !!(prevActOpt && prevActOpt.value === '' && dom.activitySelect.selectedIndex === 0);
+    const prevAge = dom.ageSelect ? dom.ageSelect.value : '';
+    const prevGender = dom.genderSelect ? dom.genderSelect.value : '';
+    const prevUnit = dom.unitSelect ? dom.unitSelect.value : '';
+    const prevMethod = dom.discoveryMethodSelect ? dom.discoveryMethodSelect.value : '';
+
+    if (dom.mammalFieldsRow) {
+      dom.mammalFieldsRow.style.display = groupId === '11' ? 'flex' : 'none';
+    }
+
+    const lister = await loadSpeciesGroupLists(groupId);
+    if (dom.activitySelect) {
+      dom.activitySelect.innerHTML = '';
+      const noneOpt = document.createElement('option');
+      noneOpt.value = '';
+      noneOpt.textContent = t('index.common.not_specified');
+      dom.activitySelect.appendChild(noneOpt);
+      let restoredAct = false;
+      (lister.activities || []).forEach(a => {
+        const opt = document.createElement('option');
+        opt.value = a.value;
+        opt.dataset.canonicalLabel = a.label;
+        opt.textContent = activityDisplayName(a.label);
+        if (prevActNb && a.label === prevActNb) {
+          opt.selected = true;
+          restoredAct = true;
+        } else if (!prevActNb && !prevHadEmptyAct && a.selected) {
+          opt.selected = true;
+        }
+        dom.activitySelect.appendChild(opt);
+      });
+      if (prevHadEmptyAct && !restoredAct) {
+        dom.activitySelect.selectedIndex = 0;
+      }
+    }
+    if (dom.ageSelect) {
+      if (groupId === '11' && Array.isArray(lister.stages)) {
+        dom.ageSelect.innerHTML = '';
+        const noneOpt = document.createElement('option');
+        noneOpt.value = '';
+        noneOpt.textContent = t('index.common.not_specified');
+        dom.ageSelect.appendChild(noneOpt);
+        lister.stages.forEach(s => {
+          const opt = document.createElement('option');
+          // Kanonisk bokmål i value — AO-import (CSV og AO3) slår opp på norsk etikettnavn
+          opt.value = s.label;
+          opt.dataset.canonicalLabel = s.label;
+          opt.textContent = ageDisplayName(s.label);
+          dom.ageSelect.appendChild(opt);
+        });
+      } else if (groupId === '8' && _birdAgeOptionsHtml !== null) {
+        dom.ageSelect.innerHTML = _birdAgeOptionsHtml;
+        applyTranslations(dom.ageSelect);
+      }
+      if (prevAge && Array.from(dom.ageSelect.options).some(o => o.value === prevAge)) {
+        dom.ageSelect.value = prevAge;
+      }
+    }
+    if (dom.genderSelect) {
+      if (groupId === '11' && Array.isArray(lister.genders)) {
+        dom.genderSelect.innerHTML = '';
+        const noneOpt = document.createElement('option');
+        noneOpt.value = '';
+        noneOpt.textContent = t('index.common.not_specified');
+        dom.genderSelect.appendChild(noneOpt);
+        lister.genders.forEach(g => {
+          const opt = document.createElement('option');
+          // Kanonisk bokmål i value — AO-import (CSV og AO3) slår opp på norsk etikettnavn
+          opt.value = g.label;
+          opt.dataset.canonicalLabel = g.label;
+          opt.textContent = genderDisplayName(g.label);
+          dom.genderSelect.appendChild(opt);
+        });
+      } else if (groupId === '8' && _birdGenderOptionsHtml !== null) {
+        dom.genderSelect.innerHTML = _birdGenderOptionsHtml;
+        applyTranslations(dom.genderSelect);
+      }
+      if (prevGender && Array.from(dom.genderSelect.options).some(o => o.value === prevGender)) {
+        dom.genderSelect.value = prevGender;
+      }
+      syncPairGenderOption(
+        dom.genderSelect,
+        dom.countInput ? dom.countInput.value : '',
+        {
+          unknownCount: !!(dom.countUnknownCheckbox && dom.countUnknownCheckbox.checked),
+          hintEl: dom.genderPairHint,
+        }
+      );
+    }
+    if (dom.unitSelect) {
+      dom.unitSelect.innerHTML = '';
+      const noneOpt = document.createElement('option');
+      noneOpt.value = '';
+      noneOpt.textContent = t('index.common.not_specified');
+      dom.unitSelect.appendChild(noneOpt);
+      if (groupId === '11' && Array.isArray(lister.units)) {
+        lister.units.forEach(u => {
+          const opt = document.createElement('option');
+          // Kanonisk bokmål i value — AO-import (CSV og AO3) slår opp på norsk etikettnavn
+          opt.value = u.label;
+          opt.dataset.canonicalLabel = u.label;
+          opt.textContent = unitDisplayName(u.label);
+          dom.unitSelect.appendChild(opt);
+        });
+        if (prevUnit && Array.from(dom.unitSelect.options).some(o => o.value === prevUnit)) {
+          dom.unitSelect.value = prevUnit;
+        }
+      }
+    }
+    if (dom.discoveryMethodSelect) {
+      dom.discoveryMethodSelect.innerHTML = '';
+      const noneOpt = document.createElement('option');
+      noneOpt.value = '';
+      noneOpt.textContent = t('index.common.not_specified');
+      dom.discoveryMethodSelect.appendChild(noneOpt);
+      if (groupId === '11' && Array.isArray(lister.discoveryMethods)) {
+        lister.discoveryMethods.forEach(m => {
+          const opt = document.createElement('option');
+          // Kanonisk bokmål i value — AO-import (CSV og AO3) slår opp på norsk etikettnavn
+          opt.value = m.label;
+          opt.dataset.canonicalLabel = m.label;
+          opt.textContent = discoveryMethodDisplayName(m.label);
+          dom.discoveryMethodSelect.appendChild(opt);
+        });
+        if (prevMethod && Array.from(dom.discoveryMethodSelect.options).some(o => o.value === prevMethod)) {
+          dom.discoveryMethodSelect.value = prevMethod;
+        }
+      }
+    }
+  } catch (e) {
+    console.warn('Kunne ikke laste verdilister for artsgruppe', groupId, e);
+  }
+}
+
+function hentUfiltrerteLokaliteter() {
+  if (appState.lastBboxSites && appState.lastBboxSites.length) return appState.lastBboxSites;
+  if (appState.unfilteredAoSites && appState.unfilteredAoSites.length) return appState.unfilteredAoSites;
+  return appState.currentAoSites || [];
+}
+
+function erIdEgenPrivat(siteId) {
+  if (siteId == null || siteId === '') return false;
+  const targetId = String(siteId);
+  const mineIds = new Set(getCachedPrivateSites().map(s => String(s.id)));
+  if (mineIds.has(targetId)) return true;
+  const alleKilder = [
+    ...(appState.currentAoSites || []),
+    ...(appState.unfilteredAoSites || []),
+    ...(appState.lastBboxSites || []),
+  ];
+  return alleKilder.some(s => s && s.isMine && s.id != null && String(s.id) === targetId);
+}
+
+function erValgtLokalitetPrivat() {
+  if (!appState.currentPlaceName) return false;
+  if (appState.currentPlaceIsMine) return true;
+  return erIdEgenPrivat(appState.currentPlaceId);
+}
+
+function oppdaterPrivatLokalitetVarsel() {
+  const notice = document.getElementById('private-site-notice');
+  if (!notice) return;
+  const kreverPrivat = appState.selectedSpeciesGroup !== '8';
+  notice.style.display = kreverPrivat && !erValgtLokalitetPrivat() ? 'block' : 'none';
+}
+
+function oppdaterArtsgruppeHeaderUI(gruppe) {
+  const erPattedyr = gruppe === '11';
+  const trigger = document.getElementById('species-group-trigger');
+  const icon = document.getElementById('species-group-icon');
+
+  if (icon) icon.textContent = erPattedyr ? '🦌' : '🦉';
+  if (trigger) {
+    trigger.classList.toggle('is-non-bird', erPattedyr);
+    trigger.setAttribute('aria-pressed', String(erPattedyr));
+    const groupName = erPattedyr ? t('index.species_group.mammals') : t('index.species_group.birds');
+    const nextGroupName = erPattedyr ? t('index.species_group.birds') : t('index.species_group.mammals');
+    trigger.title = t('index.species_group.trigger_title', { group: groupName, next: nextGroupName.toLowerCase() });
+    trigger.setAttribute('aria-label', t('index.species_group.trigger_aria', { group: groupName, next: nextGroupName.toLowerCase() }));
+  }
+}
+
+function oppdaterLokalitetslisteForArtsgruppe(gruppe = appState.selectedSpeciesGroup) {
+  const visDropdown = !erEtterregistreringsmodus();
+  const baseSites = hentUfiltrerteLokaliteter();
+  const onlyMine = gruppe !== '8';
+  if (!baseSites.length && !(onlyMine && getCachedPrivateSites().length)) {
+    if (onlyMine && dom.aoSitesDropdown) {
+      dom.aoSitesDropdown.innerHTML = '';
+      dom.aoSitesDropdown.style.display = 'none';
+    }
+    return;
+  }
+  appState.currentAoSites = setAoSiteSuggestions(
+    baseSites,
+    appState.currentPosition,
+    visDropdown ? dom.aoSitesDropdown : null,
+    dom.aoSitesEl,
+    dom.placeInput,
+    makeSetCurrentPlaceAndUpdate(),
+    appState.currentAoSizeMeters,
+    appState.locationSortMode,
+    onlyMine
+  );
+  updateLocationTuningVisibility();
+}
+
+function setSpeciesGroup(groupId) {
+  const gruppe = String(groupId) === '11' ? '11' : '8';
+  if (appState.selectedSpeciesGroup === gruppe) return;
+  appState.selectedSpeciesGroup = gruppe;
+  saveSelectedSpeciesGroup(gruppe);
+  oppdaterArtsgruppeHeaderUI(gruppe);
+
+  // Nullstill valgt art ved bytte av gruppe
+  appState.selectedSpecies = null;
+  appState.currentResults = [];
+  appState.activeIndex = -1;
+  if (dom.input) {
+    dom.input.value = '';
+    dom.input.placeholder = gruppe === '11' ? t('index.search_placeholder_mammals') : t('index.search_placeholder');
+  }
+  if (dom.resultsEl) dom.resultsEl.innerHTML = '';
+
+  // Ikke-fugl kan bare rapporteres på egne private lokaliteter
+  let vistePrivatVarsel = false;
+  if (gruppe !== '8' && appState.currentPlaceName && !erValgtLokalitetPrivat()) {
+    appState.currentPlaceName = '';
+    appState.currentPlaceId = null;
+    appState.currentPlaceIsMine = false;
+    if (dom.placeInput) {
+      dom.placeInput.value = '';
+      dom.placeInput.dataset.autofilled = 'false';
+    }
+    expandLocation();
+    showToast(t('index.species_group.private_site_toast'), { borderColor: '#f59e0b', duration: 3000 });
+    vistePrivatVarsel = true;
+  }
+  if (!vistePrivatVarsel) {
+    const ikon = gruppe === '11' ? '🦌' : '🦉';
+    const navn = gruppe === '11' ? t('index.species_group.mammals') : t('index.species_group.birds');
+    showToast(`${ikon} ${navn}`, { raw: true, duration: 1400 });
+  }
+  oppdaterPrivatLokalitetVarsel();
+  oppdaterLokalitetslisteForArtsgruppe(gruppe);
+
+  // Hent egne private lokaliteter i bakgrunnen dersom cachen ikke er fylt ennå
+  if (gruppe !== '8' && !isOfflineMode()) {
+    ensureAoPrivateSites()
+      .then((ok) => {
+        if (!ok || appState.selectedSpeciesGroup === '8') return;
+        if (appState.currentPlaceId && erIdEgenPrivat(appState.currentPlaceId)) {
+          appState.currentPlaceIsMine = true;
+        }
+        oppdaterPrivatLokalitetVarsel();
+        oppdaterLokalitetslisteForArtsgruppe(appState.selectedSpeciesGroup);
+      })
+      .catch(() => {});
+  }
+
+  oppdaterVerdilisterForArtsgruppe(gruppe);
+  renderActivityPills(dom, commitFromActivity, gruppe);
+  updateSectionStates(appState, dom);
 }
 
 // ============================================================
@@ -883,6 +1202,12 @@ function setupEventListeners() {
     dom.locSortStandardBtn.setAttribute('aria-checked', String(appState.locationSortMode === 'standard'));
     dom.locSortStandardBtn.addEventListener('click', () => setLocationSortMode('standard'));
   }
+  const speciesGroupTrigger = document.getElementById('species-group-trigger');
+  if (speciesGroupTrigger) {
+    speciesGroupTrigger.addEventListener('click', () => {
+      setSpeciesGroup(appState.selectedSpeciesGroup === '11' ? '8' : '11');
+    });
+  }
   if (dom.locSortAvstandBtn) {
     dom.locSortAvstandBtn.setAttribute('aria-checked', String(appState.locationSortMode === 'avstand'));
     dom.locSortAvstandBtn.addEventListener('click', () => setLocationSortMode('avstand'));
@@ -896,6 +1221,7 @@ function setupEventListeners() {
     if (!placeName) return;
     appState.currentPlaceName = placeName;
     appState.currentPlaceId = (e.detail && e.detail.placeId) || null;
+    appState.currentPlaceIsMine = erIdEgenPrivat(appState.currentPlaceId);
     if (dom.placeInput) {
       dom.placeInput.value = placeName;
       dom.placeInput.dataset.autofilled = 'true';
@@ -905,6 +1231,7 @@ function setupEventListeners() {
     // Vil man registrere et *nytt* besøk på samme sted, velger man lokaliteten
     // på vanlig måte i ① i stedet — da blir tida «nå».
     appState.etterregVisitKey = (e.detail && e.detail.visitKey) || null;
+    oppdaterPrivatLokalitetVarsel();
     updateSectionStates(appState, dom);
     collapseLocation();
     oppdaterEtterregMerke();
@@ -941,8 +1268,10 @@ function setupEventListeners() {
       // Manuell redigering fjerner alltid ID — ID kjem berre frå dropdown-val
       avsluttEtterregistrering();
       appState.currentPlaceId = null;
+      appState.currentPlaceIsMine = false;
       dom.placeInput.dataset.autofilled = 'false';
       appState.currentPlaceName = dom.placeInput.value;
+      oppdaterPrivatLokalitetVarsel();
       updateSectionStates(appState, dom);
     });
   }
@@ -961,6 +1290,14 @@ function setupEventListeners() {
         dom.countInput.value = '';
       }
       updateSectionStates(appState, dom);
+    });
+  }
+  if (dom.genderSelect) {
+    dom.genderSelect.addEventListener('change', () => {
+      if (dom.genderPairHint && dom.genderSelect.value) {
+        dom.genderPairHint.textContent = '';
+        dom.genderPairHint.style.display = 'none';
+      }
     });
   }
   if (dom.input) {
@@ -992,6 +1329,8 @@ function setupEventListeners() {
       dom.activitySubmitBtn.disabled = true;
       dom.ageSelect.disabled = true;
       dom.genderSelect.disabled = true;
+      if (dom.unitSelect) dom.unitSelect.disabled = true;
+      if (dom.discoveryMethodSelect) dom.discoveryMethodSelect.disabled = true;
       // Denne handleren kjører etter listeneren over (samme event) som allerede
       // kalte updateSectionStates() med den GAMLE arten — sjeldenhetsboksen ville
       // ellers blitt hengende synlig for en art brukeren nettopp forlot.
@@ -1081,7 +1420,7 @@ function setupEventListeners() {
       }
     }
 
-    openMapPage(userPos, appState.currentAoSites || [], appState.currentAoSizeMeters || 1000);
+    openMapPage(userPos, appState.currentAoSites || [], appState.currentAoSizeMeters || 1000, appState.selectedSpeciesGroup);
   }
 
   if (dom.locMapBtn) {
@@ -1093,38 +1432,6 @@ function setupEventListeners() {
   if (locPinnedMapBtn) {
     locPinnedMapBtn.addEventListener('click', handleOpenMapImmediately);
   }
-
-// Oppdater stil på kart-ikonet basert på posisjon. Knappen er alltid synlig
-// og åpner kartet umiddelbart. Her styres den «aktive» glødende stilen som viser om
-// vi har en GPS-posisjon klar.
-function updateMapBtnVisibility() {
-  const mapButtons = [dom.locMapBtn, document.getElementById('loc-pinned-map-btn')].filter(Boolean);
-  const hasPos = appState.currentPosition && typeof appState.currentPosition.lat === 'number' && typeof appState.currentPosition.lon === 'number';
-
-  mapButtons.forEach((btn) => {
-    btn.style.display = '';
-    if (hasPos) {
-      btn.style.background = 'var(--accent)';
-      btn.style.color = 'white';
-      btn.style.borderColor = 'var(--accent)';
-      btn.style.boxShadow = '0 0 0 3px #22c55e55, 0 2px 8px rgba(59,130,246,0.18)';
-      btn.style.fontWeight = 'bold';
-      btn.title = t('main.map_btn.show_title');
-      btn.classList.add('map-btn-active');
-    } else {
-      btn.style.background = '';
-      btn.style.color = '';
-      btn.style.borderColor = '';
-      btn.style.boxShadow = '';
-      btn.style.fontWeight = '';
-      btn.title = t('main.map_btn.open_title');
-      btn.classList.remove('map-btn-active');
-    }
-  });
-}
-
-// Gjør funksjonen globalt tilgjengelig for andre moduler (f.eks. location.js)
-window.updateMapBtnVisibility = updateMapBtnVisibility;
 
   if (dom.aoSizeInput) {
     const aoSizeValueEl = document.getElementById('ao-size-value');
@@ -1180,6 +1487,38 @@ window.updateMapBtnVisibility = updateMapBtnVisibility;
   }
 }
 
+// Oppdater stil på kart-ikonet basert på posisjon. Knappen er alltid synlig
+// og åpner kartet umiddelbart. Her styres den «aktive» glødende stilen som viser om
+// vi har en GPS-posisjon klar.
+function updateMapBtnVisibility() {
+  const mapButtons = [dom.locMapBtn, document.getElementById('loc-pinned-map-btn')].filter(Boolean);
+  const hasPos = appState.currentPosition && typeof appState.currentPosition.lat === 'number' && typeof appState.currentPosition.lon === 'number';
+
+  mapButtons.forEach((btn) => {
+    btn.style.display = '';
+    if (hasPos) {
+      btn.style.background = 'var(--accent)';
+      btn.style.color = 'white';
+      btn.style.borderColor = 'var(--accent)';
+      btn.style.boxShadow = '0 0 0 3px #22c55e55, 0 2px 8px rgba(59,130,246,0.18)';
+      btn.style.fontWeight = 'bold';
+      btn.title = t('main.map_btn.show_title');
+      btn.classList.add('map-btn-active');
+    } else {
+      btn.style.background = '';
+      btn.style.color = '';
+      btn.style.borderColor = '';
+      btn.style.boxShadow = '';
+      btn.style.fontWeight = '';
+      btn.title = t('main.map_btn.open_title');
+      btn.classList.remove('map-btn-active');
+    }
+  });
+}
+
+// Gjør funksjonen globalt tilgjengelig for andre moduler (f.eks. location.js)
+window.updateMapBtnVisibility = updateMapBtnVisibility;
+
 // ============================================================
 // Initialisering
 // ============================================================
@@ -1200,6 +1539,7 @@ async function init() {
     dom.placeInput.value = '';
     appState.currentPlaceName = '';
   }
+  appState.currentPlaceIsMine = erIdEgenPrivat(appState.currentPlaceId);
 
   // Sjekk om bruker har valgt lokalitet fra kartet
   const selectedLocation = localStorage.getItem('selectedLocation');
@@ -1207,30 +1547,49 @@ async function init() {
     avsluttEtterregistrering();
     appState.currentPlaceName = selectedLocation;
     const selectedLocationId = localStorage.getItem('selectedLocationId');
+    const selectedLocationIsMine = localStorage.getItem('selectedLocationIsMine');
     appState.currentPlaceId = selectedLocationId ? parseInt(selectedLocationId, 10) || selectedLocationId : null;
+    appState.currentPlaceIsMine = selectedLocationIsMine === '1' || erIdEgenPrivat(appState.currentPlaceId);
     if (dom.placeInput) {
       dom.placeInput.value = selectedLocation;
       dom.placeInput.dataset.autofilled = 'true';
     }
     localStorage.removeItem('selectedLocation');
     localStorage.removeItem('selectedLocationId');
+    localStorage.removeItem('selectedLocationIsMine');
+  } else if (appState.selectedSpeciesGroup !== '8' && appState.currentPlaceName && !erValgtLokalitetPrivat()) {
+    // Ikke-fugl kan bare rapporteres på egne private lokaliteter — ikke ta med en
+    // offentlig lokalitet fra forrige fugleøkt ved oppstart.
+    appState.currentPlaceName = '';
+    appState.currentPlaceId = null;
+    appState.currentPlaceIsMine = false;
+    if (dom.placeInput) {
+      dom.placeInput.value = '';
+      dom.placeInput.dataset.autofilled = 'false';
+    }
   }
+
+  oppdaterArtsgruppeHeaderUI(appState.selectedSpeciesGroup);
+  oppdaterPrivatLokalitetVarsel();
 
   setupEventListeners();
 
   if (dom.placeInput && !autocompleteCleanup) {
     autocompleteCleanup = initAutocomplete(
       dom.placeInput,
-      (name, id) => {
+      (name, id, isMine) => {
         avsluttEtterregistrering();
         appState.currentPlaceName = name;
         appState.currentPlaceId = id;
+        appState.currentPlaceIsMine = Boolean(isMine) || erIdEgenPrivat(id);
         dom.placeInput.dataset.autofilled = 'true';
+        oppdaterPrivatLokalitetVarsel();
         updateSectionStates(appState, dom);
         collapseLocation();
         varsleLokalitetValgt();
       },
-      () => appState.currentPosition
+      () => appState.currentPosition,
+      () => appState.selectedSpeciesGroup
     );
   }
 
@@ -1259,8 +1618,9 @@ async function init() {
     () => appState.currentPlaceName,
     (name, siteId) => {
       // Brukeren opprettet lokasjonen fordi hen er der nå — velg den automatisk
-      // som gjeldende lokasjon, i stedet for å la ① stå uendret.
-      makeSetCurrentPlaceAndUpdate()(name, siteId);
+      // som gjeldende lokasjon, i stedet for å la ① stå uendret. Nyopprettede
+      // lokasjoner i AO er alltid brukerens egne private lokaliteter.
+      makeSetCurrentPlaceAndUpdate()(name, siteId, true);
       // Re-hent AO-sites etter opprettelse. Radius fanges i en lokal variabel
       // FØR kallet, slik at et eventuelt radiusbytte fra brukeren mens dette
       // kallet pågår ikke feilmerker resultatet med feil radius i
@@ -1285,13 +1645,30 @@ async function init() {
     activities.forEach(a => {
       const opt = document.createElement('option');
       opt.value = a.value;
+      opt.dataset.canonicalLabel = a.label;
       opt.textContent = activityDisplayName(a.label);
       if (a.selected) opt.selected = true;
       dom.activitySelect.appendChild(opt);
     });
-    renderActivityPills(dom, commitFromActivity);
+    renderActivityPills(dom, commitFromActivity, appState.selectedSpeciesGroup);
+    if (appState.selectedSpeciesGroup !== '8') {
+      await oppdaterVerdilisterForArtsgruppe(appState.selectedSpeciesGroup);
+    }
   } catch (e) {
     console.error('Kunne ikke laste aktiviteter:', e);
+  }
+
+  if (appState.selectedSpeciesGroup !== '8' && !isOfflineMode()) {
+    ensureAoPrivateSites()
+      .then((ok) => {
+        if (!ok || appState.selectedSpeciesGroup === '8') return;
+        if (appState.currentPlaceId && erIdEgenPrivat(appState.currentPlaceId)) {
+          appState.currentPlaceIsMine = true;
+        }
+        oppdaterPrivatLokalitetVarsel();
+        oppdaterLokalitetslisteForArtsgruppe(appState.selectedSpeciesGroup);
+      })
+      .catch(() => {});
   }
 
   logPageView();
@@ -1302,6 +1679,7 @@ async function init() {
     initNewsSplash();
   }
   initFirstRunHint();
+  initSpeciesGroupHint();
 }
 
 /**
@@ -1583,6 +1961,7 @@ function setupOfflineModeToggle() {
       try {
         const offlineSites = await getAllOfflineLocations();
         if (offlineSites.length > 0) {
+          appState.unfilteredAoSites = offlineSites;
           appState.currentAoSites = setAoSiteSuggestions(
             offlineSites,
             appState.currentPosition,
@@ -1592,6 +1971,7 @@ function setupOfflineModeToggle() {
             makeSetCurrentPlaceAndUpdate(),
             appState.currentAoSizeMeters,
             appState.locationSortMode,
+            appState.selectedSpeciesGroup !== '8'
           );
           updateLocationTuningVisibility();
         }
@@ -1610,6 +1990,7 @@ function setupOfflineModeToggle() {
       try {
         const offlineSites = await getAllOfflineLocations();
         if ((!appState.currentAoSites || !appState.currentAoSites.length) && offlineSites.length > 0) {
+          appState.unfilteredAoSites = offlineSites;
           appState.currentAoSites = setAoSiteSuggestions(
             offlineSites,
             appState.currentPosition,
@@ -1619,6 +2000,7 @@ function setupOfflineModeToggle() {
             makeSetCurrentPlaceAndUpdate(),
             appState.currentAoSizeMeters,
             appState.locationSortMode,
+            appState.selectedSpeciesGroup !== '8'
           );
           updateLocationTuningVisibility();
         }
@@ -1654,6 +2036,10 @@ document.addEventListener('i18n:language-changed', () => {
   updateModeUI();
   updateOfflineModeUI();
   updateMapBtnVisibility();
+  oppdaterArtsgruppeHeaderUI(appState.selectedSpeciesGroup);
+  updateSectionStates(appState, dom);
+  oppdaterVerdilisterForArtsgruppe(appState.selectedSpeciesGroup);
+  renderActivityPills(dom, commitFromActivity, appState.selectedSpeciesGroup);
 });
 
 // Gjenopprettet fra bfcache (tilbake-knappen) eller vanlig navigasjon —
@@ -1694,7 +2080,10 @@ window.addEventListener('DOMContentLoaded', () => {
     getAllOfflineLocations()
       .then((offlineSites) => {
         if (offlineSites && offlineSites.length > 0 && (!appState.currentAoSites || appState.currentAoSites.length === 0)) {
-          appState.currentAoSites = offlineSites;
+          appState.unfilteredAoSites = offlineSites;
+          appState.currentAoSites = appState.selectedSpeciesGroup !== '8'
+            ? offlineSites.filter(s => s && s.isMine)
+            : offlineSites;
         }
       })
       .catch(() => {});

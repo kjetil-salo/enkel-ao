@@ -106,23 +106,23 @@ export function shouldShowOthersPrivateSites() {
 export function mergeAoSitesWithPrivateCache(sites, referencePosition, searchRadiusMeters) {
   // Slå sammen bbox-sites med cachet liste over mine private lokasjoner
   const cachedPrivate = getCachedPrivateSites();
-  const cachedIds = new Set(cachedPrivate.map(s => s.id));
-  const bboxSites = Array.isArray(sites) ? sites.filter(site => !site.fraAo3 || cachedIds.has(site.id)) : [];
+  const cachedIds = new Set(cachedPrivate.map(s => String(s.id)));
+  const bboxSites = Array.isArray(sites) ? sites.filter(site => !site.fraAo3 || cachedIds.has(String(site.id))) : [];
 
   // Marker bbox-sites som isMine hvis de finnes i cachen
   const markedBbox = bboxSites.map(s => {
-    if (!s.isMine && s.id != null && cachedIds.has(s.id)) {
+    if (!s.isMine && s.id != null && cachedIds.has(String(s.id))) {
       return { ...s, isMine: true };
     }
     return s;
   });
 
   // Legg til cachet private lokasjoner som ikke er innenfor bbox, men kun de nærmeste
-  const bboxIds = new Set(bboxSites.map(s => s.id).filter(id => id != null));
+  const bboxIds = new Set(bboxSites.map(s => s.id).filter(id => id != null).map(id => String(id)));
   const refLat = referencePosition && typeof referencePosition.lat === 'number' ? referencePosition.lat : null;
   const refLon = referencePosition && typeof referencePosition.lon === 'number' ? referencePosition.lon : null;
   const extraPrivate = cachedPrivate
-    .filter(s => !bboxIds.has(s.id))
+    .filter(s => !bboxIds.has(String(s.id)))
     .map(s => {
       let dist = null;
       if (refLat != null && refLon != null && s.lat != null && s.lon != null) {
@@ -154,10 +154,11 @@ export function mergeAoSitesWithPrivateCache(sites, referencePosition, searchRad
  *   eller 'avstand' (kun avstand, uavhengig av type)
  * @returns {Array} - Oppdatert liste med sites
  */
-export function setAoSiteSuggestions(sites, currentPosition, dropdown, aoSitesEl, placeInput, setCurrentPlace, searchRadiusMeters, sortMode = 'standard') {
+export function setAoSiteSuggestions(sites, currentPosition, dropdown, aoSitesEl, placeInput, setCurrentPlace, searchRadiusMeters, sortMode = 'standard', onlyMine = false) {
   console.log('currentPosition:', currentPosition);
 
-  const currentAoSites = mergeAoSitesWithPrivateCache(sites, currentPosition, searchRadiusMeters);
+  const mergedSites = mergeAoSitesWithPrivateCache(sites, currentPosition, searchRadiusMeters);
+  const currentAoSites = onlyMine ? mergedSites.filter(s => s && s.isMine) : mergedSites;
 
   if (!dropdown) return currentAoSites;
   
@@ -167,7 +168,9 @@ export function setAoSiteSuggestions(sites, currentPosition, dropdown, aoSitesEl
 
   if (!currentAoSites.length) {
     dropdown.style.display = 'none';
-    aoSitesEl.innerHTML = t('location.no_sites_nearby');
+    aoSitesEl.innerHTML = onlyMine
+      ? t('location.no_private_sites_nearby')
+      : t('location.no_sites_nearby');
     aoSitesEl.style.display = 'block';
     return currentAoSites;
   }
@@ -269,7 +272,7 @@ export function setAoSiteSuggestions(sites, currentPosition, dropdown, aoSitesEl
     const selectSite = () => {
       const name = getSiteLabel(site) || site.name;
       const siteId = site.id || null;
-      setCurrentPlace(name, siteId);
+      setCurrentPlace(name, siteId, Boolean(site.isMine));
       if (placeInput) {
         placeInput.value = name;
         placeInput.dataset.autofilled = 'true';
@@ -635,7 +638,7 @@ export function openMap(position) {
  * @param {number} sizeMeters - Valgt søkeradius i meter — kartet bruker denne
  *   uendret når det henter nye lokaliteter ved panorering
  */
-export function openMapPage(userPosition, sites, sizeMeters) {
+export function openMapPage(userPosition, sites, sizeMeters, speciesGroup = null) {
   const hasValidCoords = userPosition
     && typeof userPosition.lat === 'number' && !isNaN(userPosition.lat)
     && typeof userPosition.lon === 'number' && !isNaN(userPosition.lon)
@@ -670,7 +673,13 @@ export function openMapPage(userPosition, sites, sizeMeters) {
   }
 
   const effectiveSizeMeters = (typeof sizeMeters === 'number' && sizeMeters > 0) ? sizeMeters : 1000;
+  const effectiveSpeciesGroup = String(
+    speciesGroup || localStorage.getItem('ao_species_group_v1') || '8'
+  ) === '11' ? '11' : '8';
   let sitesToStore = Array.isArray(sites) ? sites : [];
+  if (effectiveSpeciesGroup !== '8') {
+    sitesToStore = sitesToStore.filter(s => s && s.isMine);
+  }
 
   // Hvis sites er en hel offline-dump (tusenvis av lokaliteter med geometri),
   // filtrer til nærområdet rundt kartets startposisjon slik at localStorage (5 MB)
@@ -687,7 +696,8 @@ export function openMapPage(userPosition, sites, sizeMeters) {
   const mapData = {
     userPosition: effectivePosition,
     sites: sitesToStore,
-    sizeMeters: effectiveSizeMeters
+    sizeMeters: effectiveSizeMeters,
+    speciesGroup: effectiveSpeciesGroup,
   };
 
   try {
@@ -698,7 +708,8 @@ export function openMapPage(userPosition, sites, sizeMeters) {
       localStorage.setItem('mapData', JSON.stringify({
         userPosition: effectivePosition,
         sites: [],
-        sizeMeters: effectiveSizeMeters
+        sizeMeters: effectiveSizeMeters,
+        speciesGroup: effectiveSpeciesGroup,
       }));
     } catch (_) {
       // Ignorer — map.html faller tilbake til siste kjente posisjon / standardposisjon

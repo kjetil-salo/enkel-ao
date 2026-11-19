@@ -242,6 +242,18 @@ describe('openMapPage', () => {
     expect(saved.sites.some((s) => s.id === near.id)).toBe(true);
     expect(saved.sites.some((s) => s.id === far.id)).toBe(false);
   });
+
+  it('lagrer speciesGroup og filtrerer til kun egne private lokaliteter når ikke-fugl er valgt', () => {
+    const sites = [
+      { id: 1, name: 'Offentlig', lat: 58.781, lon: 5.621, isMine: false, isPrivate: false },
+      { id: 2, name: 'Andres private', lat: 58.781, lon: 5.621, isMine: false, isPrivate: true },
+      { id: 3, name: 'Min private', lat: 58.781, lon: 5.621, isMine: true, isPrivate: true },
+    ];
+    openMapPage({ lat: 58.78, lon: 5.62, accuracy: 10 }, sites, 1000, '11');
+    const saved = readMapData();
+    expect(saved.speciesGroup).toBe('11');
+    expect(saved.sites.map((s) => s.id)).toEqual([3]);
+  });
 });
 
 // ─── mergeAoSitesWithPrivateCache ───────────────────────────────
@@ -581,10 +593,25 @@ describe('setAoSiteSuggestions', () => {
     const textSpan = siteElement.querySelector('.ao-site-text');
     textSpan.click();
 
-    expect(setCurrentPlace).toHaveBeenCalledWith('Østensjøvannet', null);
+    expect(setCurrentPlace).toHaveBeenCalledWith('Østensjøvannet', null, false);
     expect(placeInput.value).toBe('Østensjøvannet');
     expect(placeInput.dataset.autofilled).toBe('true');
     expect(dropdown.style.display).toBe('none');
+  });
+
+  it('viser og velger kun egne private lokaliteter når onlyMine er true', () => {
+    const sites = [
+      { id: 101, name: 'Offentlig', lat: 59.91, lon: 10.81, isMine: false, isPrivate: false },
+      { id: 102, name: 'Andres private', lat: 59.91, lon: 10.81, isMine: false, isPrivate: true },
+      { id: 103, name: 'Min hage', lat: 59.91, lon: 10.81, isMine: true, isPrivate: true },
+    ];
+
+    const result = setAoSiteSuggestions(sites, { lat: 59.9, lon: 10.7 }, dropdown, aoSitesEl, placeInput, setCurrentPlace, 2000, 'standard', true);
+
+    expect(result.map(s => s.id)).toEqual([103]);
+    expect(dropdown.children).toHaveLength(2);
+    dropdown.children[1].querySelector('.ao-site-text').click();
+    expect(setCurrentPlace).toHaveBeenCalledWith('Min hage', 103, true);
   });
 
   it('should handle missing position gracefully', () => {

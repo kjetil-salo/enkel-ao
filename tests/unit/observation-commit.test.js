@@ -72,6 +72,8 @@ function nyDom() {
     activitySubmitBtn: document.createElement('button'),
     ageSelect: lagSelect('age', '', ''),
     genderSelect: lagSelect('gender', '', ''),
+    unitSelect: lagSelect('unit', 'Ikke oppgitt', ''),
+    discoveryMethodSelect: lagSelect('discovery-method', 'Ikke oppgitt', ''),
     countEstimatedCheckbox: lagCheckbox('count-estimated'),
     countUnknownCheckbox: lagCheckbox('count-unknown'),
     extraUncertain: lagCheckbox('extra-uncertain'),
@@ -357,6 +359,50 @@ describe('commitObservation — sjeldenhetsvarsel-feiring', () => {
     expect(toast).not.toBeNull();
     expect(toast.textContent).toContain('registrert');
   });
+
+  it('lagrer unit og discoveryMethod i kanonisk bokmål for pattedyr og nullstiller feltene etterpå', () => {
+    const state = nyState();
+    state.selectedSpecies = { taxonName: 'Elg', speciesGroupId: 11 };
+    state.selectedSpeciesGroup = '11';
+    const dom = nyDom();
+
+    const optUnit = document.createElement('option');
+    optUnit.value = 'Individer';
+    optUnit.text = 'Individ';
+    dom.unitSelect.appendChild(optUnit);
+    dom.unitSelect.value = 'Individer';
+
+    const optMethod = document.createElement('option');
+    optMethod.value = 'Hørt';
+    optMethod.text = 'Høyrt';
+    dom.discoveryMethodSelect.appendChild(optMethod);
+    dom.discoveryMethodSelect.value = 'Hørt';
+
+    commitObservation(state, dom, nyeCallbacks());
+
+    expect(state.observations[0].speciesGroupId).toBe(11);
+    expect(state.observations[0].unit).toBe('Individer');
+    expect(state.observations[0].discoveryMethod).toBe('Hørt');
+    expect(dom.unitSelect.value).toBe('');
+    expect(dom.discoveryMethodSelect.value).toBe('');
+  });
+
+  it('lagrer ikke unit eller discoveryMethod på fugleobservasjoner', () => {
+    const state = nyState();
+    state.selectedSpeciesGroup = '8';
+    const dom = nyDom();
+
+    const optUnit = document.createElement('option');
+    optUnit.value = 'Individer';
+    dom.unitSelect.appendChild(optUnit);
+    dom.unitSelect.value = 'Individer';
+
+    commitObservation(state, dom, nyeCallbacks());
+
+    expect(state.observations[0].speciesGroupId).toBe(8);
+    expect(state.observations[0].unit).toBeUndefined();
+    expect(state.observations[0].discoveryMethod).toBeUndefined();
+  });
 });
 
 describe('renderActivityPills & drag-to-scroll', () => {
@@ -484,3 +530,80 @@ describe('renderActivityPills & drag-to-scroll', () => {
     localStorage.removeItem('activityPills_v1');
   });
 });
+
+describe('kjønn «I par» — partall-validering', () => {
+  it('isValidPairCount krever heltallig partall >= 2', async () => {
+    const { isValidPairCount } = await import('../../public/js/form-state.js');
+    expect(isValidPairCount('1')).toBe(false);
+    expect(isValidPairCount('3')).toBe(false);
+    expect(isValidPairCount('0')).toBe(false);
+    expect(isValidPairCount('')).toBe(false);
+    expect(isValidPairCount(null)).toBe(false);
+    expect(isValidPairCount('2', { unknownCount: true })).toBe(false);
+    expect(isValidPairCount('2')).toBe(true);
+    expect(isValidPairCount(4)).toBe(true);
+  });
+
+  it('syncPairGenderOption deaktiverer og merker «I par» ved oddetall, tømmer og viser forklaring når antall blir oddetall', async () => {
+    const { syncPairGenderOption } = await import('../../public/js/form-state.js');
+    store['app_language_v1'] = 'nn';
+
+    const select = document.createElement('select');
+    const none = document.createElement('option');
+    none.value = '';
+    none.textContent = 'Ikkje oppgjeve';
+    const pairOpt = document.createElement('option');
+    pairOpt.value = 'I par';
+    pairOpt.textContent = 'I par';
+    select.appendChild(none);
+    select.appendChild(pairOpt);
+
+    const hintEl = document.createElement('div');
+    hintEl.style.display = 'none';
+
+    syncPairGenderOption(select, '1', { hintEl });
+    expect(pairOpt.disabled).toBe(true);
+    expect(pairOpt.textContent).toBe('I par (krev partal)');
+
+    syncPairGenderOption(select, '2', { hintEl });
+    expect(pairOpt.disabled).toBe(false);
+    expect(pairOpt.textContent).toBe('I par');
+    select.value = 'I par';
+
+    const res = syncPairGenderOption(select, '3', { hintEl });
+    expect(res.cleared).toBe(true);
+    expect(select.value).toBe('');
+    expect(pairOpt.disabled).toBe(true);
+    expect(hintEl.style.display).toBe('block');
+    expect(hintEl.textContent).toContain('partal');
+
+    delete store['app_language_v1'];
+  });
+
+  it('avviser lagring når kjønn er «I par» og antall er oddetall eller ukjent, men lagrer ved partall', () => {
+    const state = nyState();
+    const dom = nyDom();
+    const pairOpt = document.createElement('option');
+    pairOpt.value = 'I par';
+    pairOpt.text = 'I par';
+    dom.genderSelect.appendChild(pairOpt);
+    dom.genderSelect.value = 'I par';
+    dom.countInput.value = '1';
+
+    commitObservation(state, dom, nyeCallbacks());
+    expect(state.observations).toHaveLength(0);
+
+    dom.countInput.value = '';
+    dom.countUnknownCheckbox.checked = true;
+    commitObservation(state, dom, nyeCallbacks());
+    expect(state.observations).toHaveLength(0);
+
+    dom.countUnknownCheckbox.checked = false;
+    dom.countInput.value = '2';
+    commitObservation(state, dom, nyeCallbacks());
+    expect(state.observations).toHaveLength(1);
+    expect(state.observations[0].gender).toBe('I par');
+    expect(state.observations[0].count).toBe(2);
+  });
+});
+

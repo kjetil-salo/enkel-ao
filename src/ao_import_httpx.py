@@ -43,9 +43,11 @@ class Ao2ImportUavklart(ValueError):
 _UNKNOWN_QUEUE_SIZE = 500
 
 
-def observations_to_csv(observations):
+def observations_to_csv(observations, species_group_id='8'):
     """Samme som i ao_import.py"""
     from src.ao_import import observations_to_csv as orig
+    if str(species_group_id or '8') != '8':
+        return orig(observations, species_group_id=species_group_id)
     return orig(observations)
 
 
@@ -809,9 +811,86 @@ def _poll_importing_done(login_token, auth_cookie, total, progress_cb=None,
     return False
 
 
+def _obs_species_group(obs):
+    """Returner artsgruppe-ID for én observasjon ('8' = fugl, '11' = pattedyr)."""
+    if not isinstance(obs, dict):
+        return '8'
+    gid = obs.get('speciesGroupId') or (obs.get('species') or {}).get('speciesGroupId')
+    s = str(gid or '8').strip()
+    return s if s in ('8', '11') else '8'
+
+
 def post_with_curl(observations, login_token=None, auth_cookie=None, area_id='', progress_cb=None):
     """
     Post til AO med httpx - med korrekt CSRF token-håndtering.
+
+    Splitter automatisk blandede artsgrupper (f.eks. fugl + pattedyr) i én
+    import/publisering per artsgruppe, siden AO2s importskjema er bundet til én
+    SpeciesGroup-cookie om gangen.
+    """
+    grupper = {}
+    for obs in observations:
+        gid = _obs_species_group(obs)
+        grupper.setdefault(gid, []).append(obs)
+
+    if len(grupper) <= 1:
+        gid = next(iter(grupper), '8')
+        return _post_single_group_with_curl(
+            observations,
+            login_token=login_token,
+            auth_cookie=auth_cookie,
+            area_id=area_id,
+            progress_cb=progress_cb,
+            species_group_id=gid,
+        )
+
+    samlet = {
+        'success': True,
+        'published': True,
+        'count': 0,
+        'imagesUploaded': 0,
+        'imagesFailed': [],
+        'notPublished': [],
+        'refreshedAuthCookie': None,
+    }
+    held_back_total = 0
+    held_back_details = []
+    for gid, gruppe_obs in grupper.items():
+        res = _post_single_group_with_curl(
+            gruppe_obs,
+            login_token=login_token,
+            auth_cookie=auth_cookie,
+            area_id=area_id,
+            progress_cb=progress_cb,
+            species_group_id=gid,
+        )
+        if res.get('refreshedAuthCookie'):
+            samlet['refreshedAuthCookie'] = res['refreshedAuthCookie']
+            auth_cookie = res['refreshedAuthCookie']
+        if not res.get('success'):
+            return res
+        samlet['count'] += res.get('count', 0)
+        samlet['imagesUploaded'] += res.get('imagesUploaded', 0)
+        samlet['imagesFailed'].extend(res.get('imagesFailed') or [])
+        samlet['notPublished'].extend(res.get('notPublished') or [])
+        if res.get('heldBack'):
+            held_back_total += res['heldBack']
+            if res.get('heldBackDetails'):
+                held_back_details.append(res['heldBackDetails'])
+    if held_back_total:
+        samlet['heldBack'] = held_back_total
+        if held_back_details:
+            samlet['heldBackDetails'] = ', '.join(held_back_details)
+    if not samlet['imagesFailed']:
+        del samlet['imagesFailed']
+    if not samlet['notPublished']:
+        del samlet['notPublished']
+    return samlet
+
+
+def _post_single_group_with_curl(observations, login_token=None, auth_cookie=None, area_id='', progress_cb=None, species_group_id='8'):
+    """
+    Post én artsgruppe til AO med httpx - med korrekt CSRF token-håndtering.
 
     Returnerer dict med:
     - success: bool
@@ -868,7 +947,11 @@ def post_with_curl(observations, login_token=None, auth_cookie=None, area_id='',
         if obs.get('photo') or needs_scoped_publish:
             obs['_importMarker'] = f'#imp-{secrets.token_hex(4)}'
 
-    csv_data = observations_to_csv(observations)
+    csv_data = (
+        observations_to_csv(observations, species_group_id=species_group_id)
+        if str(species_group_id or '8') != '8'
+        else observations_to_csv(observations)
+    )
     logger.debug(f'[AO-HTTPX] CSV length: {len(csv_data)}')
 
     # URL-encode
@@ -895,7 +978,7 @@ def post_with_curl(observations, login_token=None, auth_cookie=None, area_id='',
         '.ASPXAUTHNO': auth_cookie,
         '__RequestVerificationToken': cookie_token,
         'ReleaseNumber': '2.13.12',
-        'SpeciesGroup': '8'
+        'SpeciesGroup': str(species_group_id or '8')
     }
 
     headers = {
@@ -1017,7 +1100,10 @@ def post_with_curl(observations, login_token=None, auth_cookie=None, area_id='',
                 last_error = None
                 break
         try:
-            publish_result = publish_all(login_token, auth_cookie, temp_sighting_ids=temp_sighting_ids)
+            if str(species_group_id or '8') != '8':
+                publish_result = publish_all(login_token, auth_cookie, temp_sighting_ids=temp_sighting_ids, species_group_id=species_group_id)
+            else:
+                publish_result = publish_all(login_token, auth_cookie, temp_sighting_ids=temp_sighting_ids)
             logger.info(f'[AO-HTTPX] Publisering vellykket (forsøk {attempt}): {publish_result}')
             last_error = None
             break
@@ -1057,7 +1143,8 @@ def post_with_curl(observations, login_token=None, auth_cookie=None, area_id='',
     if held_back is None:
         raise Ao2ImportUavklart()
 
-    published_count = len(observations) - len(unmatched_for_publish)
+    imported_count = len(observations) - len(unmatched_for_publish)
+    published_count = max(0, imported_count - held_back)
     result = {
         'success': True,
         'message': f'{published_count} observasjoner importert og publisert',
@@ -1076,12 +1163,12 @@ def post_with_curl(observations, login_token=None, auth_cookie=None, area_id='',
         logger.warning(f'[AO-HTTPX] {held_back} observasjon(er) ble ikke publisert: {detaljer or "ukjent årsak"}')
         result['heldBack'] = held_back
         result['heldBackDetails'] = detaljer
-        result['message'] = (f'{published_count} importert, men {held_back} ble ikke publisert '
+        result['message'] = (f'{imported_count} importert, men {held_back} ble ikke publisert '
                              '— de ligger til gjennomgang på AO')
     return result
 
 
-def publish_all(login_token, auth_cookie, temp_sighting_ids=None):
+def publish_all(login_token, auth_cookie, temp_sighting_ids=None, species_group_id='8'):
     """
     Publiser observasjoner i gjennomgangskøen.
 
@@ -1169,7 +1256,7 @@ def publish_all(login_token, auth_cookie, temp_sighting_ids=None):
         '.ASPXAUTHNO': auth_cookie,
         '__RequestVerificationToken': cookie_token,
         'ReleaseNumber': '2.13.12',
-        'SpeciesGroup': '8'
+        'SpeciesGroup': str(species_group_id or '8')
     }
 
     publish_headers = {

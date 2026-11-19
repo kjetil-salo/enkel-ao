@@ -15,7 +15,7 @@ if (typeof document !== 'undefined') {
   document.body.className = '';
 }
 
-const { _parseSseEvents, handleDirectSend } = await import('../../public/js/export-operations.js');
+const { _parseSseEvents, _aoFunnNøkkel, handleDirectSend } = await import('../../public/js/export-operations.js');
 const { saveAoDirectAutoClear } = await import('../../public/js/storage.js');
 
 describe('SSE Stream Parsing og Error in input stream resiliens', () => {
@@ -409,5 +409,141 @@ describe('SSE Stream Parsing og Error in input stream resiliens', () => {
       vi.advanceTimersByTime(1500);
       expect(observations).toHaveLength(1);
     });
+
+    it.each([
+      ['nb', '1 observasjon ble <b>ikke</b> publisert og ligger til gjennomgang på AO', 'Det som ligger igjen kan publiseres manuelt', 'Åpne gjennomgang'],
+      ['nn', '1 observasjon vart <b>ikkje</b> publisert og ligg til gjennomgang på AO', 'Det som ligg att kan publiserast manuelt', 'Opne gjennomgang'],
+    ])('viser delvis publisert / gjennomgangsmelding på %s', async (lang, expectedHeldBack, expectedPrefix, expectedLink) => {
+      store['app_language_v1'] = lang;
+      store['ao_username'] = 'testbruker';
+      store['ao_password'] = 'hemmelig';
+      store['ao_tokens'] = JSON.stringify({ loginToken: 'tok123', authCookie: 'cook123' });
+
+      const observations = [
+        { species: { taxonName: 'Kjøttmeis' }, count: 1, placeName: 'Fana', timestamp: '2026-11-19T12:00:00' },
+        { species: { taxonName: 'Ekorn' }, speciesGroupId: 11, count: 1, placeName: 'Fana', timestamp: '2026-11-19T12:05:00' },
+      ];
+      const { dom } = lagTestDom();
+      const callbacks = { doRenderObservations: vi.fn(), saveState: vi.fn() };
+      const payload = {
+        phase: 'done',
+        success: true,
+        count: 1,
+        heldBack: 1,
+        heldBackDetails: 'ekorn 19.11.2026',
+        notPublished: [],
+      };
+
+      vi.stubGlobal('fetch', vi.fn(async (url) => {
+        if (url === '/api/ao-login') {
+          return { ok: true, json: async () => ({ success: true, loginToken: 'tok', authCookie: 'cook' }) };
+        }
+        return {
+          ok: true,
+          status: 200,
+          body: { text: true },
+          text: async () => `data: ${JSON.stringify(payload)}\n\n`,
+        };
+      }));
+
+      await handleDirectSend(observations, dom, callbacks);
+
+      expect(dom.aoDirectStatus.innerHTML).toContain('✅ 1 observasjon publisert.');
+      expect(dom.aoDirectStatus.innerHTML).toContain(expectedHeldBack);
+      expect(dom.aoDirectStatus.innerHTML).toContain('ekorn 19.11.2026');
+      expect(dom.aoDirectStatus.innerHTML).toContain(expectedPrefix);
+      expect(dom.aoDirectStatus.innerHTML).toContain(expectedLink);
+    });
+
+    it('viser egen in-app bekreftelsesdialog (ikke window.confirm) ved ny sending av identisk uavklart funn', async () => {
+      store['ao_username'] = 'testbruker';
+      store['ao_password'] = 'hemmelig';
+      store['ao_tokens'] = JSON.stringify({ loginToken: 'tok123', authCookie: 'cook123' });
+
+      const obs = { species: { taxonName: 'Ekorn' }, speciesGroupId: 11, count: 1, gender: 'Hann', placeName: 'Fana', timestamp: '2026-11-19T00:00:00' };
+      store['ao_uavklarte_funn_v1'] = JSON.stringify([_aoFunnNøkkel(obs)]);
+
+      const { dom } = lagTestDom();
+      const callbacks = { doRenderObservations: vi.fn(), saveState: vi.fn() };
+      const nativeConfirm = vi.fn(() => false);
+      vi.stubGlobal('confirm', nativeConfirm);
+
+      let importKall = 0;
+      vi.stubGlobal('fetch', vi.fn(async (url) => {
+        if (url === '/api/ao-login') {
+          return { ok: true, json: async () => ({ success: true, loginToken: 'tok', authCookie: 'cook' }) };
+        }
+        if (url === '/api/ao-import-stream') {
+          importKall++;
+          return {
+            ok: true,
+            status: 200,
+            body: { text: true },
+            text: async () => 'data: {"phase":"done","success":true,"count":1}\n\n',
+          };
+        }
+        return { ok: true, json: async () => ({ ok: true }) };
+      }));
+
+      // Først avbryt i in-app modalen → ingen sending
+      const avbruttPromise = handleDirectSend([obs], dom, callbacks);
+      const modal1 = document.getElementById('uavklarte-send-confirm-modal');
+      expect(modal1).toBeTruthy();
+      expect(nativeConfirm).not.toHaveBeenCalled();
+      modal1.querySelector('[data-confirm-action="cancel"]').click();
+      await avbruttPromise;
+      expect(importKall).toBe(0);
+
+      // Deretter bekreft i in-app modalen → publisering gjennomføres selv om native confirm() returnerer false
+      const sendPromise = handleDirectSend([obs], dom, callbacks);
+      const modal2 = document.getElementById('uavklarte-send-confirm-modal');
+      expect(modal2).toBeTruthy();
+      modal2.querySelector('[data-confirm-action="ok"]').click();
+      await sendPromise;
+
+      expect(nativeConfirm).not.toHaveBeenCalled();
+      expect(importKall).toBe(1);
+      expect(dom.aoDirectStatus.textContent).toContain('sendt til AO');
+    });
+
+    it('utløser IKKE advarsel når nytt funn på samme art/sted/dato har andre funndetaljer eller kun gammel 3-feltsnøkkel ligger lagret', async () => {
+      store['ao_username'] = 'testbruker';
+      store['ao_password'] = 'hemmelig';
+      store['ao_tokens'] = JSON.stringify({ loginToken: 'tok123', authCookie: 'cook123' });
+
+      const gammeltFunn = { species: { taxonName: 'Ekorn' }, speciesGroupId: 11, count: 1, gender: 'I par', placeId: 42, placeName: 'Fana', timestamp: '2026-11-19T00:00:00' };
+      const nyttFunn = { species: { taxonName: 'Ekorn' }, speciesGroupId: 11, count: 2, gender: 'Hann', placeId: 42, placeName: 'Fana', timestamp: '2026-11-19T00:00:00' };
+      // Både ny v2-nøkkel for gammelt funn OG gammel grov 3-feltsnøkkel i localStorage
+      store['ao_uavklarte_funn_v1'] = JSON.stringify([
+        _aoFunnNøkkel(gammeltFunn),
+        JSON.stringify(['Ekorn', 42, '2026-11-19T00:00:00']),
+      ]);
+
+      const { dom } = lagTestDom();
+      const callbacks = { doRenderObservations: vi.fn(), saveState: vi.fn() };
+      let importKall = 0;
+      vi.stubGlobal('fetch', vi.fn(async (url) => {
+        if (url === '/api/ao-login') {
+          return { ok: true, json: async () => ({ success: true, loginToken: 'tok', authCookie: 'cook' }) };
+        }
+        if (url === '/api/ao-import-stream') {
+          importKall++;
+          return {
+            ok: true,
+            status: 200,
+            body: { text: true },
+            text: async () => 'data: {"phase":"done","success":true,"count":1}\n\n',
+          };
+        }
+        return { ok: true, json: async () => ({ ok: true }) };
+      }));
+
+      await handleDirectSend([nyttFunn], dom, callbacks);
+
+      expect(document.getElementById('uavklarte-send-confirm-modal')).toBeFalsy();
+      expect(importKall).toBe(1);
+      expect(dom.aoDirectStatus.textContent).toContain('sendt til AO');
+    });
   });
 });
+

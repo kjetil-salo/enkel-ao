@@ -105,8 +105,91 @@ if (isUserPositionAvailable) {
 }
 
 const sizeMeters = (typeof data.sizeMeters === 'number' && data.sizeMeters > 0) ? data.sizeMeters : 1000;
+let activeSpeciesGroup = '8';
+try {
+  const rawGroup = data.speciesGroup || localStorage.getItem('ao_species_group_v1') || '8';
+  activeSpeciesGroup = String(rawGroup) === '11' ? '11' : '8';
+} catch (e) {
+  activeSpeciesGroup = String(data.speciesGroup || '8') === '11' ? '11' : '8';
+}
+const onlyOwnPrivateSites = activeSpeciesGroup !== '8';
+
+function hentAlleEgnePrivateLokaliteter() {
+  if (!hasActiveAoLogin()) return [];
+  return getCachedPrivateSites().map((site) => ({ ...site, isMine: true, isPrivate: true }));
+}
+
 const startLokaliteter = Array.isArray(data.sites) ? data.sites : [];
-const sites = mergeAoSitesWithPrivateCache(startLokaliteter, userPosition, sizeMeters);
+const mergedStartSites = mergeAoSitesWithPrivateCache(startLokaliteter, userPosition, sizeMeters);
+const sites = onlyOwnPrivateSites
+  ? mergeCachedSites(
+      mergedStartSites.filter((s) => hasActiveAoLogin() && Boolean(s && s.isMine)),
+      hentAlleEgnePrivateLokaliteter(),
+    )
+  : mergedStartSites;
+
+const speciesGroupBanner = document.getElementById('map-species-group-banner');
+function plasserArtsgruppeBanner() {
+  if (!speciesGroupBanner || speciesGroupBanner.style.display === 'none') return;
+  const maxWidth = speciesGroupBanner.clientWidth;
+  if (!maxWidth) return;
+  speciesGroupBanner.style.padding = '6px 12px';
+
+  let fontSize = 13;
+  speciesGroupBanner.style.fontSize = `${fontSize}px`;
+  while (speciesGroupBanner.scrollWidth > speciesGroupBanner.clientWidth && fontSize > 8.5) {
+    fontSize -= 0.5;
+    speciesGroupBanner.style.fontSize = `${fontSize}px`;
+    if (fontSize <= 11) {
+      speciesGroupBanner.style.padding = '5px 8px';
+    }
+  }
+}
+
+if (speciesGroupBanner) {
+  if (onlyOwnPrivateSites) {
+    speciesGroupBanner.textContent = t('map.species_group.only_own_private');
+    speciesGroupBanner.title = t('map.species_group.only_own_private_title');
+    speciesGroupBanner.style.display = 'block';
+    requestAnimationFrame(plasserArtsgruppeBanner);
+    window.addEventListener('resize', plasserArtsgruppeBanner);
+    const fabEl = document.getElementById('add-site-fab');
+    if (fabEl && typeof MutationObserver !== 'undefined') {
+      new MutationObserver(plasserArtsgruppeBanner).observe(fabEl, { attributes: true, attributeFilter: ['style'] });
+    }
+
+    const helpBackdrop = document.getElementById('species-group-help-backdrop');
+    const helpTitle = document.getElementById('species-group-help-title');
+    const helpBody = document.getElementById('species-group-help-body');
+    const helpOkBtn = document.getElementById('species-group-help-ok-btn');
+    const closeHelp = () => {
+      if (helpBackdrop) helpBackdrop.style.display = 'none';
+    };
+    if (!speciesGroupBanner.dataset.helpBound) {
+      speciesGroupBanner.dataset.helpBound = '1';
+      speciesGroupBanner.addEventListener('click', () => {
+        if (!helpBackdrop) return;
+        if (helpTitle) helpTitle.textContent = t('map.species_group.help_title');
+        if (helpBody) helpBody.textContent = t('map.species_group.help_body');
+        helpBackdrop.style.display = 'flex';
+        if (helpOkBtn) helpOkBtn.focus();
+      });
+      if (helpOkBtn) helpOkBtn.addEventListener('click', closeHelp);
+      if (helpBackdrop) {
+        helpBackdrop.addEventListener('click', (e) => {
+          if (e.target === helpBackdrop) closeHelp();
+        });
+      }
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && helpBackdrop && helpBackdrop.style.display === 'flex') {
+          closeHelp();
+        }
+      });
+    }
+  } else {
+    speciesGroupBanner.style.display = 'none';
+  }
+}
 
 const missingLocationBanner = document.getElementById('missing-location-banner');
 if (missingLocationBanner) {
@@ -1055,7 +1138,8 @@ function renderSites(sitesToRender, { fitToBounds = false } = {}) {
       const isPrivate = isPrivateSite(site);
       const showPrivateSites = shouldShowOthersPrivateSites();
       const isMine = hasActiveAoLogin() && Boolean(site.isMine);
-      
+
+      if (onlyOwnPrivateSites && !isMine) return;
       if (isPrivate && !isMine && !showPrivateSites) return;
 
       const lat = parseFloat(site.lat);
@@ -1088,7 +1172,7 @@ function renderSites(sitesToRender, { fitToBounds = false } = {}) {
       const siteIdStr = site.id != null ? String(site.id) : '';
       let popupHtml = `<strong>${displayName}</strong>`;
       if (distStr) popupHtml += `<br>Avstand: ${distStr}`;
-      popupHtml += `<br><br><button onclick="selectLocation(${escapeHtml(JSON.stringify(siteName))}, ${escapeHtml(JSON.stringify(siteIdStr))})">${t('map.site.select_button')}</button>`;
+      popupHtml += `<br><br><button onclick="selectLocation(${escapeHtml(JSON.stringify(siteName))}, ${escapeHtml(JSON.stringify(siteIdStr))}, ${isMine ? 'true' : 'false'})">${t('map.site.select_button')}</button>`;
 
       const siteShapeLayers = [];
       const hasPolygon = !!(site.raw && site.raw.isPolygon && site.raw.polygonCoordinates && site.raw.polygonCoordinates.length > 0);
@@ -1097,7 +1181,7 @@ function renderSites(sitesToRender, { fitToBounds = false } = {}) {
         const polygon = L.polygon(leafletCoords, {
           color: polygonColor, weight: 2, opacity: 0.8, fillColor: polygonColor, fillOpacity: 0.15
         }).addTo(siteShapesGroup).bindPopup(popupHtml);
-        polygon.on('click', () => { if (visNavn(visning)) selectLocation(siteName, site.id ?? null); });
+        polygon.on('click', () => { if (visNavn(visning)) selectLocation(siteName, site.id ?? null, isMine); });
         polygonLayers.push(polygon);
         siteShapeLayers.push(polygon);
       }
@@ -1108,7 +1192,7 @@ function renderSites(sitesToRender, { fitToBounds = false } = {}) {
           const radiusCircle = L.circle([lat, lon], {
             radius: accuracyM, color: polygonColor, weight: 2, opacity: 0.8, fillColor: polygonColor, fillOpacity: 0.12, dashArray: '5 5'
           }).addTo(siteShapesGroup).bindPopup(popupHtml);
-          radiusCircle.on('click', () => { if (visNavn(visning)) selectLocation(siteName, site.id ?? null); });
+          radiusCircle.on('click', () => { if (visNavn(visning)) selectLocation(siteName, site.id ?? null, isMine); });
           siteShapeLayers.push(radiusCircle);
         }
       }
@@ -1141,7 +1225,7 @@ function renderSites(sitesToRender, { fitToBounds = false } = {}) {
       marker.on('add', () => { if (!visNavn(visning)) marker.closeTooltip(); });
       siteLabelMarkers.push(marker);
 
-      marker.on('click', () => { if (visNavn(visning)) selectLocation(siteName, site.id ?? null); });
+      marker.on('click', () => { if (visNavn(visning)) selectLocation(siteName, site.id ?? null, isMine); });
 
       bounds.extend([lat, lon]);
       siteCount++;
@@ -1189,9 +1273,13 @@ if (isOfflineMode()) {
   (async () => {
     try {
       const offlineSites = await getAllOfflineLocations();
-      renderSites(offlineSites.length > 0
+      const baseOffline = offlineSites.length > 0
         ? mergeCachedSites(offlineSites, sites.filter(site => site.fraAo3))
-        : sites, { fitToBounds: false });
+        : sites;
+      renderSites(
+        onlyOwnPrivateSites ? mergeCachedSites(baseOffline, hentAlleEgnePrivateLokaliteter()) : baseOffline,
+        { fitToBounds: false }
+      );
     } catch (e) {
       renderSites(sites, { fitToBounds: false });
     }
@@ -1212,6 +1300,23 @@ const lokalitetsstatus = document.getElementById('map-sites-status');
 map.on('moveend', handleMapMoveEnd);
 
 async function hentOgTegnLokaliteter(center, seq) {
+  if (onlyOwnPrivateSites) {
+    // For ikke-fugl vises kun egne private lokaliteter — unngå unødige bbox-kall mot AO.
+    if (hasActiveAoLogin() && !hasFreshPrivateSitesCache()) {
+      lokalitetsstatus?.replaceChildren(t('map.fetching_sites'));
+      try {
+        await ensureAoPrivateSites();
+      } catch (e) {
+        console.warn('Kunne ikke hente egne private lokaliteter:', e);
+      } finally {
+        if (seq === fetchSeq) lokalitetsstatus?.replaceChildren();
+      }
+    }
+    if (seq !== fetchSeq) return;
+    renderSites(hentAlleEgnePrivateLokaliteter(), { fitToBounds: false });
+    return;
+  }
+
   const diameter = AUTO_FETCH_RADIUS_M * 2;
   const bounds = createCenteredBounds(center.lat, center.lng, diameter, diameter);
   const egneLokaliteter = () => filterSitesInBounds(getCachedPrivateSites(), bounds)
@@ -1244,7 +1349,10 @@ async function hentOgTegnLokaliteter(center, seq) {
   }
 }
 
-if (!isOfflineMode() && (!startLokaliteter.length || !sites.length || (hasActiveAoLogin() && !hasFreshPrivateSitesCache()))) {
+if (!isOfflineMode() && (
+  (onlyOwnPrivateSites && hasActiveAoLogin() && (!sites.length || !hasFreshPrivateSitesCache()))
+  || (!onlyOwnPrivateSites && (!startLokaliteter.length || !sites.length || (hasActiveAoLogin() && !hasFreshPrivateSitesCache())))
+)) {
   hentOgTegnLokaliteter(map.getCenter(), ++fetchSeq).catch((e) => {
     console.warn('Kunne ikke hente lokaliteter ved kartoppstart:', e);
   });
@@ -1276,7 +1384,10 @@ function handleMapMoveEnd() {
       try {
         const offlineSites = await getAllOfflineLocations();
         if (seq !== fetchSeq) return;
-        if (offlineSites.length > 0) renderSites(offlineSites, { fitToBounds: false });
+        const offlineToRender = onlyOwnPrivateSites
+          ? mergeCachedSites(offlineSites, hentAlleEgnePrivateLokaliteter())
+          : offlineSites;
+        if (offlineToRender.length > 0) renderSites(offlineToRender, { fitToBounds: false });
       } catch (e) {
         console.warn('Kunne ikke oppdatere lokaliteter:', e);
         revertFetchBookkeepingIfStillCurrent();
@@ -1303,10 +1414,13 @@ function handleMapMoveEnd() {
   }, 600);
 }
 
-function selectLocation(locationName, locationId) {
+function selectLocation(locationName, locationId, isMine = false) {
+  const erEgenPrivat = Boolean(isMine);
+  if (onlyOwnPrivateSites && !erEgenPrivat) return;
   localStorage.setItem('selectedLocation', locationName);
-  if (locationId != null) localStorage.setItem('selectedLocationId', String(locationId));
+  if (locationId != null && locationId !== '') localStorage.setItem('selectedLocationId', String(locationId));
   else localStorage.removeItem('selectedLocationId');
+  localStorage.setItem('selectedLocationIsMine', erEgenPrivat ? '1' : '0');
   window.location.href = '/';
 }
 window.selectLocation = selectLocation;
@@ -1406,7 +1520,7 @@ if (createBtn) createBtn.addEventListener('click', async () => {
       removeAccuracyCircle();
       addNewSiteMarker(name, latlng.lat, latlng.lng, result.siteId);
       saveOpportunisticOfflineLocations([{ id: result.siteId > 0 ? result.siteId : undefined, name, lat: latlng.lat, lon: latlng.lng, isMine: true, isPrivate: true }]).catch(() => {});
-      setTimeout(() => selectLocation(name, result.siteId > 0 ? result.siteId : null), 1500);
+      setTimeout(() => selectLocation(name, result.siteId > 0 ? result.siteId : null, true), 1500);
     } else {
       showPanelStatus(result.message || result.error || 'Ukjent feil', true);
       createBtn.disabled = false;

@@ -154,13 +154,11 @@ test.describe('Dublett-vern ved publisering', () => {
       return route.fulfill({ status: 503, json: { code: 'ao2_unavailable_before_import' } });
     });
     await page.reload();
-    const dialog = page.waitForEvent('dialog').then(async (varsel) => {
-      const melding = varsel.message();
-      await varsel.dismiss();
-      return melding;
-    });
     await page.locator('#ao-direct-btn').click();
-    expect(await dialog).toContain('Har du sjekket både publiserte funn og funn til gjennomgang');
+    const modal = page.locator('#uavklarte-send-confirm-modal');
+    await expect(modal).toBeVisible();
+    await expect(modal).toContainText('Har du sjekket både publiserte funn og funn til gjennomgang');
+    await modal.locator('[data-confirm-action="cancel"]').click();
     expect(innlogginger).toBe(0);
   });
 
@@ -218,13 +216,11 @@ test.describe('Dublett-vern ved publisering', () => {
       slippImport();
     }
 
-    const kontroll = page.waitForEvent('dialog').then(async (dialog) => {
-      const melding = dialog.message();
-      await dialog.dismiss();
-      return melding;
-    });
     await page.locator('#ao-direct-btn').click();
-    expect(await kontroll).toContain('Har du sjekket både publiserte funn og funn til gjennomgang');
+    const modal = page.locator('#uavklarte-send-confirm-modal');
+    await expect(modal).toBeVisible();
+    await expect(modal).toContainText('Har du sjekket både publiserte funn og funn til gjennomgang');
+    await modal.locator('[data-confirm-action="cancel"]').click();
     await expect(page.locator('.obs-sent-badge')).toHaveCount(0);
   });
 });

@@ -475,4 +475,94 @@ describe('renderObservations besøk', () => {
     expect(modal.querySelector('#time-modal-apply').textContent).toBe('Set på alle');
     modal.remove();
   });
+
+  it('viser nynorsk enhet, alder, kjønn, metode og aktivitet i lista, men eksporterer pattedyr-kolonner i kanonisk bokmål til CSV', () => {
+    saveLanguage('nn');
+    const observations = [
+      {
+        species: { taxonName: 'Elg' },
+        speciesGroupId: 11,
+        placeName: 'Privat hage',
+        count: 1,
+        unit: 'Individer',
+        activity: 'Drektig hunn',
+        age: 'Voksen',
+        gender: 'Hunn',
+        discoveryMethod: 'Hørt',
+        timestamp: '2026-07-03T08:00:00',
+      },
+    ];
+    const obsListEl = document.createElement('div');
+    renderObservations(observations, obsListEl, {}, vi.fn());
+
+    expect(obsListEl.textContent).toContain('Drektig ho');
+    expect(obsListEl.textContent).toContain('Individ, Vaksen, Ho, Høyrt');
+
+    const csv = toCsv(observations);
+    const lines = csv.split('\n');
+    const headers = lines[0].split('\t');
+    const cols = lines[1].split('\t');
+    expect(headers).not.toContain('Superlokalitet');
+    expect(headers[9]).toBe('Antall');
+    expect(headers[10]).toBe('Enhet');
+    expect(headers[11]).toBe('Alder');
+    expect(headers[12]).toBe('Kjønn');
+    expect(headers[13]).toBe('Aktivitet');
+    expect(headers[14]).toBe('Metode');
+    expect(cols[10]).toBe('Individer');
+    expect(cols[11]).toBe('Voksen');
+    expect(cols[12]).toBe('Hunn');
+    expect(cols[13]).toBe('Drektig hunn');
+    expect(cols[14]).toBe('Hørt');
+
+    const csvAo3 = toCsv(observations, { ao3: true });
+    const ao3Headers = csvAo3.split('\n')[0].split('\t');
+    expect(ao3Headers).not.toContain('Superlokalitet');
+    expect(ao3Headers).not.toContain('Hovedlokalitet');
+    expect(ao3Headers).toContain('Enhet');
+    expect(ao3Headers).toContain('Metode');
+    expect(ao3Headers).toContain('Merknad (synlig for alle)');
+    expect(ao3Headers).not.toContain('Natursystem');
+  });
+
+  it('blokkerer +/- og inline-endring til oddetall når kjønn er «I par», men tillater +10 (forblir partall)', () => {
+    saveLanguage('nn');
+    const observations = [
+      {
+        species: { taxonName: 'Kjøttmeis' },
+        placeName: 'Herdla',
+        count: 2,
+        gender: 'I par',
+        timestamp: '2026-07-03T08:00:00',
+      },
+    ];
+    const obsListEl = document.createElement('div');
+    document.body.appendChild(obsListEl);
+    const saveState = vi.fn();
+    renderObservations(observations, obsListEl, {}, saveState);
+
+    const minusBtn = obsListEl.querySelector('button[title="−1"]');
+    const plusBtn = obsListEl.querySelector('button[title="+1"]');
+    minusBtn.click();
+    expect(observations[0].count).toBe(2);
+    plusBtn.click();
+    expect(observations[0].count).toBe(2);
+    expect(saveState).not.toHaveBeenCalled();
+
+    // Inline redigering til oddetall avvises, mens partall lagres
+    const countSpan = obsListEl.querySelector('span[title]');
+    countSpan.click();
+    const inlineInput = obsListEl.querySelector('input[type="number"]');
+    inlineInput.value = '3';
+    inlineInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+    expect(observations[0].count).toBe(2);
+
+    obsListEl.querySelector('span[title]').click();
+    const inlineInput2 = obsListEl.querySelector('input[type="number"]');
+    inlineInput2.value = '4';
+    inlineInput2.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+    expect(observations[0].count).toBe(4);
+    expect(saveState).toHaveBeenCalledTimes(1);
+  });
 });
+
