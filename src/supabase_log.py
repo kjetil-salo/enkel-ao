@@ -71,6 +71,22 @@ def get_stats_from_supabase():
                 unique_map[d] = r.get("cnt", 0)
         unique_devices_per_day = list(unique_map.items()) if raw_unique else []
 
+        # Eksporter per dag (via Excel-import vs. direkte fra appen). Krever
+        # oppdatert get_stats-RPC i Supabase; tom hvis ikke der ennå.
+        raw_exports_per_day = data.get("exports_per_day") or []
+        export_day_map = {
+            (today - timedelta(days=i)).isoformat(): {'copy_open': 0, 'direct': 0}
+            for i in range(29, -1, -1)
+        }
+        for r in raw_exports_per_day:
+            d = str(r.get("dato", ""))[:10]
+            if d in export_day_map:
+                export_day_map[d][r.get("type", "")] = r.get("cnt", 0)
+        exports_per_day = (
+            [(dato, v['copy_open'], v['direct']) for dato, v in export_day_map.items()]
+            if raw_exports_per_day else []
+        )
+
         return {
             "total": data.get("total", 0),
             "total_unique_ips": data.get("unique_ips", 0),
@@ -82,6 +98,7 @@ def get_stats_from_supabase():
             "trend_30d": trend_30d,
             "unique_devices_per_day": unique_devices_per_day,
             "unique_users_per_week": get_weekly_unique_users(),
+            "exports_per_day": exports_per_day,
         }
     except Exception as e:
         logger.warning(f"[Supabase] Feil ved henting av stats: {e}")

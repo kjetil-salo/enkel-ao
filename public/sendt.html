@@ -95,13 +95,6 @@
                     border-radius: 8px; background: transparent; color: var(--color-accent);
                     font: inherit; font-size: 0.95rem; cursor: pointer; text-decoration: none; }
       .ikonknapp:hover { background: var(--color-accent-soft); }
-      .ikonknapp-pluss { position: relative; }
-      .pluss-merke { position: absolute; right: 2px; bottom: 2px; width: 15px; height: 15px;
-                     display: flex; align-items: center; justify-content: center;
-                     border-radius: 50%; background: var(--color-accent); color: #fff;
-                     font-size: 0.72rem; font-weight: 800; line-height: 1;
-                     box-shadow: 0 0 0 2px var(--bg, #0f172a); }
-      body.theme-light .pluss-merke { box-shadow: 0 0 0 2px #ffffff; }
       .funn-handling .btn-liten { padding: 6px 8px; }
       .funn-lenke { color: var(--accent, #3b82f6); text-decoration: none; font-size: 0.85rem;
                     padding: 10px 4px; min-height: 44px; display: inline-flex; align-items: center; }
@@ -556,7 +549,7 @@
       // Alias tr (ikke t): denne filen har allerede en lokal `const t = hentTokens();`
       // inne i lastAoFunn() - et import med samme navn ville vært forvirrende å lese,
       // selv om selve skoperingen er trygg.
-      import { t as tr, applyTranslations } from '/js/i18n.js?v=v1.60.29';
+      import { t as tr, applyTranslations } from '/js/i18n.js?v=v1.60.30';
 
       applyTranslations();
       document.title = tr('sendt.title');
@@ -574,10 +567,10 @@
       // (v1.59.7). En cachet gammel kopi ville gitt TypeError i det slideren eller
       // zoomen brukes — eller SyntaxError som stopper hele denne modulen. Se
       // «Versjonering» i CLAUDE.md (v1.53.15).
-      import { initPhotoPicker } from '/js/photo-picker.js?v=v1.60.29';
-      import { lagBildeEditor } from '/js/bilde-editor.js?v=v1.60.29';
-      import { loggInnMedLagretLegitimasjon, loadActivities } from '/js/api.js?v=v1.60.29';
-      import { initSendtHandlinger } from '/js/sendt-handlinger.js?v=v1.60.29';
+      import { initPhotoPicker } from '/js/photo-picker.js?v=v1.60.30';
+      import { lagBildeEditor } from '/js/bilde-editor.js?v=v1.60.30';
+      import { loggInnMedLagretLegitimasjon, loadActivities } from '/js/api.js?v=v1.60.30';
+      import { initSendtHandlinger } from '/js/sendt-handlinger.js?v=v1.60.30';
 
       const MND = ['januar', 'februar', 'mars', 'april', 'mai', 'juni',
         'juli', 'august', 'september', 'oktober', 'november', 'desember'];
@@ -673,6 +666,27 @@
           : `<span class="funn-rolle med" title="${attr(tr('sendt.role_with_title'))}">${tr('sendt.role_with')}</span>`;
       }
 
+      // Linje-ikoner (Lucide/Feather-stil, stroke="currentColor") i stedet for
+      // kamera-emoji — emojiens utseende varierer mellom OS/nettleser og ga et
+      // utydelig pluss-merke. Pluss-badgen er tegnet INN i selve SVG-en (ikke et
+      // separat DOM-element med absolute positioning som før), så den alltid
+      // sitter riktig uansett skriftstørrelse. Designforslag: docs/forslag-bilde-ikoner.md
+      const ICON_HAR_BILDE = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20"
+             fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"
+             aria-hidden="true" focusable="false">
+          <path d="M9 4h6l2 3h3a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h3z"/>
+          <circle cx="12" cy="13" r="3.5"/>
+        </svg>`;
+      const ICON_LEGG_TIL_BILDE = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20"
+             fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"
+             aria-hidden="true" focusable="false">
+          <path d="M22 11.5V9a2 2 0 0 0-2-2h-3l-2-3H9L7 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h7.5"/>
+          <circle cx="12" cy="13" r="3.5"/>
+          <path fill="currentColor" stroke="none" fill-rule="evenodd"
+                d="M23 18.5a4.5 4.5 0 1 1-9 0 4.5 4.5 0 1 1 9 0Z
+                   M17.75 16.25h1.5v1.5h1.5v1.5h-1.5v1.5h-1.5v-1.5h-1.5v-1.5h1.5Z"/>
+        </svg>`;
+
       function renderFunn(funn) {
         const detaljer = [funn.time, activityDisplayName(funn.activity)].filter(Boolean).join(' · ');
         const advarsel = funn.triggeredRules
@@ -687,13 +701,10 @@
         // ⋯-menyen når det allerede fantes ett bilde, med en annen tekst enn
         // den synlige knappen — samme handling så ut som to ulike.
         const harMerke = funn.hasImage
-          ? `<span class="har-bilde" role="img" aria-label="${attr(tr('sendt.has_image'))}" title="${attr(tr('sendt.has_image'))}">📷</span>` : '';
+          ? `<span class="har-bilde" role="img" aria-label="${attr(tr('sendt.has_image'))}" title="${attr(tr('sendt.has_image'))}">${ICON_HAR_BILDE}</span>` : '';
         const leggTilTekst = funn.hasImage ? tr('sendt.add_one_more') : tr('sendt.add_image');
-        // Samme kamera som indikatoren (ellers ser de ut som to ulike handlinger),
-        // men med et tydelig pluss-merke i hjørnet — en «＋» midt i emoji-fonten
-        // druknet helt i den første versjonen av dette ikonet.
-        const leggTilBilde = `<button class="ikonknapp ikonknapp-pluss" data-bilde="${attr(funn.sightingId)}"
-               aria-label="${attr(leggTilTekst)}" title="${attr(leggTilTekst)}">📷<span class="pluss-merke" aria-hidden="true">+</span></button>`;
+        const leggTilBilde = `<button class="ikonknapp" data-bilde="${attr(funn.sightingId)}"
+               aria-label="${attr(leggTilTekst)}" title="${attr(leggTilTekst)}">${ICON_LEGG_TIL_BILDE}</button>`;
 
         // Bilder kan alle involverte legge til, men bare rapportøren kan endre
         // funnet. AO skjuler selv «Endre» for andre, så vi speiler den regelen i

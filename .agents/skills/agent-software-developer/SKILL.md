@@ -37,6 +37,11 @@ Prosjektet er **enkel-ao** — Python 3.12 ThreadingHTTPServer, vanilla JS ES6-m
    - Ekstern API-kall: `except Exception as e: print(...); return graceful_response`
    - SQL: alltid parameterisert (`?`) — aldri f-strings i queries
    - Frontend-endringer: bump `VERSION` i `public/js/version.js`
+   - Ny eller endret brukertekst (UI-strenger, feilmeldinger, changelog, varsler):
+     legg nøkkelen i BÅDE `public/js/i18n/nb.js` OG `public/js/i18n/nn.js` i
+     samme fase — aldri bare bokmål. `t()` feiler ikke synlig når nynorsk
+     mangler en nøkkel (stille fallback + en konsoll-advarsel ingen ser), så
+     dette oppdages ikke av seg selv. Se `docs/i18n-arkitektur-analyse.md`
    - Synlig endringslogg: skriv bare brukerrettede nyheter, nye muligheter og merkbare arbeidsflytendringer. Tekniske vedlikeholdsendringer som cache/SW-bump, intern refaktor, testoppsett og deploy-teknikk hører normalt ikke hjemme i `public/changelog.html`
    - Input-validering på serversiden — ikke stol på frontend
 3. Kjør tester — alle MÅ bestå:
@@ -75,6 +80,8 @@ Prosjektet er **enkel-ao** — Python 3.12 ThreadingHTTPServer, vanilla JS ES6-m
 - [ ] Ingen over-engineering — enkleste løsning som oppfyller kravene
 - [ ] Feilmeldinger til bruker avslører ikke intern tilstand
 - [ ] Norske kommentarer og loggmeldinger
+- [ ] Ny/endret UI-tekst finnes i `public/js/i18n/nb.js` OG `public/js/i18n/nn.js`
+      med samme nøkler (verifiser: `tests/unit/i18n.test.js` har en test for dette)
 
 ### Testing (OBLIGATORISK)
 - [ ] Tester for all ny/endret funksjonalitet
@@ -111,6 +118,12 @@ tests/
 5. **font-size < 16px på input**: iOS zoomer automatisk — setter 16px som minimum
 6. **Supabase uten env-vars**: Koden MÅ fungere uten `SUPABASE_URL`/`SUPABASE_KEY`
 7. **Pi-minne**: Ikke last store datasett i minnet under en request
+8. **Nynorsk glemmes ved ny tekst**: `nb.js` og `nn.js` i `public/js/i18n/` må
+   ha identiske nøkler. Dette brøt ved «Tidligere sendt»-redesignet
+   (18.–19.11.2026, 13 manglende nøkler) — ingen automatisk varsling fanget
+   det, bidragsyteren måtte melde det inn manuelt. `tests/unit/i18n.test.js`
+   har nå en test som sjekker nøkkel-parallellitet mellom filene; stol på den
+   fremfor å telle manuelt
 
 ## Mal: Akseptansekriterier per fase
 

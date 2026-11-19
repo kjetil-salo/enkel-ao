@@ -147,6 +147,41 @@ def test_unknown_api_endpoint():
     srv.shutdown()
 
 
+def test_eksporter_per_dag_telles_separat_per_type(monkeypatch, tmp_path):
+    """Eksportgrafen skal skille via Excel-import (tungvint) fra direkte fra
+    appen (enkelt) — hver dag skal ha begge tellerne, ikke bare en sum."""
+    db_path = str(tmp_path / 'stats.db')
+    monkeypatch.setenv('DB_PATH', db_path)
+    import importlib
+    from src import sqlite_log
+    importlib.reload(sqlite_log)
+
+    sqlite_log.log_export('copy_open')
+    sqlite_log.log_export('copy_open')
+    sqlite_log.log_export('direct')
+
+    stats = sqlite_log.get_stats()
+    exports_per_day = stats['exports_per_day']
+    assert len(exports_per_day) == 30
+    dato, kopier, direkte = exports_per_day[-1]
+    assert kopier == 2
+    assert direkte == 1
+
+
+def test_eksportgraf_vises_kun_naar_data_finnes():
+    """Uten eksportdata skal siden fortsatt rendres (ingen krasj), og uten
+    chart-canvaset for eksporter."""
+    from src.html_templates import generate_stats_page
+
+    html_uten = generate_stats_page([], {}, 0)
+    assert 'exportsChart' not in html_uten
+
+    html_med = generate_stats_page([], {}, 0, exports_per_day=[('2026-11-18', 3, 5)])
+    assert 'exportsChart' in html_med
+    assert 'Via Excel-import' in html_med
+    assert 'Direkte fra appen' in html_med
+
+
 def test_statistikksiden_escaper_ip_og_user_agent():
     """IP og user agent kommer fra headere klienten skriver selv. Rått inn i HTML
     kjørte et skript i appens domene — med tilgang til lagret AO-passord i

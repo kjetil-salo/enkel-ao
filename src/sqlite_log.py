@@ -153,6 +153,26 @@ def get_stats() -> dict:
                 for i in range(weeks)
             ]
 
+            # Eksporter per dag, delt på de to veiene: via Excel-import (kopier til
+            # utklippstavla + AOs importside, den tungvinte veien) og direkte fra
+            # knappen i appen. Samme 30-dagers vindu som de andre dagsgrafene.
+            export_day_map = {
+                (today - timedelta(days=i)).isoformat(): {'copy_open': 0, 'direct': 0}
+                for i in range(29, -1, -1)
+            }
+            for row in conn.execute(
+                "SELECT DATE(ts) as dato, type, COUNT(*) as cnt FROM exports "
+                "WHERE ts >= DATE('now', '-29 days') AND type IN ('copy_open', 'direct') "
+                "GROUP BY dato, type ORDER BY dato"
+            ).fetchall():
+                d = row["dato"]
+                if d in export_day_map:
+                    export_day_map[d][row["type"]] = row["cnt"]
+            exports_per_day = [
+                (dato, verdier['copy_open'], verdier['direct'])
+                for dato, verdier in export_day_map.items()
+            ]
+
         return {
             "total": total,
             "total_unique_ips": total_unique_ips,
@@ -164,6 +184,7 @@ def get_stats() -> dict:
             "trend_30d": trend_30d,
             "unique_devices_per_day": unique_devices_per_day,
             "unique_users_per_week": unique_users_per_week,
+            "exports_per_day": exports_per_day,
         }
     except Exception as e:
         logger.warning(f"[SQLite] Feil ved henting av stats: {e}")

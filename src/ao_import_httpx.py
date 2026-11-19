@@ -710,6 +710,18 @@ def _poll_importing_done(login_token, auth_cookie, total, progress_cb=None,
     6 innsendte obs, men kun 1 rukket inn i gjennomgangskøen på de 1,5 sekundene
     "importing"-telleren brukte på å nå 0 to ganger på rad.
 
+    **I `expect_markers=None`-modus kreves IKKE lenger `importing_done==0`** (rettet
+    19.11.2026). "NumberOfSightingsImporting" er en kontobred teller, ikke skopet til
+    vår egen batch — den kan stå fastlåst på en verdi > 0 fra en helt urelatert,
+    sittende jobb hos AO uten at det sier noe om VÅR import. Feltbevis: to avlesninger
+    90 sekunder fra hverandre viste identisk `importing=10` mens `submitted` nådde
+    target begge ganger — brukeren fikk «Sendingen kunne ikke bekreftes» selv om funnet
+    alt lå klart i AOs gjennomgangskø. `submitted` ER beviset vi trenger når køen var
+    bekreftet tom før import (nøyaktig det `expect_markers=None` betyr) — to avlesninger
+    på rad der er fortsatt kravet, bare uten den upålitelige importing-sjekken i tillegg.
+    Scoped publisering (`expect_markers` satt) er uendret: der kreves fortsatt
+    `importing_done` FØR den tyngre grid-lesingen gjøres, se under.
+
     Tidsgrensen skaleres med antall observasjoner. Returnerer True når hele batchen
     er funnet i køen, og False når dette ikke kan bekreftes.
     """
@@ -727,20 +739,22 @@ def _poll_importing_done(login_token, auth_cookie, total, progress_cb=None,
         importing_done = True if remaining is None else remaining == 0
 
         if expect_markers is None:
-            queue_filled = submitted is not None and submitted >= total
+            # submitted alene er beviset her — se docstring. IKKE kombinert med
+            # importing_done (urelatert, upålitelig kontoteller).
+            ready = submitted is not None and submitted >= total
         elif not importing_done:
             # Ikke bruk den tunge grid-lesingen før den billige telleren melder ferdig
-            queue_filled = False
+            ready = False
         else:
             rows = review_queue_rows(login_token, auth_cookie, size=queue_size)
             if rows is None:
-                queue_filled = False  # kunne ikke lese køen — vent, ikke gjett
+                ready = False  # kunne ikke lese køen — vent, ikke gjett
             else:
                 present = '\n'.join(r.get('PrivateCommentLong') or '' for r in rows)
-                queue_filled = all(marker in present for marker in expect_markers)
+                ready = all(marker in present for marker in expect_markers)
 
         # Krev to påfølgende ferdig-avlesninger for å unngå å publisere før AO har startet
-        if importing_done and queue_filled:
+        if ready:
             consecutive_ready += 1
             if consecutive_ready >= 2:
                 if progress_cb:

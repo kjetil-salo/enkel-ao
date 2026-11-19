@@ -25,7 +25,7 @@ def _js_streng(verdi) -> str:
     return _json.dumps(str(verdi)).replace('</', '<\\/')
 
 
-def generate_stats_page(recent_ips, per_ua, total, per_device=None, per_os=None, per_browser=None, total_unique_ips=0, source="Supabase", total_unique_devices=0, exports=None, trend_30d=None, trend_7d=None, unique_devices_per_day=None, unique_users_per_week=None):
+def generate_stats_page(recent_ips, per_ua, total, per_device=None, per_os=None, per_browser=None, total_unique_ips=0, source="Supabase", total_unique_devices=0, exports=None, trend_30d=None, trend_7d=None, unique_devices_per_day=None, unique_users_per_week=None, exports_per_day=None):
     """Generer statistikk-side med data fra enten Supabase eller in-memory."""
     per_device = per_device or {}
     per_os = per_os or {}
@@ -217,9 +217,58 @@ def generate_stats_page(recent_ips, per_ua, total, per_device=None, per_os=None,
         </script>
         '''
 
+    # Eksporter per dag, delt på de to veiene: via Excel-import (den tungvinte
+    # veien — kopiere observasjonene i hodet/på papir og lime dem inn i AOs eget
+    # importskjema) og direkte fra knappen i appen (den enkle veien).
+    exports_per_day = exports_per_day or []
+    exports_per_day_section = ""
+    if exports_per_day:
+        e_labels = [dato for dato, _, _ in exports_per_day]
+        e_kopier = [kopier for _, kopier, _ in exports_per_day]
+        e_direkte = [direkte for _, _, direkte in exports_per_day]
+        exports_per_day_section = f'''
+        <div class="section-title">Eksporter per dag (siste 30 dager)</div>
+        <canvas id="exportsChart" style="width:100%;max-height:220px;"></canvas>
+        <script>
+        (function() {{
+            var ctx = document.getElementById('exportsChart').getContext('2d');
+            new Chart(ctx, {{
+                type: 'bar',
+                data: {{
+                    labels: {e_labels},
+                    datasets: [
+                        {{
+                            label: 'Via Excel-import',
+                            data: {e_kopier},
+                            backgroundColor: 'rgba(249, 115, 22, 0.6)',
+                            borderColor: 'rgba(249, 115, 22, 1)',
+                            borderWidth: 1
+                        }},
+                        {{
+                            label: 'Direkte fra appen',
+                            data: {e_direkte},
+                            backgroundColor: 'rgba(59, 130, 246, 0.6)',
+                            borderColor: 'rgba(59, 130, 246, 1)',
+                            borderWidth: 1
+                        }}
+                    ]
+                }},
+                options: {{
+                    responsive: true,
+                    plugins: {{ legend: {{ display: true }} }},
+                    scales: {{
+                        x: {{ stacked: true, ticks: {{ maxRotation: 45, font: {{ size: 10 }} }} }},
+                        y: {{ stacked: true, beginAtZero: true, ticks: {{ stepSize: 1 }} }}
+                    }}
+                }}
+            }});
+        }})();
+        </script>
+        '''
+
     # Chart.js lastes én gang hvis noen av grafene skal vises
     chartjs_load = ''
-    if unique_section or trend_section or weekly_section:
+    if unique_section or trend_section or weekly_section or exports_per_day_section:
         chartjs_load = '<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>'
 
     return f"""
@@ -265,6 +314,7 @@ def generate_stats_page(recent_ips, per_ua, total, per_device=None, per_os=None,
         {chartjs_load}
         {weekly_section}
         {unique_section}
+        {exports_per_day_section}
         {trend_section}
         <div class="section-title">Siste 10 IP-adresser</div>
         <table>

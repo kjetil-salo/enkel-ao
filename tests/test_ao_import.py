@@ -22,6 +22,7 @@ from src.ao_import import observations_to_csv, AO_BOOL_TRUE
 from src.ao_import_httpx import (
     _decode_data_url,
     _find_row_for_marker,
+    _poll_importing_done,
     _resolve_temp_ids_for_publish,
     _upload_pending_images,
     fetch_csrf_tokens,
@@ -94,6 +95,23 @@ def test_ao3_reserve_krever_at_ao2_import_ikke_har_startet(monkeypatch, fase, ca
     finally:
         srv.shutdown()
         srv.server_close()
+
+
+def test_poll_importing_done_ignorerer_fastlast_importing_teller_nar_submitted_nar_target(monkeypatch):
+    """
+    Feltbevis 19.11.2026: `NumberOfSightingsImporting` sto fastlåst på 10 på to
+    avlesninger 90 sekunder fra hverandre, mens `NumberOfSightingsSubmitted` nådde
+    target begge ganger. Brukeren fikk «Sendingen kunne ikke bekreftes» selv om funnet
+    alt lå klart i AOs gjennomgangskø. Siden `importing`-telleren er kontobred og ikke
+    skopet til vår batch, skal den ikke lenger kunne blokkere `expect_markers=None`
+    (det vanlige, ikke-scopede tilfellet) når `submitted` beviser at radene er der.
+    """
+    monkeypatch.setattr('src.ao_import_httpx.number_of_sightings_importing', lambda *_, **__: 10)
+    monkeypatch.setattr('src.ao_import_httpx.number_of_sightings_submitted', lambda *_, **__: 1)
+
+    resultat = _poll_importing_done('token', 'cookie', total=1, timeout=2, interval=0.1)
+
+    assert resultat is True
 
 
 class MockSubprocessResult:

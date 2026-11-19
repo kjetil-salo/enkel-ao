@@ -1,4 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import nb from '../../public/js/i18n/nb.js';
+import nn from '../../public/js/i18n/nn.js';
 
 const store = {};
 const localStorageMock = {
@@ -115,6 +117,24 @@ describe('applyTranslations()', () => {
     document.body.innerHTML = '<span data-i18n="settings.language.nn"></span>';
     i18n.setLanguage('nb');
     expect(document.querySelector('span').textContent).toBe('Nynorsk');
+  });
+});
+
+describe('nb.js og nn.js har samme nøkler', () => {
+  // Bokmål er master (se nb.js' egen kommentar), men t() faller stille tilbake
+  // til bokmål og logger bare en advarsel i konsollen når nynorsk mangler en
+  // nøkkel — ingen ser den advarselen med mindre de aktivt bytter språk og
+  // leser konsollen. Uten denne testen oppdages ikke et glemt nynorsk-strengpar
+  // før en bruker melder inn hver enkelt manuelt (skjedde ved
+  // «Tidligere sendt»-redesignet, 13 nøkler manglet i nn.js, 19.11.2026).
+  it('nn.js mangler ingen nøkkel som finnes i nb.js', () => {
+    const manglerINn = Object.keys(nb).filter((key) => !(key in nn));
+    expect(manglerINn).toEqual([]);
+  });
+
+  it('nb.js mangler ingen nøkkel som finnes i nn.js', () => {
+    const manglerINb = Object.keys(nn).filter((key) => !(key in nb));
+    expect(manglerINb).toEqual([]);
   });
 });
 

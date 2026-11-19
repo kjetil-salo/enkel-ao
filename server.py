@@ -1879,6 +1879,7 @@ class Handler(SimpleHTTPRequestHandler):
                 trend_30d=stats.get("trend_30d"),
                 unique_devices_per_day=stats.get("unique_devices_per_day"),
                 unique_users_per_week=stats.get("unique_users_per_week"),
+                exports_per_day=stats.get("exports_per_day"),
             )
         else:
             # Fallback til in-memory statistikk

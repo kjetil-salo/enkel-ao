@@ -1,5 +1,48 @@
 # TODO
 
+## 46. «Sendingen kunne ikke bekreftes» selv om funnet lå klart på AO (Espen, 2026-11-19) — utført 2026-11-19
+
+- **Rotårsak**: commit `15843bfb` (15.11.2026, "Bruk AO3 som reserve") endret
+  `_poll_importing_done()` i `src/ao_import_httpx.py` til å kaste
+  `Ao2ImportUavklart` ("Sendingen kunne ikke bekreftes...") på et rent
+  poll-timeout — FØR publisering i det hele tatt ble forsøkt. Før denne
+  commiten logget timeout bare en advarsel og fortsatte til publisering.
+- Pi-loggen viste feilen presist kl. 10:00/10:02 i dag: `submitted` (AOs
+  gjennomgangskø — det som faktisk beviser at funnet kom fram) nådde target
+  begge ganger, mens `importing` (en KONTOBRED teller, ikke skopet til vår
+  batch) sto fastlåst på identisk `10` 90 sekunder fra hverandre — en
+  urelatert, sittende jobb hos AO, ikke et tegn på at VÅR import feilet.
+  Koden krevde begge signaler samtidig og ga opp, selv om funnet alt lå klart
+  til publisering hos AO — nøyaktig det Espen observerte.
+- **Fiks**: i det vanlige (ikke-scopede) tilfellet avgjør `submitted` alene
+  (fortsatt to avlesninger på rad) at importen er bekreftet — uten å kreve at
+  den upålitelige `importing`-telleren også når 0. Scoped publisering er
+  uendret. Ny test:
+  `test_poll_importing_done_ignorerer_fastlast_importing_teller_nar_submitted_nar_target`
+  i `tests/test_ao_import.py`.
+- **I samme runde**: fylte 13 manglende nøkler i `public/js/i18n/nn.js` (alle
+  `sendt.*`, fra «Tidligere sendt»-redesignet) + rettet 3 nøkler som hadde
+  driftet fra gammel tekst (`sendt.ingress`, `sendt.ao_info`, `sendt.footer`).
+  La til en vitest-test (`tests/unit/i18n.test.js`) som håndhever at `nb.js`
+  og `nn.js` har identiske nøkler — ingen automatisk varsling fanget
+  avviket før nå, kun en konsoll-advarsel ved runtime som ingen så. Begge
+  `agent-software-developer`-skillene (`.claude/skills/` og `.agents/skills/`)
+  har nå en eksplisitt regel om å legge inn nynorsk-nøkkel i samme fase som
+  ny/endret UI-tekst.
+
+## 45. Bedre kamera-ikon (Codex, 2026-11-18) — utført 2026-11-19
+
+- `sendt.html` sine to bilde-ikoner i «Tidligere sendt» (bilde-indikator
+  `.har-bilde` og «legg til bilde»-knappen) er byttet fra 📷-emoji til
+  stroke-baserte inline SVG-er (Lucide/Feather-stil, `currentColor`).
+  Pluss-badgen på legg-til-knappen er nå tegnet inn i selve SVG-en i stedet
+  for et separat `.pluss-merke`-element med absolute positioning.
+- Designforslaget Codex skrev ligger i `docs/forslag-bilde-ikoner.md`.
+- **Gotcha:** `codex exec` hang i 18 minutter med 0 % CPU før dette ble
+  forstått — den venter på stdin som aldri lukkes når Bash-verktøyet kjører
+  kommandoen i bakgrunnen uten en tilkoblet terminal. Fiks: legg alltid på
+  `< /dev/null` på `codex exec`-kall som startes slik.
+
 ## 44. Sjekk hvor ofte appen leverer bruker/pass på nytt fordi tokenet er utgått (2026-11-17)
 
 Henger direkte sammen med [#38](#38-klartekst-passord-på-serveren--bør-det-lagres-der-i-det-hele-tatt-2026-11-09):
