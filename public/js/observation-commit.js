@@ -70,8 +70,8 @@ function getObservationTimestampTo() {
   return toLocalISOString(d);
 }
 
-function getActivePills() {
-  return loadActivityPills(); // Fulle objekter {label, value, short?}
+function getActivePills(speciesGroup = '8') {
+  return loadActivityPills(speciesGroup); // Fulle objekter {label, value, short?}
 }
 
 export function commitObservation(state, dom, callbacks) {
@@ -390,12 +390,12 @@ export function setupPillsDragToScroll(el) {
   // Nedoverscrolling/vertikal scrolling skal ikke fanges opp av feltet, men passere uhindret til siden.
 }
 
-export function renderActivityPills(dom, commitFn) {
+export function renderActivityPills(dom, commitFn, speciesGroup = '8') {
   if (!dom.activityPillsEl) return;
   setupPillsDragToScroll(dom.activityPillsEl);
   dom.activityPillsEl.innerHTML = '';
 
-  getActivePills().forEach(p => {
+  getActivePills(speciesGroup).forEach(p => {
     const label = p.label; // kanonisk bokmål-navn, lagret i innstillingene
     const translatedLabel = activityDisplayName(label);
     const short = (p.short || '').trim();

@@ -1182,6 +1182,7 @@ function setSpeciesGroup(groupId) {
   }
 
   oppdaterVerdilisterForArtsgruppe(gruppe);
+  renderActivityPills(dom, commitFromActivity, gruppe);
   updateSectionStates(appState, dom);
 }
 
@@ -1649,7 +1650,7 @@ async function init() {
       if (a.selected) opt.selected = true;
       dom.activitySelect.appendChild(opt);
     });
-    renderActivityPills(dom, commitFromActivity);
+    renderActivityPills(dom, commitFromActivity, appState.selectedSpeciesGroup);
     if (appState.selectedSpeciesGroup !== '8') {
       await oppdaterVerdilisterForArtsgruppe(appState.selectedSpeciesGroup);
     }
@@ -2038,7 +2039,7 @@ document.addEventListener('i18n:language-changed', () => {
   oppdaterArtsgruppeHeaderUI(appState.selectedSpeciesGroup);
   updateSectionStates(appState, dom);
   oppdaterVerdilisterForArtsgruppe(appState.selectedSpeciesGroup);
-  renderActivityPills(dom, commitFromActivity);
+  renderActivityPills(dom, commitFromActivity, appState.selectedSpeciesGroup);
 });
 
 // Gjenopprettet fra bfcache (tilbake-knappen) eller vanlig navigasjon —

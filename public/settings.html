@@ -242,6 +242,11 @@
           Skriv eventuelt et kort navn (maks 5 tegn) i «Kort»-feltet for mer kompakte knapper – tomt felt viser fullt navn.
         </div>
 
+        <div class="theme-seg" id="pills-species-group-seg" role="radiogroup" aria-label="Artsgruppe for hurtigknapper" style="width:100%;">
+          <button type="button" class="theme-seg-btn" data-pills-group="8" role="radio" aria-checked="true" data-i18n="settings.pills.group_birds">🦉 Fugl</button>
+          <button type="button" class="theme-seg-btn" data-pills-group="11" role="radio" aria-checked="false" data-i18n="settings.pills.group_mammals">🦌 Pattedyr</button>
+        </div>
+
         <div id="activity-pills-config" style="width: 100%; display: flex; flex-direction: column; gap: 8px;">
           <!-- Genereres dynamisk via JavaScript -->
         </div>
@@ -437,7 +442,7 @@
       import { fjernOverforingssesjon } from './js/arbeidsliste-sesjon.js';
       import { apneInnhentetListe, lagreInnhentetKopi, lesInnhentetListe, lukkInnhentetListe } from './js/arbeidsliste-lokal.js';
       import { loadActivityPills, saveActivityPills, ACTIVITY_SHORT_SUGGESTIONS, activityDisplayName, activityBokmalName } from './js/storage.js?v=v1.60.30';
-      import { loadActivities, fetchAoSitesByBounds, hasActiveAoLogin, ensureAoTokens, getCachedPrivateSites } from './js/api.js?v=v1.60.30';
+      import { loadActivities, loadSpeciesGroupLists, fetchAoSitesByBounds, hasActiveAoLogin, ensureAoTokens, getCachedPrivateSites } from './js/api.js?v=v1.60.30';
       import { shouldShowOthersPrivateSites } from './js/location.js?v=v1.60.30';
       import {
         getOfflineStorageStats,
@@ -607,16 +612,59 @@
 
       refreshOfflineStorageStats();
 
-      let availableActivities = []; // Lastes inn ved init
+      let availableActivities = []; // Lastes inn ved init / gruppebytte
+      let activePillsGroup = '8';
+      const activitiesByGroup = {};
       let isInitializing = true;    // Undertrykk «✓ Lagret» under første render
       let draggedRow = null;
 
-      async function initActivityPillsConfig() {
-        // Last alle aktiviteter fra JSON
-        availableActivities = await loadActivities();
+      async function getActivitiesForGroup(groupId) {
+        const gruppe = String(groupId) === '11' ? '11' : '8';
+        if (!activitiesByGroup[gruppe]) {
+          if (gruppe === '11') {
+            const lister = await loadSpeciesGroupLists('11');
+            activitiesByGroup[gruppe] = Array.isArray(lister.activities) ? lister.activities : [];
+          } else {
+            activitiesByGroup[gruppe] = await loadActivities();
+          }
+        }
+        return activitiesByGroup[gruppe];
+      }
 
+      async function initActivityPillsConfig() {
         const container = document.getElementById('activity-pills-config');
         const addBtn = document.getElementById('add-activity-pill');
+        const groupSeg = document.getElementById('pills-species-group-seg');
+
+        async function renderPillsForGroup(groupId) {
+          const gruppe = String(groupId) === '11' ? '11' : '8';
+          activePillsGroup = gruppe;
+          if (groupSeg) {
+            groupSeg.querySelectorAll('[data-pills-group]').forEach(btn => {
+              btn.setAttribute('aria-checked', String(btn.dataset.pillsGroup === gruppe));
+            });
+          }
+          isInitializing = true;
+          availableActivities = await getActivitiesForGroup(gruppe);
+          container.innerHTML = '';
+          const savedPills = loadActivityPills(gruppe);
+          savedPills.forEach(pill => {
+            addPillRow(container, pill);
+          });
+          isInitializing = false;
+          updateAddButtonState(addBtn, container);
+        }
+
+        if (groupSeg) {
+          groupSeg.querySelectorAll('[data-pills-group]').forEach(btn => {
+            btn.addEventListener('click', () => {
+              const targetGroup = btn.dataset.pillsGroup === '11' ? '11' : '8';
+              if (targetGroup !== activePillsGroup) {
+                renderPillsForGroup(targetGroup);
+              }
+            });
+          });
+        }
 
         // Drag & drop-støtte på beholderen (for desktop mus)
         container.addEventListener('dragover', (e) => {
@@ -644,20 +692,16 @@
           }
         });
 
-        // Render eksisterende pills
-        const savedPills = loadActivityPills();
-        savedPills.forEach(pill => {
-          addPillRow(container, pill);
-        });
-        isInitializing = false; // Fra nå av er lagringer brukerinitierte
+        await renderPillsForGroup('8');
 
-        // Oppdater add-knapp state
-        updateAddButtonState(addBtn, container);
-
-        // Add-knapp event
+        // Add-knapp event: velger automatisk neste aktivitet høyest i hierarkiet som ikke allerede er valgt
         addBtn.addEventListener('click', () => {
           if (container.children.length < 8) {
-            addPillRow(container, null); // null = ingen forhåndsvalgt
+            const chosenValues = new Set(
+              Array.from(container.querySelectorAll('.pill-config-row select')).map(s => s.value)
+            );
+            const nextAct = availableActivities.find(a => !chosenValues.has(a.value));
+            addPillRow(container, nextAct ? { label: nextAct.label, value: nextAct.value } : null);
             updateAddButtonState(addBtn, container);
           }
         });
@@ -856,7 +900,7 @@
           return pill;
         });
 
-        saveActivityPills(pills);
+        saveActivityPills(pills, activePillsGroup);
         flashSaved();
       }
 

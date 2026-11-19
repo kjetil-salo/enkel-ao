@@ -754,15 +754,36 @@ export const ACTIVITY_SHORT_SUGGESTIONS = {
   '24': 'Overf', // Overflygende
   '25': 'Nær',   // Næringssøkende
   '32': 'Trekk', // Trekkende
-  '52': 'Sang'   // Sang/spill
+  '52': 'Sang',  // Sang/spill
+  '57': 'Svøm',  // Svømmende
+  '86': 'Hvil',  // Hvilende
+  '80': 'Drek',  // Drektig hunn
+  '85': 'Unge',  // Hunn med unge(r)
+  '27': 'Lyd'    // Lokkelyd, øvrige lyder
 };
+
+const ACTIVITY_PILLS_MAMMALS_KEY = 'activityPills_mammals_v1';
+
+export const DEFAULT_MAMMAL_ACTIVITY_PILLS = [
+  { label: 'Svømmende', value: '57' },
+  { label: 'Hvilende', value: '86' },
+  { label: 'Næringssøkende', value: '25' },
+  { label: 'Drektig hunn', value: '80' },
+  { label: 'Hunn med unge(r)', value: '85' },
+  { label: 'Lokkelyd, øvrige lyder', value: '27' }
+];
+
+function activityPillsKey(speciesGroup = '8') {
+  return String(speciesGroup || '8') === '11' ? ACTIVITY_PILLS_MAMMALS_KEY : ACTIVITY_PILLS_KEY;
+}
 
 /**
  * Lagre konfigurasjon av aktivitetspills
  * @param {Array<{label: string, value: string, short?: string}>} pills - Array av pill-objekter.
  *   `short` er valgfritt kortnavn (maks 5 tegn) som vises på hurtigknappen i stedet for fullt navn.
+ * @param {string|number} [speciesGroup='8'] - Artsgruppe ('8' = fugl, '11' = pattedyr)
  */
-export function saveActivityPills(pills) {
+export function saveActivityPills(pills, speciesGroup = '8') {
   try {
     const config = {
       version: 1,
@@ -773,7 +794,7 @@ export function saveActivityPills(pills) {
         return pill;
       })
     };
-    localStorage.setItem(ACTIVITY_PILLS_KEY, JSON.stringify(config));
+    localStorage.setItem(activityPillsKey(speciesGroup), JSON.stringify(config));
   } catch (e) {
     console.warn('Kunne ikke lagre aktivitetspills', e);
   }
@@ -781,11 +802,13 @@ export function saveActivityPills(pills) {
 
 /**
  * Last konfigurasjon av aktivitetspills
+ * @param {string|number} [speciesGroup='8'] - Artsgruppe ('8' = fugl, '11' = pattedyr)
  * @returns {Array<{label: string, value: string, short?: string}>}
  */
-export function loadActivityPills() {
+export function loadActivityPills(speciesGroup = '8') {
+  const erPattedyr = String(speciesGroup || '8') === '11';
   try {
-    const raw = localStorage.getItem(ACTIVITY_PILLS_KEY);
+    const raw = localStorage.getItem(activityPillsKey(speciesGroup));
     if (raw) {
       const config = JSON.parse(raw);
       if (config.version === 1 && Array.isArray(config.pills)) {
@@ -796,7 +819,11 @@ export function loadActivityPills() {
     console.warn('Kunne ikke laste aktivitetspills', e);
   }
 
-  // Migrer fra gammelt system
+  if (erPattedyr) {
+    return DEFAULT_MAMMAL_ACTIVITY_PILLS.map(p => ({ ...p }));
+  }
+
+  // Migrer fra gammelt system (kun fugl)
   return migrateFromOldPillCount();
 }
 

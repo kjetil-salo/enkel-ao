@@ -240,6 +240,8 @@ export default {
   'settings.pills.saved_indicator': '✓ Lagret',
   'settings.pills.max_reached': '+ Maks 8 aktiviteter',
   'settings.pills.add_btn': '+ Legg til aktivitet',
+  'settings.pills.group_birds': '🦉 Fugl',
+  'settings.pills.group_mammals': '🦌 Pattedyr',
   'settings.force_offline.label': 'Tving offline arts-søk',
   'settings.force_offline.desc': 'Når denne er på, brukes kun den lokale artslisten (ingen søk mot Artsobservasjoner).',
   'settings.allow_estimated_count.label': 'Tillat estimert antall',
