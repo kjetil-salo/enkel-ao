@@ -1073,5 +1073,39 @@
        selv om siden lastes på nytt — helt til noe endrer selve URL-en. Samme mønster
        som main.js i index.html. -->
   <script type="module" src="/js/map.js?v=v1.60.31"></script>
+  <script>
+    (function() {
+      var banner = document.getElementById('map-species-group-banner');
+      var backdrop = document.getElementById('species-group-help-backdrop');
+      if (!banner || !backdrop || banner.dataset.helpBound) return;
+      banner.dataset.helpBound = '1';
+      var titleEl = document.getElementById('species-group-help-title');
+      var bodyEl = document.getElementById('species-group-help-body');
+      var okBtn = document.getElementById('species-group-help-ok-btn');
+      var closeHelp = function() { backdrop.classList.remove('open'); };
+      banner.addEventListener('click', function() {
+        var nn = typeof window.__isNynorsk === 'function' ? window.__isNynorsk() : false;
+        if (titleEl) {
+          titleEl.textContent = nn
+            ? 'Kvifor vert berre eigne private lokalitetar viste?'
+            : 'Hvorfor vises bare egne private lokaliteter?';
+        }
+        if (bodyEl) {
+          bodyEl.textContent = nn
+            ? 'Hos Artsobservasjoner kan berre fuglar rapporterast på felles, offentlege lokalitetar. Alle andre artsgrupper (inkludert pattedyr) må rapporterast på dine eigne private lokalitetar.\n\nHar du ikkje ein privat lokalitet der du er no, kan du trykkja på + øvst til høgre for å oppretta ein ny.'
+            : 'Hos Artsobservasjoner kan bare fugler rapporteres på felles, offentlige lokaliteter. Alle andre artsgrupper (inkludert pattedyr) må rapporteres på dine egne private lokaliteter.\n\nHar du ikke en privat lokalitet der du er nå, kan du trykke på + øverst til høyre for å opprette en ny.';
+        }
+        backdrop.classList.add('open');
+        if (okBtn) okBtn.focus();
+      });
+      if (okBtn) okBtn.addEventListener('click', closeHelp);
+      backdrop.addEventListener('click', function(e) {
+        if (e.target === backdrop) closeHelp();
+      });
+      document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && backdrop.classList.contains('open')) closeHelp();
+      });
+    })();
+  </script>
 </body>
 </html>

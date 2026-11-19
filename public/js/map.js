@@ -165,24 +165,27 @@ if (speciesGroupBanner) {
     const closeHelp = () => {
       if (helpBackdrop) helpBackdrop.classList.remove('open');
     };
-    speciesGroupBanner.addEventListener('click', () => {
-      if (!helpBackdrop) return;
-      if (helpTitle) helpTitle.textContent = t('map.species_group.help_title');
-      if (helpBody) helpBody.textContent = t('map.species_group.help_body');
-      helpBackdrop.classList.add('open');
-      if (helpOkBtn) helpOkBtn.focus();
-    });
-    if (helpOkBtn) helpOkBtn.addEventListener('click', closeHelp);
-    if (helpBackdrop) {
-      helpBackdrop.addEventListener('click', (e) => {
-        if (e.target === helpBackdrop) closeHelp();
+    if (!speciesGroupBanner.dataset.helpBound) {
+      speciesGroupBanner.dataset.helpBound = '1';
+      speciesGroupBanner.addEventListener('click', () => {
+        if (!helpBackdrop) return;
+        if (helpTitle) helpTitle.textContent = t('map.species_group.help_title');
+        if (helpBody) helpBody.textContent = t('map.species_group.help_body');
+        helpBackdrop.classList.add('open');
+        if (helpOkBtn) helpOkBtn.focus();
+      });
+      if (helpOkBtn) helpOkBtn.addEventListener('click', closeHelp);
+      if (helpBackdrop) {
+        helpBackdrop.addEventListener('click', (e) => {
+          if (e.target === helpBackdrop) closeHelp();
+        });
+      }
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && helpBackdrop && helpBackdrop.classList.contains('open')) {
+          closeHelp();
+        }
       });
     }
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && helpBackdrop && helpBackdrop.classList.contains('open')) {
-        closeHelp();
-      }
-    });
   } else {
     speciesGroupBanner.style.display = 'none';
   }
