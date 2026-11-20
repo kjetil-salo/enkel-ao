@@ -3,10 +3,10 @@
  */
 import { hentAktivFellestur } from './fellestur-client.js';
 import { lastSpeil, lagreSpeilOgSynk, hentTurMedobservatorer } from './fellestur-sync.js';
-import { translateDedicatedSubspeciesToNynorsk } from './species-matcher.js?v=v1.63.2';
+import { translateDedicatedSubspeciesToNynorsk } from './species-matcher.js?v=v1.63.3';
 import { aktivInnhentetListe, lagreEndringerIInnhentetListe, lesInnhentetListe } from './arbeidsliste-lokal.js';
-import { getLanguage, setLanguage, isNynorsk } from './i18n.js?v=v1.63.2';
-import { isOfflineMode } from './offline-db.js?v=v1.63.2';
+import { getLanguage, setLanguage, isNynorsk } from './i18n.js?v=v1.63.3';
+import { isOfflineMode } from './offline-db.js?v=v1.63.3';
 
 export { isNynorsk };
 
@@ -75,13 +75,17 @@ export function loadMedobs() {
   }
 }
 
+function _writeMedobsLocal(list) {
+  window.localStorage.setItem(MEDOBS_KEY, JSON.stringify({ date: todayStr(), list }));
+}
+
 /**
  * Lagre medobservatører til localStorage med dagens dato.
  * @param {Array} list - Liste med medobservatører
  */
 export function saveMedobs(list) {
   try {
-    window.localStorage.setItem(MEDOBS_KEY, JSON.stringify({ date: todayStr(), list }));
+    _writeMedobsLocal(list);
     syncMedobsToServer(list);
   } catch (e) {
     console.warn('Kunne ikke lagre medobservatører', e);
@@ -141,7 +145,7 @@ export function ensureMedobsRestored() {
         if (list.length === 0) return;
         // Noen kan ha rukket å lagre noe lokalt mens kallet pågikk — ikke overskriv det.
         if (window.localStorage.getItem(MEDOBS_KEY)) return;
-        saveMedobs(list.map((it) => ({ name: it.name || '', alias: it.alias || '', active: !!it.active })));
+        _writeMedobsLocal(list.map((it) => ({ name: it.name || '', alias: it.alias || '', active: !!it.active })));
         document.dispatchEvent(new CustomEvent('medobs:restored'));
       })
       .catch(() => {});
@@ -151,6 +155,53 @@ export function ensureMedobsRestored() {
 }
 
 ensureMedobsRestored();
+
+function _normalizeMedobsForCompare(list) {
+  return JSON.stringify((list || []).map((it) => ({
+    name: it.name || '', alias: it.alias || '', active: !!it.active,
+  })));
+}
+
+/**
+ * Hent nyeste medobs-liste fra server og bruk den LOKALT hvis den faktisk er
+ * annerledes enn det som allerede ligger i localStorage. I motsetning til
+ * ensureMedobsRestored() (kun fersk/tom installasjon) kjøres denne hver gang
+ * noen eksplisitt ÅPNER medobs-modalen — svaret på «sjekker den serveren ved
+ * åpning?» skal være ja, ikke bare ved reinstallering.
+ *
+ * Bevisst siste-skriver-vinner, ingen ekte konfliktløsning (se CLAUDE.md): et
+ * annet nettbrett kan ha en nyere liste, og den vinner da over det som står
+ * lokalt her. Lite praktisk risiko — det er navn på folk, lett å legge til på
+ * nytt — og et bevisst enklere valg enn en full synk-protokoll.
+ *
+ * @returns {Promise<boolean>} true hvis lista faktisk ble oppdatert (kall-stedet
+ *   bør da tegne den på nytt), false ved uendret/offline/feil/ikke innlogget.
+ */
+export async function refreshMedobsFromServer() {
+  if (isOfflineMode()) return false;
+  const username = (window.localStorage.getItem('ao_username') || '').trim();
+  if (!username) return false;
+  try {
+    const resp = await fetch('/api/medobs-load', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username }),
+    });
+    if (!resp.ok) return false;
+    const data = await resp.json();
+    const serverList = Array.isArray(data && data.list) ? data.list : [];
+    if (serverList.length === 0) return false;
+
+    const normalizedServer = serverList.map((it) => ({ name: it.name || '', alias: it.alias || '', active: !!it.active }));
+    if (_normalizeMedobsForCompare(normalizedServer) === _normalizeMedobsForCompare(loadMedobs())) return false;
+
+    _writeMedobsLocal(normalizedServer);
+    return true;
+  } catch (e) {
+    console.warn('Kunne ikke hente medobservatører fra server', e);
+    return false;
+  }
+}
 
 /**
  * Hent standard medobservatører for nye observasjoner

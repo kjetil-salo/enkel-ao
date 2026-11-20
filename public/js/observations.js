@@ -2,9 +2,9 @@
  * Observations-modul for håndtering av observasjoner og CSV-eksport
  */
 
-import { defaultCoObservers, loadMedobs, speciesDisplayName, activityDisplayName, activityBokmalName, loadAllowUnknownCount } from './storage.js?v=v1.63.2';
+import { defaultCoObservers, loadMedobs, speciesDisplayName, activityDisplayName, activityBokmalName, loadAllowUnknownCount } from './storage.js?v=v1.63.3';
 import { showToast } from './ui.js';
-import { t } from './i18n.js?v=v1.63.2';
+import { t } from './i18n.js?v=v1.63.3';
 import { toLocalISOString } from './utils.js';
 import { getObservationVisitKey, setVisitLocked } from './visits.js';
 import { openEditModal } from './edit-modal.js';
