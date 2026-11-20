@@ -9,7 +9,7 @@
  */
 import { loadMedobs, saveMedobs } from './storage.js';
 import { attachAoObserverAutocomplete } from './ao-observer-autocomplete.js';
-import { t } from './i18n.js?v=v1.63.1';
+import { t } from './i18n.js?v=v1.63.2';
 
 const MEDOBS_MAX = 10;
 
@@ -83,6 +83,11 @@ export function initCoObserverPicker(els, onChange = () => {}) {
     addCoObserver(newNameInput.value);
     newNameInput.value = '';
   });
+
+  // Gjenoppretting fra server (ensureMedobsRestored() i storage.js) skjer i
+  // bakgrunnen og kan bli ferdig etter at denne listen allerede sto tom —
+  // typisk på en fersk installasjon/ny enhet.
+  document.addEventListener('medobs:restored', render);
 
   // Autocomplete mot AO sitt observatørregister — nyttig når personen ikke
   // står i medobs-lista fra før. Delt med fellestur.js, se ao-observer-autocomplete.js.

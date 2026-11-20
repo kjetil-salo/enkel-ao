@@ -3,9 +3,10 @@
  */
 import { hentAktivFellestur } from './fellestur-client.js';
 import { lastSpeil, lagreSpeilOgSynk, hentTurMedobservatorer } from './fellestur-sync.js';
-import { translateDedicatedSubspeciesToNynorsk } from './species-matcher.js?v=v1.63.1';
+import { translateDedicatedSubspeciesToNynorsk } from './species-matcher.js?v=v1.63.2';
 import { aktivInnhentetListe, lagreEndringerIInnhentetListe, lesInnhentetListe } from './arbeidsliste-lokal.js';
-import { getLanguage, setLanguage, isNynorsk } from './i18n.js?v=v1.63.1';
+import { getLanguage, setLanguage, isNynorsk } from './i18n.js?v=v1.63.2';
+import { isOfflineMode } from './offline-db.js?v=v1.63.2';
 
 export { isNynorsk };
 
@@ -92,9 +93,13 @@ export function saveMedobs(list) {
 // lista nettopp HER, via coobserver-picker.js i felt, ikke ved å besøke
 // /medobs.html — uten denne synken ville backupen aldri truffet den brukeren
 // som faktisk trenger den. Debounced og fire-and-forget: en mislykket backup
-// skal aldri kunne forstyrre selve registreringen.
+// skal aldri kunne forstyrre selve registreringen. I streng Offline-modus
+// gjøres det bevisst ALDRI noe nettverkskall herfra (appens eget løfte, se
+// offline-db.js) — lista lagres fortsatt lokalt, den blir bare liggende usynket
+// til brukeren går ut av Offline-modus igjen.
 let _medobsSyncDebounce = null;
 function syncMedobsToServer(list) {
+  if (isOfflineMode()) return;
   const username = (window.localStorage.getItem('ao_username') || '').trim();
   if (!username) return;
   clearTimeout(_medobsSyncDebounce);
@@ -106,6 +111,46 @@ function syncMedobsToServer(list) {
     }).catch(() => {});
   }, 800);
 }
+
+// Gjenoppretting fra server — den andre halvdelen av synken. Kjøres automatisk
+// én gang når storage.js først lastes på en side (modulen er en singleton per
+// sidelast, så dette treffer uansett hvilken av de tre medobs-brukerne — index.html
+// sin modal, coobserver-picker.js, eller /medobs.html — som laster inn modulen først).
+// KUN når localStorage er tom (fersk installasjon/ny enhet) OG et AO-brukernavn
+// finnes — ellers ville dette vært en ekte multi-enhet-synk med konfliktrisiko,
+// noe denne featuren bevisst IKKE er (se CLAUDE.md). Varsler ferdige lyttere via
+// CustomEvent('medobs:restored') siden gjenopprettingen er asynkron og kan bli
+// ferdig etter at en liste allerede er tegnet tom på skjermen.
+let _medobsRestoreAttempted = false;
+export function ensureMedobsRestored() {
+  if (_medobsRestoreAttempted) return;
+  _medobsRestoreAttempted = true;
+  try {
+    if (isOfflineMode()) return;
+    if (window.localStorage.getItem(MEDOBS_KEY)) return;
+    const username = (window.localStorage.getItem('ao_username') || '').trim();
+    if (!username) return;
+    fetch('/api/medobs-load', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username }),
+    })
+      .then((resp) => (resp.ok ? resp.json() : null))
+      .then((data) => {
+        const list = Array.isArray(data && data.list) ? data.list : [];
+        if (list.length === 0) return;
+        // Noen kan ha rukket å lagre noe lokalt mens kallet pågikk — ikke overskriv det.
+        if (window.localStorage.getItem(MEDOBS_KEY)) return;
+        saveMedobs(list.map((it) => ({ name: it.name || '', alias: it.alias || '', active: !!it.active })));
+        document.dispatchEvent(new CustomEvent('medobs:restored'));
+      })
+      .catch(() => {});
+  } catch (e) {
+    console.warn('Kunne ikke gjenopprette medobservatører fra server', e);
+  }
+}
+
+ensureMedobsRestored();
 
 /**
  * Hent standard medobservatører for nye observasjoner
