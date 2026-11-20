@@ -7,7 +7,7 @@
     <link rel="icon" href="/favicon.png" type="image/png" />
     <link rel="apple-touch-icon" href="/icon-192.png" />
     <link rel="manifest" href="/manifest.json">
-    <link rel="stylesheet" href="style.css?v=v1.61.1" />
+    <link rel="stylesheet" href="style.css?v=v1.61.5" />
       <style>
         .settings-card {
           background: var(--card-bg, #111827);
@@ -91,13 +91,16 @@
           De fleste er sjelden innom artsobservasjoner.no lenger — her ser du om noen venter på svar derfra, f.eks. en admin som ber deg rette et funn.
         </p>
         <div id="ao-messages-body" style="font-size:0.88em;"></div>
+        <div id="ao-messages-preview-body" style="font-size:0.82em;margin-top:10px;"></div>
+        <div id="ao-notifications-preview-body" style="font-size:0.82em;margin-top:10px;"></div>
       </div>
     </div>
 
     <script type="module">
-      import { t, applyTranslations } from './js/i18n.js?v=v1.61.1';
+      import { t, applyTranslations } from './js/i18n.js?v=v1.61.5';
       import { fjernOverforingssesjon, kontoKontekst, sammeKontoKontekst } from './js/arbeidsliste-sesjon.js';
-      import { lagrePrivateAoLokaliteter } from './js/api.js?v=v1.61.1';
+      import { lagrePrivateAoLokaliteter } from './js/api.js?v=v1.61.5';
+      import { hentAoMeldinger, hentAoInnboksForhandsvisning, hentAoSamtaleSisteMelding, hentAoDriftsmeldingerForhandsvisning } from './js/ao-messages.js?v=v1.61.5';
 
       applyTranslations();
       document.title = t('profile.page_title');
@@ -248,17 +251,24 @@
 
       updateClearLoginVisibility();
 
-      // Meldinger fra Artsobservasjoner (ligger bak profilsiden foreløpig — se
-      // docs/ao-meldinger.md for hvorfor dette ikke fikk et eget header-ikon ennå).
+      // Meldinger fra Artsobservasjoner. Henting/caching deles med
+      // header-badgen (main.js) via js/ao-messages.js — se docs/ao-meldinger.md.
       // Rent opplysende, samme ekstern-API-konvensjon som resten av appen: en
       // AO-feil eller manglende innlogging gir aldri en feilmelding brukeren må
       // forholde seg til, bare en stille skjult/uendret seksjon.
-      const AO_MESSAGES_CACHE_KEY = 'ao_messages_cache_v1';
-      const AO_MESSAGES_CACHE_TTL_MS = 10 * 60 * 1000;
       const aoMessagesSection = document.getElementById('ao-messages-section');
       const aoMessagesBody = document.getElementById('ao-messages-body');
+      const aoMessagesPreviewBody = document.getElementById('ao-messages-preview-body');
+
+      function _esc(s) {
+        return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+      }
+
+      const aoNotificationsPreviewBody = document.getElementById('ao-notifications-preview-body');
 
       function renderAoMessages(data) {
+        aoMessagesPreviewBody.innerHTML = '';
+        aoNotificationsPreviewBody.innerHTML = '';
         if (!data || (data.nyeMeldinger == null && data.nyeVarsler == null)) {
           aoMessagesBody.innerHTML = `<p style="margin:0;color:var(--muted,#aaa);">${t('settings.ao_messages.unknown')}</p>`;
           return;
@@ -281,7 +291,125 @@
             + `<span style="color:#60a5fa;font-weight:600;">${t('settings.ao_messages.open_notifications')}</span></a>`;
         }
         html += '</div>';
+        // Egen, eksplisitt knapp PER kilde: å hente en forhåndsvisning er en
+        // tyngre, bieffekt-utsatt handling (se hentAoInnboksForhandsvisning/
+        // hentAoDriftsmeldingerForhandsvisning), og skal derfor ALDRI trigges
+        // automatisk sammen med selve tellingen over.
+        if (data.nyeMeldinger) {
+          html += `<button type="button" id="ao-messages-preview-btn" style="margin-top:4px;padding:8px 12px;border-radius:8px;border:1px solid rgba(148,163,184,0.3);background:transparent;color:var(--text,#e5e7eb);font-size:0.9em;cursor:pointer;">${t('settings.ao_messages.preview_btn')}</button>`;
+        }
+        if (data.nyeVarsler) {
+          html += `<button type="button" id="ao-notifications-preview-btn" style="margin-top:4px;padding:8px 12px;border-radius:8px;border:1px solid rgba(148,163,184,0.3);background:transparent;color:var(--text,#e5e7eb);font-size:0.9em;cursor:pointer;">${t('settings.ao_messages.notif_preview_btn')}</button>`
+            + `<p style="margin:4px 0 0 0;font-size:0.78em;color:var(--muted,#aaa);">${t('settings.ao_messages.notif_preview_warning')}</p>`;
+        }
         aoMessagesBody.innerHTML = html;
+
+        const previewBtn = document.getElementById('ao-messages-preview-btn');
+        if (previewBtn) previewBtn.addEventListener('click', visForhandsvisning);
+        const notifPreviewBtn = document.getElementById('ao-notifications-preview-btn');
+        if (notifPreviewBtn) notifPreviewBtn.addEventListener('click', visDriftsmeldingForhandsvisning);
+      }
+
+      // Raden i seg selv er IKKE lenket ut lenger (v3, 20.11.2026) — den var det
+      // først, men det gir ingenting utover tellingen over: «tittel» er bare
+      // emnet AO viser i lista, ikke selve meldingsteksten noen skrev. Den
+      // henter «👁 Vis siste melding» separat (hentAoSamtaleSisteMelding),
+      // inline i appen; «Åpne i AO ↗» er fortsatt der for den som vil se hele
+      // tråden eller svare.
+      function renderForhandsvisning(rader) {
+        if (rader === null) {
+          aoMessagesPreviewBody.innerHTML = `<p style="margin:0;color:var(--muted,#aaa);">${t('settings.ao_messages.preview_unknown')}</p>`;
+          return;
+        }
+        if (rader.length === 0) {
+          aoMessagesPreviewBody.innerHTML = `<p style="margin:0;color:var(--muted,#aaa);">${t('settings.ao_messages.preview_empty')}</p>`;
+          return;
+        }
+        const itemStyle = 'padding:8px 10px;border-radius:8px;background:rgba(148,163,184,0.08);margin-bottom:6px;';
+        aoMessagesPreviewBody.innerHTML = rader.map((rad) => {
+          const ulestMerke = rad.ulest ? '<span style="color:#3b82f6;">●</span> ' : '';
+          const avsender = rad.avsender ? `<strong>${_esc(rad.avsender)}</strong> — ` : '';
+          const dato = rad.dato ? `<span style="color:var(--muted,#aaa);font-size:0.9em;"> (${_esc(rad.dato)})</span>` : '';
+          const header = `${ulestMerke}${avsender}${_esc(rad.tittel || '')}${dato}`;
+          const visSisteBtn = rad.samtaleId
+            ? `<button type="button" class="ao-vis-siste-btn" data-samtale-id="${rad.samtaleId}" style="padding:4px 9px;border-radius:6px;border:1px solid rgba(148,163,184,0.3);background:transparent;color:var(--text,#e5e7eb);font-size:0.82em;cursor:pointer;">${t('settings.ao_messages.preview_show_latest_btn')}</button>`
+            : '';
+          const aapneLenke = rad.href
+            ? `<a href="${_esc(rad.href)}" target="_blank" rel="noopener" style="color:#60a5fa;font-size:0.82em;text-decoration:none;">${t('settings.ao_messages.preview_open_in_ao')}</a>`
+            : '';
+          return `<div class="ao-forhandsvisning-rad" style="${itemStyle}">`
+            + `<div>${header}</div>`
+            + `<div style="margin-top:6px;display:flex;align-items:center;gap:12px;">${visSisteBtn}${aapneLenke}</div>`
+            + `<div class="ao-siste-melding" style="display:none;margin-top:8px;padding-top:8px;border-top:1px solid rgba(148,163,184,0.15);white-space:pre-line;font-size:0.95em;"></div>`
+            + `</div>`;
+        }).join('');
+      }
+
+      // Delegert ETT sted (ikke re-bundet ved hver render, som innerHTML uansett
+      // ville revet løs) — fanger klikk på «Vis siste melding» uansett hvilken
+      // rad som nettopp ble tegnet.
+      aoMessagesPreviewBody.addEventListener('click', async (e) => {
+        const btn = e.target.closest('.ao-vis-siste-btn');
+        if (!btn) return;
+        const samtaleId = parseInt(btn.dataset.samtaleId, 10);
+        const målDiv = btn.closest('.ao-forhandsvisning-rad').querySelector('.ao-siste-melding');
+        btn.disabled = true;
+        btn.textContent = t('settings.ao_messages.preview_loading_message');
+        const melding = await hentAoSamtaleSisteMelding(samtaleId);
+        if (!melding) {
+          // Ingen knapp fjernet — AO kan ha vært midlertidig utilgjengelig,
+          // og brukeren skal kunne prøve igjen uten å laste siden på nytt.
+          målDiv.style.display = 'block';
+          målDiv.innerHTML = `<span style="color:var(--muted,#aaa);">${t('settings.ao_messages.preview_message_unknown')}</span>`;
+          btn.disabled = false;
+          btn.textContent = t('settings.ao_messages.preview_show_latest_btn');
+          return;
+        }
+        const avsender = melding.avsender ? `<strong>${_esc(melding.avsender)}</strong>` : '';
+        const tid = melding.tidTekst ? `<span style="color:var(--muted,#aaa);font-size:0.85em;"> (${_esc(melding.tidTekst)})</span>` : '';
+        målDiv.innerHTML = `${avsender}${tid}<br>${_esc(melding.tekst || '')}`;
+        målDiv.style.display = 'block';
+        btn.remove();
+      });
+
+      async function visForhandsvisning() {
+        const btn = document.getElementById('ao-messages-preview-btn');
+        if (btn) { btn.disabled = true; btn.textContent = t('settings.ao_messages.preview_loading'); }
+        aoMessagesPreviewBody.innerHTML = '';
+        const rader = await hentAoInnboksForhandsvisning();
+        renderForhandsvisning(rader);
+        if (btn) { btn.disabled = false; btn.textContent = t('settings.ao_messages.preview_refresh_btn'); }
+      }
+
+      // Driftsmeldinger har HELE meldingsteksten allerede på lista hos AO —
+      // ingen egen "vis siste melding"-handling som for Innboks, bare vis
+      // det som ble hentet. Se docs/ao-meldinger.md for hvorfor knappen over
+      // (notif_preview_warning) advarer om at dette kan fjerne badge-tallet.
+      function renderDriftsmeldingerForhandsvisning(rader) {
+        if (rader === null) {
+          aoNotificationsPreviewBody.innerHTML = `<p style="margin:0;color:var(--muted,#aaa);">${t('settings.ao_messages.preview_unknown')}</p>`;
+          return;
+        }
+        if (rader.length === 0) {
+          aoNotificationsPreviewBody.innerHTML = `<p style="margin:0;color:var(--muted,#aaa);">${t('settings.ao_messages.preview_empty')}</p>`;
+          return;
+        }
+        const itemStyle = 'padding:8px 10px;border-radius:8px;background:rgba(148,163,184,0.08);margin-bottom:6px;';
+        aoNotificationsPreviewBody.innerHTML = rader.map((rad) => {
+          const ulestMerke = rad.ulest ? '<span style="color:#3b82f6;">●</span> ' : '';
+          const avsender = rad.avsender ? `<strong>${_esc(rad.avsender)}</strong> ` : '';
+          const tid = rad.tidTekst ? `<span style="color:var(--muted,#aaa);font-size:0.85em;"> (${_esc(rad.tidTekst)})</span>` : '';
+          return `<div style="${itemStyle}">${ulestMerke}${avsender}${_esc(rad.tekst || '')}${tid}</div>`;
+        }).join('');
+      }
+
+      async function visDriftsmeldingForhandsvisning() {
+        const btn = document.getElementById('ao-notifications-preview-btn');
+        if (btn) { btn.disabled = true; btn.textContent = t('settings.ao_messages.preview_loading'); }
+        aoNotificationsPreviewBody.innerHTML = '';
+        const rader = await hentAoDriftsmeldingerForhandsvisning();
+        renderDriftsmeldingerForhandsvisning(rader);
+        if (btn) { btn.disabled = false; btn.textContent = t('settings.ao_messages.preview_refresh_btn'); }
       }
 
       async function loadAoMessages({ force = false } = {}) {
@@ -291,29 +419,9 @@
           return;
         }
         aoMessagesSection.style.display = 'block';
-        const username = aoUsernameInput.value.trim();
-        if (!force) {
-          try {
-            const cached = JSON.parse(localStorage.getItem(AO_MESSAGES_CACHE_KEY) || 'null');
-            if (cached && cached.username === username && Date.now() - cached.ts < AO_MESSAGES_CACHE_TTL_MS) {
-              renderAoMessages(cached.data);
-              return;
-            }
-          } catch (e) { /* korrupt cache, hent på nytt */ }
-        }
         aoMessagesBody.innerHTML = '<p style="margin:0;color:var(--muted,#aaa);">⏳ …</p>';
-        try {
-          const resp = await fetch('/api/ao-messages', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ loginToken: tokens.loginToken, authCookie: tokens.authCookie }),
-          });
-          const data = await resp.json();
-          renderAoMessages(data);
-          localStorage.setItem(AO_MESSAGES_CACHE_KEY, JSON.stringify({ username, ts: Date.now(), data }));
-        } catch (e) {
-          renderAoMessages(null);
-        }
+        const data = await hentAoMeldinger({ force });
+        renderAoMessages(data);
       }
 
       loadAoMessages();

@@ -9,8 +9,8 @@ import {
   getSpeciesMeta,
   findBokmalByNynorskTerm,
   searchSpecies,
-} from './species_offline.js?v=v1.61.1';
-import { speciesDisplayName, loadNynorskArtsnavn } from './storage.js?v=v1.61.1';
+} from './species_offline.js?v=v1.61.5';
+import { speciesDisplayName, loadNynorskArtsnavn } from './storage.js?v=v1.61.5';
 
 export { searchSpecies };
 

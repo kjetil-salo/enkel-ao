@@ -118,7 +118,7 @@ header {
     gap: var(--space-xs);
   }
 
-  .header-actions > a:not(.ao-status-dot) {
+  .header-actions > a:not(.ao-status-dot):not(.header-mail-link) {
     display: none !important; /* De eksisterende ikonlenkene har inline display. */
   }
 
@@ -132,6 +132,15 @@ header {
     justify-content: center;
     min-width: 44px;
     min-height: 44px;
+  }
+
+  /* Meldings-hintet er unntatt fra skjulingen over (synlig i felt er hele
+     poenget, se index.html), men trenger samme utvidede trykkflate som
+     kontolenka når det faktisk vises. */
+  .app-header .header-mail-link {
+    min-width: 44px;
+    min-height: 44px;
+    justify-content: center;
   }
 
   /* Toppraden trappes ned i trinn av tilpassHeader() i header-plass.js, som

@@ -25,6 +25,9 @@ from src.ao_import_httpx import (
     _poll_importing_done,
     _resolve_temp_ids_for_publish,
     _upload_pending_images,
+    fetch_ao_conversation_latest_message,
+    fetch_ao_inbox_preview,
+    fetch_ao_notifications_preview,
     fetch_csrf_tokens,
     fetch_new_notifications,
     number_of_sightings_importing,
@@ -2187,6 +2190,572 @@ def test_ao_messages_without_tokens_is_none(monkeypatch):
         )
         assert r.status_code == 200
         assert r.json() == {'nyeMeldinger': None, 'nyeVarsler': None}
+        assert kalt == []
+    finally:
+        srv.shutdown()
+
+
+# ---------------------------------------------------------------------------
+# /api/ao-messages-preview — kort forhåndsvisning av Innboks (emne, avsender,
+# dato, ulest), for nysgjerrige brukere som vil se NOE uten å gå til AO.
+# Radoppsett verifisert 20.11.2026 mot en ekte, innlogget konto, se
+# docs/ao-meldinger.md.
+# ---------------------------------------------------------------------------
+
+_INNBOKS_HTML = '''<!DOCTYPE html><html><body>
+<table id="conversationTable" class="conversation conversationInbox">
+  <thead><tr><th></th><th>Meldinger</th><th>Mottatt</th><th>Bruker</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><input type="checkbox" class="selectedConversations"></td>
+      <td class="comment fullwidth">
+        <a class="messagelink ap2-popuptooltip" href="/Communication/Conversation/999">Admin ber deg rette et funn</a>
+        <div class="subjectsighting"><b>heipiplerke</b> <span>1 Adult</span></div>
+      </td>
+      <td class="commentdate-read">fre. 20.11.2026 09:00</td>
+      <td class="commentedby"><a class="ap2-ui-link-viewprofile" href="/Profile/1">En Admin</a> (Bergen)</td>
+    </tr>
+    <tr>
+      <td><input type="checkbox" class="selectedConversations"></td>
+      <td class="comment fullwidth">
+        <a class="messagelink read ap2-popuptooltip" href="/Communication/Conversation/998">Valideringsstatus for ditt funn er endret: snadderand (02.11.2025 Tveitevannet, Storetveit, Bergen, Ve)</a>
+        <div class="subjectsighting"><b>snadderand</b> <span>1 Adult</span></div>
+      </td>
+      <td class="commentdate-read">tor. 15.10.2026 16:27</td>
+      <td class="commentedby"><a class="ap2-ui-link-viewprofile" href="/Profile/2">Frode Falkenberg</a> (Bergen)</td>
+    </tr>
+  </tbody>
+</table>
+</body></html>'''
+
+
+def test_fetch_ao_inbox_preview_parser_radoppsett():
+    """Parseren skal hente emne/avsender/dato/href/ulest-status riktig per rad."""
+    klient = httpx.Client(transport=httpx.MockTransport(
+        lambda request: httpx.Response(200, text=_INNBOKS_HTML)))
+    import src.ao_import_httpx as ao_import_httpx
+    orig = ao_import_httpx.httpx.Client
+    ao_import_httpx.httpx.Client = lambda: klient
+    try:
+        rader = fetch_ao_inbox_preview('L', 'A')
+    finally:
+        ao_import_httpx.httpx.Client = orig
+
+    assert rader is not None
+    assert len(rader) == 2
+    assert rader[0]['ulest'] is True
+    assert rader[0]['tittel'] == 'Admin ber deg rette et funn'
+    assert rader[0]['avsender'] == 'En Admin'
+    assert rader[0]['dato'] == 'fre. 20.11.2026 09:00'
+    assert rader[0]['href'] == 'https://www.artsobservasjoner.no/Communication/Conversation/999'
+    assert rader[0]['samtaleId'] == 999
+    assert rader[1]['ulest'] is False
+    assert rader[1]['samtaleId'] == 998
+    assert 'snadderand' in rader[1]['tittel']
+
+
+def test_fetch_ao_inbox_preview_respekterer_limit(monkeypatch):
+    """Kun de `limit` første radene parses - resten av en lang innboks er bortkastet arbeid."""
+    klient = httpx.Client(transport=httpx.MockTransport(
+        lambda request: httpx.Response(200, text=_INNBOKS_HTML)))
+    monkeypatch.setattr('src.ao_import_httpx.httpx.Client', lambda: klient)
+
+    rader = fetch_ao_inbox_preview('L', 'A', limit=1)
+    assert len(rader) == 1
+    assert rader[0]['tittel'] == 'Admin ber deg rette et funn'
+
+
+def test_fetch_ao_inbox_preview_tom_innboks_er_gyldig(monkeypatch):
+    """Tabellen finnes, men uten rader - en ekte, tom innboks, ikke 'vet ikke'."""
+    html = '''<table id="conversationTable"><tbody></tbody></table>'''
+    klient = httpx.Client(transport=httpx.MockTransport(
+        lambda request: httpx.Response(200, text=html)))
+    monkeypatch.setattr('src.ao_import_httpx.httpx.Client', lambda: klient)
+
+    assert fetch_ao_inbox_preview('L', 'A') == []
+
+
+@pytest.mark.parametrize('feil', ['http', 'markup_endret', 'timeout'])
+def test_fetch_ao_inbox_preview_degraderer_ao_feil(monkeypatch, feil):
+    """Et avvist kall, endret markup eller nettverksfeil betyr 'vet ikke' (None),
+    aldri en tom liste tolket som 'ingen meldinger'."""
+    def ao(request):
+        if feil == 'timeout':
+            raise httpx.ReadTimeout('AO svarte ikke', request=request)
+        if feil == 'http':
+            return httpx.Response(400, text='Bad Request')
+        return httpx.Response(200, text='<html><body>Helt annerledes side nå</body></html>')
+
+    klient = httpx.Client(transport=httpx.MockTransport(ao))
+    monkeypatch.setattr('src.ao_import_httpx.httpx.Client', lambda: klient)
+    assert fetch_ao_inbox_preview('L', 'A') is None
+
+
+def test_ao_messages_preview_returns_rows(monkeypatch):
+    """Endepunktet skal returnere radene fra fetch_ao_inbox_preview uendret."""
+    import server as server_module
+
+    rader = [{'ulest': True, 'tittel': 'X', 'avsender': 'Y', 'dato': 'Z', 'href': 'https://x'}]
+    monkeypatch.setattr(server_module, 'fetch_ao_inbox_preview', lambda lt, ac: rader)
+
+    port = 8189
+    srv = start_server(port)
+    time.sleep(0.05)
+    try:
+        r = requests.post(
+            f'http://127.0.0.1:{port}/api/ao-messages-preview',
+            json={'loginToken': 'L', 'authCookie': 'A'},
+            timeout=5,
+        )
+        assert r.status_code == 200
+        assert r.json() == {'meldinger': rader}
+    finally:
+        srv.shutdown()
+
+
+def test_ao_messages_preview_none_when_ao_unavailable(monkeypatch):
+    """AO svarer ikke / markup forstås ikke → None med status 200, aldri 500."""
+    import server as server_module
+
+    monkeypatch.setattr(server_module, 'fetch_ao_inbox_preview', lambda lt, ac: None)
+
+    port = 8188
+    srv = start_server(port)
+    time.sleep(0.05)
+    try:
+        r = requests.post(
+            f'http://127.0.0.1:{port}/api/ao-messages-preview',
+            json={'loginToken': 'L', 'authCookie': 'A'},
+            timeout=5,
+        )
+        assert r.status_code == 200
+        assert r.json() == {'meldinger': None}
+    finally:
+        srv.shutdown()
+
+
+def test_ao_messages_preview_exception_degrades_to_none(monkeypatch):
+    """Et unntak i AO-kallet skal degraderes til None/200, ikke bli en 500."""
+    import server as server_module
+
+    def boom(lt, ac):
+        raise RuntimeError('AO nede')
+
+    monkeypatch.setattr(server_module, 'fetch_ao_inbox_preview', boom)
+
+    port = 8187
+    srv = start_server(port)
+    time.sleep(0.05)
+    try:
+        r = requests.post(
+            f'http://127.0.0.1:{port}/api/ao-messages-preview',
+            json={'loginToken': 'L', 'authCookie': 'A'},
+            timeout=5,
+        )
+        assert r.status_code == 200
+        assert r.json() == {'meldinger': None}
+    finally:
+        srv.shutdown()
+
+
+def test_ao_messages_preview_without_tokens_is_none(monkeypatch):
+    """Uinnlogget bruker skal ikke føre til et AO-kall i det hele tatt."""
+    import server as server_module
+
+    kalt = []
+    monkeypatch.setattr(server_module, 'fetch_ao_inbox_preview',
+                        lambda lt, ac: kalt.append(1))
+
+    port = 8186
+    srv = start_server(port)
+    time.sleep(0.05)
+    try:
+        r = requests.post(
+            f'http://127.0.0.1:{port}/api/ao-messages-preview',
+            json={},
+            timeout=5,
+        )
+        assert r.status_code == 200
+        assert r.json() == {'meldinger': None}
+        assert kalt == []
+    finally:
+        srv.shutdown()
+
+
+# ---------------------------------------------------------------------------
+# /api/ao-conversation-latest — siste innlegg (menneskeskrevet eller
+# automatisk) i én AO-samtaletråd. Radoppsett verifisert 20.11.2026 mot en
+# ekte tråd, se docs/ao-meldinger.md.
+# ---------------------------------------------------------------------------
+
+_SAMTALE_HTML = '''<!DOCTYPE html><html><body>
+<table class="conversation conversationInbox"><tbody><tr><td></td></tr></tbody></table>
+<div id="messageScrollDiv">
+  <table class="conversation conversationInbox">
+    <tr>
+      <td class="messageCol1 commentedby"><a class="ap2-ui-link-viewprofile" href="/Profile/1">Frode Falkenberg</a><br></td>
+      <td class="messageCol2 comment"><div class="commentcontainer">Hei. Husk alltid å føre på kjønn.<br><br>FF</div></td>
+      <td class="messageCol3"><abbr class="timeago" title="2025-11-02T23:12:29">for ca. et år siden</abbr></td>
+    </tr>
+    <tr>
+      <td class="messageCol1 commentedby"><a class="ap2-ui-link-viewprofile" href="/Profile/2">Kjetil Salomonsen</a><br></td>
+      <td class="messageCol2 comment"><div class="commentcontainer">Beklager, skal huske det fremover.</div></td>
+      <td class="messageCol3"><abbr class="timeago" title="2026-10-15T16:27:24">for 1 måned siden</abbr></td>
+    </tr>
+  </table>
+</div>
+<table class="conversation conversationInbox"><tbody><tr><td></td></tr></tbody></table>
+</body></html>'''
+
+
+def test_fetch_ao_conversation_latest_message_henter_siste_rad(monkeypatch):
+    """Tråden er kronologisk eldst først - siste rad, ikke første, skal hentes."""
+    foresporsler = []
+
+    def ao(request):
+        foresporsler.append(request)
+        assert str(request.url) == 'https://www.artsobservasjoner.no/Communication/Conversation/74752'
+        return httpx.Response(200, text=_SAMTALE_HTML)
+
+    klient = httpx.Client(transport=httpx.MockTransport(ao))
+    monkeypatch.setattr('src.ao_import_httpx.httpx.Client', lambda: klient)
+
+    melding = fetch_ao_conversation_latest_message('L', 'A', 74752)
+
+    assert len(foresporsler) == 1
+    assert melding == {
+        'avsender': 'Kjetil Salomonsen',
+        'tekst': 'Beklager, skal huske det fremover.',
+        'tidIso': '2026-10-15T16:27:24',
+        'tidTekst': 'for 1 måned siden',
+    }
+
+
+def test_fetch_ao_conversation_latest_message_avviser_ugyldig_id(monkeypatch):
+    """samtale_id MÅ være et rent, positivt heltall - aldri noe som kan tolkes
+    som en URL eller brukes til SSRF."""
+    kalt = []
+    monkeypatch.setattr('src.ao_import_httpx.httpx.Client',
+                        lambda: kalt.append(1))
+
+    for ugyldig in [0, -1, 'https://evil.example', '74752', 1.5, True, None]:
+        assert fetch_ao_conversation_latest_message('L', 'A', ugyldig) is None
+    assert kalt == []
+
+
+@pytest.mark.parametrize('feil', ['http', 'markup_endret', 'timeout'])
+def test_fetch_ao_conversation_latest_message_degraderer_ao_feil(monkeypatch, feil):
+    def ao(request):
+        if feil == 'timeout':
+            raise httpx.ReadTimeout('AO svarte ikke', request=request)
+        if feil == 'http':
+            return httpx.Response(400, text='Bad Request')
+        return httpx.Response(200, text='<html><body>Helt annerledes side nå</body></html>')
+
+    klient = httpx.Client(transport=httpx.MockTransport(ao))
+    monkeypatch.setattr('src.ao_import_httpx.httpx.Client', lambda: klient)
+    assert fetch_ao_conversation_latest_message('L', 'A', 1) is None
+
+
+def test_ao_conversation_latest_returns_message(monkeypatch):
+    import server as server_module
+
+    melding = {'avsender': 'X', 'tekst': 'Y', 'tidIso': 'Z', 'tidTekst': 'W'}
+    kalt = []
+    monkeypatch.setattr(server_module, 'fetch_ao_conversation_latest_message',
+                        lambda lt, ac, sid: kalt.append(sid) or melding)
+
+    port = 8185
+    srv = start_server(port)
+    time.sleep(0.05)
+    try:
+        r = requests.post(
+            f'http://127.0.0.1:{port}/api/ao-conversation-latest',
+            json={'loginToken': 'L', 'authCookie': 'A', 'samtaleId': 74752},
+            timeout=5,
+        )
+        assert r.status_code == 200
+        assert r.json() == {'melding': melding}
+        assert kalt == [74752]
+    finally:
+        srv.shutdown()
+
+
+def test_ao_conversation_latest_none_when_ao_unavailable(monkeypatch):
+    import server as server_module
+
+    monkeypatch.setattr(server_module, 'fetch_ao_conversation_latest_message',
+                        lambda lt, ac, sid: None)
+
+    port = 8184
+    srv = start_server(port)
+    time.sleep(0.05)
+    try:
+        r = requests.post(
+            f'http://127.0.0.1:{port}/api/ao-conversation-latest',
+            json={'loginToken': 'L', 'authCookie': 'A', 'samtaleId': 1},
+            timeout=5,
+        )
+        assert r.status_code == 200
+        assert r.json() == {'melding': None}
+    finally:
+        srv.shutdown()
+
+
+def test_ao_conversation_latest_exception_degrades_to_none(monkeypatch):
+    import server as server_module
+
+    def boom(lt, ac, sid):
+        raise RuntimeError('AO nede')
+
+    monkeypatch.setattr(server_module, 'fetch_ao_conversation_latest_message', boom)
+
+    port = 8183
+    srv = start_server(port)
+    time.sleep(0.05)
+    try:
+        r = requests.post(
+            f'http://127.0.0.1:{port}/api/ao-conversation-latest',
+            json={'loginToken': 'L', 'authCookie': 'A', 'samtaleId': 1},
+            timeout=5,
+        )
+        assert r.status_code == 200
+        assert r.json() == {'melding': None}
+    finally:
+        srv.shutdown()
+
+
+def test_ao_conversation_latest_without_tokens_is_none(monkeypatch):
+    import server as server_module
+
+    kalt = []
+    monkeypatch.setattr(server_module, 'fetch_ao_conversation_latest_message',
+                        lambda lt, ac, sid: kalt.append(1))
+
+    port = 8182
+    srv = start_server(port)
+    time.sleep(0.05)
+    try:
+        r = requests.post(
+            f'http://127.0.0.1:{port}/api/ao-conversation-latest',
+            json={'samtaleId': 1},
+            timeout=5,
+        )
+        assert r.status_code == 200
+        assert r.json() == {'melding': None}
+        assert kalt == []
+    finally:
+        srv.shutdown()
+
+
+@pytest.mark.parametrize('ugyldig', [0, -1, 'abc', 1.5, True, None, '74752'])
+def test_ao_conversation_latest_avviser_ugyldig_samtale_id(monkeypatch, ugyldig):
+    """Serveren skal validere samtaleId FØR fetch-funksjonen i det hele tatt
+    kalles - et ekstra sikkerhetslag mot SSRF, ikke bare stol på funksjonens
+    egen validering."""
+    import server as server_module
+
+    kalt = []
+    monkeypatch.setattr(server_module, 'fetch_ao_conversation_latest_message',
+                        lambda lt, ac, sid: kalt.append(sid))
+
+    port = 8181
+    srv = start_server(port)
+    time.sleep(0.05)
+    try:
+        r = requests.post(
+            f'http://127.0.0.1:{port}/api/ao-conversation-latest',
+            json={'loginToken': 'L', 'authCookie': 'A', 'samtaleId': ugyldig},
+            timeout=5,
+        )
+        assert r.status_code == 200
+        assert r.json() == {'melding': None}
+        assert kalt == []
+    finally:
+        srv.shutdown()
+
+
+# ---------------------------------------------------------------------------
+# /api/ao-notifications-preview — kort forhåndsvisning av Driftsmeldinger
+# (avsender, FULL tekst, tidspunkt, ulest). Radoppsett verifisert 20.11.2026
+# mot en ekte, ulest driftsmelding, se docs/ao-meldinger.md.
+# ---------------------------------------------------------------------------
+
+_DRIFTSMELDINGER_HTML = '''<!DOCTYPE html><html><body>
+<ul class="notifications">
+<li class="clearfix  unread messagetype7">
+  <abbr class="timeago" title="20.11.2026 12:33:13">for ca. 2 timer siden</abbr>
+  <span class="UI-Icon-16 UI-Icon-16-ImageComment"></span>
+  <strong class="notification-header">
+  <a href="/UserProfile/kjetil-test" class="ap2-ui-link-viewprofile">Kjetil Salomonsen</a>
+   har lastet opp et bilde til ditt funn.
+  </strong>
+      (sildemåke 18.11.2026, Bispevika, Oslo, Os)
+  <div class="notification-message clearfix">
+      <div class="thumbnailwrapper"><a href="/Media/Image/3713154"><img src="x.jpg"></a></div>
+  </div>
+  <div class="clearfix">
+      <a class="ap2-ui-actionbutton ap2-ui-actionbutton removebutton" href="/Notification/Delete/287500"><span class="icon icon-delete"></span>Fjern</a>
+  </div>
+</li>
+<li class="clearfix  messagetype7">
+  <abbr class="timeago" title="19.11.2026 18:01:00">for 18 timer siden</abbr>
+  <span class="UI-Icon-16 UI-Icon-16-ImageComment"></span>
+  <strong class="notification-header">
+  <a href="/UserProfile/kjetil-test" class="ap2-ui-link-viewprofile">Stein Rune Risa</a>
+   har lastet opp et bilde til ditt funn.
+  </strong>
+      (svarthalespove 14.09.2026, Herdla, Askøy, Ve)
+  <div class="notification-message clearfix">
+      <div class="thumbnailwrapper"><a href="/Media/Image/3713100"><img src="y.jpg"></a></div>
+  </div>
+  <div class="clearfix">
+      <a class="removebutton" href="/Notification/Delete/287400">Fjern</a>
+  </div>
+</li>
+</ul>
+</body></html>'''
+
+
+def test_fetch_ao_notifications_preview_parser_radoppsett():
+    """Parseren skal hente avsender/full tekst/tid/ulest riktig per rad, uten
+    'Fjern'-knappens tekst eller avsenderlenkens tekst i meldingen."""
+    klient = httpx.Client(transport=httpx.MockTransport(
+        lambda request: httpx.Response(200, text=_DRIFTSMELDINGER_HTML)))
+    import src.ao_import_httpx as ao_import_httpx
+    orig = ao_import_httpx.httpx.Client
+    ao_import_httpx.httpx.Client = lambda: klient
+    try:
+        rader = fetch_ao_notifications_preview('L', 'A')
+    finally:
+        ao_import_httpx.httpx.Client = orig
+
+    assert rader is not None
+    assert len(rader) == 2
+    assert rader[0]['ulest'] is True
+    assert rader[0]['avsender'] == 'Kjetil Salomonsen'
+    assert rader[0]['tekst'] == 'har lastet opp et bilde til ditt funn. (sildemåke 18.11.2026, Bispevika, Oslo, Os)'
+    assert 'Fjern' not in rader[0]['tekst']
+    assert rader[1]['ulest'] is False
+    assert rader[1]['avsender'] == 'Stein Rune Risa'
+
+
+def test_fetch_ao_notifications_preview_respekterer_limit(monkeypatch):
+    klient = httpx.Client(transport=httpx.MockTransport(
+        lambda request: httpx.Response(200, text=_DRIFTSMELDINGER_HTML)))
+    monkeypatch.setattr('src.ao_import_httpx.httpx.Client', lambda: klient)
+
+    rader = fetch_ao_notifications_preview('L', 'A', limit=1)
+    assert len(rader) == 1
+    assert rader[0]['avsender'] == 'Kjetil Salomonsen'
+
+
+def test_fetch_ao_notifications_preview_tomme_driftsmeldinger_er_gyldig(monkeypatch):
+    """Lista finnes, men uten rader - ekte, tomme driftsmeldinger, ikke 'vet ikke'."""
+    html = '<ul class="notifications"></ul>'
+    klient = httpx.Client(transport=httpx.MockTransport(
+        lambda request: httpx.Response(200, text=html)))
+    monkeypatch.setattr('src.ao_import_httpx.httpx.Client', lambda: klient)
+
+    assert fetch_ao_notifications_preview('L', 'A') == []
+
+
+@pytest.mark.parametrize('feil', ['http', 'markup_endret', 'timeout'])
+def test_fetch_ao_notifications_preview_degraderer_ao_feil(monkeypatch, feil):
+    def ao(request):
+        if feil == 'timeout':
+            raise httpx.ReadTimeout('AO svarte ikke', request=request)
+        if feil == 'http':
+            return httpx.Response(400, text='Bad Request')
+        return httpx.Response(200, text='<html><body>Helt annerledes side nå</body></html>')
+
+    klient = httpx.Client(transport=httpx.MockTransport(ao))
+    monkeypatch.setattr('src.ao_import_httpx.httpx.Client', lambda: klient)
+    assert fetch_ao_notifications_preview('L', 'A') is None
+
+
+def test_ao_notifications_preview_returns_rows(monkeypatch):
+    import server as server_module
+
+    rader = [{'ulest': True, 'avsender': 'Y', 'tekst': 'Z', 'tidIso': None, 'tidTekst': 'W'}]
+    monkeypatch.setattr(server_module, 'fetch_ao_notifications_preview', lambda lt, ac: rader)
+
+    port = 8180
+    srv = start_server(port)
+    time.sleep(0.05)
+    try:
+        r = requests.post(
+            f'http://127.0.0.1:{port}/api/ao-notifications-preview',
+            json={'loginToken': 'L', 'authCookie': 'A'},
+            timeout=5,
+        )
+        assert r.status_code == 200
+        assert r.json() == {'meldinger': rader}
+    finally:
+        srv.shutdown()
+
+
+def test_ao_notifications_preview_none_when_ao_unavailable(monkeypatch):
+    import server as server_module
+
+    monkeypatch.setattr(server_module, 'fetch_ao_notifications_preview', lambda lt, ac: None)
+
+    port = 8179
+    srv = start_server(port)
+    time.sleep(0.05)
+    try:
+        r = requests.post(
+            f'http://127.0.0.1:{port}/api/ao-notifications-preview',
+            json={'loginToken': 'L', 'authCookie': 'A'},
+            timeout=5,
+        )
+        assert r.status_code == 200
+        assert r.json() == {'meldinger': None}
+    finally:
+        srv.shutdown()
+
+
+def test_ao_notifications_preview_exception_degrades_to_none(monkeypatch):
+    import server as server_module
+
+    def boom(lt, ac):
+        raise RuntimeError('AO nede')
+
+    monkeypatch.setattr(server_module, 'fetch_ao_notifications_preview', boom)
+
+    port = 8178
+    srv = start_server(port)
+    time.sleep(0.05)
+    try:
+        r = requests.post(
+            f'http://127.0.0.1:{port}/api/ao-notifications-preview',
+            json={'loginToken': 'L', 'authCookie': 'A'},
+            timeout=5,
+        )
+        assert r.status_code == 200
+        assert r.json() == {'meldinger': None}
+    finally:
+        srv.shutdown()
+
+
+def test_ao_notifications_preview_without_tokens_is_none(monkeypatch):
+    import server as server_module
+
+    kalt = []
+    monkeypatch.setattr(server_module, 'fetch_ao_notifications_preview',
+                        lambda lt, ac: kalt.append(1))
+
+    port = 8177
+    srv = start_server(port)
+    time.sleep(0.05)
+    try:
+        r = requests.post(
+            f'http://127.0.0.1:{port}/api/ao-notifications-preview',
+            json={},
+            timeout=5,
+        )
+        assert r.status_code == 200
+        assert r.json() == {'meldinger': None}
         assert kalt == []
     finally:
         srv.shutdown()

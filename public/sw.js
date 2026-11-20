@@ -2,7 +2,7 @@
  * Service Worker for Enkel-AO (PWA app-shell og kartflis-cache).
  */
 
-const CACHE_NAME = 'fugleobs-v229';
+const CACHE_NAME = 'fugleobs-v233';
 const MAP_TILE_CACHE_NAME = 'enkel-ao-kartverket-tiles-v1';
 const NETWORK_MODE_CACHE_URL = 'https://enkel-ao.local/__network_mode__';
 
@@ -81,6 +81,10 @@ const STATIC_ASSETS = [
 '/js/kart-visning.js',
 '/js/rarity.js',
 '/js/utils.js',
+// main.js og profil.html importerer denne. Står den ikke her, blir den
+// slettet ved neste versjon (activate rydder alle andre cacher), og
+// modul-importen feiler offline — samme fallgruve som kart-visning.js over.
+'/js/ao-messages.js',
 '/data/activities.json',
 '/data/norske_arter.json',
 '/data/norske_arter_hierarki.json',

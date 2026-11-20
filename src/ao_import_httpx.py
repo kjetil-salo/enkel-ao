@@ -9,6 +9,7 @@ import os
 import re
 import secrets
 import time
+from html.parser import HTMLParser
 from urllib.parse import quote_plus
 
 import httpx
@@ -216,6 +217,493 @@ def fetch_new_notifications(login_token, auth_cookie):
             'nyeMeldinger': int(data.get('numberOfNewMessages', 0)),
             'nyeVarsler': int(data.get('numberOfUnreadNotifications', 0)),
         }
+    except Exception:
+        return None
+
+
+class _InnboksParser(HTMLParser):
+    """
+    Parser for AOs Innboks-tabell (`#conversationTable`). Radoppsett verifisert
+    20.11.2026 mot en ekte, innlogget konto (ikke gjettet) - se
+    docs/ao-meldinger.md «Hva som finnes hos AO».
+
+    Emnet hentes fra selve lenketeksten (`a.messagelink`), som hos AO allerede
+    er en fullstendig setning («Valideringsstatus for ditt funn er endret:
+    snadderand (02.11.2025 ...)») - den sekundære detaljlinja
+    (`div.subjectsighting`) er bevisst IKKE med, den gjentar bare samme
+    informasjon mer kompakt og dobler parsing-overflaten for lite igjen.
+    """
+
+    def __init__(self, limit):
+        super().__init__()
+        self._limit = limit
+        self.rader = []
+        self.tabell_funnet = False
+        self._i_tabell = False
+        self._tabell_dybde = 0
+        self._i_tbody = False
+        self._rad = None
+        self._td_indeks = -1
+        self._i_tittel = False
+        self._i_avsender_lenke = False
+
+    def handle_starttag(self, tag, attrs):
+        attrs = dict(attrs)
+        if tag == 'table':
+            if attrs.get('id') == 'conversationTable':
+                self._i_tabell = True
+                self._tabell_dybde = 0
+                self.tabell_funnet = True
+            elif self._i_tabell:
+                self._tabell_dybde += 1
+            return
+        if not self._i_tabell or self._tabell_dybde:
+            return
+        if tag == 'tbody':
+            self._i_tbody = True
+            return
+        if not self._i_tbody:
+            return
+        if tag == 'tr':
+            self._rad = None if len(self.rader) >= self._limit else {
+                'ulest': True, 'tittel': '', 'avsender': '', 'dato': '', 'href': None,
+            }
+            self._td_indeks = -1
+            return
+        if self._rad is None:
+            return
+        if tag == 'td':
+            self._td_indeks += 1
+            return
+        if tag != 'a':
+            return
+        classes = (attrs.get('class') or '').split()
+        if self._td_indeks == 1 and 'messagelink' in classes:
+            self._rad['ulest'] = 'read' not in classes
+            self._rad['href'] = attrs.get('href')
+            self._i_tittel = True
+        elif self._td_indeks == 3:
+            self._i_avsender_lenke = True
+
+    def handle_data(self, data):
+        if self._rad is None:
+            return
+        text = data.strip()
+        if not text:
+            return
+        if self._i_tittel:
+            self._rad['tittel'] = (self._rad['tittel'] + ' ' + text).strip()
+        elif self._i_avsender_lenke:
+            self._rad['avsender'] = (self._rad['avsender'] + ' ' + text).strip()
+        elif self._td_indeks == 2:
+            self._rad['dato'] = (self._rad['dato'] + ' ' + text).strip()
+
+    def handle_endtag(self, tag):
+        if tag == 'table':
+            if self._i_tabell:
+                if self._tabell_dybde:
+                    self._tabell_dybde -= 1
+                else:
+                    self._i_tabell = False
+                    self._i_tbody = False
+            return
+        if tag == 'tbody':
+            self._i_tbody = False
+            return
+        if tag == 'a':
+            self._i_tittel = False
+            self._i_avsender_lenke = False
+            return
+        if tag == 'tr' and self._rad is not None:
+            if self._rad['tittel']:
+                self.rader.append(self._rad)
+            self._rad = None
+
+
+def fetch_ao_inbox_preview(login_token, auth_cookie, limit=5):
+    """
+    Henter de nyeste radene fra AOs Innboks (/Communication/Inbox) som en kort
+    forhåndsvisning: emne, avsender, dato, ulest-status og lenke til tråden.
+
+    IKKE en lett, automatisk bakgrunnssjekk som `fetch_new_notifications`:
+    dette er en full HTML-sidelasting, ikke et JSON-endepunkt. Skal derfor
+    KUN kalles når brukeren eksplisitt ber om forhåndsvisningen (se
+    docs/ao-meldinger.md - researchbesøk på søstersiden Driftsmeldinger
+    markerte varsler som lest bare ved å vise siden, og samme forsiktighet
+    gjelder inntil Innboks er bekreftet trygg å liste uten bieffekt).
+
+    Returnerer en liste med opptil `limit` rader (nyeste først, slik AO selv
+    sorterer) - tom liste betyr en ekte, tom innboks. Returnerer None ved
+    feil, manglende innlogging, eller hvis selve tabellen ikke ble funnet i
+    svaret (markup har endret seg) - det skal aldri tolkes som "ingen
+    meldinger" når vi egentlig bare ikke forsto siden.
+    """
+    cookies = {
+        'logintoken': login_token,
+        '.ASPXAUTHNO': auth_cookie,
+        'AcceptCookies': '1',
+    }
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:147.0) Gecko/20100101 Firefox/147.0',
+    }
+    try:
+        with httpx.Client() as client:
+            resp = client.get(
+                'https://www.artsobservasjoner.no/Communication/Inbox',
+                cookies=cookies, headers=headers, timeout=15, follow_redirects=True,
+            )
+        if resp.status_code != 200:
+            return None
+        parser = _InnboksParser(limit)
+        parser.feed(resp.text)
+        # Tabellen manglet helt → markup har trolig endret seg, vi forsto ikke
+        # siden. Tabellen funnet, men tom → en ekte, tom innboks (gyldig).
+        if not parser.tabell_funnet:
+            return None
+        for rad in parser.rader:
+            href = rad.get('href')
+            if href and not href.startswith('http'):
+                href = 'https://www.artsobservasjoner.no' + href
+                rad['href'] = href
+            # Brukes av fetch_ao_conversation_latest_message() - sendes som et
+            # rent tall fra klienten (ALDRI hele URL-en) for å unngå at
+            # endepunktet blir en åpen SSRF-proxy, se der for begrunnelsen.
+            match = re.search(r'/Communication/Conversation/(\d+)', href or '')
+            rad['samtaleId'] = int(match.group(1)) if match else None
+        return parser.rader
+    except Exception:
+        return None
+
+
+class _SisteMeldingParser(HTMLParser):
+    """
+    Parser for selve innholdet i en AO-samtaletråd
+    (`/Communication/Conversation/<id>`) - det Innboks-lista IKKE viser (kun
+    emnet/siste statusendring som tekst, ikke selve meldingen noen skrev).
+    Radoppsett verifisert 20.11.2026 mot en ekte tråd med både
+    menneskeskrevne og automatiske innlegg.
+
+    Meldingstabellen identifiseres via wrapperen `div#messageScrollDiv`, IKKE
+    radantall eller CSS-klasse alene - siden inneholder opptil to ANDRE
+    tabeller med nøyaktig samme klasse (`conversation conversationInbox`)
+    andre steder (en samtale med kun ett innlegg ville gitt samme radantall
+    som dem, og klassenavnet alene skiller dem ikke fra hverandre).
+
+    Tråden er kronologisk ELDST FØRST (bekreftet), så SISTE rad er nyeste
+    innlegg - det er det eneste vi henter; hele historikken er ikke
+    interessant for en kort forhåndsvisning.
+    """
+
+    def __init__(self):
+        super().__init__()
+        self.wrapper_funnet = False
+        self._i_wrapper = False
+        self._i_tabell = False
+        self._tabell_dybde = 0
+        self.siste = None
+        self._rad = None
+        self._td_indeks = -1
+        self._i_avsender_lenke = False
+        self._i_kommentar = False
+        self._kommentar_dybde = 0
+        self._i_tid = False
+
+    def handle_starttag(self, tag, attrs):
+        attrs = dict(attrs)
+        if not self._i_wrapper:
+            if tag == 'div' and attrs.get('id') == 'messageScrollDiv':
+                self._i_wrapper = True
+                self.wrapper_funnet = True
+            return
+        if tag == 'table':
+            if self._i_tabell:
+                self._tabell_dybde += 1
+            else:
+                self._i_tabell = True
+            return
+        if not self._i_tabell:
+            return
+        if tag == 'tr' and not self._tabell_dybde:
+            self._rad = {'avsender': '', 'tekst': '', 'tidIso': None, 'tidTekst': ''}
+            self._td_indeks = -1
+            return
+        if self._rad is None:
+            return
+        if self._i_kommentar:
+            if tag == 'br':
+                self._rad['tekst'] += '\n'
+            elif tag == 'div':
+                self._kommentar_dybde += 1
+            return
+        if tag == 'td':
+            self._td_indeks += 1
+            return
+        if tag == 'a' and self._td_indeks == 0:
+            self._i_avsender_lenke = True
+            return
+        classes = (attrs.get('class') or '').split()
+        if tag == 'div' and self._td_indeks == 1 and 'commentcontainer' in classes:
+            self._i_kommentar = True
+            self._kommentar_dybde = 1
+        elif tag == 'abbr' and self._td_indeks == 2 and 'timeago' in classes:
+            self._rad['tidIso'] = attrs.get('title')
+            self._i_tid = True
+
+    def handle_data(self, data):
+        if self._rad is None:
+            return
+        if self._i_avsender_lenke:
+            self._rad['avsender'] += data
+        elif self._i_kommentar:
+            self._rad['tekst'] += data
+        elif self._i_tid:
+            self._rad['tidTekst'] += data
+
+    def handle_endtag(self, tag):
+        if not self._i_wrapper:
+            return
+        if self._i_kommentar and tag == 'div':
+            self._kommentar_dybde -= 1
+            if self._kommentar_dybde <= 0:
+                self._i_kommentar = False
+            return
+        if tag == 'a':
+            self._i_avsender_lenke = False
+            return
+        if tag == 'abbr':
+            self._i_tid = False
+            return
+        if tag == 'table':
+            if self._tabell_dybde:
+                self._tabell_dybde -= 1
+            else:
+                # Ferdig - tabellen vi var ute etter er lest helt.
+                self._i_tabell = False
+                self._i_wrapper = False
+            return
+        if tag == 'tr' and self._rad is not None and not self._tabell_dybde:
+            rad = self._rad
+            rad['avsender'] = rad['avsender'].strip()
+            rad['tekst'] = _rens_samtaletekst(rad['tekst'])
+            rad['tidTekst'] = rad['tidTekst'].strip()
+            if rad['avsender'] or rad['tekst']:
+                self.siste = rad
+            self._rad = None
+
+
+def _rens_driftsmelding_tekst(tekst):
+    """
+    Fjern HTML-kildens innrykk/linjeskift-støy i Driftsmeldinger-teksten.
+    ULIKT _rens_samtaletekst: her finnes ingen `<br>` som markerer ekte
+    linjeskift - ALL whitespace (også ekte linjeskift fra kilde-HTML-ens
+    pretty-printing) er bare støy og kollapses til ett enkelt mellomrom.
+    """
+    return re.sub(r'\s+', ' ', tekst).strip()
+
+
+def _rens_samtaletekst(tekst):
+    """Fjern HTML-kildens innrykk/linjeskift-støy, behold ekte avsnitt (maks ett tomt)."""
+    linjer = [linje.strip() for linje in tekst.split('\n')]
+    tekst = '\n'.join(linjer)
+    return re.sub(r'\n{3,}', '\n\n', tekst).strip()
+
+
+# AOs egen konversasjons-URL, nøyaktig dette mønsteret. `samtale_id` kommer fra
+# klienten som et rent tall (se fetch_ao_conversation_latest_message) nettopp
+# for å unngå at den kan sende noe annet enn dette.
+_SAMTALE_URL = 'https://www.artsobservasjoner.no/Communication/Conversation/{}'
+
+
+def fetch_ao_conversation_latest_message(login_token, auth_cookie, samtale_id):
+    """
+    Henter SISTE innlegg (menneskeskrevet eller automatisk statusendring) i én
+    AO-samtaletråd - selve meldingsteksten Innboks-forhåndsvisningen ikke har.
+
+    `samtale_id` MÅ være et rent, positivt heltall - ALDRI en URL eller
+    streng fra klienten. Endepunktet bygger URL-en selv
+    (`_SAMTALE_URL.format(samtale_id)`); å akseptere en vilkårlig URL fra
+    klienten ville gjort dette til en åpen SSRF-proxy som sender brukerens
+    EKTE AO-cookies til hvor som helst en angriper ber om.
+
+    IKKE kall dette automatisk eller i bulk for flere samtaler samtidig - se
+    `fetch_ao_inbox_preview` for samme forsiktighet (full sidelasting,
+    mulige bieffekter hos AO ved selve det å vise innholdet). Kun én samtale
+    per eksplisitt brukerhandling.
+
+    Returnerer `{'avsender', 'tekst', 'tidIso', 'tidTekst'}`, eller None ved
+    feil/uinnlogget/uforståelig markup.
+    """
+    if not isinstance(samtale_id, int) or isinstance(samtale_id, bool) or samtale_id < 1:
+        return None
+    cookies = {
+        'logintoken': login_token,
+        '.ASPXAUTHNO': auth_cookie,
+        'AcceptCookies': '1',
+    }
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:147.0) Gecko/20100101 Firefox/147.0',
+    }
+    try:
+        with httpx.Client() as client:
+            resp = client.get(
+                _SAMTALE_URL.format(samtale_id),
+                cookies=cookies, headers=headers, timeout=15, follow_redirects=True,
+            )
+        if resp.status_code != 200:
+            return None
+        parser = _SisteMeldingParser()
+        parser.feed(resp.text)
+        if not parser.wrapper_funnet:
+            return None
+        return parser.siste
+    except Exception:
+        return None
+
+
+class _DriftsmeldingerParser(HTMLParser):
+    """
+    Parser for AOs Driftsmeldinger (`ul.notifications`, se
+    `/Notification/History`). Radoppsett verifisert 20.11.2026 mot en ekte,
+    ulest driftsmelding på en innlogget konto.
+
+    ULIKT Innboks (se `_InnboksParser`/`_SisteMeldingParser`): her er HELE
+    meldingsteksten allerede på selve lista - ingen egen tråd-side å hente i
+    tillegg. Teksten er dessuten delt i to biter uten egen wrapper: den
+    trailing teksten i `strong.notification-header` («har lastet opp et
+    bilde til ditt funn.») og en BAR tekstnode rett i `<li>` like etter
+    (ingen <div>/<span> rundt) med art/sted-detaljen («(sildemåke
+    18.11.2026, Bispevika, Oslo, Os)»). Begge samles opp som all tekst i
+    `<li>` som IKKE ligger inni en lenke (unngår avsendernavnet, som har
+    egen lenke, og «Fjern»-knappen, som også er en lenke) og ikke inni
+    `abbr.timeago` (egen, separat tid-tekst).
+
+    Ulest-status er `unread`-klassen på selve `<li>` - samme mønster som
+    `read`-klassen (motsatt retning) på Innboks sin `a.messagelink`.
+    """
+
+    def __init__(self, limit):
+        super().__init__()
+        self._limit = limit
+        self.rader = []
+        self.liste_funnet = False
+        self._i_liste = False
+        self._liste_dybde = 0
+        self._rad = None
+        self._i_avsender_lenke = False
+        self._i_annen_lenke = False
+        self._i_tid = False
+        self._har_sett_avsender_lenke = False
+
+    def handle_starttag(self, tag, attrs):
+        attrs = dict(attrs)
+        if not self._i_liste:
+            if tag == 'ul' and 'notifications' in (attrs.get('class') or '').split():
+                self._i_liste = True
+                self.liste_funnet = True
+            return
+        if tag == 'ul':
+            self._liste_dybde += 1
+            return
+        if self._liste_dybde:
+            return
+        if tag == 'li':
+            classes = (attrs.get('class') or '').split()
+            self._rad = {'ulest': 'unread' in classes, 'avsender': '', 'tekst': '', 'tidIso': None, 'tidTekst': ''}
+            self._har_sett_avsender_lenke = False
+            return
+        if self._rad is None:
+            return
+        if tag == 'a':
+            if not self._har_sett_avsender_lenke:
+                self._i_avsender_lenke = True
+                self._har_sett_avsender_lenke = True
+            else:
+                self._i_annen_lenke = True
+            return
+        if tag == 'abbr' and 'timeago' in (attrs.get('class') or '').split():
+            self._rad['tidIso'] = attrs.get('title')
+            self._i_tid = True
+
+    def handle_data(self, data):
+        if self._rad is None:
+            return
+        if self._i_avsender_lenke:
+            self._rad['avsender'] += data
+        elif self._i_tid:
+            self._rad['tidTekst'] += data
+        elif not self._i_annen_lenke:
+            self._rad['tekst'] += data
+
+    def handle_endtag(self, tag):
+        if not self._i_liste:
+            return
+        if tag == 'ul':
+            if self._liste_dybde:
+                self._liste_dybde -= 1
+            else:
+                self._i_liste = False
+            return
+        if self._liste_dybde:
+            return
+        if tag == 'a':
+            self._i_avsender_lenke = False
+            self._i_annen_lenke = False
+            return
+        if tag == 'abbr':
+            self._i_tid = False
+            return
+        if tag == 'li' and self._rad is not None:
+            rad = self._rad
+            rad['avsender'] = rad['avsender'].strip()
+            rad['tekst'] = _rens_driftsmelding_tekst(rad['tekst'])
+            rad['tidTekst'] = rad['tidTekst'].strip()
+            self._rad = None
+            if (rad['avsender'] or rad['tekst']) and len(self.rader) < self._limit:
+                self.rader.append(rad)
+
+
+def fetch_ao_notifications_preview(login_token, auth_cookie, limit=5):
+    """
+    Henter de nyeste radene fra AOs Driftsmeldinger (/Notification/History)
+    som en kort forhåndsvisning - avsender, full tekst (ikke bare et emne,
+    se `_DriftsmeldingerParser`), tidspunkt og ulest-status.
+
+    **Viktig bieffekt, IKKE teoretisk:** å ÅPNE denne siden i en vanlig
+    nettleser markerer varsler som lest hos AO (bekreftet 20.11.2026, se
+    docs/ao-meldinger.md). Dette kallet gjør nøyaktig den samme
+    HTTP-forespørselen som en nettleservisning - det er derfor all grunn til
+    å anta samme bieffekt her. Skal derfor KUN kalles fra en eksplisitt
+    brukerhandling (aldri automatisk, aldri i bakgrunnen) - se
+    `fetch_ao_inbox_preview` for samme forsiktighet, og sørg for at
+    frontend-knappen som trigger dette tydelig sier fra om at tallet i
+    toppmenyen kan forsvinne som følge av å trykke den.
+
+    Returnerer en liste med opptil `limit` rader (nyeste først, slik AO selv
+    sorterer) - tom liste betyr ekte, tomme driftsmeldinger. Returnerer None
+    ved feil, manglende innlogging, eller hvis selve lista ikke ble funnet i
+    svaret (markup har endret seg).
+    """
+    cookies = {
+        'logintoken': login_token,
+        '.ASPXAUTHNO': auth_cookie,
+        'AcceptCookies': '1',
+    }
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:147.0) Gecko/20100101 Firefox/147.0',
+    }
+    try:
+        with httpx.Client() as client:
+            resp = client.get(
+                'https://www.artsobservasjoner.no/Notification/History',
+                cookies=cookies, headers=headers, timeout=15, follow_redirects=True,
+            )
+        if resp.status_code != 200:
+            return None
+        parser = _DriftsmeldingerParser(limit)
+        parser.feed(resp.text)
+        if not parser.liste_funnet:
+            return None
+        return parser.rader
     except Exception:
         return None
 

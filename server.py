@@ -70,7 +70,9 @@ from src import email_notify
 from src.utils import parse_user_agent
 from src.ao_import_httpx import (AO2_DRIFTSFEIL, Ao2ImportUavklart, Ao2UtilgjengeligForInnsending,
                                  post_with_curl, number_of_sightings_submitted,
-                                 upload_photo_to_published_sighting, fetch_new_notifications)
+                                 upload_photo_to_published_sighting, fetch_new_notifications,
+                                 fetch_ao_inbox_preview, fetch_ao_conversation_latest_message,
+                                 fetch_ao_notifications_preview)
 from src.ao3_import import logg_inn_pa_ao3, send_via_ao3
 from src.ao_sightings import fetch_my_sightings, fetch_raw_row
 from src import ao_edit
@@ -373,6 +375,18 @@ class Handler(SimpleHTTPRequestHandler):
 
         if parsed.path == '/api/ao-messages':
             self._handle_ao_messages_post()
+            return
+
+        if parsed.path == '/api/ao-messages-preview':
+            self._handle_ao_messages_preview_post()
+            return
+
+        if parsed.path == '/api/ao-conversation-latest':
+            self._handle_ao_conversation_latest_post()
+            return
+
+        if parsed.path == '/api/ao-notifications-preview':
+            self._handle_ao_notifications_preview_post()
             return
 
         if parsed.path == '/api/ao-my-sightings':
@@ -1040,6 +1054,107 @@ class Handler(SimpleHTTPRequestHandler):
         except Exception as e:
             logger.error(f'[AO-MELDINGER] Kunne ikke hente meldingstall: {e}')
             self._send_json({'nyeMeldinger': None, 'nyeVarsler': None}, status=200)
+
+    def _handle_ao_messages_preview_post(self):
+        """
+        Kort forhåndsvisning (emne, avsender, dato) av de nyeste radene i AOs
+        Innboks - for nysgjerrige brukere som vil se NOE uten å gå til AO.
+
+        I MOTSETNING til `/api/ao-messages`: dette er en tyngre, EKSPLISITT
+        handling (full HTML-sidelasting hos AO), ikke noe som skal kalles i
+        bakgrunnen eller på et tidsintervall. Frontend skal kun kalle dette
+        når brukeren selv ber om å se innholdet - se docs/ao-meldinger.md om
+        hvorfor (sidevisning kan ha bieffekter hos AO).
+
+        Svarer `{'meldinger': [...]}`, eller `{'meldinger': None}` hvis AO
+        ikke kunne spørres eller siden ikke kunne tolkes. Følger
+        ekstern-API-konvensjonen: aldri 500 ut til klienten.
+        """
+        try:
+            data = self._read_json_body()
+            login_token = data.get('loginToken')
+            auth_cookie = data.get('authCookie')
+
+            if not login_token or not auth_cookie:
+                self._send_json({'meldinger': None}, status=200)
+                return
+
+            meldinger = fetch_ao_inbox_preview(login_token, auth_cookie)
+            self._send_json({'meldinger': meldinger}, status=200)
+        except Exception as e:
+            logger.error(f'[AO-MELDINGER] Kunne ikke hente forhåndsvisning: {e}')
+            self._send_json({'meldinger': None}, status=200)
+
+    def _handle_ao_conversation_latest_post(self):
+        """
+        Siste innlegg (menneskeskrevet eller automatisk statusendring) i én
+        AO-samtaletråd - selve meldingsteksten Innboks-forhåndsvisningen
+        over ikke har (den har kun emnet, ikke innholdet).
+
+        `samtaleId` valideres HER, FØR fetch-funksjonen i det hele tatt
+        kalles, som et eget sikkerhetslag mot SSRF - i tillegg til
+        valideringen i fetch_ao_conversation_latest_message selv. Klienten
+        skal ALDRI kunne sende en vilkårlig URL; kun et rent, positivt
+        heltall, som serveren selv bygger AO-URL-en fra.
+
+        Samme forsiktighet som forhåndsvisningen: EKSPLISITT handling, ikke
+        noe frontend kaller automatisk - se docs/ao-meldinger.md.
+
+        Svarer `{'melding': {...}}`, eller `{'melding': None}` ved
+        feil/uinnlogget/ugyldig id. Følger ekstern-API-konvensjonen: aldri
+        500 ut til klienten.
+        """
+        try:
+            data = self._read_json_body()
+            login_token = data.get('loginToken')
+            auth_cookie = data.get('authCookie')
+            samtale_id = data.get('samtaleId')
+
+            if not login_token or not auth_cookie:
+                self._send_json({'melding': None}, status=200)
+                return
+            if (not isinstance(samtale_id, int) or isinstance(samtale_id, bool)
+                    or samtale_id < 1):
+                self._send_json({'melding': None}, status=200)
+                return
+
+            melding = fetch_ao_conversation_latest_message(login_token, auth_cookie, samtale_id)
+            self._send_json({'melding': melding}, status=200)
+        except Exception as e:
+            logger.error(f'[AO-MELDINGER] Kunne ikke hente samtaleinnhold: {e}')
+            self._send_json({'melding': None}, status=200)
+
+    def _handle_ao_notifications_preview_post(self):
+        """
+        Kort forhåndsvisning av AOs Driftsmeldinger - avsender, FULL tekst
+        (ikke bare et emne, ulikt Innboks) og tidspunkt, for nysgjerrige
+        brukere som vil se NOE uten å gå til AO.
+
+        **Viktig bieffekt:** dette kallet gjør nøyaktig samme HTTP-forespørsel
+        som en vanlig sidevisning, og å ÅPNE denne AO-siden markerer varsler
+        som lest (bekreftet 20.11.2026, se docs/ao-meldinger.md). Frontend
+        skal KUN kalle dette fra en eksplisitt brukerhandling, og tydelig
+        varsle om at badge-tallet kan forsvinne som følge av det - se samme
+        forsiktighet i `/api/ao-messages-preview`.
+
+        Svarer `{'meldinger': [...]}`, eller `{'meldinger': None}` hvis AO
+        ikke kunne spørres eller siden ikke kunne tolkes. Følger
+        ekstern-API-konvensjonen: aldri 500 ut til klienten.
+        """
+        try:
+            data = self._read_json_body()
+            login_token = data.get('loginToken')
+            auth_cookie = data.get('authCookie')
+
+            if not login_token or not auth_cookie:
+                self._send_json({'meldinger': None}, status=200)
+                return
+
+            meldinger = fetch_ao_notifications_preview(login_token, auth_cookie)
+            self._send_json({'meldinger': meldinger}, status=200)
+        except Exception as e:
+            logger.error(f'[AO-MELDINGER] Kunne ikke hente driftsmelding-forhåndsvisning: {e}')
+            self._send_json({'meldinger': None}, status=200)
 
     def _handle_ao_my_sightings_post(self):
         """

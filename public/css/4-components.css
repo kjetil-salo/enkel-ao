@@ -227,6 +227,31 @@ body.theme-light .offline-toggle-pill.is-offline {
   color: #ffffff;
 }
 
+/* Hint om uleste meldinger/varsler hos Artsobservasjoner i toppmenyen (se
+   docs/ao-meldinger.md). Lenken selv skjules/vises fra main.js — denne
+   styler kun telleboblen oppå ikonet. Blå, ikke rød — rødt er reservert for
+   feiltilstander andre steder i appen, og dette er en nøytral opplysning. */
+.header-mail-link {
+  position: relative;
+}
+
+.header-mail-badge {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  min-width: 15px;
+  height: 15px;
+  padding: 0 3px;
+  border-radius: var(--radius-full);
+  background: var(--color-accent);
+  color: #ffffff;
+  font-size: 0.62rem;
+  font-weight: 700;
+  line-height: 15px;
+  text-align: center;
+  box-shadow: 0 0 0 2px var(--color-card-bg);
+}
+
 /* Activity Pills - Klikkbare hurtigknapper */
 .activity-pills {
   display: flex;
