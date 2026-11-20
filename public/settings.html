@@ -662,7 +662,7 @@
               (sel) => sel.value
             );
             const next = nextActivityForPill(availableActivities, existingValues);
-            const initialPill = next ? { label: next.label, value: next.value } : null;
+            const initialPill = next ? { value: next.value } : null;
             addPillRow(container, initialPill);
             updateAddButtonState(addBtn, container);
           }
