@@ -233,10 +233,26 @@ header {
 .header-menu-links > :not([hidden]) {
   display: flex;
   align-items: center;
+  gap: var(--space-sm);
   min-height: 44px;
   padding: 0 var(--space-md);
   border-radius: var(--radius-sm);
   color: var(--color-text);
+}
+
+.header-menu-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 21px;
+  flex-shrink: 0;
+  font-size: 1.15rem;
+  line-height: 1;
+  color: var(--color-muted);
+}
+
+.header-menu-links > :not([hidden]):hover .header-menu-icon {
+  color: currentColor;
 }
 
 .header-menu-links > button {

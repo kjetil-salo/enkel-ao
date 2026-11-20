@@ -147,3 +147,26 @@ describe('getAvailableLanguages()', () => {
     ]);
   });
 });
+
+describe('header-menu ikoner med i18n', () => {
+  it('beholder ikon-span til venstre for teksten etter setLanguage()', () => {
+    document.body.innerHTML = `
+      <nav class="header-menu-links">
+        <a href="/fellestur.html"><span class="header-menu-icon" aria-hidden="true"><svg></svg></span><span data-i18n="main.nav.fellestur">Fellestur</span></a>
+        <a href="/help.html"><span class="header-menu-icon" aria-hidden="true">📖</span><span data-i18n="index.help_link">Hjelp</span></a>
+        <a href="/settings.html"><span class="header-menu-icon" aria-hidden="true">⚙️</span><span data-i18n="settings.title">Innstillinger</span></a>
+      </nav>
+    `;
+    i18n.setLanguage('nn');
+    const links = document.querySelectorAll('.header-menu-links a');
+    expect(links).toHaveLength(3);
+    links.forEach((link) => {
+      const icon = link.firstElementChild;
+      expect(icon?.classList.contains('header-menu-icon')).toBe(true);
+      expect(icon?.getAttribute('aria-hidden')).toBe('true');
+    });
+    expect(links[0].lastElementChild?.textContent).toBe('Fellestur');
+    expect(links[1].lastElementChild?.textContent).toBe('Hjelp');
+    expect(links[2].lastElementChild?.textContent).toBe('Innstillingar');
+  });
+});

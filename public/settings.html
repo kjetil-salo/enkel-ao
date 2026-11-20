@@ -654,13 +654,29 @@
         // Oppdater add-knapp state
         updateAddButtonState(addBtn, container);
 
-        // Add-knapp event
+        // Add-knapp event: velg automatisk neste ubrukte aktivitet fra menyen
         addBtn.addEventListener('click', () => {
           if (container.children.length < 8) {
-            addPillRow(container, null); // null = ingen forhåndsvalgt
+            const existingValues = Array.from(
+              container.querySelectorAll('.pill-config-row select'),
+              (sel) => sel.value
+            );
+            const next = nextActivityForPill(availableActivities, existingValues);
+            const initialPill = next ? { label: next.label, value: next.value } : null;
+            addPillRow(container, initialPill);
             updateAddButtonState(addBtn, container);
           }
         });
+
+        function nextActivityForPill(activities, existingValues) {
+          if (!Array.isArray(activities) || activities.length === 0) {
+            return null;
+          }
+          const used = new Set(Array.from(existingValues || [], (v) => String(v ?? '')));
+          const next = activities.find((a) => !used.has(String(a.value ?? '')));
+          if (next) return next;
+          return activities.find((a) => a.selected) || activities[0];
+        }
 
         // «Foreslå forkortelser»: fyll inn kuraterte kortnavn for standard-aktiviteter.
         // Fyller kun tomme felt, så egne kortnavn ikke overskrives.
