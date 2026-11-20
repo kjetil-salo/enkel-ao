@@ -28,7 +28,9 @@ Fra versjon 1.18.0 kan brukere konfigurere hvilke aktiviteter som vises som hurt
    - Velg ønsket aktivitet
 4. For å legge til ny pill:
    - Klikk **"+ Legg til aktivitet"**
-   - Velg aktivitet fra dropdown
+   - Fra v1.61.1 forhåndsvelges automatisk den første ubrukte aktiviteten i menyen
+     (`nextActivityForPill()` i `settings.html`), så man slipper å velge fra dropdown
+     hver gang — endre valget om det ikke er det man vil ha
 5. For å fjerne pill:
    - Klikk 🗑️-knappen ved siden av pillen
 
