@@ -288,6 +288,46 @@ Driftsmeldinger — se begrunnelse under «Hva som gjenstår»):
   endepunktets degradering. `tests/unit/ao-messages.test.js` dekker
   JS-siden.
 
+## Hva som er bygget (v6, 20.11.2026 — én knapp, alltid synlig)
+
+v3/v5 hadde to separate forhåndsvisnings-knapper, hver kun synlig når
+respektive teller (`nyeMeldinger`/`nyeVarsler`) var over 0. Erstattet etter
+eksplisitt beslutning fra Kjetil (ikke en bug — begge varianter fungerte):
+
+- `profil.html` har nå ÉN statisk knapp («📨 Hent meldinger fra AO») i selve
+  HTML-markupen, ikke generert betinget av tellerne i `renderAoMessages()`.
+  Den er alltid synlig så lenge `ao-messages-section` vises (dvs. brukeren
+  har lagrede AO-tokens) — uavhengig av om det er uleste meldinger/varsler.
+  Begrunnelse: å måtte ha noe ulest for å få se forhåndsvisningen var en
+  unødvendig begrensning — brukeren skal kunne sjekke selv uten at det
+  finnes et nytt tall først.
+- Ett trykk henter BEGGE forhåndsvisningene samtidig
+  (`hentOgVisForhandsvisninger()`, `Promise.all` av
+  `hentAoInnboksForhandsvisning()` og `hentAoDriftsmeldingerForhandsvisning()`),
+  i stedet for to uavhengige knapper. Bevisst valgt over to knapper: enklere
+  for brukeren, med den aksepterte kostnaden at ethvert trykk nå alltid også
+  trigger Driftsmeldinger-bieffekten (markerer dem som lest hos AO) — selv
+  om man egentlig bare ville se Innboksen. Advarselsteksten
+  (`notif_preview_warning`) står derfor alltid synlig under knappen, ikke
+  lenger betinget av `nyeVarsler > 0`.
+- Hver av de to resultatboksene (`ao-messages-preview-body` /
+  `ao-notifications-preview-body`) får nå en statisk overskrift
+  («📥 Innboks» / «🔔 Driftsmeldinger») FØR innholdet, satt inne i
+  `renderForhandsvisning()`/`renderDriftsmeldingerForhandsvisning()` selv —
+  nødvendig fordi begge nå alltid rendres sammen (før var det underforstått
+  hvilken boks man nettopp trykket for).
+- Tellingen (`renderAoMessages()`, lenkene til AOs Innboks/Driftsmeldinger
+  med antall) er UENDRET — fortsatt per kategori, fortsatt skjult helt når
+  `total === 0` (viser «✅ Ingen nye meldinger» i stedet). Kun
+  forhåndsvisnings-knappene ble konsolidert og løsrevet fra telleren.
+  Header-badgen i `main.js`/`index.html` (✉️-ikonet på hovedsiden) er også
+  UENDRET — vises fortsatt kun ved uleste, en bevisst beholdt forskjell fra
+  forhåndsvisnings-knappen.
+- i18n: `preview_btn`/`notif_preview_btn` fjernet, erstattet av
+  `fetch_preview_btn` (den nye, enkelte knappen) og to nye overskrift-nøkler
+  `preview_inbox_heading`/`preview_notifications_heading`, i `nb.js` og
+  `nn.js`.
+
 ## Hva som gjenstår
 
 1. **Fortsatt ubekreftet:** om selve HTTP-kallet fra backend (ikke en

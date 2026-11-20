@@ -7,7 +7,7 @@
     <link rel="icon" href="/favicon.png" type="image/png" />
     <link rel="apple-touch-icon" href="/icon-192.png" />
     <link rel="manifest" href="/manifest.json">
-    <link rel="stylesheet" href="style.css?v=v1.61.5" />
+    <link rel="stylesheet" href="style.css?v=v1.61.6" />
       <style>
         .settings-card {
           background: var(--card-bg, #111827);
@@ -91,16 +91,18 @@
           De fleste er sjelden innom artsobservasjoner.no lenger — her ser du om noen venter på svar derfra, f.eks. en admin som ber deg rette et funn.
         </p>
         <div id="ao-messages-body" style="font-size:0.88em;"></div>
+        <button type="button" id="ao-messages-fetch-preview-btn" style="margin-top:12px;padding:8px 12px;border-radius:8px;border:1px solid rgba(148,163,184,0.3);background:transparent;color:var(--text,#e5e7eb);font-size:0.9em;cursor:pointer;" data-i18n="settings.ao_messages.fetch_preview_btn">📨 Hent meldinger fra AO</button>
+        <p style="margin:6px 0 0 0;font-size:0.78em;color:var(--muted,#aaa);" data-i18n="settings.ao_messages.notif_preview_warning">Å vise disse markerer dem som lest hos Artsobservasjoner — tallet over forsvinner.</p>
         <div id="ao-messages-preview-body" style="font-size:0.82em;margin-top:10px;"></div>
         <div id="ao-notifications-preview-body" style="font-size:0.82em;margin-top:10px;"></div>
       </div>
     </div>
 
     <script type="module">
-      import { t, applyTranslations } from './js/i18n.js?v=v1.61.5';
+      import { t, applyTranslations } from './js/i18n.js?v=v1.61.6';
       import { fjernOverforingssesjon, kontoKontekst, sammeKontoKontekst } from './js/arbeidsliste-sesjon.js';
-      import { lagrePrivateAoLokaliteter } from './js/api.js?v=v1.61.5';
-      import { hentAoMeldinger, hentAoInnboksForhandsvisning, hentAoSamtaleSisteMelding, hentAoDriftsmeldingerForhandsvisning } from './js/ao-messages.js?v=v1.61.5';
+      import { lagrePrivateAoLokaliteter } from './js/api.js?v=v1.61.6';
+      import { hentAoMeldinger, hentAoInnboksForhandsvisning, hentAoSamtaleSisteMelding, hentAoDriftsmeldingerForhandsvisning } from './js/ao-messages.js?v=v1.61.6';
 
       applyTranslations();
       document.title = t('profile.page_title');
@@ -291,23 +293,7 @@
             + `<span style="color:#60a5fa;font-weight:600;">${t('settings.ao_messages.open_notifications')}</span></a>`;
         }
         html += '</div>';
-        // Egen, eksplisitt knapp PER kilde: å hente en forhåndsvisning er en
-        // tyngre, bieffekt-utsatt handling (se hentAoInnboksForhandsvisning/
-        // hentAoDriftsmeldingerForhandsvisning), og skal derfor ALDRI trigges
-        // automatisk sammen med selve tellingen over.
-        if (data.nyeMeldinger) {
-          html += `<button type="button" id="ao-messages-preview-btn" style="margin-top:4px;padding:8px 12px;border-radius:8px;border:1px solid rgba(148,163,184,0.3);background:transparent;color:var(--text,#e5e7eb);font-size:0.9em;cursor:pointer;">${t('settings.ao_messages.preview_btn')}</button>`;
-        }
-        if (data.nyeVarsler) {
-          html += `<button type="button" id="ao-notifications-preview-btn" style="margin-top:4px;padding:8px 12px;border-radius:8px;border:1px solid rgba(148,163,184,0.3);background:transparent;color:var(--text,#e5e7eb);font-size:0.9em;cursor:pointer;">${t('settings.ao_messages.notif_preview_btn')}</button>`
-            + `<p style="margin:4px 0 0 0;font-size:0.78em;color:var(--muted,#aaa);">${t('settings.ao_messages.notif_preview_warning')}</p>`;
-        }
         aoMessagesBody.innerHTML = html;
-
-        const previewBtn = document.getElementById('ao-messages-preview-btn');
-        if (previewBtn) previewBtn.addEventListener('click', visForhandsvisning);
-        const notifPreviewBtn = document.getElementById('ao-notifications-preview-btn');
-        if (notifPreviewBtn) notifPreviewBtn.addEventListener('click', visDriftsmeldingForhandsvisning);
       }
 
       // Raden i seg selv er IKKE lenket ut lenger (v3, 20.11.2026) — den var det
@@ -317,16 +303,17 @@
       // inline i appen; «Åpne i AO ↗» er fortsatt der for den som vil se hele
       // tråden eller svare.
       function renderForhandsvisning(rader) {
+        const heading = `<p style="margin:0 0 6px 0;font-weight:600;font-size:0.85em;">${t('settings.ao_messages.preview_inbox_heading')}</p>`;
         if (rader === null) {
-          aoMessagesPreviewBody.innerHTML = `<p style="margin:0;color:var(--muted,#aaa);">${t('settings.ao_messages.preview_unknown')}</p>`;
+          aoMessagesPreviewBody.innerHTML = heading + `<p style="margin:0;color:var(--muted,#aaa);">${t('settings.ao_messages.preview_unknown')}</p>`;
           return;
         }
         if (rader.length === 0) {
-          aoMessagesPreviewBody.innerHTML = `<p style="margin:0;color:var(--muted,#aaa);">${t('settings.ao_messages.preview_empty')}</p>`;
+          aoMessagesPreviewBody.innerHTML = heading + `<p style="margin:0;color:var(--muted,#aaa);">${t('settings.ao_messages.preview_empty')}</p>`;
           return;
         }
         const itemStyle = 'padding:8px 10px;border-radius:8px;background:rgba(148,163,184,0.08);margin-bottom:6px;';
-        aoMessagesPreviewBody.innerHTML = rader.map((rad) => {
+        aoMessagesPreviewBody.innerHTML = heading + rader.map((rad) => {
           const ulestMerke = rad.ulest ? '<span style="color:#3b82f6;">●</span> ' : '';
           const avsender = rad.avsender ? `<strong>${_esc(rad.avsender)}</strong> — ` : '';
           const dato = rad.dato ? `<span style="color:var(--muted,#aaa);font-size:0.9em;"> (${_esc(rad.dato)})</span>` : '';
@@ -372,30 +359,22 @@
         btn.remove();
       });
 
-      async function visForhandsvisning() {
-        const btn = document.getElementById('ao-messages-preview-btn');
-        if (btn) { btn.disabled = true; btn.textContent = t('settings.ao_messages.preview_loading'); }
-        aoMessagesPreviewBody.innerHTML = '';
-        const rader = await hentAoInnboksForhandsvisning();
-        renderForhandsvisning(rader);
-        if (btn) { btn.disabled = false; btn.textContent = t('settings.ao_messages.preview_refresh_btn'); }
-      }
-
       // Driftsmeldinger har HELE meldingsteksten allerede på lista hos AO —
       // ingen egen "vis siste melding"-handling som for Innboks, bare vis
       // det som ble hentet. Se docs/ao-meldinger.md for hvorfor knappen over
       // (notif_preview_warning) advarer om at dette kan fjerne badge-tallet.
       function renderDriftsmeldingerForhandsvisning(rader) {
+        const heading = `<p style="margin:0 0 6px 0;font-weight:600;font-size:0.85em;">${t('settings.ao_messages.preview_notifications_heading')}</p>`;
         if (rader === null) {
-          aoNotificationsPreviewBody.innerHTML = `<p style="margin:0;color:var(--muted,#aaa);">${t('settings.ao_messages.preview_unknown')}</p>`;
+          aoNotificationsPreviewBody.innerHTML = heading + `<p style="margin:0;color:var(--muted,#aaa);">${t('settings.ao_messages.preview_unknown')}</p>`;
           return;
         }
         if (rader.length === 0) {
-          aoNotificationsPreviewBody.innerHTML = `<p style="margin:0;color:var(--muted,#aaa);">${t('settings.ao_messages.preview_empty')}</p>`;
+          aoNotificationsPreviewBody.innerHTML = heading + `<p style="margin:0;color:var(--muted,#aaa);">${t('settings.ao_messages.preview_empty')}</p>`;
           return;
         }
         const itemStyle = 'padding:8px 10px;border-radius:8px;background:rgba(148,163,184,0.08);margin-bottom:6px;';
-        aoNotificationsPreviewBody.innerHTML = rader.map((rad) => {
+        aoNotificationsPreviewBody.innerHTML = heading + rader.map((rad) => {
           const ulestMerke = rad.ulest ? '<span style="color:#3b82f6;">●</span> ' : '';
           const avsender = rad.avsender ? `<strong>${_esc(rad.avsender)}</strong> ` : '';
           const tid = rad.tidTekst ? `<span style="color:var(--muted,#aaa);font-size:0.85em;"> (${_esc(rad.tidTekst)})</span>` : '';
@@ -403,14 +382,27 @@
         }).join('');
       }
 
-      async function visDriftsmeldingForhandsvisning() {
-        const btn = document.getElementById('ao-notifications-preview-btn');
-        if (btn) { btn.disabled = true; btn.textContent = t('settings.ao_messages.preview_loading'); }
-        aoNotificationsPreviewBody.innerHTML = '';
-        const rader = await hentAoDriftsmeldingerForhandsvisning();
-        renderDriftsmeldingerForhandsvisning(rader);
-        if (btn) { btn.disabled = false; btn.textContent = t('settings.ao_messages.preview_refresh_btn'); }
+      // ÉN knapp henter begge forhåndsvisningene samtidig (bevisst valg —
+      // enklere enn to knapper per kilde). Advarselen om at driftsmeldinger
+      // markeres som lest hos AO (se hentAoDriftsmeldingerForhandsvisning)
+      // står derfor alltid synlig under knappen, ikke betinget av om det
+      // faktisk finnes uleste varsler akkurat nå.
+      const fetchPreviewBtn = document.getElementById('ao-messages-fetch-preview-btn');
+
+      async function hentOgVisForhandsvisninger() {
+        fetchPreviewBtn.disabled = true;
+        fetchPreviewBtn.textContent = t('settings.ao_messages.preview_loading');
+        const [innboksRader, driftsRader] = await Promise.all([
+          hentAoInnboksForhandsvisning(),
+          hentAoDriftsmeldingerForhandsvisning(),
+        ]);
+        renderForhandsvisning(innboksRader);
+        renderDriftsmeldingerForhandsvisning(driftsRader);
+        fetchPreviewBtn.disabled = false;
+        fetchPreviewBtn.textContent = t('settings.ao_messages.preview_refresh_btn');
       }
+
+      fetchPreviewBtn.addEventListener('click', hentOgVisForhandsvisninger);
 
       async function loadAoMessages({ force = false } = {}) {
         const tokens = JSON.parse(localStorage.getItem('ao_tokens') || '{}');
