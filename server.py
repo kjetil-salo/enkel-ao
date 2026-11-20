@@ -63,6 +63,7 @@ from src.html_templates import (generate_stats_page, generate_error_page,
 from src import stats_store
 from src import adminsti
 from src import feedback_store
+from src import medobs_store
 from src import share_store
 from src import fellestur_store
 from src import fellestur_peer
@@ -190,6 +191,13 @@ _ao_search_observers_hits = {}
 AO_SEARCH_OBSERVERS_MAX_PER_WINDOW = 100
 AO_SEARCH_OBSERVERS_WINDOW_SEC = 600
 
+# Medobs-backupen er egen database (ikke en AO-proxy), men fortsatt anonymt
+# nøklet kun på et selvvalgt brukernavn — en kvote hindrer at endepunktet
+# brukes til å fylle databasen med useriøse rader.
+_medobs_hits = {}
+MEDOBS_MAX_PER_WINDOW = 100
+MEDOBS_WINDOW_SEC = 600
+
 # Rent opplysende statistikk-endepunkter, men fortsatt anonyme og ubeskyttet —
 # uten tak kan de spammes for å forurense /stats og eksport-tellerne.
 _logview_hits = {}
@@ -208,7 +216,7 @@ _arbeidsliste_skrive_hits = {}
 _ALLE_RATE_HITS = (
     _feedback_hits, _share_hits, _fellestur_hits, _fellestur_peer_hits,
     _fellestur_poll_hits, _ao_login_hits, _ao3_private_sites_hits, _ao_search_observers_hits,
-    _logview_hits, _log_export_hits,
+    _logview_hits, _log_export_hits, _medobs_hits,
     _arbeidsliste_ip_hits, _arbeidsliste_skrive_hits,
 )
 _siste_rate_opprydding = [0.0]
@@ -248,6 +256,9 @@ _MAX_BODY_PER_PATH = {
     # AO-skjema (opptil ~312 KB) følger med i bodyen.
     '/api/ao-sighting-save': 5 * 1024 * 1024,
     '/api/fellestur-sync': 8 * 1024 * 1024,
+    # Maks 50 rader à navn (200 tegn) + aktiv-flagg — se src/medobs_store.py
+    '/api/medobs-save': 64 * 1024,
+    '/api/medobs-load': 4 * 1024,
     _ARBEIDSLISTE_API: arbeidsliste_store.MAKS_BODY_BYTES + 1024,
     _ARBEIDSLISTE_API + '/innlogging': 4096,
     _ARBEIDSLISTE_API + '/slett': 1024,
@@ -452,6 +463,14 @@ class Handler(SimpleHTTPRequestHandler):
 
         if parsed.path == '/api/share-delete':
             self._handle_share_delete_post()
+            return
+
+        if parsed.path == '/api/medobs-load':
+            self._handle_medobs_load_post()
+            return
+
+        if parsed.path == '/api/medobs-save':
+            self._handle_medobs_save_post()
             return
 
         if parsed.path == '/api/feedback':
@@ -735,6 +754,37 @@ class Handler(SimpleHTTPRequestHandler):
         except Exception as e:
             logger.error(f'[SHARE] Feil ved sletting: {e}')
             self._send_json({'error': 'Kunne ikke slette deling'}, status=500)
+
+    def _handle_medobs_load_post(self):
+        """Backup-henting: medobs-lista for en AO-bruker (se src/medobs_store.py)."""
+        try:
+            if not _rate_ok(_medobs_hits, self._client_ip(), MEDOBS_MAX_PER_WINDOW, MEDOBS_WINDOW_SEC):
+                self._send_json({'list': []}, status=429)
+                return
+            data = self._read_json_body()
+            username = data.get('username', '')
+            self._send_json({'list': medobs_store.load_list(username)})
+        except Exception as e:
+            logger.warning(f'[medobs] Feil ved henting: {e}')
+            self._send_json({'list': []}, status=500)
+
+    def _handle_medobs_save_post(self):
+        """Backup-lagring: medobs-lista for en AO-bruker (se src/medobs_store.py)."""
+        try:
+            if not _rate_ok(_medobs_hits, self._client_ip(), MEDOBS_MAX_PER_WINDOW, MEDOBS_WINDOW_SEC):
+                self._send_json({'ok': False}, status=429)
+                return
+            data = self._read_json_body()
+            username = data.get('username', '')
+            raw_list = data.get('list', [])
+            if not username or not isinstance(raw_list, list):
+                self._send_json({'ok': False, 'error': 'Mangler brukernavn eller ugyldig liste'}, status=400)
+                return
+            ok = medobs_store.save_list(username, raw_list)
+            self._send_json({'ok': ok}, status=200 if ok else 500)
+        except Exception as e:
+            logger.warning(f'[medobs] Feil ved lagring: {e}')
+            self._send_json({'ok': False, 'error': 'Kunne ikke lagre'}, status=500)
 
     def _read_json_body(self):
         content_length = int(self.headers.get('Content-Length', 0))

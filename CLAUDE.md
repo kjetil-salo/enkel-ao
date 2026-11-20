@@ -209,6 +209,18 @@ The `Handler` class routes requests:
     AO ikke tok imot skal ikke se ut som ett som kom fram
   - Skilt i to fordi det er to ulike vaner: legge bildet på med én gang, eller komme
     hjem med kamera og gjøre det etterpå. Vises som egen rad på `/stats`
+- `/api/medobs-load` / `/api/medobs-save` (POST) → backup av medobservatør-lista
+  (`public/medobs.html`) hos AO-brukernavnet (fra `localStorage.ao_username`), slik at
+  en reinstallering av appen ikke mister lista brukeren har bygget opp
+  - `src/medobs_store.py`: egen SQLite-tabell i samme `stats.db`. Rekkefølgen i lista
+    ER prioriteringen (som `activityPills_v1`) — ingen egen sorteringskolonne
+  - **Bevisst IKKE den store server-synken** skissert i
+    `docs/server-lagring-innstillinger-plan.md` (ingen sesjonsverifisering, ingen
+    multi-enhet-konfliktløsning) — kun nøklet på et selvvalgt brukernavn. localStorage
+    er fortsatt sannheten under normal bruk; serveren leses KUN tilbake når
+    `medobs_list_v1` er tom (fersk installasjon) og et AO-brukernavn finnes
+  - Lagring er debounced og svelger nettverksfeil stille fra klienten — en mislykket
+    backup skal aldri blokkere eller synes i UI-et
 - `/api/logview` (POST) → logs page views to Supabase
 - `/api/feedback` (POST) → tar imot brukertilbakemelding (feil/ønske/annet) uten innlogging
   - Lagrer i `src/feedback_store.py` (SQLite), genererer saksnummer `AO-XXXXX`

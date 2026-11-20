@@ -3,9 +3,9 @@
  */
 import { hentAktivFellestur } from './fellestur-client.js';
 import { lastSpeil, lagreSpeilOgSynk, hentTurMedobservatorer } from './fellestur-sync.js';
-import { translateDedicatedSubspeciesToNynorsk } from './species-matcher.js?v=v1.62.1';
+import { translateDedicatedSubspeciesToNynorsk } from './species-matcher.js?v=v1.63.0';
 import { aktivInnhentetListe, lagreEndringerIInnhentetListe, lesInnhentetListe } from './arbeidsliste-lokal.js';
-import { getLanguage, setLanguage, isNynorsk } from './i18n.js?v=v1.62.1';
+import { getLanguage, setLanguage, isNynorsk } from './i18n.js?v=v1.63.0';
 
 export { isNynorsk };
 
@@ -81,9 +81,30 @@ export function loadMedobs() {
 export function saveMedobs(list) {
   try {
     window.localStorage.setItem(MEDOBS_KEY, JSON.stringify({ date: todayStr(), list }));
+    syncMedobsToServer(list);
   } catch (e) {
     console.warn('Kunne ikke lagre medobservatører', e);
   }
+}
+
+// Serverbackup av medobs-lista, nøklet på AO-brukernavn — se src/medobs_store.py
+// og public/medobs.html sin egen (identiske) syncToServer(). De fleste bygger
+// lista nettopp HER, via coobserver-picker.js i felt, ikke ved å besøke
+// /medobs.html — uten denne synken ville backupen aldri truffet den brukeren
+// som faktisk trenger den. Debounced og fire-and-forget: en mislykket backup
+// skal aldri kunne forstyrre selve registreringen.
+let _medobsSyncDebounce = null;
+function syncMedobsToServer(list) {
+  const username = (window.localStorage.getItem('ao_username') || '').trim();
+  if (!username) return;
+  clearTimeout(_medobsSyncDebounce);
+  _medobsSyncDebounce = setTimeout(() => {
+    fetch('/api/medobs-save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, list }),
+    }).catch(() => {});
+  }, 800);
 }
 
 /**
