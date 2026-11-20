@@ -24,7 +24,7 @@
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta name="twitter:card" content="summary_large_image" />
-    <link rel="stylesheet" href="style.css?v=v1.63.0" />
+    <link rel="stylesheet" href="style.css?v=v1.63.1" />
   </head>
   <body>
     <script src="/js/theme.js"></script>
@@ -152,7 +152,7 @@
         <script type="module">
           // Toppraden trappes ned bare så mye som faktisk trengs. Se
           // header-plass.js for hvorfor dette ikke kan gjøres i ren CSS.
-          import { tilpassHeader } from '/js/header-plass.js?v=v1.63.0';
+          import { tilpassHeader } from '/js/header-plass.js?v=v1.63.1';
 
           const appHeader = document.querySelector('.app-header');
 
@@ -595,20 +595,20 @@
         else bredVisning.addListener(plasserSendInn);
       })();
     </script>
-    <script type="module" src="/js/main.js?v=v1.63.0"></script>
+    <script type="module" src="/js/main.js?v=v1.63.1"></script>
     <script type="module">
       // Registrer Service Worker for offline-støtte.
       // Versjonert URL: Cloudflare overstyrer origin sin max-age=300 med 4 timer, så
       // en endret /sw.js kan bli liggende i edge-cachen og aldri nå installerte apper.
       // Bruk inline versjon her: /js/version.js kan selv være cachet i gammel versjon.
-      const VERSION = 'v1.63.0';
+      const VERSION = 'v1.63.1';
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register(`/sw.js?v=${VERSION}`).catch(() => {});
       }
     </script>
     <footer class="footer-credit">Versjon <span id="version"></span>  |  <a href="/changelog.html" style="color:var(--accent);text-decoration:none;">Endringslogg</a>  |  <a href="/feedback.html" style="color:var(--accent);text-decoration:none;">Gi tilbakemelding</a>  |  © 2026 Kjetil Salomonsen</footer>
     <script type="module">
-      const VERSION = 'v1.63.0';
+      const VERSION = 'v1.63.1';
       document.getElementById('version').textContent = VERSION;
     </script>
 
@@ -619,6 +619,7 @@
         <table id="medobs-modal-table" style="width:100%;border-collapse:collapse;table-layout:fixed;">
           <thead>
             <tr>
+              <th style="width:28px;"></th>
               <th id="medobs-th-navn" style="text-align:left;padding:6px 4px;font-size:0.8em;color:var(--muted);" data-i18n="index.medobs.th_navn">Navn</th>
               <th id="medobs-th-aktiv" style="width:50px;text-align:center;padding:6px 4px;font-size:0.8em;color:var(--muted);">Aktiv</th>
               <th style="width:32px;"></th>
@@ -656,10 +657,25 @@
       .medobs-ac-item .ac-city { font-size: 0.8em; color: var(--muted, #9ca3af); margin-left: 6px; }
       .medobs-ac-item .ac-fav { color: #f59e0b; margin-right: 4px; font-size: 0.85em; }
       .medobs-ac-spinner { padding: 8px 10px; font-size: 0.85em; color: var(--muted); }
+      /* Dra-og-slepp for rekkefølge — samme mønster som activity-pills i settings.html */
+      .medobs-row { transition: background 0.15s, box-shadow 0.15s, transform 0.15s; }
+      .medobs-row.is-dragging { opacity: 0.45; background: rgba(59,130,246,0.15); }
+      .medobs-row.is-touch-dragging {
+        opacity: 0.96; box-shadow: 0 8px 24px rgba(0,0,0,0.45);
+        transform: scale(1.02); position: relative; z-index: 1200;
+      }
+      .medobs-drag-handle {
+        display: inline-flex; align-items: center; justify-content: center;
+        width: 24px; height: 28px; font-size: 1.2em; color: var(--muted, #94a3b8);
+        cursor: grab; user-select: none; -webkit-user-select: none; touch-action: none;
+        border-radius: 6px;
+      }
+      .medobs-drag-handle:hover, .medobs-drag-handle:active { color: var(--accent, #3b82f6); }
+      .medobs-drag-handle:active { cursor: grabbing; }
     </style>
     <script type="module">
       import { loadMedobs, saveMedobs } from './js/storage.js';
-      import { t } from './js/i18n.js?v=v1.63.0';
+      import { t } from './js/i18n.js?v=v1.63.1';
 
       const modal = document.getElementById('medobs-modal');
       const tbody = document.getElementById('medobs-modal-tbody');
@@ -781,19 +797,24 @@
         inp.addEventListener('blur', () => { setTimeout(hideDropdown, 200); });
       }
 
-      function renderModal(focusIndex) {
+      function renderModal(focusIndex, focusHandle) {
         const list = load();
         tbody.innerHTML = '';
 
         if (list.length === 0) {
           const tr = document.createElement('tr');
-          tr.innerHTML = `<td colspan="3" style="padding:10px 4px;font-size:0.85em;color:var(--muted);">${t('index.medobs.empty')}</td>`;
+          tr.innerHTML = `<td colspan="4" style="padding:10px 4px;font-size:0.85em;color:var(--muted);">${t('index.medobs.empty')}</td>`;
           tbody.appendChild(tr);
         }
 
         list.forEach((it, i) => {
           const tr = document.createElement('tr');
+          tr.className = 'medobs-row';
+          tr.draggable = true;
           tr.innerHTML = `
+            <td style="text-align:center;padding:4px 0;">
+              <span class="medobs-drag-handle" title="Dra for å endre rekkefølge (eller bruk piltaster)" aria-label="Dra for å endre rekkefølge" role="button" tabindex="0">⠿</span>
+            </td>
             <td style="padding:4px 2px;">
               <input type="text" data-i="${i}" value="${esc(it.name)}" autocomplete="off" placeholder="${t('index.medobs.name_placeholder')}"
                 style="width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:16px;background:var(--card-bg);color:var(--text);box-sizing:border-box;" />
@@ -805,6 +826,7 @@
               <button type="button" data-i="${i}" aria-label="Fjern person" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1.1em;padding:4px 5px;border-radius:5px;line-height:1;" title="Fjern">✕</button>
             </td>`;
           tbody.appendChild(tr);
+          setupRowDrag(tr);
         });
 
         tbody.querySelectorAll('input[type="text"]').forEach(inp => {
@@ -827,9 +849,136 @@
         });
 
         if (focusIndex >= 0) {
-          const inputs = tbody.querySelectorAll('input[type="text"]');
-          if (inputs[focusIndex]) inputs[focusIndex].focus();
+          if (focusHandle) {
+            const handles = tbody.querySelectorAll('.medobs-drag-handle');
+            if (handles[focusIndex]) handles[focusIndex].focus();
+          } else {
+            const inputs = tbody.querySelectorAll('input[type="text"]');
+            if (inputs[focusIndex]) inputs[focusIndex].focus();
+          }
         }
+      }
+
+      // Rekkefølgen i DOM-en ER rekkefølgen som lagres — ingen egen
+      // sorteringsnøkkel, samme mønster som activityPills_v1/medobs.html.
+      // Alias (fra AO-autocomplete) må bevares ved omsortering — hentes fra
+      // load() på navn, siden DOM-en ikke har et skjult alias-felt per rad.
+      function rowsToList(tbody) {
+        const master = load();
+        return Array.from(tbody.querySelectorAll('.medobs-row')).map(row => {
+          const name = row.querySelector('input[type="text"]').value;
+          const active = row.querySelector('input[type="checkbox"]').checked;
+          const existing = master.find(it => it.name === name);
+          return { name, active, alias: existing ? existing.alias || '' : '' };
+        });
+      }
+
+      function saveOrderFromDom() {
+        saveMedobs(rowsToList(tbody));
+      }
+
+      // renderModal() bygger data-i på nytt fra lagret rekkefølge — uten dette
+      // ville andre handlinger (fjern, endre navn) brukt et data-i laget for
+      // radens GAMLE posisjon og truffet feil element i lista.
+      function saveOrderAndRerender() {
+        saveOrderFromDom();
+        renderModal();
+      }
+
+      let draggedRow = null;
+
+      tbody.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        if (!draggedRow) return;
+        const targetRow = e.target.closest('.medobs-row');
+        if (targetRow && targetRow !== draggedRow && targetRow.parentNode === tbody) {
+          const rect = targetRow.getBoundingClientRect();
+          const midY = rect.top + rect.height / 2;
+          if (e.clientY < midY) {
+            tbody.insertBefore(draggedRow, targetRow);
+          } else {
+            tbody.insertBefore(draggedRow, targetRow.nextSibling);
+          }
+        }
+      });
+
+      tbody.addEventListener('drop', (e) => {
+        e.preventDefault();
+        if (draggedRow) {
+          draggedRow.classList.remove('is-dragging');
+          draggedRow = null;
+          saveOrderAndRerender();
+        }
+      });
+
+      function setupRowDrag(row) {
+        const handle = row.querySelector('.medobs-drag-handle');
+
+        row.addEventListener('dragstart', (e) => {
+          draggedRow = row;
+          e.dataTransfer.effectAllowed = 'move';
+          e.dataTransfer.setData('text/plain', '');
+          requestAnimationFrame(() => row.classList.add('is-dragging'));
+        });
+        row.addEventListener('dragend', () => {
+          row.classList.remove('is-dragging');
+          draggedRow = null;
+          saveOrderAndRerender();
+        });
+
+        // Piltastnavigasjon (tilgjengelighet uten mus/touch)
+        handle.addEventListener('keydown', (e) => {
+          if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            const prev = row.previousElementSibling;
+            if (!prev) return;
+            tbody.insertBefore(row, prev);
+            saveOrderFromDom();
+            renderModal(Array.from(tbody.children).indexOf(row), true);
+          } else if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            const next = row.nextElementSibling;
+            if (!next) return;
+            tbody.insertBefore(row, next.nextSibling);
+            saveOrderFromDom();
+            renderModal(Array.from(tbody.children).indexOf(row), true);
+          }
+        });
+
+        // Mobil touch — samme mønster som settings.html sine aktivitetspiller
+        let isTouching = false;
+        handle.addEventListener('touchstart', (e) => {
+          if (e.touches.length !== 1) return;
+          isTouching = true;
+          row.classList.add('is-touch-dragging');
+        }, { passive: false });
+
+        handle.addEventListener('touchmove', (e) => {
+          if (!isTouching || e.touches.length !== 1) return;
+          e.preventDefault();
+          const touch = e.touches[0];
+          const elUnder = document.elementFromPoint(touch.clientX, touch.clientY);
+          const targetRow = elUnder ? elUnder.closest('.medobs-row') : null;
+          if (targetRow && targetRow !== row && targetRow.parentNode === tbody) {
+            const rect = targetRow.getBoundingClientRect();
+            const midY = rect.top + rect.height / 2;
+            if (touch.clientY < midY) {
+              tbody.insertBefore(row, targetRow);
+            } else {
+              tbody.insertBefore(row, targetRow.nextSibling);
+            }
+          }
+        }, { passive: false });
+
+        const finishTouch = () => {
+          if (isTouching) {
+            isTouching = false;
+            row.classList.remove('is-touch-dragging');
+            saveOrderAndRerender();
+          }
+        };
+        handle.addEventListener('touchend', finishTouch);
+        handle.addEventListener('touchcancel', finishTouch);
       }
 
       addRowBtn.addEventListener('click', () => {
@@ -975,7 +1124,7 @@
       }
     </style>
     <script type="module">
-      import { initPhotoPicker } from './js/photo-picker.js?v=v1.63.0';
+      import { initPhotoPicker } from './js/photo-picker.js?v=v1.63.1';
 
       const extraModal = document.getElementById('extra-fields-modal');
       const extraOpenBtn = document.getElementById('extra-fields-open-btn');

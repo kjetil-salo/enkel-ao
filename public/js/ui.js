@@ -1,7 +1,7 @@
 /**
  * UI-modul for generelle UI-funksjoner
  */
-import { t } from './i18n.js?v=v1.63.0';
+import { t } from './i18n.js?v=v1.63.1';
 
 /**
  * Flash en knapp med suksessmelding
