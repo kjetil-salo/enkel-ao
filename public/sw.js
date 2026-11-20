@@ -2,7 +2,7 @@
  * Service Worker for Enkel-AO (PWA app-shell og kartflis-cache).
  */
 
-const CACHE_NAME = 'fugleobs-v234';
+const CACHE_NAME = 'enkel-ao-v237';
 const MAP_TILE_CACHE_NAME = 'enkel-ao-kartverket-tiles-v1';
 const NETWORK_MODE_CACHE_URL = 'https://enkel-ao.local/__network_mode__';
 
@@ -12,6 +12,7 @@ const STATIC_ASSETS = [
 '/map.html',
 '/settings.html',
 '/profil.html',
+'/artsobservasjoner.html',
 '/help.html',
 '/sendt.html',
 '/fellestur.html',
@@ -36,6 +37,7 @@ const STATIC_ASSETS = [
 '/js/main.js',
 '/js/header-plass.js',
 '/img/nyhet-nynorsk.jpg',
+'/img/ao-favicon.png',
 '/js/api.js',
 '/js/i18n.js',
 '/js/i18n/nb.js',
@@ -81,10 +83,11 @@ const STATIC_ASSETS = [
 '/js/kart-visning.js',
 '/js/rarity.js',
 '/js/utils.js',
-// main.js og profil.html importerer denne. Står den ikke her, blir den
-// slettet ved neste versjon (activate rydder alle andre cacher), og
+// main.js og artsobservasjoner.html importerer denne. Står den ikke her, blir
+// den slettet ved neste versjon (activate rydder alle andre cacher), og
 // modul-importen feiler offline — samme fallgruve som kart-visning.js over.
 '/js/ao-messages.js',
+'/js/ao-species-stats.js',
 '/data/activities.json',
 '/data/norske_arter.json',
 '/data/norske_arter_hierarki.json',

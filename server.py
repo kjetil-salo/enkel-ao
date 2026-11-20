@@ -75,6 +75,7 @@ from src.ao_import_httpx import (AO2_DRIFTSFEIL, Ao2ImportUavklart, Ao2Utilgjeng
                                  fetch_ao_notifications_preview)
 from src.ao3_import import logg_inn_pa_ao3, send_via_ao3
 from src.ao_sightings import fetch_my_sightings, fetch_raw_row
+from src.ao_species_stats import hent_mine_artstall
 from src import ao_edit
 from src.ao_coobserver import fjern_meg
 from src.ao_observers import observer_setup
@@ -371,6 +372,10 @@ class Handler(SimpleHTTPRequestHandler):
 
         if parsed.path == '/api/ao-queue-count':
             self._handle_ao_queue_count_post()
+            return
+
+        if parsed.path == '/api/ao-my-species-stats':
+            self._handle_ao_my_species_stats_post()
             return
 
         if parsed.path == '/api/ao-messages':
@@ -1024,6 +1029,33 @@ class Handler(SimpleHTTPRequestHandler):
         except Exception as e:
             logger.error(f'[AO-QUEUE] Kunne ikke hente kø-antall: {e}')
             self._send_json({'count': None}, status=200)
+
+    def _handle_ao_my_species_stats_post(self):
+        """
+        Brukerens egne arts-tall hos AO (kun Fugler denne runden) — antall
+        arter totalt og i inneværende år, se src/ao_species_stats.py.
+
+        Svarer `{'fuglerTotalt': N, 'fuglerIAr': N}`, eller begge `None` hvis
+        AO ikke kunne spørres. Følger ekstern-API-konvensjonen: aldri 500 ut
+        til klienten, kun degradert svar.
+        """
+        try:
+            data = self._read_json_body()
+            login_token = data.get('loginToken')
+            auth_cookie = data.get('authCookie')
+
+            if not login_token or not auth_cookie:
+                self._send_json({'fuglerTotalt': None, 'fuglerIAr': None}, status=200)
+                return
+
+            result = hent_mine_artstall(login_token, auth_cookie)
+            if result is None:
+                self._send_json({'fuglerTotalt': None, 'fuglerIAr': None}, status=200)
+                return
+            self._send_json(result, status=200)
+        except Exception as e:
+            logger.error(f'[ARTSTALL] Kunne ikke hente arts-tall: {e}')
+            self._send_json({'fuglerTotalt': None, 'fuglerIAr': None}, status=200)
 
     def _handle_ao_messages_post(self):
         """

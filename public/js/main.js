@@ -10,7 +10,7 @@
 // og en manglende navngitt eksport gir SyntaxError som stopper HELE main.js,
 // ikke bare den ene funksjonen. Bump ved hver nye eksport vi blir avhengige
 // av. Samme fallgruve som storage.js-importen under og map.js sin api.js-import.
-import { logPageView, loadActivities, fetchAoSites, ensureAoPrivateSites } from './api.js?v=v1.61.6';
+import { logPageView, loadActivities, fetchAoSites, ensureAoPrivateSites } from './api.js?v=v1.62.0';
 // Versjonert import: denne linjen har en HARD avhengighet til to navngitte
 // eksporter (loadAoDirectAutoClear/saveAoDirectAutoClear) som ikke fantes i
 // tiderligere versjoner av storage.js. Uten ?v= her kan Cloudflare servere en
@@ -19,10 +19,10 @@ import { logPageView, loadActivities, fetchAoSites, ensureAoPrivateSites } from 
 // altså hele appen, se samme fallgruve for map.js/location.js (v1.53.15) og
 // sjekklisten i CLAUDE.md. Bump SAMTIDIG som index.html sin egen ?v=-tag for
 // main.js, hver gang storage.js får en ny eksport main.js begynner å bruke.
-import { loadObservations, saveObservations, loadAoSearchRadius, saveAoSearchRadius, loadLocationSortMode, saveLocationSortMode, loadAoDirectAutoClear, saveAoDirectAutoClear, saveLastKnownPosition, loadLastKnownPosition, activityDisplayName, lesArbeidslisteForOverforing, loadAllowUnknownCount, loadAllowEstimatedCount } from './storage.js?v=v1.61.6';
-import { setStatus, setLocationStatus, showToast, showOfflineNotAvailableDialog, haversine, MODE_SPLASH_DURATION_MS } from './ui.js?v=v1.61.6';
-import { t, applyTranslations } from './i18n.js?v=v1.61.6';
-import { DEFAULT_MAP_CENTER, setAoSiteSuggestions, initLocation, openMap, openMapPage, updateCreateSiteBtnVisibility, initCreateSite } from './location.js?v=v1.61.6';
+import { loadObservations, saveObservations, loadAoSearchRadius, saveAoSearchRadius, loadLocationSortMode, saveLocationSortMode, loadAoDirectAutoClear, saveAoDirectAutoClear, saveLastKnownPosition, loadLastKnownPosition, activityDisplayName, lesArbeidslisteForOverforing, loadAllowUnknownCount, loadAllowEstimatedCount } from './storage.js?v=v1.62.0';
+import { setStatus, setLocationStatus, showToast, showOfflineNotAvailableDialog, haversine, MODE_SPLASH_DURATION_MS } from './ui.js?v=v1.62.0';
+import { t, applyTranslations } from './i18n.js?v=v1.62.0';
+import { DEFAULT_MAP_CENTER, setAoSiteSuggestions, initLocation, openMap, openMapPage, updateCreateSiteBtnVisibility, initCreateSite } from './location.js?v=v1.62.0';
 // Versjonert import: observations.js sitt eget innhold (ikke bare hvilke
 // eksporter den har) endret seg vesentlig i dag (speciesDisplayName-bruk i
 // ③-lista og slett-toasten). En stale cachet kopi av selve FILEN - ikke bare
@@ -32,7 +32,7 @@ import { DEFAULT_MAP_CENTER, setAoSiteSuggestions, initLocation, openMap, openMa
 // timer, uten noen SyntaxError som varsler om det (funksjonene fantes jo
 // allerede - bare med gammel logikk). Se species-search.js/
 // observation-commit.js under for samme fiks, og docs/CLAUDE.md.
-import { renderObservations } from './observations.js?v=v1.61.6';
+import { renderObservations } from './observations.js?v=v1.62.0';
 import { getVisitTimeSpan, isVisitLocked, visitExists } from './visits.js';
 
 // Nye moduler
@@ -43,18 +43,18 @@ import { updateSectionStates, pulseSearchFieldAndFocus } from './form-state.js';
 // gang har vært versjonert. Dette var den faktiske årsaken til at Kjetil
 // testet v1.53.25 og fortsatt bare så gammel oppførsel i vanlig søk -
 // nettleseren hans hadde en cachet species-search.js fra v1.53.24.
-import { fetchResults, renderResults, chooseItem, updateSubtaxaCheckboxState } from './species-search.js?v=v1.61.6';
-import { commitObservation, renderActivityPills } from './observation-commit.js?v=v1.61.6';
+import { fetchResults, renderResults, chooseItem, updateSubtaxaCheckboxState } from './species-search.js?v=v1.62.0';
+import { commitObservation, renderActivityPills } from './observation-commit.js?v=v1.62.0';
 import { handleExport, handleCopy, handleCopyAndOpen, handleClear, handleDirectSend, oppdaterAoKoHint, aoSendingPagar }
-  from './export-operations.js?v=v1.61.6';
+  from './export-operations.js?v=v1.62.0';
 import { openShareDialog } from './share.js';
-import { initAutocomplete } from './autocomplete.js?v=v1.61.6';
-import { initNewsSplash } from './news-splash.js?v=v1.61.6';
-import { initFirstRunHint, shouldShowHint } from './first-run-hint.js?v=v1.61.6';
+import { initAutocomplete } from './autocomplete.js?v=v1.62.0';
+import { initNewsSplash } from './news-splash.js?v=v1.62.0';
+import { initFirstRunHint, shouldShowHint } from './first-run-hint.js?v=v1.62.0';
 import { hentAktivFellestur, forlatFellestur } from './fellestur-client.js';
 import { oppdaterSpeilFraServer, hentSpeilVersjon, lastSpeil } from './fellestur-sync.js';
 import { aktivInnhentetListe, lukkInnhentetListe } from './arbeidsliste-lokal.js';
-import { initArbeidslisteOverforing } from './arbeidsliste-overforing.js?v=v1.61.6';
+import { initArbeidslisteOverforing } from './arbeidsliste-overforing.js?v=v1.62.0';
 import {
   getNetworkMode,
   cycleNetworkMode,
@@ -64,8 +64,8 @@ import {
   fetchLocationsWithNetworkMode,
   saveOpportunisticOfflineLocations,
   syncNetworkModeToServiceWorker,
-} from './offline-db.js?v=v1.61.6';
-import { hentAoMeldinger, totalAoMeldinger } from './ao-messages.js?v=v1.61.6';
+} from './offline-db.js?v=v1.62.0';
+import { hentAoMeldinger, totalAoMeldinger } from './ao-messages.js?v=v1.62.0';
 
 // ============================================================
 // Applikasjonstilstand
@@ -1554,15 +1554,18 @@ export function updateOfflineModeUI() {
     }
   }
 
-  // Deaktiver "Fellestur", "Tidligere sendt" og "Mine delinger" i offline-modus
+  // Deaktiver "Fellestur", "Tidligere sendt", "Mine delinger" og
+  // "Artsobservasjoner" i offline-modus — alle fire krever nettverk mot AO
   const fellesturBtn = document.getElementById('fellestur-header-btn');
   const sendtBtn = document.getElementById('tidligere-sendt-link');
   const delingerBtn = document.getElementById('mine-delinger-link');
+  const artsobservasjonerBtn = document.getElementById('artsobservasjoner-nav-btn');
 
   [
     { el: fellesturBtn, navn: t('main.nav.fellestur') },
     { el: sendtBtn, navn: t('main.nav.sendt') },
     { el: delingerBtn, navn: t('main.nav.delinger') },
+    { el: artsobservasjonerBtn, navn: t('main.nav.artsobservasjoner') },
   ].forEach(({ el, navn }) => {
     if (!el) return;
     el.classList.toggle('is-offline-disabled', offline);
@@ -1580,7 +1583,11 @@ export function updateOfflineModeUI() {
  * og vis dialogen "Ikke tilgjengelig i offline-modus!".
  */
 function setupOfflineDisabledInterceptors() {
-  const intercept = (el, navn) => {
+  // `onAllowed` kjører i stedet for elementets egen standardoppførsel når
+  // IKKE offline — brukt av Artsobservasjoner-knappen under, som er en
+  // <button> uten href og derfor ikke har noen standardnavigasjon å falle
+  // tilbake på i det hele tatt.
+  const intercept = (el, navn, onAllowed) => {
     if (!el) return;
     el.addEventListener('click', (e) => {
       if (isOfflineMode()) {
@@ -1590,6 +1597,8 @@ function setupOfflineDisabledInterceptors() {
           t('main.offline_dialog.title'),
           t('main.offline_dialog.body', { navn })
         );
+      } else if (onAllowed) {
+        onAllowed();
       }
     });
   };
@@ -1597,6 +1606,9 @@ function setupOfflineDisabledInterceptors() {
   intercept(document.getElementById('fellestur-header-btn'), t('main.nav.fellestur'));
   intercept(document.getElementById('tidligere-sendt-link'), t('main.nav.sendt'));
   intercept(document.getElementById('mine-delinger-link'), t('main.nav.delinger'));
+  intercept(document.getElementById('artsobservasjoner-nav-btn'), t('main.nav.artsobservasjoner'), () => {
+    location.href = '/artsobservasjoner.html';
+  });
 }
 
 /**

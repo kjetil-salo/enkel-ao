@@ -188,6 +188,17 @@ kjøres fra `updateAoDirectVisibility()` (samme sted som innloggingsbadgen og
 kø-hintet oppdateres), og hopper over nettverkskall i streng Offline-modus —
 samme konvensjon som `oppdaterAoKoHint()`.
 
+**v6 (20.11.2026, v1.62.0):** seksjonen FLYTTET fra profilsiden til en ny,
+egen side `public/artsobservasjoner.html` — nådd fra ⋯-menyen i toppen
+(knapp, ikke lenke, se `index.html`: menyens `<a>`-rader er skjult på
+desktop, der antas det at funksjonen har et eget ikon fra før). Samlesiden
+har også brukerens egne arts-tall (`/api/ao-my-species-stats`, se CLAUDE.md)
+og en liste over brukerens private lokaliteter. `#ao-mail-link`-ikonet i
+`index.html` peker nå på `artsobservasjoner.html#ao-messages-section`, ikke
+lenger `profil.html#ao-messages-section`. `profil.html` har bare AO-
+innlogging igjen, med én lenke videre til den nye siden. Modulen
+`public/js/ao-messages.js` er UENDRET — kun hvor den importeres fra flyttet.
+
 ## Hva som er bygget (v3, 20.11.2026)
 
 Forhåndsvisning av Innboks, bevisst avgrenset til kun denne ene siden (ikke

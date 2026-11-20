@@ -24,7 +24,7 @@
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta name="twitter:card" content="summary_large_image" />
-    <link rel="stylesheet" href="style.css?v=v1.61.6" />
+    <link rel="stylesheet" href="style.css?v=v1.62.0" />
   </head>
   <body>
     <script src="/js/theme.js"></script>
@@ -108,7 +108,7 @@
                  mobil-skjulingen under (header-actions > a) fordi dette er
                  nøyaktig den typen hint som skal synes i felt, ikke gjemmes
                  bak ⋯-menyen. -->
-            <a href="/profil.html#ao-messages-section" id="ao-mail-link" class="header-mail-link" style="display:none;color: var(--muted); text-decoration: none; font-size: 1.2rem; padding: 4px 8px; border-radius: 8px; transition: all 0.2s; align-items: center;" title="Meldinger fra Artsobservasjoner" aria-label="Meldinger fra Artsobservasjoner" onmouseover="this.style.color='var(--accent)'; this.style.background='var(--accent-soft)'" onmouseout="this.style.color='var(--muted)'; this.style.background='transparent'">✉️<span id="ao-mail-badge-count" class="header-mail-badge"></span></a>
+            <a href="/artsobservasjoner.html#ao-messages-section" id="ao-mail-link" class="header-mail-link" style="display:none;color: var(--muted); text-decoration: none; font-size: 1.2rem; padding: 4px 8px; border-radius: 8px; transition: all 0.2s; align-items: center;" title="Meldinger fra Artsobservasjoner" aria-label="Meldinger fra Artsobservasjoner" onmouseover="this.style.color='var(--accent)'; this.style.background='var(--accent-soft)'" onmouseout="this.style.color='var(--muted)'; this.style.background='transparent'">✉️<span id="ao-mail-badge-count" class="header-mail-badge"></span></a>
             <!-- Fellestur hører hjemme i nav-ikonraden, ikke i ④ Send inn der den
                  lå før: en tur må startes FØR man registrerer noe, ellers havner
                  ikke funnene i den delte loggen. ④ står dessuten grå og død
@@ -134,6 +134,14 @@
                 <button type="button" id="arbeidsliste-overfor" hidden data-i18n="index.arbeidsliste.overfor">Fortsett på en annen enhet</button>
                 <button type="button" id="arbeidsliste-hent" data-i18n="index.arbeidsliste.hent">Hent liste fra en annen enhet</button>
                 <button type="button" id="arbeidsliste-lokal" hidden data-i18n="index.arbeidsliste.lokal">Åpne innhentet liste</button>
+                <!-- Kun i ⋯-menyen, bevisst uten eget ikon i header-actions-raden
+                     ved siden av — en side man sjelden trenger (meldinger,
+                     arts-/lokalitetsoversikt) skal ikke koste en hel rad i hver
+                     eneste økt, samme begrunnelse som Fellestur-ikonet under.
+                     Derfor <button> og ikke <a>: `.header-menu-links > a` er
+                     skjult på desktop (den antar en lenke har sitt eget ikon i
+                     header-actions fra før, se CSS), men knapper vises alltid. -->
+                <button type="button" id="artsobservasjoner-nav-btn"><span class="header-menu-icon" aria-hidden="true"><img src="/img/ao-favicon.png" width="18" height="18" alt="" style="display:block;border-radius:3px;"></span><span data-i18n="main.nav.artsobservasjoner">Artsobservasjoner</span></button>
                 <a href="/fellestur.html"><span class="header-menu-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.4"/><path d="M5.8 20v-1.2A4.2 4.2 0 0 1 10 14.6h4a4.2 4.2 0 0 1 4.2 4.2V20"/><circle cx="4.2" cy="9.8" r="2.1"/><path d="M1.4 19.4v-1a3.4 3.4 0 0 1 2.5-3.3"/><circle cx="19.8" cy="9.8" r="2.1"/><path d="M22.6 19.4v-1a3.4 3.4 0 0 0-2.5-3.3"/></svg></span><span data-i18n="main.nav.fellestur">Fellestur</span></a>
                 <a href="/help.html"><span class="header-menu-icon" aria-hidden="true">📖</span><span data-i18n="index.help_link">Hjelp</span></a>
                 <a href="/settings.html"><span class="header-menu-icon" aria-hidden="true">⚙️</span><span data-i18n="settings.title">Innstillinger</span></a>
@@ -144,7 +152,7 @@
         <script type="module">
           // Toppraden trappes ned bare så mye som faktisk trengs. Se
           // header-plass.js for hvorfor dette ikke kan gjøres i ren CSS.
-          import { tilpassHeader } from '/js/header-plass.js?v=v1.61.6';
+          import { tilpassHeader } from '/js/header-plass.js?v=v1.62.0';
 
           const appHeader = document.querySelector('.app-header');
 
@@ -587,20 +595,20 @@
         else bredVisning.addListener(plasserSendInn);
       })();
     </script>
-    <script type="module" src="/js/main.js?v=v1.61.6"></script>
+    <script type="module" src="/js/main.js?v=v1.62.0"></script>
     <script type="module">
       // Registrer Service Worker for offline-støtte.
       // Versjonert URL: Cloudflare overstyrer origin sin max-age=300 med 4 timer, så
       // en endret /sw.js kan bli liggende i edge-cachen og aldri nå installerte apper.
       // Bruk inline versjon her: /js/version.js kan selv være cachet i gammel versjon.
-      const VERSION = 'v1.61.6';
+      const VERSION = 'v1.62.0';
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register(`/sw.js?v=${VERSION}`).catch(() => {});
       }
     </script>
     <footer class="footer-credit">Versjon <span id="version"></span>  |  <a href="/changelog.html" style="color:var(--accent);text-decoration:none;">Endringslogg</a>  |  <a href="/feedback.html" style="color:var(--accent);text-decoration:none;">Gi tilbakemelding</a>  |  © 2026 Kjetil Salomonsen</footer>
     <script type="module">
-      const VERSION = 'v1.61.6';
+      const VERSION = 'v1.62.0';
       document.getElementById('version').textContent = VERSION;
     </script>
 
@@ -651,7 +659,7 @@
     </style>
     <script type="module">
       import { loadMedobs, saveMedobs } from './js/storage.js';
-      import { t } from './js/i18n.js?v=v1.61.6';
+      import { t } from './js/i18n.js?v=v1.62.0';
 
       const modal = document.getElementById('medobs-modal');
       const tbody = document.getElementById('medobs-modal-tbody');
@@ -967,7 +975,7 @@
       }
     </style>
     <script type="module">
-      import { initPhotoPicker } from './js/photo-picker.js?v=v1.61.6';
+      import { initPhotoPicker } from './js/photo-picker.js?v=v1.62.0';
 
       const extraModal = document.getElementById('extra-fields-modal');
       const extraOpenBtn = document.getElementById('extra-fields-open-btn');

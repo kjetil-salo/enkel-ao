@@ -180,6 +180,20 @@ The `Handler` class routes requests:
     betyr «vet ikke», IKKE «tom»** — frontend viser da ingenting, og cacher heller ikke
     svaret (ellers ville en forbigående AO-feil skjult et reelt kø-innhold i 2 minutter)
   - Påvirker ikke sendingen: `post_with_curl` teller køen på nytt når den faktisk kjører
+- `/api/ao-my-species-stats` (POST) → brukerens egne arts-tall hos AO (kun Fugler denne
+  runden, se `src/ao_species_stats.py`) — antall arter totalt og i inneværende år. Vist på
+  `/artsobservasjoner.html`, nådd fra ⋯-menyen i toppen (v1.62.0)
+  - Mekanismen er AOs egen lille AJAX-JSON-API (`GET /User/MyPages` for CSRF-token →
+    `POST /Lists/ShortOverview`), verifisert 20.11.2026 ved å lese nettverkstrafikken i en
+    ekte, innlogget nettleser — IKKE søkeskjema-rundturen `species_sync.py` bruker (den er
+    dessuten uinnlogget og henter derfor hele Norges tall, ikke brukerens egne)
+  - Svarer `{'fuglerTotalt': N, 'fuglerIAr': N}`, eller begge `None` ved feil/uinnlogget/
+    uforståelig AO-svar. En tallverdi på 0 betyr et reelt «null funn i perioden», ikke
+    «ukjent» — `_finn_fugler_antall()` skiller disse, se `src/ao_species_stats.py`
+  - Samme side (`/artsobservasjoner.html`) viser også meldinger (flyttet dit fra
+    `profil.html`, se `docs/ao-meldinger.md`) og en liste over brukerens egne private
+    lokaliteter (fra `getCachedPrivateSites()`/`ensureAoPrivateSites()` i `api.js` —
+    ingen nye AO-kall). `#ao-mail-link`-ikonet i header peker nå dit, ikke til `profil.html`
 - `/api/ao-import-stream` (POST) → som `ao-import`, men **streamer fremdrift via SSE** (`text/event-stream`)
   - Fase-events: `importing {remaining, total}` → `publishing {total}` → `done {count}` / `error`
   - Fremdriften polles fra AOs egne endepunkter (se `docs/ao-import-fremdrift.md`):

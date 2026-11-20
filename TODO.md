@@ -1,5 +1,20 @@
 # TODO
 
+## ~~47. Felt/Etterreg-pillen, nettverkspillen og KJ-sirkelen tar for mye vertikal plass i toppraden (Kjetil, 2026-11-20)~~ ✅
+
+~~Alle tre (`.mode-pill`, `#offline-mode-toggle`, `#ao-status-dot`) ble tvunget
+til `min-height: 44px` (og `min-width: 44px` for `ao-status-dot`) i
+mobil-media i `public/css/3-layout.css`, bevisst satt som touch-target for
+feltbruk — men effekten var at de også ble *tegnet* 44px høye, ikke bare fikk
+44px klikkflate.~~
+
+Vurderte løsningen med usynlig utvidet trykkflate (samme `::after`-mønster som
+`.activity-submit-btn`, se TODO #28), men brukeren valgte selv den enkle
+veien: senket `min-height`/`min-width` fra 44px til 38px på alle tre, rett og
+slett. Mindre trykkflate enn Apples anbefalte 44px, men en bevisst,
+brukervalgt avveining — ikke noe som bør "rettes opp" til 44px igjen uten at
+han ber om det.
+
 ## 46. «Sendingen kunne ikke bekreftes» selv om funnet lå klart på AO (Espen, 2026-11-19) — utført 2026-11-19
 
 - **Rotårsak**: commit `15843bfb` (15.11.2026, "Bruk AO3 som reserve") endret
