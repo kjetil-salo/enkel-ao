@@ -185,15 +185,21 @@ def fetch_new_notifications(login_token, auth_cookie):
     `numberOfUnreadNotifications` ↔ Driftsmeldinger (/Notification/History,
     valideringsstatus og kommentarer). Se docs/ao-meldinger.md.
 
+    AO krever JSON Content-Type også på GET (verifisert 20.11.2026: 400 uten,
+    200 med headeren fra AOs ajaxGet). `logintoken_ssl=1` beholdes også: fjerning
+    av cookien i en innlogget nettleser ga 400 under testing 19.11.2026.
+
     Returnerer {'nyeMeldinger': int, 'nyeVarsler': int} eller None ved feil/uinnlogget.
     """
     cookies = {
         'logintoken': login_token,
         '.ASPXAUTHNO': auth_cookie,
         'AcceptCookies': '1',
+        'logintoken_ssl': '1',
     }
     headers = {
         'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:147.0) Gecko/20100101 Firefox/147.0',
+        'Content-Type': 'application/json; charset=UTF-8',
         'X-Requested-With': 'XMLHttpRequest',
         'Accept': '*/*',
     }

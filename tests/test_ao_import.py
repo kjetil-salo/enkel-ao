@@ -26,6 +26,7 @@ from src.ao_import_httpx import (
     _resolve_temp_ids_for_publish,
     _upload_pending_images,
     fetch_csrf_tokens,
+    fetch_new_notifications,
     number_of_sightings_importing,
     number_of_sightings_submitted,
     post_with_curl,
@@ -2059,6 +2060,46 @@ def test_ao_queue_count_without_tokens_is_none(monkeypatch):
 # /api/ao-messages — hvor mange uleste meldinger/driftsvarsler brukeren har
 # hos AO (vist bak profilsiden, se docs/ao-meldinger.md)
 # ---------------------------------------------------------------------------
+
+@pytest.mark.parametrize('meldinger,varsler', [(0, 0), (2, 3)])
+def test_fetch_new_notifications_sender_aos_ajax_headere(monkeypatch, meldinger, varsler):
+    """AO krever JSON Content-Type også på GET; uten den svarer tjenesten 400."""
+    foresporsler = []
+
+    def ao(request):
+        foresporsler.append(request)
+        assert request.method == 'GET'
+        assert str(request.url) == 'https://www.artsobservasjoner.no/Notification/NewNotifications'
+        assert request.headers['Content-Type'] == 'application/json; charset=UTF-8'
+        assert request.headers['X-Requested-With'] == 'XMLHttpRequest'
+        assert request.headers['User-Agent']
+        cookies = dict(par.split('=', 1) for par in request.headers['Cookie'].split('; '))
+        assert cookies == {'logintoken': 'L', '.ASPXAUTHNO': 'A',
+                           'AcceptCookies': '1', 'logintoken_ssl': '1'}
+        return httpx.Response(200, json={'stringNotifications': [],
+                                       'numberOfNewMessages': meldinger,
+                                       'numberOfUnreadNotifications': varsler})
+
+    klient = httpx.Client(transport=httpx.MockTransport(ao))
+    monkeypatch.setattr('src.ao_import_httpx.httpx.Client', lambda: klient)
+    assert fetch_new_notifications('L', 'A') == {'nyeMeldinger': meldinger, 'nyeVarsler': varsler}
+    assert len(foresporsler) == 1
+
+
+@pytest.mark.parametrize('feil', ['http', 'html', 'timeout'])
+def test_fetch_new_notifications_degraderer_ao_feil(monkeypatch, feil):
+    """Et avvist kall, en innloggingsside eller nettverksfeil betyr ukjent antall."""
+    def ao(request):
+        if feil == 'timeout':
+            raise httpx.ReadTimeout('AO svarte ikke', request=request)
+        if feil == 'http':
+            return httpx.Response(400, text='Bad Request')
+        return httpx.Response(200, text='<!DOCTYPE html><html>Logg inn</html>')
+
+    klient = httpx.Client(transport=httpx.MockTransport(ao))
+    monkeypatch.setattr('src.ao_import_httpx.httpx.Client', lambda: klient)
+    assert fetch_new_notifications('L', 'A') is None
+
 
 def test_ao_messages_returns_counts(monkeypatch):
     """Endepunktet skal returnere tallene fra AO uendret."""

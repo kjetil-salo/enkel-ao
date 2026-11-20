@@ -1,7 +1,8 @@
 # Meldinger fra Artsobservasjoner
 
-**Status:** v1 implementert 19.11.2026 — tall + lenker ut, bevisst plassert bak
-profilsiden (ikke et eget header-ikon ennå). Forhåndsvisning av selve
+**Status:** v1 implementert 19.11.2026, datainnhenting rettet og verifisert mot AO
+20.11.2026 — tall + lenker ut, bevisst plassert bak profilsiden (ikke et eget
+header-ikon ennå). Forhåndsvisning av selve
 meldingsinnholdet er IKKE bygget, se «Hva som gjenstår» under.
 
 ## Hvorfor
@@ -39,7 +40,8 @@ GET https://www.artsobservasjoner.no/Notification/NewNotifications
 
 - `numberOfNewMessages` ↔ Innboks
 - `numberOfUnreadNotifications` ↔ Driftsmeldinger
-- Rent GET, ingen CSRF-token nødvendig. AO cacher svaret server-side i 20 sek
+- Rent GET med `Content-Type: application/json; charset=UTF-8`, ingen CSRF-token
+  nødvendig. AO cacher svaret server-side i 20 sek
   (`cache-control: private, max-age=20`).
 
 Implementert i `src/ao_import_httpx.py` → `fetch_new_notifications(login_token,
@@ -49,18 +51,37 @@ auth_cookie)`, samme cookie-/header-mønster som `_post_count()` i samme fil
 følger ekstern-API-konvensjonen: AO-feil eller manglende innlogging gir
 `{'nyeMeldinger': None, 'nyeVarsler': None}` med status 200, aldri 500.
 
-**Viktig fallgruve ved testing fra denne sandkassen (19.11.2026):** selv det
-allerede produksjonsbekreftede `_post_count()`-kallet
-(`/ReviewSighting/NumberOfSightingsSubmitted`) ga 400 Bad Request når det ble
-kjørt fra Claude Code-sandkassens nettverk, mens vanlige sidevisninger
-(`/User/MyPages`, `/Communication/Inbox`, `/Notification/History`) ga 200 fra
-samme sted. Mest sannsynlig forklaring: AOs bot-beskyttelse behandler
-AJAX/JSON-endepunkter strengere enn vanlige sidevisninger, og sandkassens
-utgående IP (datasenter, ikke en vanlig nettleser-IP) blir filtrert der. Selve
-funnet (endepunkt + responsform) er likevel bekreftet ekte, via nettleseren
-(Claude in Chrome, ekte 200-svar). **Verifiser derfor `/api/ao-messages` på
-Pi-staging ved deploy**, ikke bare lokalt/i sandkasse — samme føre-var som alle
-andre AO-integrasjoner i dette prosjektet.
+### Årsaken til 400 og rettingen (20.11.2026)
+
+GET-kallet manglet **Content-Type**, som AOs egen `Artportalen.ajaxGet` setter
+til `application/json; charset=UTF-8` også på GET. Hjelperen finnes i AOs
+`/Content/MasterFrontPageJs` og brukes av `ExecuteAjaxNotifications`.
+`fetch_new_notifications` sender nå samme header. `logintoken_ssl=1` beholdes;
+fjerning av denne cookien i en innlogget nettleser ga også 400 under tidligere
+testing, men cookien alene løste ikke feilen.
+
+Kontroll med testkontoen, **ny httpx-klient og identiske startcookies for hvert
+kall**, uten andre endringer i forespørselen:
+
+| JSON Content-Type | AO-svar |
+|---|---|
+| Uten | 400 `Bad Request` |
+| Med | 200 med korrekte tellefelter |
+| Uten, gjentatt | 400 `Bad Request` |
+
+Deretter returnerte den rettede funksjonen `{'nyeMeldinger': 0, 'nyeVarsler': 0}`
+fra ekte AO. Den tidligere forklaringen om bot-/IP-beskyttelse var en antakelse
+og er trukket tilbake. HTML-parsing er ikke nødvendig.
+
+Regresjonstester i `tests/test_ao_import.py` bruker `httpx.MockTransport` og
+kontrollerer URL, metode, headere og cookies, samt null og positive tellinger.
+HTTP 400, HTML i stedet for JSON og timeout skal fortsatt gi `None` («vet ikke»).
+Testkontoen hadde ingen uleste meldinger eller varsler; positive tellinger er
+derfor verifisert med mock, ikke med ekte meldinger.
+
+Utrullet med `deploy-staging-pi.sh` og kontrollert på `https://aos.efugl.no`
+20.11.2026: `/api/ao-messages` ga HTTP 200 med 0/0 for testkontoen og HTTP 200
+med `null`/`null` uten innlogging. Full pytest: 813 bestått. Vitest: 542 bestått.
 
 ## Hvor det vises (v1)
 
