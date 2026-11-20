@@ -1,3 +1,32 @@
+# ⚠️ KORREKSJON 7 (2026-11-20): rå aggregert revival-rate undervurderer fiksen — «dødfødte» pre-fiks-tokens må flushes først
+
+> **Deployet 20.11.2026 (uten versjonsbump — ren backend-logging, ingen atferdsendring):**
+> `src/api_handlers.py`s `_full_relogin()` logger nå `logintoken=<mask_token(...)>` på selve
+> `AUTH-RELOGIN-REQUIRED`-linjen (tidligere kun synlig på DEBUG, usynlig i prod), og
+> `nytt logintoken: <mask_token(...)>` på passord-fallbackets suksesslinje (tidligere kun
+> logget for steg-1-revival, ikke for steg-2/fallback-stien). `mask_token()` er deterministisk,
+> så «token inn» på én linje kan nå sammenlignes direkte mot «token ut» på en tidligere linje
+> for samme bruker, uten å lagre selve tokenet noe sted.
+>
+> **Hvorfor:** produksjonsmåling av korreksjon 6 sin rotasjonsfiks (`ad683e2`/v1.60.31, live fra
+> Pi-restart 19.11 kl. 19:44:10 — FØR selve git-commit-tidspunktet 20:43:19 samme kveld, siden
+> `update-ao-pi.sh` synker arbeidskatalogen og ikke git-historikken) viste `user_id=308629`
+> (bnygard@gmail.com) feile token-revival på ALLE ~8 registrerte sykluser fra 08.11 til og med
+> 20.11 kl. 09:08 — alltid reddet av passord-fallback. Først på NESTE syklus (20.11 kl. 13:51)
+> lyktes ren revival for ham, første gang i hele loggen.
+>
+> **Tolkning:** han satt med et token som allerede var «brukt opp» FØR rotasjonsfiksen gikk
+> live, og fikk ikke noe nytt token før ÉN siste fallback-runde (09:08, etter at fiksen var
+> live) ga ham et ferskt, rotert token — som fungerte på selve neste forsøk. Dette er et
+> **overgangsmønster for brukere med pre-fiks-tokens, ikke en gjenværende feil**: rå aggregert
+> revival-rate blander derfor en krympende «dødfødt»-kohort med en voksende fersk-kohort.
+>
+> **Riktig mål fremover:** revival-raten BLANT brukere som allerede har mottatt minst ett
+> rotert token etter fiksen — ikke totalraten over alle brukere. Den nye loggingen gjør denne
+> kohort-filtreringen mulig uten manuell logg-arkeologi per bruker. Se
+> `[[project_ao_token_revival_faktisk_rate]]` i Claude sitt minne for full måleserie og
+> metodikk.
+
 # ⚠️ KORREKSJON 6 (2026-11-19): en vellykket stille revival gir et NYTT logintoken — koden kaster det
 
 > **Mulig vei til å fjerne passordlagringen helt.** Kontrollert eksperiment mot ekte AO med

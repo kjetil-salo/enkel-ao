@@ -571,7 +571,13 @@ def _full_relogin(user_id: str, login_token: str = None, username: str = None, c
         igjen kan fornyes via token i stedet for passord.
     """
     # Denne funksjonen kalles KUN når sliding expiration feilet (cookie utløpt).
-    logger.info(f'[AUTH-RELOGIN-REQUIRED] Sliding expiration feilet for user_id={user_id} (ip={client_ip}), må logge inn på nytt')
+    # mask_token er deterministisk, så "token inn" her kan sammenlignes mot et
+    # "nytt logintoken"/rotert-token logget tidligere for samme bruker — se
+    # docs/ao-token-autentisering.md korreksjon 7.
+    logger.info(
+        f'[AUTH-RELOGIN-REQUIRED] Sliding expiration feilet for user_id={user_id} '
+        f'(ip={client_ip}, logintoken={mask_token(login_token)}), må logge inn på nytt'
+    )
 
     # Steg 1: Prøv logintoken-refresh (ingen credentials nødvendig)
     if login_token:
@@ -601,8 +607,12 @@ def _full_relogin(user_id: str, login_token: str = None, username: str = None, c
         # test_serverens_egen_relogin_spiser_ikke_en_tokenplass). Klienten FÅR det likevel
         # tilbake i responsen (se returverdien) — det er en annen ting enn å binde det.
         result = login_to_ao(saved_username, password, bind_token=False)
-        logger.info(f'[AUTH-RELOGIN-RESULT] Credentials-relogin vellykket for bruker={saved_username} (user_id={user_id}, ip={client_ip})')
-        return result['authCookie'], result.get('loginToken')
+        ny_token = result.get('loginToken')
+        logger.info(
+            f'[AUTH-RELOGIN-RESULT] Credentials-relogin vellykket for bruker={saved_username} '
+            f'(user_id={user_id}, ip={client_ip}, nytt logintoken: {mask_token(ny_token)})'
+        )
+        return result['authCookie'], ny_token
     except Exception as e:
         logger.warning(f'[AUTH-RELOGIN-RESULT] Credentials-relogin feilet for bruker={username} (user_id={user_id}, ip={client_ip}): {e}')
         return None, None
