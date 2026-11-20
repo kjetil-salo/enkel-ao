@@ -10,7 +10,7 @@
 // og en manglende navngitt eksport gir SyntaxError som stopper HELE main.js,
 // ikke bare den ene funksjonen. Bump ved hver nye eksport vi blir avhengige
 // av. Samme fallgruve som storage.js-importen under og map.js sin api.js-import.
-import { logPageView, loadActivities, fetchAoSites, ensureAoPrivateSites } from './api.js?v=v1.62.0';
+import { logPageView, loadActivities, fetchAoSites, ensureAoPrivateSites } from './api.js?v=v1.62.1';
 // Versjonert import: denne linjen har en HARD avhengighet til to navngitte
 // eksporter (loadAoDirectAutoClear/saveAoDirectAutoClear) som ikke fantes i
 // tiderligere versjoner av storage.js. Uten ?v= her kan Cloudflare servere en
@@ -19,10 +19,10 @@ import { logPageView, loadActivities, fetchAoSites, ensureAoPrivateSites } from 
 // altså hele appen, se samme fallgruve for map.js/location.js (v1.53.15) og
 // sjekklisten i CLAUDE.md. Bump SAMTIDIG som index.html sin egen ?v=-tag for
 // main.js, hver gang storage.js får en ny eksport main.js begynner å bruke.
-import { loadObservations, saveObservations, loadAoSearchRadius, saveAoSearchRadius, loadLocationSortMode, saveLocationSortMode, loadAoDirectAutoClear, saveAoDirectAutoClear, saveLastKnownPosition, loadLastKnownPosition, activityDisplayName, lesArbeidslisteForOverforing, loadAllowUnknownCount, loadAllowEstimatedCount } from './storage.js?v=v1.62.0';
-import { setStatus, setLocationStatus, showToast, showOfflineNotAvailableDialog, haversine, MODE_SPLASH_DURATION_MS } from './ui.js?v=v1.62.0';
-import { t, applyTranslations } from './i18n.js?v=v1.62.0';
-import { DEFAULT_MAP_CENTER, setAoSiteSuggestions, initLocation, openMap, openMapPage, updateCreateSiteBtnVisibility, initCreateSite } from './location.js?v=v1.62.0';
+import { loadObservations, saveObservations, loadAoSearchRadius, saveAoSearchRadius, loadLocationSortMode, saveLocationSortMode, loadAoDirectAutoClear, saveAoDirectAutoClear, saveLastKnownPosition, loadLastKnownPosition, activityDisplayName, lesArbeidslisteForOverforing, loadAllowUnknownCount, loadAllowEstimatedCount } from './storage.js?v=v1.62.1';
+import { setStatus, setLocationStatus, showToast, showOfflineNotAvailableDialog, haversine, MODE_SPLASH_DURATION_MS } from './ui.js?v=v1.62.1';
+import { t, applyTranslations } from './i18n.js?v=v1.62.1';
+import { DEFAULT_MAP_CENTER, setAoSiteSuggestions, initLocation, openMap, openMapPage, updateCreateSiteBtnVisibility, initCreateSite } from './location.js?v=v1.62.1';
 // Versjonert import: observations.js sitt eget innhold (ikke bare hvilke
 // eksporter den har) endret seg vesentlig i dag (speciesDisplayName-bruk i
 // ③-lista og slett-toasten). En stale cachet kopi av selve FILEN - ikke bare
@@ -32,7 +32,7 @@ import { DEFAULT_MAP_CENTER, setAoSiteSuggestions, initLocation, openMap, openMa
 // timer, uten noen SyntaxError som varsler om det (funksjonene fantes jo
 // allerede - bare med gammel logikk). Se species-search.js/
 // observation-commit.js under for samme fiks, og docs/CLAUDE.md.
-import { renderObservations } from './observations.js?v=v1.62.0';
+import { renderObservations } from './observations.js?v=v1.62.1';
 import { getVisitTimeSpan, isVisitLocked, visitExists } from './visits.js';
 
 // Nye moduler
@@ -43,18 +43,18 @@ import { updateSectionStates, pulseSearchFieldAndFocus } from './form-state.js';
 // gang har vært versjonert. Dette var den faktiske årsaken til at Kjetil
 // testet v1.53.25 og fortsatt bare så gammel oppførsel i vanlig søk -
 // nettleseren hans hadde en cachet species-search.js fra v1.53.24.
-import { fetchResults, renderResults, chooseItem, updateSubtaxaCheckboxState } from './species-search.js?v=v1.62.0';
-import { commitObservation, renderActivityPills } from './observation-commit.js?v=v1.62.0';
+import { fetchResults, renderResults, chooseItem, updateSubtaxaCheckboxState } from './species-search.js?v=v1.62.1';
+import { commitObservation, renderActivityPills } from './observation-commit.js?v=v1.62.1';
 import { handleExport, handleCopy, handleCopyAndOpen, handleClear, handleDirectSend, oppdaterAoKoHint, aoSendingPagar }
-  from './export-operations.js?v=v1.62.0';
+  from './export-operations.js?v=v1.62.1';
 import { openShareDialog } from './share.js';
-import { initAutocomplete } from './autocomplete.js?v=v1.62.0';
-import { initNewsSplash } from './news-splash.js?v=v1.62.0';
-import { initFirstRunHint, shouldShowHint } from './first-run-hint.js?v=v1.62.0';
+import { initAutocomplete } from './autocomplete.js?v=v1.62.1';
+import { initNewsSplash } from './news-splash.js?v=v1.62.1';
+import { initFirstRunHint, shouldShowHint } from './first-run-hint.js?v=v1.62.1';
 import { hentAktivFellestur, forlatFellestur } from './fellestur-client.js';
 import { oppdaterSpeilFraServer, hentSpeilVersjon, lastSpeil } from './fellestur-sync.js';
 import { aktivInnhentetListe, lukkInnhentetListe } from './arbeidsliste-lokal.js';
-import { initArbeidslisteOverforing } from './arbeidsliste-overforing.js?v=v1.62.0';
+import { initArbeidslisteOverforing } from './arbeidsliste-overforing.js?v=v1.62.1';
 import {
   getNetworkMode,
   cycleNetworkMode,
@@ -64,8 +64,8 @@ import {
   fetchLocationsWithNetworkMode,
   saveOpportunisticOfflineLocations,
   syncNetworkModeToServiceWorker,
-} from './offline-db.js?v=v1.62.0';
-import { hentAoMeldinger, totalAoMeldinger } from './ao-messages.js?v=v1.62.0';
+} from './offline-db.js?v=v1.62.1';
+import { hentAoMeldinger, totalAoMeldinger } from './ao-messages.js?v=v1.62.1';
 
 // ============================================================
 // Applikasjonstilstand
@@ -291,7 +291,9 @@ function renderAoStatusBadge(statusDot, username, hasCredentials) {
   }
 }
 
-function updateAoDirectVisibility() {
+let aoVisningsBrukernavn = null;
+
+function renderAoDirectVisibility() {
   // Badgen oppdateres FØR noen tidlige returer, slik at den aldri blir stående tom
   // selv om resten av innloggingsraden ikke finnes på siden.
   let username = '';
@@ -303,22 +305,26 @@ function updateAoDirectVisibility() {
     // localStorage utilgjengelig → behandles som ikke innlogget
   }
   renderAoStatusBadge(document.getElementById('ao-status-dot'), username, hasCredentials);
-  // Henter og viser selv — uavhengig av hasCredentials (bygger på egne
-  // AO-tokens, ikke det lagrede passordet), og uten tidlig retur hvis resten
-  // av innloggingsraden under ikke finnes på siden.
-  oppdaterAoMeldingBadge();
-  if (!dom.aoDirectRow) return;
-  dom.aoDirectRow.style.display = hasCredentials ? 'block' : 'none';
-  // Ligger det funn til gjennomgang hos AO fra før, skal brukeren vite det FØR sending
-  // (scoped publisering lar dem stå). Best-effort og cachet — se oppdaterAoKoHint().
-  if (hasCredentials) {
-    oppdaterAoKoHint(dom);
-  } else if (dom.aoKoHint) {
-    dom.aoKoHint.style.display = 'none';
+  if (dom.aoDirectRow) dom.aoDirectRow.style.display = hasCredentials ? 'block' : 'none';
+  if (!hasCredentials || username !== aoVisningsBrukernavn) {
+    // Tellere fra forrige konto skal ikke bli stående ved utlogging/kontobytte.
+    if (dom.aoKoHint) dom.aoKoHint.style.display = 'none';
+    const mailLink = document.getElementById('ao-mail-link');
+    if (mailLink) mailLink.style.display = 'none';
   }
+  aoVisningsBrukernavn = username;
   // Uten innlogging: vis CTA så nye brukere ser at direkte publisering finnes
   const loginCta = document.getElementById('ao-login-cta');
   if (loginCta) loginCta.style.display = hasCredentials ? 'none' : 'flex';
+  return hasCredentials;
+}
+
+function updateAoDirectVisibility() {
+  const hasCredentials = renderAoDirectVisibility();
+  // Disse oppslagene kan bruke nettverket. Lokal visning ved kontobytte eller
+  // gjenopptakelse av en fane skal ikke utløse dem.
+  oppdaterAoMeldingBadge();
+  if (dom.aoDirectRow && hasCredentials) oppdaterAoKoHint(dom);
 }
 
 /**
@@ -1702,9 +1708,13 @@ document.addEventListener('i18n:language-changed', () => {
 // Gjenopprettet fra bfcache (tilbake-knappen) eller vanlig navigasjon —
 // les innlogging og nettverksmodus på nytt så badge og modusvelger aldri er utdatert.
 window.addEventListener('pageshow', () => {
-  updateAoDirectVisibility();
+  renderAoDirectVisibility();
   updateOfflineModeUI();
   syncNetworkModeToServiceWorker(getNetworkMode()).catch(() => {});
+});
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') renderAoDirectVisibility();
 });
 
 window.addEventListener('network_mode_changed', () => {
@@ -1712,6 +1722,9 @@ window.addEventListener('network_mode_changed', () => {
 });
 
 window.addEventListener('storage', (e) => {
+  if (!e || !e.key || ['ao_username', 'ao_password', 'ao_tokens'].includes(e.key)) {
+    renderAoDirectVisibility();
+  }
   if (!e || !e.key || e.key === 'network_mode_v1' || e.key === 'offline_mode_v1') {
     updateOfflineModeUI();
   }

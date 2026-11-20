@@ -13,7 +13,7 @@ vi.stubGlobal('localStorage', localStorageMock);
 const fetchMock = vi.fn();
 vi.stubGlobal('fetch', fetchMock);
 
-const { searchSpecies, fetchAoSites, logPageView, loadActivities, createAoSite, fetchAndCachePrivateSites, getCachedPrivateSites, hasFreshPrivateSitesCache, loggInnMedLagretLegitimasjon, oppdaterAoTokensFraRespons } = await import('../../public/js/api.js');
+const { searchSpecies, fetchAoSites, fetchAoSitesByBounds, logPageView, loadActivities, createAoSite, fetchAndCachePrivateSites, getCachedPrivateSites, hasFreshPrivateSitesCache, loggInnMedLagretLegitimasjon, oppdaterAoTokensFraRespons } = await import('../../public/js/api.js');
 
 beforeEach(() => {
   Object.keys(store).forEach(k => delete store[k]);
@@ -284,6 +284,48 @@ describe('fetchAoSites', () => {
     const lagret = JSON.parse(store.ao_tokens);
     expect(lagret.authCookie).toBe('ny-cookie');
     expect(lagret.loginToken).toBe('nytt-rotert-logintoken');
+  });
+});
+
+describe.each([
+  ['radius', () => fetchAoSites(60, 5)],
+  ['utsnitt', () => fetchAoSitesByBounds({ north: 60.1, south: 60, east: 5.1, west: 5 })],
+])('sesjonsbevaring ved kartoppslag med %s', (_navn, hent) => {
+  it.each(['nettbrudd', 401, 429, 502, 503, 504, 'ugyldig JSON'])(
+    'bevarer sesjonen når gjeninnlogging feiler med %s', async feil => {
+      store.ao_username = 'testalias';
+      store.ao_password = 'testpassord';
+      const tokens = JSON.stringify({ loginToken: 'gammel-token', authCookie: 'gammel-cookie' });
+      store.ao_tokens = tokens;
+      fetchMock.mockResolvedValueOnce({ ok: true, json: async () => ({ sites: [], authRequired: true }) });
+      if (feil === 'nettbrudd') {
+        fetchMock.mockRejectedValueOnce(new TypeError('Simulert nettbrudd'));
+      } else if (feil === 'ugyldig JSON') {
+        fetchMock.mockResolvedValueOnce({ ok: true, json: async () => { throw new SyntaxError('Ikke JSON'); } });
+      } else {
+        fetchMock.mockResolvedValueOnce({ ok: false, status: feil, json: async () => ({ error: 'Kunne ikke logge inn' }) });
+      }
+
+      expect(await hent()).toEqual([]);
+      expect(store.ao_tokens).toBe(tokens);
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+    },
+  );
+
+  it('lar et mislykket gammelt forsøk beholde en nyere manuelt lagret sesjon', async () => {
+    store.ao_username = 'testalias';
+    store.ao_password = 'testpassord';
+    store.ao_tokens = JSON.stringify({ loginToken: 'gammel-token', authCookie: 'gammel-cookie' });
+    const nyere = JSON.stringify({ loginToken: 'ny-token', authCookie: 'ny-cookie' });
+    fetchMock
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ sites: [], authRequired: true }) })
+      .mockImplementationOnce(async () => {
+        store.ao_tokens = nyere;
+        throw new TypeError('Simulert nettbrudd');
+      });
+
+    await hent();
+    expect(store.ao_tokens).toBe(nyere);
   });
 });
 
