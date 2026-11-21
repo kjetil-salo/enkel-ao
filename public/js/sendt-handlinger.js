@@ -1,4 +1,4 @@
-import { loadActivities, loggInnMedLagretLegitimasjon } from './api.js?v=v1.63.3';
+import { loadActivities, loggInnMedLagretLegitimasjon } from './api.js?v=v1.64.0';
 import { activityBokmalName, activityDisplayName } from './storage.js';
 import { initCoObserverPicker } from './coobserver-picker.js';
 

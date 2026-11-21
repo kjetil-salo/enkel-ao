@@ -3,10 +3,10 @@
  */
 import { hentAktivFellestur } from './fellestur-client.js';
 import { lastSpeil, lagreSpeilOgSynk, hentTurMedobservatorer } from './fellestur-sync.js';
-import { translateDedicatedSubspeciesToNynorsk } from './species-matcher.js?v=v1.63.3';
+import { translateDedicatedSubspeciesToNynorsk } from './species-matcher.js?v=v1.64.0';
 import { aktivInnhentetListe, lagreEndringerIInnhentetListe, lesInnhentetListe } from './arbeidsliste-lokal.js';
-import { getLanguage, setLanguage, isNynorsk } from './i18n.js?v=v1.63.3';
-import { isOfflineMode } from './offline-db.js?v=v1.63.3';
+import { getLanguage, setLanguage, isNynorsk } from './i18n.js?v=v1.64.0';
+import { isOfflineMode } from './offline-db.js?v=v1.64.0';
 
 export { isNynorsk };
 
@@ -18,6 +18,7 @@ const SENT_KEY = 'sent_observations_v1';
 const LOCATION_SORT_KEY = 'location_sort_mode_v1';
 const AO_DIRECT_AUTO_CLEAR_KEY = 'ao_direct_auto_clear_v1';
 export const LAST_KNOWN_POSITION_KEY = 'ao_last_known_position_v1';
+const CURRENT_PLACE_KEY = 'current_place_v1';
 
 /**
  * Teknisk beskrivelse av siste feilede saveObservations()-kall (f.eks.
@@ -908,5 +909,70 @@ export function loadLastKnownPosition() {
   } catch (_) {}
 
   return null;
+}
+
+// Hvor lenge en lagret "gjeldende lokasjon" regnes som fersk (se
+// saveCurrentPlace/loadCurrentPlace). Lang nok til å dekke en vanlig økt i
+// felt med et par refresher innimellom, kort nok til at en lokasjon fra en
+// tidligere feltdag ikke dukker opp uoppfordret neste gang appen åpnes.
+export const CURRENT_PLACE_TTL = 6 * 60 * 60 * 1000; // 6 timer
+
+/**
+ * Lagre hvilken lokasjon brukeren har valgt akkurat nå, uavhengig av om det
+ * allerede ligger en observasjon på den i arbeidslista.
+ *
+ * Uten dette finnes `currentPlaceName`/`currentPlaceId` i main.js kun i
+ * minnet — en reload (vanlig på Mac, uten GPS, der lokasjon ofte må velges
+ * manuelt) mistet da valget helt frem til brukeren hadde lagt til minst én
+ * observasjon, siden den gamle gjenopprettingen bare leste placeName/placeId
+ * fra SISTE lagrede observasjon.
+ * @param {string} placeName
+ * @param {string|number|null} placeId
+ * @returns {boolean}
+ */
+export function saveCurrentPlace(placeName, placeId = null) {
+  const name = typeof placeName === 'string' ? placeName.trim() : '';
+  if (!name) return false;
+
+  try {
+    const payload = { placeName: name, placeId: placeId ?? null, timestamp: Date.now() };
+    window.localStorage.setItem(CURRENT_PLACE_KEY, JSON.stringify(payload));
+    return true;
+  } catch (e) {
+    console.warn('Kunne ikke lagre gjeldende lokasjon til localStorage', e);
+    return false;
+  }
+}
+
+/**
+ * Fjern lagret "gjeldende lokasjon" (brukeren har tømt/byttet bort den aktivt).
+ */
+export function clearCurrentPlace() {
+  try {
+    window.localStorage.removeItem(CURRENT_PLACE_KEY);
+  } catch (_) {}
+}
+
+/**
+ * Hent sist lagrede "gjeldende lokasjon", eller null hvis ingen finnes eller
+ * den er eldre enn CURRENT_PLACE_TTL.
+ * @returns {{placeName: string, placeId: string|number|null}|null}
+ */
+export function loadCurrentPlace() {
+  if (typeof window === 'undefined' || !window.localStorage) return null;
+
+  try {
+    const raw = window.localStorage.getItem(CURRENT_PLACE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') return null;
+    const name = typeof parsed.placeName === 'string' ? parsed.placeName.trim() : '';
+    if (!name) return null;
+    if (typeof parsed.timestamp !== 'number' || Date.now() - parsed.timestamp > CURRENT_PLACE_TTL) return null;
+    return { placeName: name, placeId: parsed.placeId ?? null };
+  } catch (e) {
+    console.warn('Kunne ikke lese gjeldende lokasjon fra localStorage', e);
+    return null;
+  }
 }
 
