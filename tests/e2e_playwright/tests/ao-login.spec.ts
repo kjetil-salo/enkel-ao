@@ -1,5 +1,126 @@
 import { test, expect } from '../fixtures';
 
+test('innlogging og utlogging i en annen fane oppdaterer hovedsiden uten nye API-kall', async ({ page, context }) => {
+  await context.route('**/api/**', route => route.fulfill({ json:
+    new URL(route.request().url()).pathname === '/api/ao-login'
+      ? { success: true, loginToken: 'test-token', authCookie: 'test-cookie', userId: '42' }
+      : { sites: [], count: 0, nyeMeldinger: 0, nyeVarsler: 0 },
+  }));
+  let hovedsidensApiKall = 0;
+  page.on('request', request => {
+    if (new URL(request.url()).pathname.startsWith('/api/')) hovedsidensApiKall++;
+  });
+  await page.goto('/');
+  await page.waitForLoadState('networkidle');
+  await expect(page.locator('#ao-status-dot')).toHaveText('Logg inn');
+  const antallForInnlogging = hovedsidensApiKall;
+
+  const profil = await context.newPage();
+  await profil.goto('/profil.html');
+  await profil.locator('#ao-username').fill('testalias');
+  await profil.locator('#ao-password').fill('testpassord');
+  await profil.locator('#test-ao-login').click();
+  await expect(profil.locator('#ao-login-status')).toContainText('Innlogget!');
+  await expect(page.locator('#ao-status-dot')).toHaveText('TE');
+  await expect(page.locator('#ao-direct-row')).toBeVisible();
+  await expect(page.locator('#ao-login-cta')).toBeHidden();
+  expect(hovedsidensApiKall).toBe(antallForInnlogging);
+
+  await profil.locator('#clear-ao-login').click();
+  await expect(page.locator('#ao-status-dot')).toHaveText('Logg inn');
+  await expect(page.locator('#ao-direct-row')).toBeHidden();
+  await expect(page.locator('#ao-login-cta')).toBeVisible();
+  expect(await page.evaluate(() => localStorage.getItem('ao_tokens'))).toBeNull();
+  expect(hovedsidensApiKall).toBe(antallForInnlogging);
+  await profil.close();
+});
+
+test('gjenopptatt hovedside leser innlogging lokalt uten nye API-kall', async ({ page }) => {
+  await page.route('**/api/**', route => route.fulfill({ json: { sites: [], count: 0 } }));
+  let apiKall = 0;
+  page.on('request', request => {
+    if (new URL(request.url()).pathname.startsWith('/api/')) apiKall++;
+  });
+  await page.goto('/');
+  await page.waitForLoadState('networkidle');
+  const antallForGjenopptakelse = apiKall;
+  await page.evaluate(() => {
+    localStorage.setItem('network_mode_v1', 'offline');
+    localStorage.setItem('ao_username', 'testalias');
+    localStorage.setItem('ao_password', 'testpassord');
+    localStorage.setItem('ao_tokens', JSON.stringify({ loginToken: 'test-token', authCookie: 'test-cookie' }));
+    window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true }));
+  });
+  await expect(page.locator('#ao-status-dot')).toHaveText('TE');
+  expect(apiKall).toBe(antallForGjenopptakelse);
+
+  await page.evaluate(() => {
+    localStorage.removeItem('ao_username');
+    localStorage.removeItem('ao_password');
+    localStorage.removeItem('ao_tokens');
+    Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'visible' });
+    document.dispatchEvent(new Event('visibilitychange'));
+  });
+  await expect(page.locator('#ao-status-dot')).toHaveText('Logg inn');
+  expect(apiKall).toBe(antallForGjenopptakelse);
+});
+
+test('autofyll på profilsiden lagrer innlogging før tilbakeknappen brukes', async ({ page }) => {
+  await page.route('**/api/**', route => route.fulfill({ json:
+    new URL(route.request().url()).pathname === '/api/ao-login'
+      ? { success: true, loginToken: 'test-token', authCookie: 'test-cookie', userId: '42' }
+      : { sites: [], count: 0, nyeMeldinger: 0, nyeVarsler: 0 },
+  }));
+  await page.goto('/');
+  await page.locator('#ao-status-dot').click();
+  await page.waitForLoadState('load');
+  await page.evaluate(() => {
+    document.querySelector<HTMLInputElement>('#ao-username')!.value = 'testalias';
+    document.querySelector<HTMLInputElement>('#ao-password')!.value = 'testpassord';
+  });
+  await page.locator('#test-ao-login').click();
+  await expect(page.locator('#ao-login-status')).toContainText('Innlogget!');
+  await page.goBack();
+  await expect(page.locator('#ao-status-dot')).toHaveText('TE');
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('ao_tokens')!).loginToken)).toBe('test-token');
+});
+
+for (const handling of ['utlogging', 'kontobytte']) {
+  test(`${handling} skjuler gamle meldings- og køhint uten nye API-kall`, async ({ page, context }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem('ao_username', 'forste');
+      localStorage.setItem('ao_password', 'testpassord');
+      localStorage.setItem('ao_tokens', JSON.stringify({ loginToken: 'test-token', authCookie: 'test-cookie' }));
+    });
+    await context.route('**/api/**', route => route.fulfill({
+      json: { sites: [], count: 3, nyeMeldinger: 2, nyeVarsler: 0 },
+    }));
+    let apiKall = 0;
+    page.on('request', request => {
+      if (new URL(request.url()).pathname.startsWith('/api/')) apiKall++;
+    });
+    await page.goto('/');
+    await page.waitForLoadState('networkidle');
+    await expect(page.locator('#ao-mail-link')).toBeVisible();
+    await expect(page.locator('#ao-queue-hint')).toContainText('3 funn');
+    const antallForEndring = apiKall;
+
+    const profil = await context.newPage();
+    await profil.goto('/profil.html');
+    if (handling === 'utlogging') {
+      await profil.locator('#clear-ao-login').click();
+      await expect(page.locator('#ao-status-dot')).toHaveText('Logg inn');
+    } else {
+      await profil.locator('#ao-username').fill('andre');
+      await expect(page.locator('#ao-status-dot')).toHaveText('AN');
+    }
+    await expect(page.locator('#ao-mail-link')).toBeHidden();
+    await expect(page.locator('#ao-queue-hint')).toBeHidden();
+    expect(apiKall).toBe(antallForEndring);
+    await profil.close();
+  });
+}
+
 test('bekreftet AO3-innlogging lar brukeren publisere uten å åpne importen', async ({ page }) => {
   await page.route('**/api/ao-login', async route => {
     const data = route.request().postDataJSON();

@@ -180,6 +180,20 @@ The `Handler` class routes requests:
     betyr «vet ikke», IKKE «tom»** — frontend viser da ingenting, og cacher heller ikke
     svaret (ellers ville en forbigående AO-feil skjult et reelt kø-innhold i 2 minutter)
   - Påvirker ikke sendingen: `post_with_curl` teller køen på nytt når den faktisk kjører
+- `/api/ao-my-species-stats` (POST) → brukerens egne arts-tall hos AO (kun Fugler denne
+  runden, se `src/ao_species_stats.py`) — antall arter totalt og i inneværende år. Vist på
+  `/artsobservasjoner.html`, nådd fra ⋯-menyen i toppen (v1.62.0)
+  - Mekanismen er AOs egen lille AJAX-JSON-API (`GET /User/MyPages` for CSRF-token →
+    `POST /Lists/ShortOverview`), verifisert 20.11.2026 ved å lese nettverkstrafikken i en
+    ekte, innlogget nettleser — IKKE søkeskjema-rundturen `species_sync.py` bruker (den er
+    dessuten uinnlogget og henter derfor hele Norges tall, ikke brukerens egne)
+  - Svarer `{'fuglerTotalt': N, 'fuglerIAr': N}`, eller begge `None` ved feil/uinnlogget/
+    uforståelig AO-svar. En tallverdi på 0 betyr et reelt «null funn i perioden», ikke
+    «ukjent» — `_finn_fugler_antall()` skiller disse, se `src/ao_species_stats.py`
+  - Samme side (`/artsobservasjoner.html`) viser også meldinger (flyttet dit fra
+    `profil.html`, se `docs/ao-meldinger.md`) og en liste over brukerens egne private
+    lokaliteter (fra `getCachedPrivateSites()`/`ensureAoPrivateSites()` i `api.js` —
+    ingen nye AO-kall). `#ao-mail-link`-ikonet i header peker nå dit, ikke til `profil.html`
 - `/api/ao-import-stream` (POST) → som `ao-import`, men **streamer fremdrift via SSE** (`text/event-stream`)
   - Fase-events: `importing {remaining, total}` → `publishing {total}` → `done {count}` / `error`
   - Fremdriften polles fra AOs egne endepunkter (se `docs/ao-import-fremdrift.md`):
@@ -195,6 +209,30 @@ The `Handler` class routes requests:
     AO ikke tok imot skal ikke se ut som ett som kom fram
   - Skilt i to fordi det er to ulike vaner: legge bildet på med én gang, eller komme
     hjem med kamera og gjøre det etterpå. Vises som egen rad på `/stats`
+- `/api/medobs-load` / `/api/medobs-save` (POST) → backup av medobservatør-lista
+  hos AO-brukernavnet (fra `localStorage.ao_username`), slik at en reinstallering
+  av appen ikke mister lista brukeren har bygget opp
+  - `src/medobs_store.py`: egen SQLite-tabell i samme `stats.db`. Rekkefølgen i lista
+    ER prioriteringen (som `activityPills_v1`) — ingen egen sorteringskolonne
+  - **Bevisst IKKE den store server-synken** skissert i
+    `docs/server-lagring-innstillinger-plan.md` (ingen sesjonsverifisering, ingen
+    multi-enhet-konfliktløsning) — kun nøklet på et selvvalgt brukernavn. localStorage
+    er fortsatt sannheten under normal bruk; serveren leses KUN tilbake når
+    `medobs_list_v1` er tom (fersk installasjon) og et AO-brukernavn finnes
+  - Lagring er debounced og svelger nettverksfeil stille fra klienten — en mislykket
+    backup skal aldri blokkere eller synes i UI-et
+  - **Tre separate steder leser/skriver samme `medobs_list_v1`-nøkkel**, et
+    pre-eksisterende forhold denne featuren måtte forholde seg til, ikke noe den
+    innførte: `public/js/storage.js` sin `loadMedobs()`/`saveMedobs()` (ES-modul,
+    brukt av den faktiske «👥 Medobservatører»-knappen/modalen i `index.html` OG av
+    `coobserver-picker.js` i felt-registreringen), og den helt separate
+    inline-implementasjonen i `public/medobs.html`. **`medobs.html` er et
+    foreldreløst HTML-dokument** — ingenting i appen lenker til det lenger — men
+    fikk likevel egen dra/piltast-sortering + serversynk da featuren først ble
+    bygget (v1.63.0), FØR vi oppdaget at brukeren faktisk åpner modalen i
+    `index.html`, der sorteringen manglet (rettet i v1.63.1). Server-synken i
+    `storage.js` dekker uansett begge de reelle inngangene; `medobs.html` sin kopi
+    er ufarlig, ubrukt duplisert kode — rør den gjerne, men den trengs ikke
 - `/api/logview` (POST) → logs page views to Supabase
 - `/api/feedback` (POST) → tar imot brukertilbakemelding (feil/ønske/annet) uten innlogging
   - Lagrer i `src/feedback_store.py` (SQLite), genererer saksnummer `AO-XXXXX`

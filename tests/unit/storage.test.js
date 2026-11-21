@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 // Mock localStorage før import av storage-modulen
 const store = {};
@@ -9,7 +9,7 @@ const localStorageMock = {
 };
 vi.stubGlobal('localStorage', localStorageMock);
 
-const { loadMedobs, saveMedobs, defaultCoObservers, saveObservations, loadObservations, saveAoDirectAutoClear, loadAoDirectAutoClear, saveNynorskArtsnavn, loadNynorskArtsnavn, speciesDisplayName, saveLastKnownPosition, loadLastKnownPosition } = await import('../../public/js/storage.js');
+const { loadMedobs, saveMedobs, defaultCoObservers, saveObservations, loadObservations, saveAoDirectAutoClear, loadAoDirectAutoClear, saveNynorskArtsnavn, loadNynorskArtsnavn, speciesDisplayName, saveLastKnownPosition, loadLastKnownPosition, saveCurrentPlace, loadCurrentPlace, clearCurrentPlace, CURRENT_PLACE_TTL } = await import('../../public/js/storage.js');
 
 // Speiler todayStr() i storage.js — medobs lagres med dagens dato.
 function todayStr() {
@@ -313,5 +313,61 @@ describe('lastKnownPosition', () => {
     expect(saveLastKnownPosition(null)).toBe(false);
     expect(saveLastKnownPosition({ lat: NaN, lon: 5.0 })).toBe(false);
     expect(saveLastKnownPosition({ lat: 60.0, lon: 'ugyldig' })).toBe(false);
+  });
+});
+
+describe('currentPlace', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-11-21T10:00:00Z'));
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('returnerer null når ingen lokasjon er lagret', () => {
+    expect(loadCurrentPlace()).toBeNull();
+  });
+
+  it('lagrer og gjenoppretter en gyldig lokasjon, uavhengig av observasjonslista', () => {
+    const ok = saveCurrentPlace('Nygårdsparken', 12345);
+    expect(ok).toBe(true);
+    expect(loadCurrentPlace()).toEqual({ placeName: 'Nygårdsparken', placeId: 12345 });
+  });
+
+  it('lagrer uten siteId (manuelt skrevet lokasjon)', () => {
+    saveCurrentPlace('Et sted jeg skrev selv', null);
+    expect(loadCurrentPlace()).toEqual({ placeName: 'Et sted jeg skrev selv', placeId: null });
+  });
+
+  it('avviser tomt eller manglende navn', () => {
+    expect(saveCurrentPlace('', 1)).toBe(false);
+    expect(saveCurrentPlace('   ', 1)).toBe(false);
+    expect(saveCurrentPlace(null, 1)).toBe(false);
+    expect(loadCurrentPlace()).toBeNull();
+  });
+
+  it('gjenoppretter ikke en lokasjon eldre enn CURRENT_PLACE_TTL', () => {
+    saveCurrentPlace('Nygårdsparken', 12345);
+    vi.setSystemTime(new Date(Date.now() + CURRENT_PLACE_TTL + 1));
+    expect(loadCurrentPlace()).toBeNull();
+  });
+
+  it('gjenoppretter fortsatt rett innenfor TTL-vinduet', () => {
+    saveCurrentPlace('Nygårdsparken', 12345);
+    vi.setSystemTime(new Date(Date.now() + CURRENT_PLACE_TTL - 1000));
+    expect(loadCurrentPlace()).toEqual({ placeName: 'Nygårdsparken', placeId: 12345 });
+  });
+
+  it('clearCurrentPlace fjerner lagret lokasjon', () => {
+    saveCurrentPlace('Nygårdsparken', 12345);
+    clearCurrentPlace();
+    expect(loadCurrentPlace()).toBeNull();
+  });
+
+  it('ignorerer korrupt JSON i stedet for å kaste', () => {
+    localStorage.setItem('current_place_v1', '{ugyldig json');
+    expect(loadCurrentPlace()).toBeNull();
   });
 });

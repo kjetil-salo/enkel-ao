@@ -92,7 +92,7 @@ header {
   .app-header .mode-pill {
     margin-left: 0;
     min-width: 44px;
-    min-height: 44px;
+    min-height: 38px;
     padding: 3px 6px;
     justify-content: center;
     font-size: 0.75rem !important;
@@ -110,7 +110,7 @@ header {
      lett å treffe i felt — også i full form, der den ellers blir 30 px høy og
      står midtstilt i en 44 px rad. */
   .app-header #offline-mode-toggle {
-    min-height: 44px;
+    min-height: 38px;
   }
 
   .header-actions {
@@ -130,8 +130,8 @@ header {
     display: flex;
     align-items: center;
     justify-content: center;
-    min-width: 44px;
-    min-height: 44px;
+    min-width: 38px;
+    min-height: 38px;
   }
 
   /* Meldings-hintet er unntatt fra skjulingen over (synlig i felt er hele

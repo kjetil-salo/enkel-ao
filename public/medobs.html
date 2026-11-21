@@ -22,10 +22,27 @@
       td, th { padding:8px 6px; border-bottom:1px solid rgba(148,163,184,0.04); }
       /* Responsive adjustments to keep checkbox from overlapping name input on narrow screens */
       #medobs-table { table-layout: fixed; width:100%; }
-      #medobs-table td:first-child, #medobs-table th:first-child { width: auto; }
-      #medobs-table td:nth-child(2), #medobs-table th:nth-child(2) { width: 50px; text-align:center; padding-right:0; }
-      #medobs-table td:nth-child(3), #medobs-table th:nth-child(3) { width: 36px; text-align:center; padding-left:0; }
+      #medobs-table td:first-child, #medobs-table th:first-child { width: 32px; text-align:center; padding-right:0; }
+      #medobs-table td:nth-child(2), #medobs-table th:nth-child(2) { width: auto; }
+      #medobs-table td:nth-child(3), #medobs-table th:nth-child(3) { width: 50px; text-align:center; padding-right:0; }
+      #medobs-table td:nth-child(4), #medobs-table th:nth-child(4) { width: 36px; text-align:center; padding-left:0; }
       #medobs-table input[type="checkbox"] { width:20px; height:20px; margin:0; vertical-align:middle; }
+      /* Dra-og-slepp for rekkefølge — samme mønster som activity-pills i settings.html */
+      .medobs-row { transition: background 0.15s, border-color 0.15s, transform 0.15s, box-shadow 0.15s; }
+      .medobs-row.is-dragging { opacity: 0.45; background: rgba(59,130,246,0.15); }
+      .medobs-row.is-touch-dragging {
+        opacity: 0.96; background: #1e293b; box-shadow: 0 8px 24px rgba(0,0,0,0.45);
+        transform: scale(1.02); position: relative; z-index: 100;
+      }
+      body.theme-light .medobs-row.is-touch-dragging { background: #ffffff; box-shadow: 0 8px 24px rgba(0,0,0,0.15); }
+      .medobs-drag-handle {
+        display: inline-flex; align-items: center; justify-content: center;
+        width: 28px; height: 32px; font-size: 1.3em; color: var(--muted, #94a3b8);
+        cursor: grab; user-select: none; -webkit-user-select: none; touch-action: none;
+        border-radius: 6px; transition: color 0.15s, background 0.15s;
+      }
+      .medobs-drag-handle:hover, .medobs-drag-handle:active { color: #3b82f6; background: rgba(59,130,246,0.12); }
+      .medobs-drag-handle:active { cursor: grabbing; }
       .medobs-name { font-size: 16px; box-sizing: border-box; width: 100%; }
       .medobs-remove-btn {
         background: none; border: none; color: var(--muted, #9ca3af); cursor: pointer;
@@ -44,8 +61,8 @@
       @media (max-width:420px) {
         body { padding:6px; }
         .card { padding:10px; }
-        #medobs-table td:nth-child(2), #medobs-table th:nth-child(2) { width: 44px; }
-        #medobs-table td:nth-child(3), #medobs-table th:nth-child(3) { width: 32px; }
+        #medobs-table td:nth-child(3), #medobs-table th:nth-child(3) { width: 44px; }
+        #medobs-table td:nth-child(4), #medobs-table th:nth-child(4) { width: 32px; }
         .medobs-name { font-size: 16px; }
       }
       .muted { color:var(--muted); font-size:0.92em; }
@@ -85,6 +102,7 @@
         <table id="medobs-table">
           <thead>
             <tr>
+              <th>&nbsp;</th>
               <th style="text-align:left">Navn</th>
               <th style="width:50px;text-align:center" title="Aktiv i dag">Aktiv</th>
               <th style="width:36px">&nbsp;</th>
@@ -139,6 +157,53 @@
 
       function save(list) {
         localStorage.setItem(KEY, JSON.stringify({ date: todayStr(), list }));
+        syncToServer(list);
+      }
+
+      // Serverbackup — kun så listen overlever at appen avinstalleres og
+      // installeres på nytt. localStorage er fortsatt sannheten under
+      // normal bruk; dette kallet skal aldri kunne blokkere eller feile
+      // synlig for brukeren.
+      let syncDebounce = null;
+      function syncToServer(list) {
+        const username = (localStorage.getItem('ao_username') || '').trim();
+        if (!username) return;
+        clearTimeout(syncDebounce);
+        syncDebounce = setTimeout(() => {
+          fetch('/api/medobs-save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, list }),
+          }).catch(() => {});
+        }, 800);
+      }
+
+      // Gjenoppretting fra server: KUN når localStorage er tom (fersk
+      // installasjon) og brukeren er AO-innlogget. Overskriver aldri en
+      // lokal liste som allerede finnes.
+      async function restoreFromServerIfEmpty() {
+        try {
+          if (localStorage.getItem(KEY)) return false;
+          const username = (localStorage.getItem('ao_username') || '').trim();
+          if (!username) return false;
+          const resp = await fetch('/api/medobs-load', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username }),
+          });
+          if (!resp.ok) return false;
+          const data = await resp.json();
+          const list = Array.isArray(data.list) ? data.list : [];
+          if (list.length === 0) return false;
+          localStorage.setItem(KEY, JSON.stringify({
+            date: todayStr(),
+            list: list.map(it => ({ name: it.name || '', active: !!it.active })),
+          }));
+          return true;
+        } catch (e) {
+          console.warn('Kunne ikke gjenopprette medobservatører fra server', e);
+          return false;
+        }
       }
 
       // Autocomplete-søk mot AO
@@ -285,25 +350,29 @@
         render();
       }
 
-      function render(focusIndex) {
+      function render(focusIndex, focusHandle) {
         const list = load();
         const tbody = document.querySelector('#medobs-table tbody');
         tbody.innerHTML = '';
 
         if (list.length === 0) {
           const tr = document.createElement('tr');
-          tr.innerHTML = `<td colspan="3" style="color:var(--muted);font-size:0.92em;padding:12px 6px">Ingen medobservatører lagt til ennå.</td>`;
+          tr.innerHTML = `<td colspan="4" style="color:var(--muted);font-size:0.92em;padding:12px 6px">Ingen medobservatører lagt til ennå.</td>`;
           tbody.appendChild(tr);
         }
 
         list.forEach((it, i) => {
           const tr = document.createElement('tr');
+          tr.className = 'medobs-row';
+          tr.draggable = true;
           tr.innerHTML = `
+            <td style="text-align:center"><span class="medobs-drag-handle" title="Dra for å endre rekkefølge (eller bruk piltaster)" aria-label="Dra for å endre rekkefølge" role="button" tabindex="0">⠿</span></td>
             <td><input class="medobs-name" data-i="${i}" value="${escapeHtml(it.name)}" autocomplete="off" placeholder="Navn…" style="width:100%" /></td>
             <td style="text-align:center"><input type="checkbox" class="medobs-active" data-i="${i}" ${it.active ? 'checked' : ''} /></td>
             <td style="text-align:center"><button type="button" class="medobs-remove-btn" data-i="${i}" title="Fjern" aria-label="Fjern ${escapeHtml(it.name) || 'rad'}">✕</button></td>
           `;
           tbody.appendChild(tr);
+          setupRowDrag(tr);
         });
 
         // Sett opp autocomplete på alle navnefelt
@@ -337,12 +406,143 @@
           });
         });
 
-        // Sett fokus på ny rad hvis bedt om
+        // Sett fokus på ny/flyttet rad hvis bedt om
         if (focusIndex >= 0) {
-          const inputs = document.getElementsByClassName('medobs-name');
-          if (inputs[focusIndex]) inputs[focusIndex].focus();
+          if (focusHandle) {
+            const handles = document.getElementsByClassName('medobs-drag-handle');
+            if (handles[focusIndex]) handles[focusIndex].focus();
+          } else {
+            const inputs = document.getElementsByClassName('medobs-name');
+            if (inputs[focusIndex]) inputs[focusIndex].focus();
+          }
         }
       }
+
+      // Rekkefølgen i DOM-en ER rekkefølgen som lagres — ingen egen
+      // sorteringsnøkkel, samme mønster som activityPills_v1 i settings.html.
+      function rowsToList(tbody) {
+        return Array.from(tbody.querySelectorAll('.medobs-row')).map(row => ({
+          name: row.querySelector('.medobs-name').value,
+          active: row.querySelector('.medobs-active').checked,
+        }));
+      }
+
+      function saveOrderFromDom() {
+        const tbody = document.querySelector('#medobs-table tbody');
+        save(rowsToList(tbody));
+      }
+
+      // render() bygger data-i på nytt fra lagret rekkefølge — uten dette
+      // ville andre handlinger (fjern, endre navn) brukt et data-i som var
+      // laget for raden sin GAMLE posisjon og truffet feil element i lista.
+      function saveOrderAndRerender() {
+        saveOrderFromDom();
+        render();
+      }
+
+      // Dra-og-slepp på rad-nivå. Container-dragover/drop er satt opp én
+      // gang på selve tbody-noden (den gjenbrukes mellom render-kall —
+      // render() tømmer kun innholdet, se render()).
+      let draggedRow = null;
+
+      function setupTbodyDragDrop(tbody) {
+        tbody.addEventListener('dragover', (e) => {
+          e.preventDefault();
+          if (!draggedRow) return;
+          const targetRow = e.target.closest('.medobs-row');
+          if (targetRow && targetRow !== draggedRow && targetRow.parentNode === tbody) {
+            const rect = targetRow.getBoundingClientRect();
+            const midY = rect.top + rect.height / 2;
+            if (e.clientY < midY) {
+              tbody.insertBefore(draggedRow, targetRow);
+            } else {
+              tbody.insertBefore(draggedRow, targetRow.nextSibling);
+            }
+          }
+        });
+
+        tbody.addEventListener('drop', (e) => {
+          e.preventDefault();
+          if (draggedRow) {
+            draggedRow.classList.remove('is-dragging');
+            draggedRow = null;
+            saveOrderAndRerender();
+          }
+        });
+      }
+
+      function setupRowDrag(row) {
+        const handle = row.querySelector('.medobs-drag-handle');
+        const tbody = row.parentNode;
+
+        row.addEventListener('dragstart', (e) => {
+          draggedRow = row;
+          e.dataTransfer.effectAllowed = 'move';
+          e.dataTransfer.setData('text/plain', '');
+          requestAnimationFrame(() => row.classList.add('is-dragging'));
+        });
+        row.addEventListener('dragend', () => {
+          row.classList.remove('is-dragging');
+          draggedRow = null;
+          saveOrderAndRerender();
+        });
+
+        // Piltastnavigasjon (tilgjengelighet uten mus/touch)
+        handle.addEventListener('keydown', (e) => {
+          if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            const prev = row.previousElementSibling;
+            if (!prev) return;
+            tbody.insertBefore(row, prev);
+            saveOrderFromDom();
+            render(Array.from(tbody.children).indexOf(row), true);
+          } else if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            const next = row.nextElementSibling;
+            if (!next) return;
+            tbody.insertBefore(row, next.nextSibling);
+            saveOrderFromDom();
+            render(Array.from(tbody.children).indexOf(row), true);
+          }
+        });
+
+        // Mobil touch — samme mønster som settings.html sine aktivitetspiller
+        let isTouching = false;
+        handle.addEventListener('touchstart', (e) => {
+          if (e.touches.length !== 1) return;
+          isTouching = true;
+          row.classList.add('is-touch-dragging');
+        }, { passive: false });
+
+        handle.addEventListener('touchmove', (e) => {
+          if (!isTouching || e.touches.length !== 1) return;
+          e.preventDefault();
+          const touch = e.touches[0];
+          const elUnder = document.elementFromPoint(touch.clientX, touch.clientY);
+          const targetRow = elUnder ? elUnder.closest('.medobs-row') : null;
+          if (targetRow && targetRow !== row && targetRow.parentNode === tbody) {
+            const rect = targetRow.getBoundingClientRect();
+            const midY = rect.top + rect.height / 2;
+            if (touch.clientY < midY) {
+              tbody.insertBefore(row, targetRow);
+            } else {
+              tbody.insertBefore(row, targetRow.nextSibling);
+            }
+          }
+        }, { passive: false });
+
+        const finishTouch = () => {
+          if (isTouching) {
+            isTouching = false;
+            row.classList.remove('is-touch-dragging');
+            saveOrderAndRerender();
+          }
+        };
+        handle.addEventListener('touchend', finishTouch);
+        handle.addEventListener('touchcancel', finishTouch);
+      }
+
+      setupTbodyDragDrop(document.querySelector('#medobs-table tbody'));
 
       function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"})[c]); }
 
@@ -537,7 +737,7 @@
         if (addBtn) addBtn.addEventListener('click', () => addRow(true));
       });
 
-      render();
+      restoreFromServerIfEmpty().then(() => render());
     </script>
   </body>
 </html>

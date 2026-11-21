@@ -355,14 +355,9 @@ export async function fetchAoSites(lat, lon, sizeMeters = 1000, isRetry = false)
     if (!sammeKontoKontekst(konto)) return [];
     if (reloginOk) {
       return fetchAoSites(lat, lon, sizeMeters, true);
-    } else {
-      console.log('[AO] Auto-relogin feilet - bruker må logge inn manuelt');
-      try {
-        localStorage.removeItem('ao_tokens');
-      } catch (e) {
-        // Ignorer feil ved fjerning
-      }
     }
+    // Nettbrudd eller et uforståelig svar betyr ikke at sesjonen er utløpt.
+    // Behold tokenene; bare eksplisitt utlogging eller kontobytte skal fjerne dem.
   }
 
   if (!data || !Array.isArray(data.sites)) {
@@ -442,13 +437,8 @@ export async function fetchAoSitesByBounds(bounds, isRetry = false) {
     if (!sammeKontoKontekst(konto)) return [];
     if (reloginOk) {
       return fetchAoSitesByBounds(bounds, true);
-    } else {
-      try {
-        localStorage.removeItem('ao_tokens');
-      } catch (e) {
-        // Ignorer feil ved fjerning
-      }
     }
+    // Et usikkert gjeninnloggingsforsøk skal ikke slette lagret sesjon.
   }
 
   if (!data || !Array.isArray(data.sites)) return [];

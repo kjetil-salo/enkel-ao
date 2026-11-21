@@ -3,9 +3,10 @@
  */
 import { hentAktivFellestur } from './fellestur-client.js';
 import { lastSpeil, lagreSpeilOgSynk, hentTurMedobservatorer } from './fellestur-sync.js';
-import { translateDedicatedSubspeciesToNynorsk } from './species-matcher.js?v=v1.61.6';
+import { translateDedicatedSubspeciesToNynorsk } from './species-matcher.js?v=v1.64.0';
 import { aktivInnhentetListe, lagreEndringerIInnhentetListe, lesInnhentetListe } from './arbeidsliste-lokal.js';
-import { getLanguage, setLanguage, isNynorsk } from './i18n.js?v=v1.61.6';
+import { getLanguage, setLanguage, isNynorsk } from './i18n.js?v=v1.64.0';
+import { isOfflineMode } from './offline-db.js?v=v1.64.0';
 
 export { isNynorsk };
 
@@ -17,6 +18,7 @@ const SENT_KEY = 'sent_observations_v1';
 const LOCATION_SORT_KEY = 'location_sort_mode_v1';
 const AO_DIRECT_AUTO_CLEAR_KEY = 'ao_direct_auto_clear_v1';
 export const LAST_KNOWN_POSITION_KEY = 'ao_last_known_position_v1';
+const CURRENT_PLACE_KEY = 'current_place_v1';
 
 /**
  * Teknisk beskrivelse av siste feilede saveObservations()-kall (f.eks.
@@ -74,15 +76,131 @@ export function loadMedobs() {
   }
 }
 
+function _writeMedobsLocal(list) {
+  window.localStorage.setItem(MEDOBS_KEY, JSON.stringify({ date: todayStr(), list }));
+}
+
 /**
  * Lagre medobservatører til localStorage med dagens dato.
  * @param {Array} list - Liste med medobservatører
  */
 export function saveMedobs(list) {
   try {
-    window.localStorage.setItem(MEDOBS_KEY, JSON.stringify({ date: todayStr(), list }));
+    _writeMedobsLocal(list);
+    syncMedobsToServer(list);
   } catch (e) {
     console.warn('Kunne ikke lagre medobservatører', e);
+  }
+}
+
+// Serverbackup av medobs-lista, nøklet på AO-brukernavn — se src/medobs_store.py
+// og public/medobs.html sin egen (identiske) syncToServer(). De fleste bygger
+// lista nettopp HER, via coobserver-picker.js i felt, ikke ved å besøke
+// /medobs.html — uten denne synken ville backupen aldri truffet den brukeren
+// som faktisk trenger den. Debounced og fire-and-forget: en mislykket backup
+// skal aldri kunne forstyrre selve registreringen. I streng Offline-modus
+// gjøres det bevisst ALDRI noe nettverkskall herfra (appens eget løfte, se
+// offline-db.js) — lista lagres fortsatt lokalt, den blir bare liggende usynket
+// til brukeren går ut av Offline-modus igjen.
+let _medobsSyncDebounce = null;
+function syncMedobsToServer(list) {
+  if (isOfflineMode()) return;
+  const username = (window.localStorage.getItem('ao_username') || '').trim();
+  if (!username) return;
+  clearTimeout(_medobsSyncDebounce);
+  _medobsSyncDebounce = setTimeout(() => {
+    fetch('/api/medobs-save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, list }),
+    }).catch(() => {});
+  }, 800);
+}
+
+// Gjenoppretting fra server — den andre halvdelen av synken. Kjøres automatisk
+// én gang når storage.js først lastes på en side (modulen er en singleton per
+// sidelast, så dette treffer uansett hvilken av de tre medobs-brukerne — index.html
+// sin modal, coobserver-picker.js, eller /medobs.html — som laster inn modulen først).
+// KUN når localStorage er tom (fersk installasjon/ny enhet) OG et AO-brukernavn
+// finnes — ellers ville dette vært en ekte multi-enhet-synk med konfliktrisiko,
+// noe denne featuren bevisst IKKE er (se CLAUDE.md). Varsler ferdige lyttere via
+// CustomEvent('medobs:restored') siden gjenopprettingen er asynkron og kan bli
+// ferdig etter at en liste allerede er tegnet tom på skjermen.
+let _medobsRestoreAttempted = false;
+export function ensureMedobsRestored() {
+  if (_medobsRestoreAttempted) return;
+  _medobsRestoreAttempted = true;
+  try {
+    if (isOfflineMode()) return;
+    if (window.localStorage.getItem(MEDOBS_KEY)) return;
+    const username = (window.localStorage.getItem('ao_username') || '').trim();
+    if (!username) return;
+    fetch('/api/medobs-load', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username }),
+    })
+      .then((resp) => (resp.ok ? resp.json() : null))
+      .then((data) => {
+        const list = Array.isArray(data && data.list) ? data.list : [];
+        if (list.length === 0) return;
+        // Noen kan ha rukket å lagre noe lokalt mens kallet pågikk — ikke overskriv det.
+        if (window.localStorage.getItem(MEDOBS_KEY)) return;
+        _writeMedobsLocal(list.map((it) => ({ name: it.name || '', alias: it.alias || '', active: !!it.active })));
+        document.dispatchEvent(new CustomEvent('medobs:restored'));
+      })
+      .catch(() => {});
+  } catch (e) {
+    console.warn('Kunne ikke gjenopprette medobservatører fra server', e);
+  }
+}
+
+ensureMedobsRestored();
+
+function _normalizeMedobsForCompare(list) {
+  return JSON.stringify((list || []).map((it) => ({
+    name: it.name || '', alias: it.alias || '', active: !!it.active,
+  })));
+}
+
+/**
+ * Hent nyeste medobs-liste fra server og bruk den LOKALT hvis den faktisk er
+ * annerledes enn det som allerede ligger i localStorage. I motsetning til
+ * ensureMedobsRestored() (kun fersk/tom installasjon) kjøres denne hver gang
+ * noen eksplisitt ÅPNER medobs-modalen — svaret på «sjekker den serveren ved
+ * åpning?» skal være ja, ikke bare ved reinstallering.
+ *
+ * Bevisst siste-skriver-vinner, ingen ekte konfliktløsning (se CLAUDE.md): et
+ * annet nettbrett kan ha en nyere liste, og den vinner da over det som står
+ * lokalt her. Lite praktisk risiko — det er navn på folk, lett å legge til på
+ * nytt — og et bevisst enklere valg enn en full synk-protokoll.
+ *
+ * @returns {Promise<boolean>} true hvis lista faktisk ble oppdatert (kall-stedet
+ *   bør da tegne den på nytt), false ved uendret/offline/feil/ikke innlogget.
+ */
+export async function refreshMedobsFromServer() {
+  if (isOfflineMode()) return false;
+  const username = (window.localStorage.getItem('ao_username') || '').trim();
+  if (!username) return false;
+  try {
+    const resp = await fetch('/api/medobs-load', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username }),
+    });
+    if (!resp.ok) return false;
+    const data = await resp.json();
+    const serverList = Array.isArray(data && data.list) ? data.list : [];
+    if (serverList.length === 0) return false;
+
+    const normalizedServer = serverList.map((it) => ({ name: it.name || '', alias: it.alias || '', active: !!it.active }));
+    if (_normalizeMedobsForCompare(normalizedServer) === _normalizeMedobsForCompare(loadMedobs())) return false;
+
+    _writeMedobsLocal(normalizedServer);
+    return true;
+  } catch (e) {
+    console.warn('Kunne ikke hente medobservatører fra server', e);
+    return false;
   }
 }
 
@@ -791,5 +909,70 @@ export function loadLastKnownPosition() {
   } catch (_) {}
 
   return null;
+}
+
+// Hvor lenge en lagret "gjeldende lokasjon" regnes som fersk (se
+// saveCurrentPlace/loadCurrentPlace). Lang nok til å dekke en vanlig økt i
+// felt med et par refresher innimellom, kort nok til at en lokasjon fra en
+// tidligere feltdag ikke dukker opp uoppfordret neste gang appen åpnes.
+export const CURRENT_PLACE_TTL = 6 * 60 * 60 * 1000; // 6 timer
+
+/**
+ * Lagre hvilken lokasjon brukeren har valgt akkurat nå, uavhengig av om det
+ * allerede ligger en observasjon på den i arbeidslista.
+ *
+ * Uten dette finnes `currentPlaceName`/`currentPlaceId` i main.js kun i
+ * minnet — en reload (vanlig på Mac, uten GPS, der lokasjon ofte må velges
+ * manuelt) mistet da valget helt frem til brukeren hadde lagt til minst én
+ * observasjon, siden den gamle gjenopprettingen bare leste placeName/placeId
+ * fra SISTE lagrede observasjon.
+ * @param {string} placeName
+ * @param {string|number|null} placeId
+ * @returns {boolean}
+ */
+export function saveCurrentPlace(placeName, placeId = null) {
+  const name = typeof placeName === 'string' ? placeName.trim() : '';
+  if (!name) return false;
+
+  try {
+    const payload = { placeName: name, placeId: placeId ?? null, timestamp: Date.now() };
+    window.localStorage.setItem(CURRENT_PLACE_KEY, JSON.stringify(payload));
+    return true;
+  } catch (e) {
+    console.warn('Kunne ikke lagre gjeldende lokasjon til localStorage', e);
+    return false;
+  }
+}
+
+/**
+ * Fjern lagret "gjeldende lokasjon" (brukeren har tømt/byttet bort den aktivt).
+ */
+export function clearCurrentPlace() {
+  try {
+    window.localStorage.removeItem(CURRENT_PLACE_KEY);
+  } catch (_) {}
+}
+
+/**
+ * Hent sist lagrede "gjeldende lokasjon", eller null hvis ingen finnes eller
+ * den er eldre enn CURRENT_PLACE_TTL.
+ * @returns {{placeName: string, placeId: string|number|null}|null}
+ */
+export function loadCurrentPlace() {
+  if (typeof window === 'undefined' || !window.localStorage) return null;
+
+  try {
+    const raw = window.localStorage.getItem(CURRENT_PLACE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') return null;
+    const name = typeof parsed.placeName === 'string' ? parsed.placeName.trim() : '';
+    if (!name) return null;
+    if (typeof parsed.timestamp !== 'number' || Date.now() - parsed.timestamp > CURRENT_PLACE_TTL) return null;
+    return { placeName: name, placeId: parsed.placeId ?? null };
+  } catch (e) {
+    console.warn('Kunne ikke lese gjeldende lokasjon fra localStorage', e);
+    return null;
+  }
 }
 

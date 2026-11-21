@@ -10,7 +10,7 @@
 // og en manglende navngitt eksport gir SyntaxError som stopper HELE main.js,
 // ikke bare den ene funksjonen. Bump ved hver nye eksport vi blir avhengige
 // av. Samme fallgruve som storage.js-importen under og map.js sin api.js-import.
-import { logPageView, loadActivities, fetchAoSites, ensureAoPrivateSites } from './api.js?v=v1.61.6';
+import { logPageView, loadActivities, fetchAoSites, ensureAoPrivateSites } from './api.js?v=v1.64.0';
 // Versjonert import: denne linjen har en HARD avhengighet til to navngitte
 // eksporter (loadAoDirectAutoClear/saveAoDirectAutoClear) som ikke fantes i
 // tiderligere versjoner av storage.js. Uten ?v= her kan Cloudflare servere en
@@ -19,10 +19,10 @@ import { logPageView, loadActivities, fetchAoSites, ensureAoPrivateSites } from 
 // altså hele appen, se samme fallgruve for map.js/location.js (v1.53.15) og
 // sjekklisten i CLAUDE.md. Bump SAMTIDIG som index.html sin egen ?v=-tag for
 // main.js, hver gang storage.js får en ny eksport main.js begynner å bruke.
-import { loadObservations, saveObservations, loadAoSearchRadius, saveAoSearchRadius, loadLocationSortMode, saveLocationSortMode, loadAoDirectAutoClear, saveAoDirectAutoClear, saveLastKnownPosition, loadLastKnownPosition, activityDisplayName, lesArbeidslisteForOverforing, loadAllowUnknownCount, loadAllowEstimatedCount } from './storage.js?v=v1.61.6';
-import { setStatus, setLocationStatus, showToast, showOfflineNotAvailableDialog, haversine, MODE_SPLASH_DURATION_MS } from './ui.js?v=v1.61.6';
-import { t, applyTranslations } from './i18n.js?v=v1.61.6';
-import { DEFAULT_MAP_CENTER, setAoSiteSuggestions, initLocation, openMap, openMapPage, updateCreateSiteBtnVisibility, initCreateSite } from './location.js?v=v1.61.6';
+import { loadObservations, saveObservations, loadAoSearchRadius, saveAoSearchRadius, loadLocationSortMode, saveLocationSortMode, loadAoDirectAutoClear, saveAoDirectAutoClear, saveLastKnownPosition, loadLastKnownPosition, saveCurrentPlace, loadCurrentPlace, clearCurrentPlace, activityDisplayName, lesArbeidslisteForOverforing, loadAllowUnknownCount, loadAllowEstimatedCount } from './storage.js?v=v1.64.0';
+import { setStatus, setLocationStatus, showToast, showOfflineNotAvailableDialog, haversine, MODE_SPLASH_DURATION_MS } from './ui.js?v=v1.64.0';
+import { t, applyTranslations } from './i18n.js?v=v1.64.0';
+import { DEFAULT_MAP_CENTER, setAoSiteSuggestions, initLocation, openMap, openMapPage, updateCreateSiteBtnVisibility, initCreateSite } from './location.js?v=v1.64.0';
 // Versjonert import: observations.js sitt eget innhold (ikke bare hvilke
 // eksporter den har) endret seg vesentlig i dag (speciesDisplayName-bruk i
 // ③-lista og slett-toasten). En stale cachet kopi av selve FILEN - ikke bare
@@ -32,7 +32,7 @@ import { DEFAULT_MAP_CENTER, setAoSiteSuggestions, initLocation, openMap, openMa
 // timer, uten noen SyntaxError som varsler om det (funksjonene fantes jo
 // allerede - bare med gammel logikk). Se species-search.js/
 // observation-commit.js under for samme fiks, og docs/CLAUDE.md.
-import { renderObservations } from './observations.js?v=v1.61.6';
+import { renderObservations } from './observations.js?v=v1.64.0';
 import { getVisitTimeSpan, isVisitLocked, visitExists } from './visits.js';
 
 // Nye moduler
@@ -43,18 +43,18 @@ import { updateSectionStates, pulseSearchFieldAndFocus } from './form-state.js';
 // gang har vært versjonert. Dette var den faktiske årsaken til at Kjetil
 // testet v1.53.25 og fortsatt bare så gammel oppførsel i vanlig søk -
 // nettleseren hans hadde en cachet species-search.js fra v1.53.24.
-import { fetchResults, renderResults, chooseItem, updateSubtaxaCheckboxState } from './species-search.js?v=v1.61.6';
-import { commitObservation, renderActivityPills } from './observation-commit.js?v=v1.61.6';
+import { fetchResults, renderResults, chooseItem, updateSubtaxaCheckboxState } from './species-search.js?v=v1.64.0';
+import { commitObservation, renderActivityPills } from './observation-commit.js?v=v1.64.0';
 import { handleExport, handleCopy, handleCopyAndOpen, handleClear, handleDirectSend, oppdaterAoKoHint, aoSendingPagar }
-  from './export-operations.js?v=v1.61.6';
+  from './export-operations.js?v=v1.64.0';
 import { openShareDialog } from './share.js';
-import { initAutocomplete } from './autocomplete.js?v=v1.61.6';
-import { initNewsSplash } from './news-splash.js?v=v1.61.6';
-import { initFirstRunHint, shouldShowHint } from './first-run-hint.js?v=v1.61.6';
+import { initAutocomplete } from './autocomplete.js?v=v1.64.0';
+import { initNewsSplash } from './news-splash.js?v=v1.64.0';
+import { initFirstRunHint, shouldShowHint } from './first-run-hint.js?v=v1.64.0';
 import { hentAktivFellestur, forlatFellestur } from './fellestur-client.js';
 import { oppdaterSpeilFraServer, hentSpeilVersjon, lastSpeil } from './fellestur-sync.js';
 import { aktivInnhentetListe, lukkInnhentetListe } from './arbeidsliste-lokal.js';
-import { initArbeidslisteOverforing } from './arbeidsliste-overforing.js?v=v1.61.6';
+import { initArbeidslisteOverforing } from './arbeidsliste-overforing.js?v=v1.64.0';
 import {
   getNetworkMode,
   cycleNetworkMode,
@@ -64,8 +64,8 @@ import {
   fetchLocationsWithNetworkMode,
   saveOpportunisticOfflineLocations,
   syncNetworkModeToServiceWorker,
-} from './offline-db.js?v=v1.61.6';
-import { hentAoMeldinger, totalAoMeldinger } from './ao-messages.js?v=v1.61.6';
+} from './offline-db.js?v=v1.64.0';
+import { hentAoMeldinger, totalAoMeldinger } from './ao-messages.js?v=v1.64.0';
 
 // ============================================================
 // Applikasjonstilstand
@@ -291,7 +291,9 @@ function renderAoStatusBadge(statusDot, username, hasCredentials) {
   }
 }
 
-function updateAoDirectVisibility() {
+let aoVisningsBrukernavn = null;
+
+function renderAoDirectVisibility() {
   // Badgen oppdateres FØR noen tidlige returer, slik at den aldri blir stående tom
   // selv om resten av innloggingsraden ikke finnes på siden.
   let username = '';
@@ -303,22 +305,26 @@ function updateAoDirectVisibility() {
     // localStorage utilgjengelig → behandles som ikke innlogget
   }
   renderAoStatusBadge(document.getElementById('ao-status-dot'), username, hasCredentials);
-  // Henter og viser selv — uavhengig av hasCredentials (bygger på egne
-  // AO-tokens, ikke det lagrede passordet), og uten tidlig retur hvis resten
-  // av innloggingsraden under ikke finnes på siden.
-  oppdaterAoMeldingBadge();
-  if (!dom.aoDirectRow) return;
-  dom.aoDirectRow.style.display = hasCredentials ? 'block' : 'none';
-  // Ligger det funn til gjennomgang hos AO fra før, skal brukeren vite det FØR sending
-  // (scoped publisering lar dem stå). Best-effort og cachet — se oppdaterAoKoHint().
-  if (hasCredentials) {
-    oppdaterAoKoHint(dom);
-  } else if (dom.aoKoHint) {
-    dom.aoKoHint.style.display = 'none';
+  if (dom.aoDirectRow) dom.aoDirectRow.style.display = hasCredentials ? 'block' : 'none';
+  if (!hasCredentials || username !== aoVisningsBrukernavn) {
+    // Tellere fra forrige konto skal ikke bli stående ved utlogging/kontobytte.
+    if (dom.aoKoHint) dom.aoKoHint.style.display = 'none';
+    const mailLink = document.getElementById('ao-mail-link');
+    if (mailLink) mailLink.style.display = 'none';
   }
+  aoVisningsBrukernavn = username;
   // Uten innlogging: vis CTA så nye brukere ser at direkte publisering finnes
   const loginCta = document.getElementById('ao-login-cta');
   if (loginCta) loginCta.style.display = hasCredentials ? 'none' : 'flex';
+  return hasCredentials;
+}
+
+function updateAoDirectVisibility() {
+  const hasCredentials = renderAoDirectVisibility();
+  // Disse oppslagene kan bruke nettverket. Lokal visning ved kontobytte eller
+  // gjenopptakelse av en fane skal ikke utløse dem.
+  oppdaterAoMeldingBadge();
+  if (dom.aoDirectRow && hasCredentials) oppdaterAoKoHint(dom);
 }
 
 /**
@@ -730,6 +736,7 @@ function makeSetCurrentPlaceAndUpdate() {
     avsluttEtterregistrering();
     appState.currentPlaceName = name;
     appState.currentPlaceId = siteId;
+    saveCurrentPlace(name, siteId);
     if (dom.placeInput) {
       dom.placeInput.value = name;
       dom.placeInput.dataset.autofilled = 'true';
@@ -927,6 +934,7 @@ function setupEventListeners() {
     if (!placeName) return;
     appState.currentPlaceName = placeName;
     appState.currentPlaceId = (e.detail && e.detail.placeId) || null;
+    saveCurrentPlace(placeName, appState.currentPlaceId);
     if (dom.placeInput) {
       dom.placeInput.value = placeName;
       dom.placeInput.dataset.autofilled = 'true';
@@ -968,12 +976,22 @@ function setupEventListeners() {
   }
 
   if (dom.placeInput) {
+    // Debounces lagringen til localStorage (samme mønster som radiusHentTimer
+    // under) — uten den skriver hvert enkelt tastetrykk i et manuelt innslått
+    // stedsnavn synkront til disk.
+    let placeInputSaveTimer = null;
     dom.placeInput.addEventListener('input', () => {
       // Manuell redigering fjerner alltid ID — ID kjem berre frå dropdown-val
       avsluttEtterregistrering();
       appState.currentPlaceId = null;
       dom.placeInput.dataset.autofilled = 'false';
       appState.currentPlaceName = dom.placeInput.value;
+      clearTimeout(placeInputSaveTimer);
+      const name = appState.currentPlaceName;
+      placeInputSaveTimer = setTimeout(() => {
+        if (name.trim()) saveCurrentPlace(name, null);
+        else clearCurrentPlace();
+      }, 400);
       updateSectionStates(appState, dom);
     });
   }
@@ -1245,6 +1263,33 @@ async function init() {
     }
     localStorage.removeItem('selectedLocation');
     localStorage.removeItem('selectedLocationId');
+    saveCurrentPlace(selectedLocation, appState.currentPlaceId);
+  } else {
+    // Ingen eksplisitt kartvalg akkurat nå — gjenopprett lokasjonen brukeren
+    // satt FØR en reload (Mac/PC uten GPS mister ellers valget ved hver
+    // Cmd+R, siden loadState() over kun kan gjette den fra siste lagrede
+    // OBSERVASJON). Kun fersk innenfor CURRENT_PLACE_TTL (storage.js) —
+    // en ukes gammel lokasjon skal ikke dukke opp uoppfordret.
+    //
+    // Bevisst prioritet: dette vinner over loadState() sin gjetning fra siste
+    // observasjon, selv om den gjetningen akkurat ble satt over. Det er selve
+    // poenget — den vanlige feilen er at gjetningen peker på et ELDRE sted enn
+    // det brukeren nettopp valgte, ikke omvendt. Kjent, akseptert bieffekt: er
+    // SISTE observasjons sted endret via redigeringsmodalen (ikke via et nytt
+    // lokasjonsvalg) siden forrige eksplisitte valg, og brukeren reloader
+    // innen TTL-vinduet UTEN å velge sted på nytt, vises det gamle valget i
+    // ① i stedet for det nettopp redigerte. Smalt og lavt i konsekvens
+    // (feilutfylt forslagsfelt, ikke feil i lagrede data) — ikke verdt
+    // kompleksiteten av en ekte "hva skjedde sist"-sammenligning for dette.
+    const gjeldende = loadCurrentPlace();
+    if (gjeldende) {
+      appState.currentPlaceName = gjeldende.placeName;
+      appState.currentPlaceId = gjeldende.placeId;
+      if (dom.placeInput) {
+        dom.placeInput.value = gjeldende.placeName;
+        dom.placeInput.dataset.autofilled = 'true';
+      }
+    }
   }
 
   setupEventListeners();
@@ -1256,6 +1301,7 @@ async function init() {
         avsluttEtterregistrering();
         appState.currentPlaceName = name;
         appState.currentPlaceId = id;
+        saveCurrentPlace(name, id);
         dom.placeInput.dataset.autofilled = 'true';
         updateSectionStates(appState, dom);
         collapseLocation();
@@ -1554,15 +1600,18 @@ export function updateOfflineModeUI() {
     }
   }
 
-  // Deaktiver "Fellestur", "Tidligere sendt" og "Mine delinger" i offline-modus
+  // Deaktiver "Fellestur", "Tidligere sendt", "Mine delinger" og
+  // "Artsobservasjoner" i offline-modus — alle fire krever nettverk mot AO
   const fellesturBtn = document.getElementById('fellestur-header-btn');
   const sendtBtn = document.getElementById('tidligere-sendt-link');
   const delingerBtn = document.getElementById('mine-delinger-link');
+  const artsobservasjonerBtn = document.getElementById('artsobservasjoner-nav-btn');
 
   [
     { el: fellesturBtn, navn: t('main.nav.fellestur') },
     { el: sendtBtn, navn: t('main.nav.sendt') },
     { el: delingerBtn, navn: t('main.nav.delinger') },
+    { el: artsobservasjonerBtn, navn: t('main.nav.artsobservasjoner') },
   ].forEach(({ el, navn }) => {
     if (!el) return;
     el.classList.toggle('is-offline-disabled', offline);
@@ -1580,7 +1629,11 @@ export function updateOfflineModeUI() {
  * og vis dialogen "Ikke tilgjengelig i offline-modus!".
  */
 function setupOfflineDisabledInterceptors() {
-  const intercept = (el, navn) => {
+  // `onAllowed` kjører i stedet for elementets egen standardoppførsel når
+  // IKKE offline — brukt av Artsobservasjoner-knappen under, som er en
+  // <button> uten href og derfor ikke har noen standardnavigasjon å falle
+  // tilbake på i det hele tatt.
+  const intercept = (el, navn, onAllowed) => {
     if (!el) return;
     el.addEventListener('click', (e) => {
       if (isOfflineMode()) {
@@ -1590,6 +1643,8 @@ function setupOfflineDisabledInterceptors() {
           t('main.offline_dialog.title'),
           t('main.offline_dialog.body', { navn })
         );
+      } else if (onAllowed) {
+        onAllowed();
       }
     });
   };
@@ -1597,6 +1652,9 @@ function setupOfflineDisabledInterceptors() {
   intercept(document.getElementById('fellestur-header-btn'), t('main.nav.fellestur'));
   intercept(document.getElementById('tidligere-sendt-link'), t('main.nav.sendt'));
   intercept(document.getElementById('mine-delinger-link'), t('main.nav.delinger'));
+  intercept(document.getElementById('artsobservasjoner-nav-btn'), t('main.nav.artsobservasjoner'), () => {
+    location.href = '/artsobservasjoner.html';
+  });
 }
 
 /**
@@ -1690,9 +1748,13 @@ document.addEventListener('i18n:language-changed', () => {
 // Gjenopprettet fra bfcache (tilbake-knappen) eller vanlig navigasjon —
 // les innlogging og nettverksmodus på nytt så badge og modusvelger aldri er utdatert.
 window.addEventListener('pageshow', () => {
-  updateAoDirectVisibility();
+  renderAoDirectVisibility();
   updateOfflineModeUI();
   syncNetworkModeToServiceWorker(getNetworkMode()).catch(() => {});
+});
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') renderAoDirectVisibility();
 });
 
 window.addEventListener('network_mode_changed', () => {
@@ -1700,6 +1762,9 @@ window.addEventListener('network_mode_changed', () => {
 });
 
 window.addEventListener('storage', (e) => {
+  if (!e || !e.key || ['ao_username', 'ao_password', 'ao_tokens'].includes(e.key)) {
+    renderAoDirectVisibility();
+  }
   if (!e || !e.key || e.key === 'network_mode_v1' || e.key === 'offline_mode_v1') {
     updateOfflineModeUI();
   }

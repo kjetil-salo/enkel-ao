@@ -1,0 +1,351 @@
+<!doctype html>
+<html lang="nb">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Artsobservasjoner – Fugleobservasjoner</title>
+    <link rel="icon" href="/favicon.png" type="image/png" />
+    <link rel="apple-touch-icon" href="/icon-192.png" />
+    <link rel="manifest" href="/manifest.json">
+    <link rel="stylesheet" href="style.css?v=v1.64.0" />
+    <style>
+      .settings-card {
+        background: var(--card-bg, #111827);
+        border-radius: 16px;
+        padding: 24px 18px 18px 18px;
+        max-width: 680px;
+        width: calc(100% - 32px);
+        margin: 32px auto 0 auto;
+        box-shadow: 0 8px 32px rgba(30,40,60,0.13);
+      }
+      body.theme-light {
+        background: #ffffff !important;
+        color: #1a1a1a !important;
+      }
+      body.theme-light .settings-card {
+        background: #ffffff !important;
+        border: 1px solid #e2e8f0 !important;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08) !important;
+      }
+      .ao-sites-list {
+        max-height: 320px;
+        overflow-y: auto;
+        border: 1px solid rgba(148,163,184,0.15);
+        border-radius: 8px;
+      }
+      .ao-sites-list-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        padding: 8px 12px;
+        font-size: 0.9em;
+        border-bottom: 1px solid rgba(148,163,184,0.1);
+      }
+      .ao-sites-list-item:last-child { border-bottom: none; }
+      .ao-species-stat {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 2px;
+        padding: 10px 14px;
+        border-radius: 10px;
+        background: rgba(59,130,246,0.1);
+        border: 1px solid rgba(59,130,246,0.25);
+        min-width: 100px;
+      }
+      .ao-species-stat-n { font-size: 1.5em; font-weight: 700; }
+      .ao-species-stat-label { font-size: 0.78em; color: var(--muted,#aaa); }
+    </style>
+  </head>
+  <body style="margin:0;min-height:100vh;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:radial-gradient(circle at top,#1f2937 0,#020617 55%);color:var(--text,#e5e7eb);padding:6px 0 0 0;">
+    <script src="/js/theme.js"></script>
+    <div class="settings-card" style="background:linear-gradient(145deg,rgba(15,23,42,0.96),rgba(15,23,42,0.92));border-radius:10px;border:1px solid rgba(148,163,184,0.12);box-shadow:0 12px 28px rgba(15,23,42,0.72),0 0 0 1px rgba(15,23,42,0.9);padding:24px 32px 24px 32px;overflow:visible;backdrop-filter:blur(14px);">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+        <h2 style="margin:0;display:flex;align-items:center;gap:8px;">
+          <img src="/img/ao-favicon.png" width="24" height="24" alt="" style="border-radius:4px;">
+          <span data-i18n="ao_page.title">Artsobservasjoner</span>
+        </h2>
+        <a href="/" style="color:#3b82f6;text-decoration:none;font-size:0.9rem;padding:6px 12px;border-radius:8px;" data-i18n="profile.back_link">← Tilbake</a>
+      </div>
+
+      <div id="ao-not-logged-in" style="display:none;font-size:0.88em;color:var(--muted,#aaa);">
+        <p data-i18n="ao_page.not_logged_in">Logg inn med Artsobservasjoner-kontoen din for å se meldinger, lokaliteter og arts-tall.</p>
+        <p><a href="/profil.html" style="color:#3b82f6;text-decoration:none;" data-i18n="ao_page.login_link">Gå til profilsiden for å logge inn →</a></p>
+      </div>
+
+      <div id="ao-content">
+        <!-- Arts-statistikk -->
+        <div>
+          <h3 style="margin:0 0 4px 0;font-size:1em;color:var(--text,#e5e7eb);" data-i18n="ao_page.species_heading">Mine fuglearter</h3>
+          <p style="font-size:0.82em;color:var(--muted,#aaa);margin:0 0 12px 0;" data-i18n="ao_page.species_desc">Hentet fra Artsobservasjoner. Andre artsgrupper (f.eks. pattedyr) kommer i en senere versjon.</p>
+          <div id="ao-species-body" style="display:flex;gap:12px;flex-wrap:wrap;">
+            <p style="margin:0;color:var(--muted,#aaa);" data-i18n="ao_page.species_loading">⏳ Henter …</p>
+          </div>
+        </div>
+
+        <!-- Dine lokaliteter -->
+        <div style="margin-top:22px;padding-top:18px;border-top:1px solid rgba(148,163,184,0.12);">
+          <div style="display:flex;align-items:center;justify-content:space-between;">
+            <h3 style="margin:0 0 4px 0;font-size:1em;color:var(--text,#e5e7eb);" data-i18n="ao_page.sites_heading">Dine lokaliteter</h3>
+            <button type="button" id="ao-sites-refresh-btn" style="padding:6px 10px;border-radius:8px;border:1px solid rgba(148,163,184,0.3);background:transparent;color:var(--text,#e5e7eb);font-size:0.82em;cursor:pointer;" data-i18n="ao_page.sites_refresh_btn">🔄 Oppdater</button>
+          </div>
+          <p style="font-size:0.82em;color:var(--muted,#aaa);margin:0 0 12px 0;" data-i18n="ao_page.sites_desc">Private lokaliteter du har opprettet på Artsobservasjoner.</p>
+          <div id="ao-sites-body">
+            <p style="margin:0;color:var(--muted,#aaa);" data-i18n="ao_page.sites_loading">⏳ Henter …</p>
+          </div>
+        </div>
+
+        <!-- Meldinger (flyttet hit fra profil.html, se docs/ao-meldinger.md) -->
+        <div id="ao-messages-section" style="display:none;margin-top:22px;padding-top:18px;border-top:1px solid rgba(148,163,184,0.12);">
+          <h3 style="margin:0 0 4px 0;font-size:1em;color:var(--text,#e5e7eb);" data-i18n="settings.ao_messages.heading">Meldinger fra Artsobservasjoner</h3>
+          <p style="font-size:0.82em;color:var(--muted,#aaa);margin:0 0 12px 0;" data-i18n="settings.ao_messages.desc">
+            De fleste er sjelden innom artsobservasjoner.no lenger — her ser du om noen venter på svar derfra, f.eks. en admin som ber deg rette et funn.
+          </p>
+          <div id="ao-messages-body" style="font-size:0.88em;"></div>
+          <button type="button" id="ao-messages-fetch-preview-btn" style="margin-top:12px;padding:8px 12px;border-radius:8px;border:1px solid rgba(148,163,184,0.3);background:transparent;color:var(--text,#e5e7eb);font-size:0.9em;cursor:pointer;" data-i18n="settings.ao_messages.fetch_preview_btn">📨 Hent meldinger fra AO</button>
+          <p style="margin:6px 0 0 0;font-size:0.78em;color:var(--muted,#aaa);" data-i18n="settings.ao_messages.notif_preview_warning">Å vise disse markerer dem som lest hos Artsobservasjoner — tallet over forsvinner.</p>
+          <div id="ao-messages-preview-body" style="font-size:0.82em;margin-top:10px;"></div>
+          <div id="ao-notifications-preview-body" style="font-size:0.82em;margin-top:10px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <script type="module">
+      import { t, applyTranslations } from './js/i18n.js?v=v1.64.0';
+      import { hentAoMeldinger, hentAoInnboksForhandsvisning, hentAoSamtaleSisteMelding, hentAoDriftsmeldingerForhandsvisning } from './js/ao-messages.js?v=v1.64.0';
+      import { hentAoArtstall } from './js/ao-species-stats.js?v=v1.64.0';
+      import { getCachedPrivateSites, ensureAoTokens, fetchAndCachePrivateSites, hasActiveAoLogin } from './js/api.js?v=v1.64.0';
+
+      applyTranslations();
+      document.title = t('ao_page.page_title');
+
+      function _esc(s) {
+        return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+      }
+
+      const innlogget = hasActiveAoLogin();
+      document.getElementById('ao-not-logged-in').style.display = innlogget ? 'none' : 'block';
+      document.getElementById('ao-content').style.display = innlogget ? 'block' : 'none';
+
+      // ============================================================
+      // Arts-statistikk
+      // ============================================================
+      function renderArtstall(data) {
+        const body = document.getElementById('ao-species-body');
+        if (!data || (data.fuglerTotalt == null && data.fuglerIAr == null)) {
+          body.innerHTML = `<p style="margin:0;color:var(--muted,#aaa);">${t('ao_page.species_unknown')}</p>`;
+          return;
+        }
+        const aar = new Date().getFullYear();
+        let html = '';
+        if (data.fuglerTotalt != null) {
+          html += `<div class="ao-species-stat"><span class="ao-species-stat-n">${data.fuglerTotalt}</span><span class="ao-species-stat-label">${_esc(t('ao_page.species_total'))}</span></div>`;
+        }
+        if (data.fuglerIAr != null) {
+          html += `<div class="ao-species-stat"><span class="ao-species-stat-n">${data.fuglerIAr}</span><span class="ao-species-stat-label">${_esc(t('ao_page.species_year', { year: aar }))}</span></div>`;
+        }
+        body.innerHTML = html || `<p style="margin:0;color:var(--muted,#aaa);">${t('ao_page.species_unknown')}</p>`;
+      }
+
+      async function lastArtstall() {
+        const data = await hentAoArtstall();
+        renderArtstall(data);
+      }
+
+      // ============================================================
+      // Dine lokaliteter
+      // ============================================================
+      function renderLokaliteter(sites) {
+        const body = document.getElementById('ao-sites-body');
+        if (!Array.isArray(sites)) {
+          body.innerHTML = `<p style="margin:0;color:var(--muted,#aaa);">${t('ao_page.sites_unknown')}</p>`;
+          return;
+        }
+        if (sites.length === 0) {
+          body.innerHTML = `<p style="margin:0;color:var(--muted,#aaa);">${t('ao_page.sites_empty')}</p>`;
+          return;
+        }
+        const sortert = [...sites].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'nb'));
+        const rader = sortert.map((site) => {
+          const kart = (site.lat != null && site.lon != null)
+            ? `<a href="https://www.openstreetmap.org/?mlat=${site.lat}&mlon=${site.lon}#map=15/${site.lat}/${site.lon}" target="_blank" rel="noopener" title="${_esc(t('ao_page.sites_map_link_title', { name: site.name }))}" style="text-decoration:none;">${t('ao_page.sites_map_link')}</a>`
+            : '';
+          return `<div class="ao-sites-list-item"><span>${_esc(site.name)}</span>${kart}</div>`;
+        }).join('');
+        body.innerHTML = `<p style="margin:0 0 8px 0;font-size:0.82em;color:var(--muted,#aaa);">${_esc(t('ao_page.sites_count', { n: sites.length }))}</p>`
+          + `<div class="ao-sites-list">${rader}</div>`;
+      }
+
+      function lastLokaliteter() {
+        // Selve innlogging+henting gjøres samlet av ensureAoTokens() FØR denne
+        // kalles (se bunnen av fila) — her er cachen allerede ferskest mulig.
+        renderLokaliteter(getCachedPrivateSites());
+      }
+
+      document.getElementById('ao-sites-refresh-btn').addEventListener('click', async () => {
+        const btn = document.getElementById('ao-sites-refresh-btn');
+        btn.disabled = true;
+        await fetchAndCachePrivateSites();
+        renderLokaliteter(getCachedPrivateSites());
+        btn.disabled = false;
+      });
+
+      // ============================================================
+      // Meldinger fra Artsobservasjoner (flyttet fra profil.html)
+      // ============================================================
+      const aoMessagesSection = document.getElementById('ao-messages-section');
+      const aoMessagesBody = document.getElementById('ao-messages-body');
+      const aoMessagesPreviewBody = document.getElementById('ao-messages-preview-body');
+      const aoNotificationsPreviewBody = document.getElementById('ao-notifications-preview-body');
+
+      function renderAoMessages(data) {
+        aoMessagesPreviewBody.innerHTML = '';
+        aoNotificationsPreviewBody.innerHTML = '';
+        if (!data || (data.nyeMeldinger == null && data.nyeVarsler == null)) {
+          aoMessagesBody.innerHTML = `<p style="margin:0;color:var(--muted,#aaa);">${t('settings.ao_messages.unknown')}</p>`;
+          return;
+        }
+        const total = (data.nyeMeldinger || 0) + (data.nyeVarsler || 0);
+        if (total === 0) {
+          aoMessagesBody.innerHTML = `<p style="margin:0;">${t('settings.ao_messages.none')}</p>`;
+          return;
+        }
+        const linkStyle = 'display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border-radius:8px;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.3);color:inherit;text-decoration:none;';
+        let html = '<div style="display:flex;flex-direction:column;gap:8px;">';
+        if (data.nyeMeldinger) {
+          html += `<a href="https://www.artsobservasjoner.no/Communication/Inbox" target="_blank" rel="noopener" style="${linkStyle}">`
+            + `<span>${t('settings.ao_messages.inbox', { n: data.nyeMeldinger })}</span>`
+            + `<span style="color:#60a5fa;font-weight:600;">${t('settings.ao_messages.open_inbox')}</span></a>`;
+        }
+        if (data.nyeVarsler) {
+          html += `<a href="https://www.artsobservasjoner.no/Notification/History" target="_blank" rel="noopener" style="${linkStyle}">`
+            + `<span>${t('settings.ao_messages.notifications', { n: data.nyeVarsler })}</span>`
+            + `<span style="color:#60a5fa;font-weight:600;">${t('settings.ao_messages.open_notifications')}</span></a>`;
+        }
+        html += '</div>';
+        aoMessagesBody.innerHTML = html;
+      }
+
+      function renderForhandsvisning(rader) {
+        const heading = `<p style="margin:0 0 6px 0;font-weight:600;font-size:0.85em;">${t('settings.ao_messages.preview_inbox_heading')}</p>`;
+        if (rader === null) {
+          aoMessagesPreviewBody.innerHTML = heading + `<p style="margin:0;color:var(--muted,#aaa);">${t('settings.ao_messages.preview_unknown')}</p>`;
+          return;
+        }
+        if (rader.length === 0) {
+          aoMessagesPreviewBody.innerHTML = heading + `<p style="margin:0;color:var(--muted,#aaa);">${t('settings.ao_messages.preview_empty')}</p>`;
+          return;
+        }
+        const itemStyle = 'padding:8px 10px;border-radius:8px;background:rgba(148,163,184,0.08);margin-bottom:6px;';
+        aoMessagesPreviewBody.innerHTML = heading + rader.map((rad) => {
+          const ulestMerke = rad.ulest ? '<span style="color:#3b82f6;">●</span> ' : '';
+          const avsender = rad.avsender ? `<strong>${_esc(rad.avsender)}</strong> — ` : '';
+          const dato = rad.dato ? `<span style="color:var(--muted,#aaa);font-size:0.9em;"> (${_esc(rad.dato)})</span>` : '';
+          const header = `${ulestMerke}${avsender}${_esc(rad.tittel || '')}${dato}`;
+          const visSisteBtn = rad.samtaleId
+            ? `<button type="button" class="ao-vis-siste-btn" data-samtale-id="${rad.samtaleId}" style="padding:4px 9px;border-radius:6px;border:1px solid rgba(148,163,184,0.3);background:transparent;color:var(--text,#e5e7eb);font-size:0.82em;cursor:pointer;">${t('settings.ao_messages.preview_show_latest_btn')}</button>`
+            : '';
+          const aapneLenke = rad.href
+            ? `<a href="${_esc(rad.href)}" target="_blank" rel="noopener" style="color:#60a5fa;font-size:0.82em;text-decoration:none;">${t('settings.ao_messages.preview_open_in_ao')}</a>`
+            : '';
+          return `<div class="ao-forhandsvisning-rad" style="${itemStyle}">`
+            + `<div>${header}</div>`
+            + `<div style="margin-top:6px;display:flex;align-items:center;gap:12px;">${visSisteBtn}${aapneLenke}</div>`
+            + `<div class="ao-siste-melding" style="display:none;margin-top:8px;padding-top:8px;border-top:1px solid rgba(148,163,184,0.15);white-space:pre-line;font-size:0.95em;"></div>`
+            + `</div>`;
+        }).join('');
+      }
+
+      aoMessagesPreviewBody.addEventListener('click', async (e) => {
+        const btn = e.target.closest('.ao-vis-siste-btn');
+        if (!btn) return;
+        const samtaleId = parseInt(btn.dataset.samtaleId, 10);
+        const målDiv = btn.closest('.ao-forhandsvisning-rad').querySelector('.ao-siste-melding');
+        btn.disabled = true;
+        btn.textContent = t('settings.ao_messages.preview_loading_message');
+        const melding = await hentAoSamtaleSisteMelding(samtaleId);
+        if (!melding) {
+          målDiv.style.display = 'block';
+          målDiv.innerHTML = `<span style="color:var(--muted,#aaa);">${t('settings.ao_messages.preview_message_unknown')}</span>`;
+          btn.disabled = false;
+          btn.textContent = t('settings.ao_messages.preview_show_latest_btn');
+          return;
+        }
+        const avsender = melding.avsender ? `<strong>${_esc(melding.avsender)}</strong>` : '';
+        const tid = melding.tidTekst ? `<span style="color:var(--muted,#aaa);font-size:0.85em;"> (${_esc(melding.tidTekst)})</span>` : '';
+        målDiv.innerHTML = `${avsender}${tid}<br>${_esc(melding.tekst || '')}`;
+        målDiv.style.display = 'block';
+        btn.remove();
+      });
+
+      function renderDriftsmeldingerForhandsvisning(rader) {
+        const heading = `<p style="margin:0 0 6px 0;font-weight:600;font-size:0.85em;">${t('settings.ao_messages.preview_notifications_heading')}</p>`;
+        if (rader === null) {
+          aoNotificationsPreviewBody.innerHTML = heading + `<p style="margin:0;color:var(--muted,#aaa);">${t('settings.ao_messages.preview_unknown')}</p>`;
+          return;
+        }
+        if (rader.length === 0) {
+          aoNotificationsPreviewBody.innerHTML = heading + `<p style="margin:0;color:var(--muted,#aaa);">${t('settings.ao_messages.preview_empty')}</p>`;
+          return;
+        }
+        const itemStyle = 'padding:8px 10px;border-radius:8px;background:rgba(148,163,184,0.08);margin-bottom:6px;';
+        aoNotificationsPreviewBody.innerHTML = heading + rader.map((rad) => {
+          const ulestMerke = rad.ulest ? '<span style="color:#3b82f6;">●</span> ' : '';
+          const avsender = rad.avsender ? `<strong>${_esc(rad.avsender)}</strong> ` : '';
+          const tid = rad.tidTekst ? `<span style="color:var(--muted,#aaa);font-size:0.85em;"> (${_esc(rad.tidTekst)})</span>` : '';
+          return `<div style="${itemStyle}">${ulestMerke}${avsender}${_esc(rad.tekst || '')}${tid}</div>`;
+        }).join('');
+      }
+
+      const fetchPreviewBtn = document.getElementById('ao-messages-fetch-preview-btn');
+
+      async function hentOgVisForhandsvisninger() {
+        fetchPreviewBtn.disabled = true;
+        fetchPreviewBtn.textContent = t('settings.ao_messages.preview_loading');
+        const [innboksRader, driftsRader] = await Promise.all([
+          hentAoInnboksForhandsvisning(),
+          hentAoDriftsmeldingerForhandsvisning(),
+        ]);
+        renderForhandsvisning(innboksRader);
+        renderDriftsmeldingerForhandsvisning(driftsRader);
+        fetchPreviewBtn.disabled = false;
+        fetchPreviewBtn.textContent = t('settings.ao_messages.preview_refresh_btn');
+      }
+
+      fetchPreviewBtn.addEventListener('click', hentOgVisForhandsvisninger);
+
+      async function lastMeldinger({ force = false } = {}) {
+        const tokens = JSON.parse(localStorage.getItem('ao_tokens') || '{}');
+        if (!tokens.loginToken || !tokens.authCookie) {
+          aoMessagesSection.style.display = 'none';
+          return;
+        }
+        aoMessagesSection.style.display = 'block';
+        aoMessagesBody.innerHTML = '<p style="margin:0;color:var(--muted,#aaa);">⏳ …</p>';
+        const data = await hentAoMeldinger({ force });
+        renderAoMessages(data);
+      }
+
+      // ensureAoTokens() logger inn med lagret brukernavn/passord hvis
+      // tokens mangler (samme funksjon map.js/autocomplete.js bruker) — uten
+      // dette samlede steget ville en bruker med KUN lagret passord (ingen
+      // ao_tokens ennå) sett lokaliteter (som trigger sin egen innlogging via
+      // ensureAoPrivateSites) mens arter/meldinger feilet ved siden av, selv
+      // om innloggingen akkurat lyktes.
+      async function lastInnholdNarInnlogget() {
+        // force:true — vi kan nettopp ha logget inn på nytt via
+        // ensureAoTokens() over, og den gamle 10-minutters meldingscachen
+        // (ao-messages.js) skal ikke få vise et tall fra FØR innloggingen.
+        await ensureAoTokens();
+        lastArtstall();
+        lastLokaliteter();
+        lastMeldinger({ force: true });
+      }
+
+      if (innlogget) {
+        lastInnholdNarInnlogget();
+      }
+    </script>
+  </body>
+</html>
