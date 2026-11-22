@@ -1776,8 +1776,13 @@ body.theme-light #search:disabled::placeholder {
         }
       }
 
-      /* ===== To-kolonner layout (iPad, Mac, PC) ===== */
-      @media (min-width: 768px) and (min-height: 600px) {
+      /* ===== To-kolonner layout (iPad liggende, Mac, PC) =====
+         Hevet fra 768px (v1.62.1): ved 768px klemte grid-template-columns: 2fr 3fr
+         venstre kolonne ned til under 310px på iPad stående og smale nettleservinduer
+         — ③-kolonnen fikk da knapt plass til en tallknapp. 1024px er under iPad
+         liggende (1024×768) og over iPad stående (768×1024), så det er fortsatt
+         to kolonner nettopp der det er bredde nok til det. */
+      @media (min-width: 1024px) and (min-height: 600px) {
         .shell {
           max-width: 100%;
           padding: 0 12px;
