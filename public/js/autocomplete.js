@@ -6,7 +6,7 @@ import { getNetworkMode, getAllOfflineLocations } from './offline-db.js';
 import { haversine } from './utils.js';
 import { kontoKontekst, sammeKontoKontekst } from './arbeidsliste-sesjon.js';
 // Versjonert import: hard avhengighet til en navngitt eksport.
-import { ensureAoPrivateSites, getCachedPrivateSites, hasFreshPrivateSitesCache, loggInnMedLagretLegitimasjon, oppdaterAoTokensFraRespons } from './api.js?v=v1.64.0';
+import { ensureAoPrivateSites, getCachedPrivateSites, hasFreshPrivateSitesCache, loggInnMedLagretLegitimasjon, oppdaterAoTokensFraRespons } from './api.js?v=v1.64.1';
 
 // Serveren kan ikke lenger fornye en sesjon på brukernavn alene — passordet er
 // bundet til logintokenet (v1.60.18), og rader lagret før bindingen er fjernet.

@@ -24,7 +24,7 @@
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta name="twitter:card" content="summary_large_image" />
-    <link rel="stylesheet" href="style.css?v=v1.64.0" />
+    <link rel="stylesheet" href="style.css?v=v1.64.1" />
   </head>
   <body>
     <script src="/js/theme.js"></script>
@@ -152,7 +152,7 @@
         <script type="module">
           // Toppraden trappes ned bare så mye som faktisk trengs. Se
           // header-plass.js for hvorfor dette ikke kan gjøres i ren CSS.
-          import { tilpassHeader } from '/js/header-plass.js?v=v1.64.0';
+          import { tilpassHeader } from '/js/header-plass.js?v=v1.64.1';
 
           const appHeader = document.querySelector('.app-header');
 
@@ -595,20 +595,20 @@
         else bredVisning.addListener(plasserSendInn);
       })();
     </script>
-    <script type="module" src="/js/main.js?v=v1.64.0"></script>
+    <script type="module" src="/js/main.js?v=v1.64.1"></script>
     <script type="module">
       // Registrer Service Worker for offline-støtte.
       // Versjonert URL: Cloudflare overstyrer origin sin max-age=300 med 4 timer, så
       // en endret /sw.js kan bli liggende i edge-cachen og aldri nå installerte apper.
       // Bruk inline versjon her: /js/version.js kan selv være cachet i gammel versjon.
-      const VERSION = 'v1.64.0';
+      const VERSION = 'v1.64.1';
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register(`/sw.js?v=${VERSION}`).catch(() => {});
       }
     </script>
     <footer class="footer-credit">Versjon <span id="version"></span>  |  <a href="/changelog.html" style="color:var(--accent);text-decoration:none;">Endringslogg</a>  |  <a href="/feedback.html" style="color:var(--accent);text-decoration:none;">Gi tilbakemelding</a>  |  © 2026 Kjetil Salomonsen</footer>
     <script type="module">
-      const VERSION = 'v1.64.0';
+      const VERSION = 'v1.64.1';
       document.getElementById('version').textContent = VERSION;
     </script>
 
@@ -675,7 +675,7 @@
     </style>
     <script type="module">
       import { loadMedobs, saveMedobs, refreshMedobsFromServer } from './js/storage.js';
-      import { t } from './js/i18n.js?v=v1.64.0';
+      import { t } from './js/i18n.js?v=v1.64.1';
 
       const modal = document.getElementById('medobs-modal');
       const tbody = document.getElementById('medobs-modal-tbody');
@@ -1009,26 +1009,19 @@
 
       applyAllBtn.addEventListener('click', () => {
         const list = load();
-        const active = list.filter(m => m.active && m.name.trim()).map(m => m.name.trim());
+        const active = list.filter(m => m.active && m.name.trim())
+          .map(m => (m.alias ? { name: m.name.trim(), alias: m.alias } : m.name.trim()));
         if (active.length === 0) { alert('Ingen aktive medobservatører valgt.'); return; }
 
-        const obsKey = 'fugleobservasjoner_v1';
-        const raw = localStorage.getItem(obsKey);
-        if (!raw) { alert('Ingen observasjoner funnet.'); return; }
+        // Selve oppdateringen gjøres av main.js, som eier lista i minnet
+        // (appState.observations). Skrev vi rett til localStorage her, ble
+        // endringen overskrevet ved neste registrering — medobservatøren
+        // «falt ut» igjen av de tidligere obsene (tilbakemelding AO-TK66W).
+        const detail = { coObservers: active, antall: null };
+        document.dispatchEvent(new CustomEvent('obs:medobs-alle', { detail }));
+        if (!detail.antall) return;
 
-        const payload = JSON.parse(raw);
-        const obs = payload.observations || [];
-        if (obs.length === 0) { alert('Ingen observasjoner funnet.'); return; }
-
-        if (!confirm(`Legg til ${active.join(', ')} på alle ${obs.length} obs?`)) return;
-
-        const coObs = Array(10).fill('');
-        active.forEach((n, i) => { if (i < 10) coObs[i] = n; });
-        obs.forEach(o => { o.coObservers = [...coObs]; });
-        payload.observations = obs;
-        localStorage.setItem(obsKey, JSON.stringify(payload));
-
-        applyAllBtn.textContent = `Oppdatert ${obs.length} obs!`;
+        applyAllBtn.textContent = `Oppdatert ${detail.antall} obs!`;
         applyAllBtn.style.background = '#22c55e';
         setTimeout(() => { applyAllBtn.textContent = t('index.medobs.apply_all'); applyAllBtn.style.background = ''; }, 2500);
       });
@@ -1136,7 +1129,7 @@
       }
     </style>
     <script type="module">
-      import { initPhotoPicker } from './js/photo-picker.js?v=v1.64.0';
+      import { initPhotoPicker } from './js/photo-picker.js?v=v1.64.1';
 
       const extraModal = document.getElementById('extra-fields-modal');
       const extraOpenBtn = document.getElementById('extra-fields-open-btn');

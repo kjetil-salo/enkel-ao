@@ -3,10 +3,10 @@
  */
 import { hentAktivFellestur } from './fellestur-client.js';
 import { lastSpeil, lagreSpeilOgSynk, hentTurMedobservatorer } from './fellestur-sync.js';
-import { translateDedicatedSubspeciesToNynorsk } from './species-matcher.js?v=v1.64.0';
+import { translateDedicatedSubspeciesToNynorsk } from './species-matcher.js?v=v1.64.1';
 import { aktivInnhentetListe, lagreEndringerIInnhentetListe, lesInnhentetListe } from './arbeidsliste-lokal.js';
-import { getLanguage, setLanguage, isNynorsk } from './i18n.js?v=v1.64.0';
-import { isOfflineMode } from './offline-db.js?v=v1.64.0';
+import { getLanguage, setLanguage, isNynorsk } from './i18n.js?v=v1.64.1';
+import { isOfflineMode } from './offline-db.js?v=v1.64.1';
 
 export { isNynorsk };
 
@@ -146,7 +146,9 @@ export function ensureMedobsRestored() {
         if (list.length === 0) return;
         // Noen kan ha rukket å lagre noe lokalt mens kallet pågikk — ikke overskriv det.
         if (window.localStorage.getItem(MEDOBS_KEY)) return;
-        _writeMedobsLocal(list.map((it) => ({ name: it.name || '', alias: it.alias || '', active: !!it.active })));
+        // «Aktiv» gjenopprettes bevisst IKKE: det er dagens valg på DENNE enheten,
+        // og serverens flagg kan være fra en tidligere dag (se refreshMedobsFromServer).
+        _writeMedobsLocal(list.map((it) => ({ name: it.name || '', alias: it.alias || '', active: false })));
         document.dispatchEvent(new CustomEvent('medobs:restored'));
       })
       .catch(() => {});
@@ -159,7 +161,7 @@ ensureMedobsRestored();
 
 function _normalizeMedobsForCompare(list) {
   return JSON.stringify((list || []).map((it) => ({
-    name: it.name || '', alias: it.alias || '', active: !!it.active,
+    name: it.name || '', alias: it.alias || '',
   })));
 }
 
@@ -193,8 +195,18 @@ export async function refreshMedobsFromServer() {
     const serverList = Array.isArray(data && data.list) ? data.list : [];
     if (serverList.length === 0) return false;
 
-    const normalizedServer = serverList.map((it) => ({ name: it.name || '', alias: it.alias || '', active: !!it.active }));
-    if (_normalizeMedobsForCompare(normalizedServer) === _normalizeMedobsForCompare(loadMedobs())) return false;
+    // Serveren eier navn, alias og rekkefølge — ALDRI «aktiv». Flagget er dagens
+    // valg på denne enheten: serveren beholder gårsdagens `active: true`, mens
+    // loadMedobs() nullstiller det ved ny dag. Ble serverens flagg tatt inn her,
+    // ble gårsdagens medobservatører aktive igjen hver gang modalen ble åpnet, og
+    // et ferskt kryss kunne overskrives av en server-lagring som ennå ikke var
+    // sendt (800 ms debounce). Lokalt flagg beholdes derfor per navn.
+    const lokal = loadMedobs();
+    const lokaltAktiv = new Set(lokal.filter((it) => it && it.active).map((it) => it.name));
+    const normalizedServer = serverList.map((it) => ({
+      name: it.name || '', alias: it.alias || '', active: lokaltAktiv.has(it.name || ''),
+    }));
+    if (_normalizeMedobsForCompare(normalizedServer) === _normalizeMedobsForCompare(lokal)) return false;
 
     _writeMedobsLocal(normalizedServer);
     return true;
@@ -202,6 +214,26 @@ export async function refreshMedobsFromServer() {
     console.warn('Kunne ikke hente medobservatører fra server', e);
     return false;
   }
+}
+
+/**
+ * Legg medobservatører til på én observasjon uten å fjerne dem som står der.
+ * Brukt av «Legg til på alle obs» i medobs-modalen. Tidligere overskrev knappen
+ * hele lista, og mistet dermed både andre medobservatører og aliaset.
+ * @param {Array} eksisterende - obs.coObservers (strenger eller {name, alias}, gjerne med '')
+ * @param {Array} nye - strenger eller {name, alias}
+ * @returns {Array} 10 plasser, tomme som ''
+ */
+export function leggTilMedobservatorer(eksisterende, nye) {
+  const navnPaa = (it) => (it && typeof it === 'object' ? it.name : it) || '';
+  const res = (Array.isArray(eksisterende) ? eksisterende : []).filter((it) => navnPaa(it));
+  const har = new Set(res.map(navnPaa));
+  (nye || []).forEach((it) => {
+    const navn = navnPaa(it);
+    if (navn && !har.has(navn) && res.length < 10) { res.push(it); har.add(navn); }
+  });
+  while (res.length < 10) res.push('');
+  return res.slice(0, 10);
 }
 
 /**

@@ -9,7 +9,7 @@ const localStorageMock = {
 };
 vi.stubGlobal('localStorage', localStorageMock);
 
-const { loadMedobs, saveMedobs, defaultCoObservers, saveObservations, loadObservations, saveAoDirectAutoClear, loadAoDirectAutoClear, saveNynorskArtsnavn, loadNynorskArtsnavn, speciesDisplayName, saveLastKnownPosition, loadLastKnownPosition, saveCurrentPlace, loadCurrentPlace, clearCurrentPlace, CURRENT_PLACE_TTL } = await import('../../public/js/storage.js');
+const { loadMedobs, saveMedobs, defaultCoObservers, leggTilMedobservatorer, refreshMedobsFromServer, saveObservations, loadObservations, saveAoDirectAutoClear, loadAoDirectAutoClear, saveNynorskArtsnavn, loadNynorskArtsnavn, speciesDisplayName, saveLastKnownPosition, loadLastKnownPosition, saveCurrentPlace, loadCurrentPlace, clearCurrentPlace, CURRENT_PLACE_TTL } = await import('../../public/js/storage.js');
 
 // Speiler todayStr() i storage.js — medobs lagres med dagens dato.
 function todayStr() {
@@ -369,5 +369,55 @@ describe('currentPlace', () => {
   it('ignorerer korrupt JSON i stedet for å kaste', () => {
     localStorage.setItem('current_place_v1', '{ugyldig json');
     expect(loadCurrentPlace()).toBeNull();
+  });
+});
+
+describe('leggTilMedobservatorer (AO-TK66W)', () => {
+  it('legger til i ledige plasser uten å fjerne eksisterende', () => {
+    const res = leggTilMedobservatorer(['Kari', '', ''], ['Ola']);
+    expect(res).toHaveLength(10);
+    expect(res.slice(0, 3)).toEqual(['Kari', 'Ola', '']);
+  });
+
+  it('dupliserer ikke et navn som allerede står der, også som objekt', () => {
+    const res = leggTilMedobservatorer([{ name: 'Ola', alias: 'ola1' }], ['Ola']);
+    expect(res.filter(Boolean)).toEqual([{ name: 'Ola', alias: 'ola1' }]);
+  });
+
+  it('tar med alias for nye medobservatører', () => {
+    const res = leggTilMedobservatorer(undefined, [{ name: 'Ola', alias: 'ola1' }]);
+    expect(res[0]).toEqual({ name: 'Ola', alias: 'ola1' });
+  });
+
+  it('holder seg innenfor 10 plasser', () => {
+    const fulle = Array.from({ length: 10 }, (_, i) => `P${i}`);
+    expect(leggTilMedobservatorer(fulle, ['Ny'])).toEqual(fulle);
+  });
+});
+
+describe('refreshMedobsFromServer tar ikke inn «aktiv» fra serveren', () => {
+  afterEach(() => { vi.unstubAllGlobals(); vi.stubGlobal('localStorage', localStorageMock); });
+
+  function mockServer(list) {
+    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, json: async () => ({ list }) })));
+  }
+
+  it('gjenoppliver ikke gårsdagens aktive medobservatør', async () => {
+    store['ao_username'] = 'test';
+    store['medobs_list_v1'] = JSON.stringify({ date: '2000-01-01', list: [{ name: 'Ola', alias: '', active: true }] });
+    mockServer([{ name: 'Ola', alias: '', active: true }]);
+    expect(await refreshMedobsFromServer()).toBe(false);
+    expect(loadMedobs()[0].active).toBe(false);
+  });
+
+  it('beholder et ferskt lokalt kryss når serveren ennå har det gamle', async () => {
+    store['ao_username'] = 'test';
+    store['medobs_list_v1'] = JSON.stringify({ date: todayStr(), list: [{ name: 'Ola', alias: '', active: true }] });
+    mockServer([{ name: 'Ola', alias: '', active: false }, { name: 'Kari', alias: '', active: true }]);
+    expect(await refreshMedobsFromServer()).toBe(true);
+    expect(loadMedobs()).toEqual([
+      { name: 'Ola', alias: '', active: true },
+      { name: 'Kari', alias: '', active: false },
+    ]);
   });
 });
