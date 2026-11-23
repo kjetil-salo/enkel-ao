@@ -5,14 +5,17 @@
  * som også brukes av registrerings-modalen (✎ Flere felt i ②).
  */
 import { saveObservations, lastSaveError, activityDisplayName, activityBokmalName, loadAllowUnknownCount } from './storage.js';
-import { initPhotoPicker } from './photo-picker.js?v=v1.64.2';
+import { initPhotoPicker } from './photo-picker.js?v=v1.65.0';
 import { initCoObserverPicker } from './coobserver-picker.js';
+import { initProjectPicker, lagreProsjekt } from './project-picker.js?v=v1.65.0';
 import { isoToDate, isoToTime, updateDateTimeInIso } from './datetime-helpers.js';
 import { t } from './i18n.js';
 
 let els = null;
 let photoPicker = null;
 let coObserverPicker = null;
+let projectPicker = null;
+let prosjektEndret = false;
 let activitiesPromise = null;
 let currentObservations = null;
 let currentIdx = null;
@@ -85,6 +88,13 @@ function ensureInit() {
     container: els.medobsPicker,
     newNameInput: els.medobsNewName,
     addBtn: els.medobsAddBtn,
+  });
+
+  projectPicker = initProjectPicker({
+    input: document.getElementById('em-project'),
+    list: document.getElementById('em-project-list'),
+    clearBtn: document.getElementById('em-project-clear'),
+    onChange: () => { prosjektEndret = true; },
   });
 
   els.cancelBtn.addEventListener('click', closeModal);
@@ -165,6 +175,9 @@ export function openEditModal(observations, index, onSaved) {
   if (obs.photo) photoPicker.loadExisting(obs.photo);
 
   coObserverPicker.setSelected(obs.coObservers);
+
+  projectPicker.setValue(obs.project);
+  prosjektEndret = false;
 
   populateActivitySelect(obs.activity);
 
@@ -256,6 +269,9 @@ function handleSubmit(e) {
 
   obs.coObservers = coObserverPicker.getSelected();
 
+  const prosjekt = projectPicker.getValue();
+  if (prosjekt) obs.project = prosjekt; else delete obs.project;
+
   currentObservations[currentIdx] = obs;
   let lagret = saveObservations(currentObservations);
 
@@ -286,6 +302,11 @@ function handleSubmit(e) {
       + (lastSaveError ? `\n\n(${lastSaveError})` : ''));
     return;
   }
+
+  // Et prosjekt valgt her huskes også til neste funn — samme som i «✎ Flere felt».
+  // Bare når det faktisk ble endret: å lagre et gammelt funn uten å røre prosjektet
+  // skal ikke overstyre det som gjelder for neste registrering.
+  if (prosjektEndret) lagreProsjekt(prosjekt);
 
   const onSaved = currentOnSaved;
   closeModal();

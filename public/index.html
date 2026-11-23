@@ -24,7 +24,7 @@
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta name="twitter:card" content="summary_large_image" />
-    <link rel="stylesheet" href="style.css?v=v1.64.2" />
+    <link rel="stylesheet" href="style.css?v=v1.65.0" />
   </head>
   <body>
     <script src="/js/theme.js"></script>
@@ -152,7 +152,7 @@
         <script type="module">
           // Toppraden trappes ned bare så mye som faktisk trengs. Se
           // header-plass.js for hvorfor dette ikke kan gjøres i ren CSS.
-          import { tilpassHeader } from '/js/header-plass.js?v=v1.64.2';
+          import { tilpassHeader } from '/js/header-plass.js?v=v1.65.0';
 
           const appHeader = document.querySelector('.app-header');
 
@@ -595,20 +595,20 @@
         else bredVisning.addListener(plasserSendInn);
       })();
     </script>
-    <script type="module" src="/js/main.js?v=v1.64.2"></script>
+    <script type="module" src="/js/main.js?v=v1.65.0"></script>
     <script type="module">
       // Registrer Service Worker for offline-støtte.
       // Versjonert URL: Cloudflare overstyrer origin sin max-age=300 med 4 timer, så
       // en endret /sw.js kan bli liggende i edge-cachen og aldri nå installerte apper.
       // Bruk inline versjon her: /js/version.js kan selv være cachet i gammel versjon.
-      const VERSION = 'v1.64.2';
+      const VERSION = 'v1.65.0';
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register(`/sw.js?v=${VERSION}`).catch(() => {});
       }
     </script>
     <footer class="footer-credit">Versjon <span id="version"></span>  |  <a href="/changelog.html" style="color:var(--accent);text-decoration:none;">Endringslogg</a>  |  <a href="/feedback.html" style="color:var(--accent);text-decoration:none;">Gi tilbakemelding</a>  |  © 2026 Kjetil Salomonsen</footer>
     <script type="module">
-      const VERSION = 'v1.64.2';
+      const VERSION = 'v1.65.0';
       document.getElementById('version').textContent = VERSION;
     </script>
 
@@ -675,7 +675,7 @@
     </style>
     <script type="module">
       import { loadMedobs, saveMedobs, refreshMedobsFromServer } from './js/storage.js';
-      import { t } from './js/i18n.js?v=v1.64.2';
+      import { t } from './js/i18n.js?v=v1.65.0';
 
       const modal = document.getElementById('medobs-modal');
       const tbody = document.getElementById('medobs-modal-tbody');
@@ -1087,6 +1087,14 @@
             <span data-i18n-html="index.extra.private_comment_label">Privat kommentar <span style="opacity:0.8;">(kun synlig for deg selv)</span></span>
             <textarea id="extra-private-comment" rows="3" style="width:100%;margin-top:4px;padding:8px;border-radius:8px;border:1px solid rgba(148,163,184,0.15);background:rgba(255,255,255,0.02);color:var(--text);box-sizing:border-box;"></textarea>
           </label>
+          <div class="prosjekt-felt" style="margin:0;">
+            <label for="extra-project" style="display:block;color:var(--muted);font-size:0.85em;margin:0;"><span data-i18n="index.extra.project_label">Prosjekt</span> <span style="opacity:0.8;" data-i18n="index.extra.project_hint">(huskes til neste funn)</span></label>
+            <div class="prosjekt-rad">
+              <input id="extra-project" type="text" autocomplete="off" placeholder="Søk etter AO-prosjekt" data-i18n-attr="placeholder:index.extra.project_placeholder" />
+              <button type="button" id="extra-project-clear" class="btn-ghost prosjekt-fjern" hidden aria-label="Fjern prosjekt">✕</button>
+            </div>
+            <ul id="extra-project-list" class="prosjekt-liste" hidden></ul>
+          </div>
           <div>
             <label style="display:block;color:var(--muted);font-size:0.85em;margin:0 0 4px 0;" data-i18n="index.extra.photo_label">Bilde</label>
             <input id="extra-photo" type="file" accept="image/*" hidden />
@@ -1129,7 +1137,8 @@
       }
     </style>
     <script type="module">
-      import { initPhotoPicker } from './js/photo-picker.js?v=v1.64.2';
+      import { initPhotoPicker } from './js/photo-picker.js?v=v1.65.0';
+      import { initProjectPicker, lagretProsjekt, lagreProsjekt } from './js/project-picker.js?v=v1.65.0';
 
       const extraModal = document.getElementById('extra-fields-modal');
       const extraOpenBtn = document.getElementById('extra-fields-open-btn');
@@ -1164,9 +1173,25 @@
           + (extraPrivateComment.value.trim() ? 1 : 0)
           + (extraComment.value.trim() ? 1 : 0)
           + (extraHideUntil.value ? 1 : 0)
-          + (extraPhotoValue.value ? 1 : 0);
+          + (extraPhotoValue.value ? 1 : 0)
+          + (lagretProsjekt() ? 1 : 0);
         extraOpenBtn.classList.toggle('has-extra', antallSatt > 0);
       }
+
+      // Prosjekt nullstilles IKKE ved ✓ — det huskes til neste funn (aoProject_v1),
+      // og kan også settes fra redigeringsvinduet. Begge veier går via lagreProsjekt().
+      const extraProjectPicker = initProjectPicker({
+        input: document.getElementById('extra-project'),
+        list: document.getElementById('extra-project-list'),
+        clearBtn: document.getElementById('extra-project-clear'),
+        onChange: (p) => lagreProsjekt(p),
+      });
+      extraProjectPicker.setValue(lagretProsjekt());
+      document.addEventListener('obs:prosjekt-endret', (e) => {
+        extraProjectPicker.setValue(e.detail);
+        updateExtraFieldsBadge();
+      });
+      updateExtraFieldsBadge();
 
       extraFieldEls.forEach((el) => el.addEventListener('change', updateExtraFieldsBadge));
       extraPrivateComment.addEventListener('input', updateExtraFieldsBadge);
@@ -1286,6 +1311,14 @@
           <label style="display:block;color:var(--muted);font-size:0.85em;margin:8px 0 0 0;"><span data-i18n-html="index.extra.private_comment_label">Privat kommentar <span style="opacity:0.8;">(kun synlig for deg selv)</span></span>
             <textarea id="em-private-comment" rows="2" style="width:100%;margin-top:4px;padding:8px;border-radius:8px;border:1px solid rgba(148,163,184,0.15);background:rgba(255,255,255,0.02);color:var(--text);box-sizing:border-box;"></textarea>
           </label>
+          <div class="prosjekt-felt" style="margin:8px 0 0 0;">
+            <label for="em-project" style="display:block;color:var(--muted);font-size:0.85em;margin:0;"><span data-i18n="index.extra.project_label">Prosjekt</span> <span style="opacity:0.8;" data-i18n="index.extra.project_hint">(huskes til neste funn)</span></label>
+            <div class="prosjekt-rad">
+              <input id="em-project" type="text" autocomplete="off" placeholder="Søk etter AO-prosjekt" data-i18n-attr="placeholder:index.extra.project_placeholder" />
+              <button type="button" id="em-project-clear" class="btn-ghost prosjekt-fjern" hidden aria-label="Fjern prosjekt">✕</button>
+            </div>
+            <ul id="em-project-list" class="prosjekt-liste" hidden></ul>
+          </div>
 
           <label style="display:block;color:var(--muted);font-size:0.85em;margin:10px 0 4px 0;" data-i18n="index.extra.photo_label">Bilde</label>
           <input id="em-photo" type="file" accept="image/*" hidden />

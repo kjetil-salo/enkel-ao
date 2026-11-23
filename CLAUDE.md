@@ -194,6 +194,12 @@ The `Handler` class routes requests:
     `profil.html`, se `docs/ao-meldinger.md`) og en liste over brukerens egne private
     lokaliteter (fra `getCachedPrivateSites()`/`ensureAoPrivateSites()` i `api.js` —
     ingen nye AO-kall). `#ao-mail-link`-ikonet i header peker nå dit, ikke til `profil.html`
+- `/api/ao-projects` (POST) → AO-prosjekter for prosjektvelgeren (`src/ao_projects.py`),
+  `{loginToken, authCookie, search}` → `{projects: [{id, name, mine}], needsLogin}`. Tomt søk gir
+  brukerens egne. AO svarer 200 + tom liste for utløpt sesjon, så `/Project` sjekkes når egne
+  er tomme. Funn med `obs.project` importeres som én gruppe per prosjekt (`ProjectToAdd` gjelder
+  hele importen, ingen CSV-kolonne) før én felles publisering. Prosjektet huskes til neste funn
+  (`aoProject_v1`, `public/js/project-picker.js`). Full beskrivelse: `docs/ao-prosjekt.md`
 - `/api/ao-import-stream` (POST) → som `ao-import`, men **streamer fremdrift via SSE** (`text/event-stream`)
   - Fase-events: `importing {remaining, total}` → `publishing {total}` → `done {count}` / `error`
   - Fremdriften polles fra AOs egne endepunkter (se `docs/ao-import-fremdrift.md`):
@@ -804,10 +810,12 @@ om den setter en validator i arbeid, og om den ligger på en ekte lokalitet.
 7. **Spør eieren før hver publisering.** Ingen `publish` på eget initiativ,
    uansett hvor rutinemessig den føles
 
-**Ikke verifisert ennå (se TODO 37):** at rader faktisk kan SLETTES fra
-gjennomgangskøen, og at et publisert funn kan slettes helt (ikke bare skjules).
-Hele regelsettet hviler på at sletting virker, så dette må måles på ett enkelt
-funn FØR testkontoen brukes til noe annet.
+**Verifisert 23.11.2026:** rader kan slettes fra gjennomgangskøen («Fjern» på
+`/ReviewSighting`, køen 0 → 1 → 0). Testkontoen har en privat testlokalitet,
+«Enkel-AO testpunkt (slettes)» (ID 3654379), og et testprosjekt, «Enkel-AO test»
+(ID 4045). **Ikke verifisert ennå (se TODO 37):** at et publisert funn kan
+slettes helt (ikke bare skjules). Det må måles på ett enkelt funn før
+publiseringsveien testes (regel 3).
 
 ### Klient-IP og lagrede AO-passord (sikkerhetsrettelser 09.11.2026)
 - **`Handler._client_ip()` er den eneste riktige kilden til avsenderadressen.** Les aldri

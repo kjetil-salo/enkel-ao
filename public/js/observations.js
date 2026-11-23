@@ -2,9 +2,9 @@
  * Observations-modul for håndtering av observasjoner og CSV-eksport
  */
 
-import { defaultCoObservers, loadMedobs, speciesDisplayName, activityDisplayName, activityBokmalName, loadAllowUnknownCount } from './storage.js?v=v1.64.2';
+import { defaultCoObservers, loadMedobs, speciesDisplayName, activityDisplayName, activityBokmalName, loadAllowUnknownCount } from './storage.js?v=v1.65.0';
 import { showToast } from './ui.js';
-import { t } from './i18n.js?v=v1.64.2';
+import { t } from './i18n.js?v=v1.65.0';
 import { toLocalISOString } from './utils.js';
 import { getObservationVisitKey, setVisitLocked } from './visits.js';
 import { openEditModal } from './edit-modal.js';
@@ -426,6 +426,16 @@ export function renderObservations(observations, obsListEl, buttons, saveState) 
         kommentarMerke.title = titleParts.join('\n');
         kommentarMerke.setAttribute('aria-label', 'Kommentar lagt inn');
         primaryLine.appendChild(kommentarMerke);
+      }
+      // AO-prosjekt (project-picker.js). Prosjektet huskes til neste funn, så uten
+      // merket ville det være lett å glemme at en hel rekke funn havner i et prosjekt.
+      if (obs.project && obs.project.name) {
+        const prosjektMerke = document.createElement('span');
+        prosjektMerke.className = 'obs-project-badge';
+        prosjektMerke.textContent = '📁';
+        prosjektMerke.title = `Prosjekt: ${obs.project.name}`;
+        prosjektMerke.setAttribute('aria-label', `Prosjekt: ${obs.project.name}`);
+        primaryLine.appendChild(prosjektMerke);
       }
       primaryTd.appendChild(primaryLine);
 

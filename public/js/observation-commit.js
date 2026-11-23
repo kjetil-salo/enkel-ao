@@ -2,12 +2,13 @@
  * Observasjons-modul for validering, lagring og aktivitets-pills
  */
 
-import { defaultCoObservers, loadActivityPills, speciesDisplayName, activityDisplayName, activityBokmalName } from './storage.js?v=v1.64.2';
+import { defaultCoObservers, loadActivityPills, speciesDisplayName, activityDisplayName, activityBokmalName } from './storage.js?v=v1.65.0';
 import { showToast } from './ui.js';
-import { t } from './i18n.js?v=v1.64.2';
+import { t } from './i18n.js?v=v1.65.0';
 import { toLocalISOString } from './utils.js';
 import { resolveVisitIdForNewObservation, getVisitTimeSpan, isVisitLocked, visitExists } from './visits.js';
 import { celebrateRareFind } from './celebrate.js';
+import { lagretProsjekt } from './project-picker.js?v=v1.65.0';
 
 function getObservationTimestamp() {
   const isAfterMode = localStorage.getItem('afterRegistrationMode') === '1';
@@ -203,6 +204,9 @@ export function commitObservation(state, dom, callbacks) {
   if (dom.extraPhotoValue && dom.extraPhotoValue.value) {
     obs.photo = dom.extraPhotoValue.value;
   }
+  // AO-prosjekt huskes til neste funn, i motsetning til feltene over (project-picker.js)
+  const prosjekt = lagretProsjekt();
+  if (prosjekt) obs.project = prosjekt;
 
   // Sjeldenhetsvarsel: fanger boksens innhold på registreringstidspunktet —
   // ellers er AOs advarsel usynlig igjen så snart neste art skrives inn.

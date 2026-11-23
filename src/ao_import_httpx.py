@@ -1303,6 +1303,116 @@ def _poll_importing_done(login_token, auth_cookie, total, progress_cb=None,
     return False
 
 
+def _prosjekt_id(obs):
+    """AO-prosjekt-ID for en observasjon, eller '' når den ikke har noe prosjekt.
+
+    Kun et rent heltall godtas — verdien havner i et skjemafelt hos AO, og alt annet
+    enn en ID fra AOs egen prosjektvelger er en feil vi heller vil ignorere enn sende.
+    """
+    prosjekt = obs.get('project')
+    if not isinstance(prosjekt, dict):
+        return ''
+    pid = str(prosjekt.get('id') or '').strip()
+    return pid if pid.isdigit() else ''
+
+
+def _grupper_etter_prosjekt(observations):
+    """Del observasjonene i én gruppe per AO-prosjekt, i rekkefølgen de først dukker opp.
+
+    Returnerer [(prosjekt, [obs, ...]), ...] der prosjekt er {'id', 'name'} eller None.
+    Ingen prosjekt på noen av dem gir nøyaktig én gruppe med prosjekt None.
+    """
+    grupper = {}
+    for obs in observations:
+        pid = _prosjekt_id(obs)
+        if pid not in grupper:
+            navn = str((obs.get('project') or {}).get('name') or '') if pid else ''
+            grupper[pid] = ({'id': pid, 'name': navn} if pid else None, [])
+        grupper[pid][1].append(obs)
+    return list(grupper.values())
+
+
+def _post_parse_observations(observations, prosjekt, form_token, cookie_token,
+                             login_token, auth_cookie, area_id):
+    """POST én import til AOs ParseObservations. Radene havner i gjennomgangskøen.
+
+    `prosjekt` ({'id', 'name'} eller None) knytter hele importen til et AO-prosjekt,
+    slik feltet «Knytt funnene til følgende prosjekt» gjør i AOs eget importskjema.
+    """
+    csv_data = observations_to_csv(observations)
+    logger.debug(f'[AO-HTTPX] CSV length: {len(csv_data)}')
+
+    # URL-encode
+    encoded_csv = quote_plus(csv_data, safe='', encoding='utf-8')
+    encoded_form_token = quote_plus(form_token, safe='', encoding='utf-8')
+    prosjekt_id = quote_plus(prosjekt['id'], safe='') if prosjekt else ''
+    prosjekt_navn = quote_plus(prosjekt['name'], safe='', encoding='utf-8') if prosjekt else ''
+    if prosjekt:
+        logger.info(f'[AO-HTTPX] Importerer {len(observations)} obs til prosjekt {prosjekt["id"]}')
+
+    post_data = (
+        f'__RequestVerificationToken={encoded_form_token}&'
+        f'ImportSightingViewModel.Observations={encoded_csv}&'
+        f'ImportSightingViewModel.Area={area_id}&'
+        f'ImportSightingViewModel.OwnAndFavoriteSites=true&'
+        f'OwnAndFavoriteSites=false&'
+        f'ImportSightingViewModel.ProjectToAdd={prosjekt_id}&'
+        f'ImportSightingViewModel.ProjectToAdd_Name={prosjekt_navn}&'
+        f'Shared_Import=Importer'
+    )
+
+    # Cookies dict (httpx håndterer dette bedre enn string)
+    cookies = {
+        'AcceptCookies': '1',
+        'monthlistpagesize': '150',
+        'logintoken': login_token,
+        'logintoken_ssl': '1',
+        '.ASPXAUTHNO': auth_cookie,
+        '__RequestVerificationToken': cookie_token,
+        'ReleaseNumber': '2.13.12',
+        'SpeciesGroup': '8'
+    }
+
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:147.0) Gecko/20100101 Firefox/147.0',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'nb-NO,nb;q=0.9,no;q=0.8,en;q=0.7',
+        'Origin': 'https://www.artsobservasjoner.no',
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Referer': 'https://www.artsobservasjoner.no/ImportSighting',
+        'Upgrade-Insecure-Requests': '1',
+        'Sec-Fetch-Dest': 'document',
+        'Sec-Fetch-Mode': 'navigate',
+        'Sec-Fetch-Site': 'same-origin',
+        'Sec-Fetch-User': '?1',
+    }
+
+    try:
+        with httpx.Client() as client:
+            response = client.post(
+                'https://www.artsobservasjoner.no/ImportSighting/ParseObservations',
+                content=post_data,
+                cookies=cookies,
+                headers=headers,
+                timeout=30,
+                follow_redirects=True
+            )
+    except httpx.RequestError as exc:
+        logger.warning('[AO-HTTPX] Fikk ikke svar på importkallet: %s', type(exc).__name__)
+        raise Ao2ImportUavklart() from exc
+
+    logger.info(f'[AO-HTTPX] HTTP Status: {response.status_code}')
+    logger.debug(f'[AO-HTTPX] ParseObservations URL etter redirect: {response.url}')
+    logger.debug(f'[AO-HTTPX] ParseObservations respons (første 500 tegn): {response.text[:500]}')
+
+    if response.status_code >= 400:
+        logger.error(f'[AO-HTTPX] Feil: HTTP {response.status_code}')
+        if response.status_code in AO2_DRIFTSFEIL:
+            raise Ao2ImportUavklart()
+        raise ValueError(f'HTTP {response.status_code}')
+
+
+
 def post_with_curl(observations, login_token=None, auth_cookie=None, area_id='', progress_cb=None):
     """
     Post til AO med httpx - med korrekt CSRF token-håndtering.
@@ -1362,88 +1472,38 @@ def post_with_curl(observations, login_token=None, auth_cookie=None, area_id='',
         if obs.get('photo') or needs_scoped_publish:
             obs['_importMarker'] = f'#imp-{secrets.token_hex(4)}'
 
-    csv_data = observations_to_csv(observations)
-    logger.debug(f'[AO-HTTPX] CSV length: {len(csv_data)}')
-
-    # URL-encode
-    encoded_csv = quote_plus(csv_data, safe='', encoding='utf-8')
-    encoded_form_token = quote_plus(form_token, safe='', encoding='utf-8')
-
-    post_data = (
-        f'__RequestVerificationToken={encoded_form_token}&'
-        f'ImportSightingViewModel.Observations={encoded_csv}&'
-        f'ImportSightingViewModel.Area={area_id}&'
-        f'ImportSightingViewModel.OwnAndFavoriteSites=true&'
-        f'OwnAndFavoriteSites=false&'
-        f'ImportSightingViewModel.ProjectToAdd=&'
-        f'ImportSightingViewModel.ProjectToAdd_Name=&'
-        f'Shared_Import=Importer'
-    )
-
-    # Cookies dict (httpx håndterer dette bedre enn string)
-    cookies = {
-        'AcceptCookies': '1',
-        'monthlistpagesize': '150',
-        'logintoken': login_token,
-        'logintoken_ssl': '1',
-        '.ASPXAUTHNO': auth_cookie,
-        '__RequestVerificationToken': cookie_token,
-        'ReleaseNumber': '2.13.12',
-        'SpeciesGroup': '8'
-    }
-
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:147.0) Gecko/20100101 Firefox/147.0',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'Accept-Language': 'nb-NO,nb;q=0.9,no;q=0.8,en;q=0.7',
-        'Origin': 'https://www.artsobservasjoner.no',
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Referer': 'https://www.artsobservasjoner.no/ImportSighting',
-        'Upgrade-Insecure-Requests': '1',
-        'Sec-Fetch-Dest': 'document',
-        'Sec-Fetch-Mode': 'navigate',
-        'Sec-Fetch-Site': 'same-origin',
-        'Sec-Fetch-User': '?1',
-    }
-
-    try:
-        with httpx.Client() as client:
-            response = client.post(
-                'https://www.artsobservasjoner.no/ImportSighting/ParseObservations',
-                content=post_data,
-                cookies=cookies,
-                headers=headers,
-                timeout=30,
-                follow_redirects=True
-            )
-    except httpx.RequestError as exc:
-        logger.warning('[AO-HTTPX] Fikk ikke svar på importkallet: %s', type(exc).__name__)
-        raise Ao2ImportUavklart() from exc
-
-    logger.info(f'[AO-HTTPX] HTTP Status: {response.status_code}')
-    logger.debug(f'[AO-HTTPX] ParseObservations URL etter redirect: {response.url}')
-    logger.debug(f'[AO-HTTPX] ParseObservations respons (første 500 tegn): {response.text[:500]}')
-
-    if response.status_code >= 400:
-        logger.error(f'[AO-HTTPX] Feil: HTTP {response.status_code}')
-        if response.status_code in AO2_DRIFTSFEIL:
-            raise Ao2ImportUavklart()
-        raise ValueError(f'HTTP {response.status_code}')
-
-    # Steg 2: Vent på at AO er ferdig med å parse importen — poll ekte fremdrift.
-    # Ved scoped publisering avgjøres «ferdig» av at våre egne markører faktisk finnes
-    # igjen i køen, ikke av et absolutt tall — se `_poll_importing_done`.
+    # Prosjekt: AOs importskjema knytter HELE importen til ett prosjekt (`ProjectToAdd`),
+    # det finnes ingen prosjektkolonne i CSV-en. Funn med ulike prosjekter importeres
+    # derfor som én gruppe per prosjekt — alle havner i gjennomgangskøen FØR det
+    # publiseres én gang under, akkurat som en vanlig sending. Uten prosjekt på noen
+    # av funnene er det nøyaktig ett kall, identisk med før. Se docs/ao-prosjekt.md.
     total = len(observations)
     if progress_cb:
         progress_cb({'phase': 'importing', 'remaining': total, 'total': total})
-    expect_markers = (
-        [obs['_importMarker'] for obs in observations if obs.get('_importMarker')]
-        if needs_scoped_publish else None
-    )
-    import_bekreftet = _poll_importing_done(login_token, auth_cookie, total, progress_cb,
-                                           expect_markers=expect_markers, queue_size=queue_size)
-    if not import_bekreftet and not needs_scoped_publish:
-        raise Ao2ImportUavklart()
+    importerte = []
+    for gruppe_nr, (prosjekt, gruppe) in enumerate(_grupper_etter_prosjekt(observations)):
+        if gruppe_nr > 0:
+            # Nytt skjema-token per import, slik AOs eget skjema ville gitt det
+            form_token, cookie_token, nytt_auth = fetch_csrf_tokens(login_token, auth_cookie)
+            if nytt_auth:
+                refreshed_auth = nytt_auth
+                auth_cookie = nytt_auth
+        _post_parse_observations(gruppe, prosjekt, form_token, cookie_token,
+                                 login_token, auth_cookie, area_id)
+        importerte.extend(gruppe)
+
+        # Vent på at AO er ferdig med å parse importen — poll ekte fremdrift.
+        # Ved scoped publisering avgjøres «ferdig» av at våre egne markører faktisk finnes
+        # igjen i køen, ikke av et absolutt tall — se `_poll_importing_done`. Med flere
+        # prosjektgrupper er tallet kumulativt: køen var bekreftet tom før første gruppe.
+        expect_markers = (
+            [obs['_importMarker'] for obs in importerte if obs.get('_importMarker')]
+            if needs_scoped_publish else None
+        )
+        import_bekreftet = _poll_importing_done(login_token, auth_cookie, len(importerte), progress_cb,
+                                               expect_markers=expect_markers, queue_size=queue_size)
+        if not import_bekreftet and not needs_scoped_publish:
+            raise Ao2ImportUavklart()
 
     # Hent gjennomgangskøen ÉN gang — brukes til bildeopplasting og/eller
     # ID-oppslag for scoped publisering, avhengig av hva denne batchen trenger.

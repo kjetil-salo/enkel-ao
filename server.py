@@ -77,6 +77,7 @@ from src.ao_import_httpx import (AO2_DRIFTSFEIL, Ao2ImportUavklart, Ao2Utilgjeng
 from src.ao3_import import logg_inn_pa_ao3, send_via_ao3
 from src.ao_sightings import fetch_my_sightings, fetch_raw_row
 from src.ao_species_stats import hent_mine_artstall
+from src.ao_projects import hent_prosjekter
 from src import ao_edit
 from src.ao_coobserver import fjern_meg
 from src.ao_observers import observer_setup
@@ -387,6 +388,10 @@ class Handler(SimpleHTTPRequestHandler):
 
         if parsed.path == '/api/ao-my-species-stats':
             self._handle_ao_my_species_stats_post()
+            return
+
+        if parsed.path == '/api/ao-projects':
+            self._handle_ao_projects_post()
             return
 
         if parsed.path == '/api/ao-messages':
@@ -1079,6 +1084,27 @@ class Handler(SimpleHTTPRequestHandler):
         except Exception as e:
             logger.error(f'[AO-QUEUE] Kunne ikke hente kø-antall: {e}')
             self._send_json({'count': None}, status=200)
+
+    def _handle_ao_projects_post(self):
+        """
+        Prosjekter brukeren kan knytte et funn til, for prosjektvelgeren i detaljvinduet.
+        Body: `{loginToken, authCookie, search}`. Tomt søk gir brukerens egne prosjekter.
+
+        Svarer `{'projects': [{id, name, mine}], 'needsLogin': bool}`, se
+        src/ao_projects.py. Uinnlogget eller AO-feil gir tom liste, aldri 500.
+        """
+        try:
+            data = self._read_json_body()
+            login_token = data.get('loginToken')
+            auth_cookie = data.get('authCookie')
+            if not login_token or not auth_cookie:
+                self._send_json({'projects': [], 'needsLogin': True}, status=200)
+                return
+            self._send_json(hent_prosjekter(login_token, auth_cookie, str(data.get('search') or '')),
+                            status=200)
+        except Exception as e:
+            logger.error(f'[AO-PROSJEKT] Kunne ikke hente prosjekter: {e}')
+            self._send_json({'projects': [], 'needsLogin': False}, status=200)
 
     def _handle_ao_my_species_stats_post(self):
         """

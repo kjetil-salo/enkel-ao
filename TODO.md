@@ -191,6 +191,10 @@ To ting som må bevises, hver for seg:
    upublisert (hele den scopede publiseringen i `/api/ao-import` finnes for å
    unngå å dra med andres ventende funn), men sletting har vi aldri sett.
    Mål med `/api/ao-queue-count` før og etter: samme tall = borte
+   **✅ Bevist 23.11.2026 på `kjetil-test`:** ett importert funn (kjøttmeis på den
+   private testlokaliteten) ble fjernet med «Fjern» på `/ReviewSighting`. AO viser
+   sin egen ja/nei-dialog (ikke en nettleser-`confirm`). Køen gikk 0 → 1 → 0, og
+   `BindReviewSightingsGrid` var tom etterpå. Se docs/ao-prosjekt.md
 2. **Kan et publisert funn slettes helt — ikke bare skjules?** AO har `hideUntil`,
    som er noe annet: funnet finnes fortsatt. Bekreft med `/api/ao-my-sightings`
    at raden er vekk, ikke bare usynlig
