@@ -492,7 +492,7 @@
             <div class="bare-mus"><strong>Dra bildet hit</strong></div>
             <div class="bare-mus dropsone-eller">eller</div>
             <div class="dropsone-knapper">
-              <button type="button" class="btn-liten primar" id="bm-fil" data-i18n="sendt.pick_file">📁 Velg fil</button>
+              <button type="button" class="btn-liten primar" id="bm-fil" data-i18n="sendt.pick_file">📷 Velg bilde</button>
               <button type="button" class="btn-liten skjult" id="bm-lim" data-i18n="index.common.paste">📋 Lim inn</button>
             </div>
             <p class="dropsone-hint bare-mus">Du kan også lime inn med ⌘V / Ctrl+V</p>
@@ -549,7 +549,7 @@
       // Alias tr (ikke t): denne filen har allerede en lokal `const t = hentTokens();`
       // inne i lastAoFunn() - et import med samme navn ville vært forvirrende å lese,
       // selv om selve skoperingen er trygg.
-      import { t as tr, applyTranslations } from '/js/i18n.js?v=v1.64.1';
+      import { t as tr, applyTranslations } from '/js/i18n.js?v=v1.64.2';
 
       applyTranslations();
       document.title = tr('sendt.title');
@@ -567,10 +567,10 @@
       // (v1.59.7). En cachet gammel kopi ville gitt TypeError i det slideren eller
       // zoomen brukes — eller SyntaxError som stopper hele denne modulen. Se
       // «Versjonering» i CLAUDE.md (v1.53.15).
-      import { initPhotoPicker } from '/js/photo-picker.js?v=v1.64.1';
-      import { lagBildeEditor } from '/js/bilde-editor.js?v=v1.64.1';
-      import { loggInnMedLagretLegitimasjon, loadActivities } from '/js/api.js?v=v1.64.1';
-      import { initSendtHandlinger } from '/js/sendt-handlinger.js?v=v1.64.1';
+      import { initPhotoPicker } from '/js/photo-picker.js?v=v1.64.2';
+      import { lagBildeEditor } from '/js/bilde-editor.js?v=v1.64.2';
+      import { loggInnMedLagretLegitimasjon, loadActivities } from '/js/api.js?v=v1.64.2';
+      import { initSendtHandlinger } from '/js/sendt-handlinger.js?v=v1.64.2';
 
       const MND = ['januar', 'februar', 'mars', 'april', 'mai', 'juni',
         'juli', 'august', 'september', 'oktober', 'november', 'desember'];

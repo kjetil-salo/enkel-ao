@@ -3,10 +3,10 @@
  */
 import { hentAktivFellestur } from './fellestur-client.js';
 import { lastSpeil, lagreSpeilOgSynk, hentTurMedobservatorer } from './fellestur-sync.js';
-import { translateDedicatedSubspeciesToNynorsk } from './species-matcher.js?v=v1.64.1';
+import { translateDedicatedSubspeciesToNynorsk } from './species-matcher.js?v=v1.64.2';
 import { aktivInnhentetListe, lagreEndringerIInnhentetListe, lesInnhentetListe } from './arbeidsliste-lokal.js';
-import { getLanguage, setLanguage, isNynorsk } from './i18n.js?v=v1.64.1';
-import { isOfflineMode } from './offline-db.js?v=v1.64.1';
+import { getLanguage, setLanguage, isNynorsk } from './i18n.js?v=v1.64.2';
+import { isOfflineMode } from './offline-db.js?v=v1.64.2';
 
 export { isNynorsk };
 
