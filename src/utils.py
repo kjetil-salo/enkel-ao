@@ -1,5 +1,7 @@
 """Fellesfunksjoner brukt på tvers av backend-moduler."""
 
+import hashlib
+
 try:
     from user_agents import parse as parse_ua_string
 except ImportError:
@@ -7,10 +9,16 @@ except ImportError:
 
 
 def mask_token(token, visible=6):
-    """Masker et token for logging — viser kun de første tegnene."""
+    """Masker et token for logging — de første tegnene pluss et kort hash av hele.
+
+    Prefikset alene skiller ikke et rotert AO-logintoken fra det gamle (de starter
+    likt), så hashen trengs for å se om klienten sendte det nye eller det gamle.
+    8 hex-tegn av SHA-256 kan ikke regnes tilbake til tokenet.
+    """
     if not token:
         return 'None'
-    return token[:visible] + '***'
+    fingeravtrykk = hashlib.sha256(token.encode('utf-8')).hexdigest()[:8]
+    return f'{token[:visible]}***#{fingeravtrykk}'
 
 
 def parse_user_agent(user_agent: str) -> dict:

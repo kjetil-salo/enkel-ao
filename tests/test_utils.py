@@ -17,14 +17,24 @@ sys.path.insert(0, REPO_ROOT)
 def test_mask_token_normal():
     """Test masking av vanlig token."""
     from src.utils import mask_token
-    assert mask_token('abcdefghijk') == 'abcdef***'
+    assert mask_token('abcdefghijk') == 'abcdef***#ca2f2069'
 
 
 def test_mask_token_short():
     """Test masking av kort token."""
     from src.utils import mask_token
     result = mask_token('abc')
-    assert result == 'abc***'
+    assert result == 'abc***#ba7816bf'
+
+
+def test_mask_token_skiller_tokens_med_likt_prefiks():
+    """Et rotert token med samme prefiks skal få et annet fingeravtrykk."""
+    from src.utils import mask_token
+    gammel = mask_token('323135AAAAAAAA')
+    ny = mask_token('323135BBBBBBBB')
+    assert gammel[:9] == ny[:9]
+    assert gammel != ny
+    assert mask_token('323135AAAAAAAA') == gammel
 
 
 def test_mask_token_none():
@@ -42,7 +52,7 @@ def test_mask_token_empty():
 def test_mask_token_custom_visible():
     """Test masking med egendefinert antall synlige tegn."""
     from src.utils import mask_token
-    assert mask_token('abcdefghijk', visible=3) == 'abc***'
+    assert mask_token('abcdefghijk', visible=3) == 'abc***#ca2f2069'
 
 
 # --- parse_user_agent ---
