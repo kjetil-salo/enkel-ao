@@ -2,7 +2,7 @@
  * Service Worker for Enkel-AO (PWA app-shell og kartflis-cache).
  */
 
-const CACHE_NAME = 'enkel-ao-v250';
+const CACHE_NAME = 'enkel-ao-v251';
 const MAP_TILE_CACHE_NAME = 'enkel-ao-kartverket-tiles-v1';
 const NETWORK_MODE_CACHE_URL = 'https://enkel-ao.local/__network_mode__';
 
@@ -19,6 +19,7 @@ const STATIC_ASSETS = [
 '/mine-delinger.html',
 '/ao-direct.html',
 '/medobs.html',
+'/varsler.html',
 '/feedback.html',
 '/changelog.html',
 '/style.css',
@@ -57,6 +58,7 @@ const STATIC_ASSETS = [
 '/js/arbeidsliste-overforing.js',
 '/js/visits.js',
 '/js/news-splash.js',
+'/js/push-varsel.js',
 '/js/first-run-hint.js',
 '/js/species_offline.js',
 '/js/species-matcher.js',
@@ -174,6 +176,49 @@ const data = event && event.data;
 if (data && data.type === 'SET_NETWORK_MODE') {
 currentNetworkMode = normalizeSwMode(data.mode);
 }
+});
+
+// Push-varsler (foreløpig kun nyheter, sendt for hånd — se src/push_varsel.py).
+// Et push-varsel MÅ vises: Chrome og Safari straffer en worker som tar imot push
+// uten å vise noe, og iOS trekker abonnementet tilbake etter noen få ganger.
+self.addEventListener('push', (event) => {
+let data = {};
+try {
+data = event.data ? event.data.json() : {};
+} catch {
+data = { body: event.data ? event.data.text() : '' };
+}
+const title = data.title || 'Enkel-AO';
+event.waitUntil(
+self.registration.showNotification(title, {
+body: data.body || '',
+icon: '/icon-192.png',
+tag: data.tag || 'nyheter',
+data: { url: data.url || '/' },
+}),
+);
+});
+
+self.addEventListener('notificationclick', (event) => {
+event.notification.close();
+const target = new URL((event.notification.data && event.notification.data.url) || '/', self.location.origin);
+// Bare egne sider: et varsel skal aldri kunne åpne en fremmed adresse.
+const url = target.origin === self.location.origin ? target.href : self.location.origin + '/';
+event.waitUntil(
+(async () => {
+const vinduer = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+for (const vindu of vinduer) {
+if (new URL(vindu.url).origin === self.location.origin && 'focus' in vindu) {
+await vindu.focus();
+if ('navigate' in vindu && vindu.url !== url) {
+try { await vindu.navigate(url); } catch { /* ukontrollert vindu */ }
+}
+return;
+}
+}
+await self.clients.openWindow(url);
+})(),
+);
 });
 
 /**

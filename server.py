@@ -64,6 +64,7 @@ from src import stats_store
 from src import adminsti
 from src import feedback_store
 from src import medobs_store
+from src import push_varsel
 from src import share_store
 from src import fellestur_store
 from src import fellestur_peer
@@ -199,6 +200,12 @@ _medobs_hits = {}
 MEDOBS_MAX_PER_WINDOW = 100
 MEDOBS_WINDOW_SEC = 600
 
+# Push-abonnementer: et ekte abonnement registreres én gang per enhet, pluss en
+# idempotent fornyelse når Innstillinger åpnes. Taket hindrer bare søppelrader.
+_push_hits = {}
+PUSH_MAX_PER_WINDOW = 30
+PUSH_WINDOW_SEC = 600
+
 # Rent opplysende statistikk-endepunkter, men fortsatt anonyme og ubeskyttet —
 # uten tak kan de spammes for å forurense /stats og eksport-tellerne.
 _logview_hits = {}
@@ -217,7 +224,7 @@ _arbeidsliste_skrive_hits = {}
 _ALLE_RATE_HITS = (
     _feedback_hits, _share_hits, _fellestur_hits, _fellestur_peer_hits,
     _fellestur_poll_hits, _ao_login_hits, _ao3_private_sites_hits, _ao_search_observers_hits,
-    _logview_hits, _log_export_hits, _medobs_hits,
+    _logview_hits, _log_export_hits, _medobs_hits, _push_hits,
     _arbeidsliste_ip_hits, _arbeidsliste_skrive_hits,
 )
 _siste_rate_opprydding = [0.0]
@@ -260,6 +267,9 @@ _MAX_BODY_PER_PATH = {
     # Maks 50 rader à navn (200 tegn) + aktiv-flagg — se src/medobs_store.py
     '/api/medobs-save': 64 * 1024,
     '/api/medobs-load': 4 * 1024,
+    # Et PushSubscription-objekt er et endepunkt (<1 KB) og to korte nøkler
+    '/api/push-subscribe': 4 * 1024,
+    '/api/push-unsubscribe': 4 * 1024,
     _ARBEIDSLISTE_API: arbeidsliste_store.MAKS_BODY_BYTES + 1024,
     _ARBEIDSLISTE_API + '/innlogging': 4096,
     _ARBEIDSLISTE_API + '/slett': 1024,
@@ -476,6 +486,14 @@ class Handler(SimpleHTTPRequestHandler):
 
         if parsed.path == '/api/medobs-save':
             self._handle_medobs_save_post()
+            return
+
+        if parsed.path == '/api/push-subscribe':
+            self._handle_push_subscribe_post()
+            return
+
+        if parsed.path == '/api/push-unsubscribe':
+            self._handle_push_unsubscribe_post()
             return
 
         if parsed.path == '/api/feedback':
@@ -790,6 +808,34 @@ class Handler(SimpleHTTPRequestHandler):
         except Exception as e:
             logger.warning(f'[medobs] Feil ved lagring: {e}')
             self._send_json({'ok': False, 'error': 'Kunne ikke lagre'}, status=500)
+
+    def _handle_push_subscribe_post(self):
+        """Lagre et push-abonnement (se src/push_varsel.py). Sender aldri noe selv."""
+        try:
+            if not _rate_ok(_push_hits, self._client_ip(), PUSH_MAX_PER_WINDOW, PUSH_WINDOW_SEC):
+                self._send_json({'ok': False}, status=429)
+                return
+            data = self._read_json_body()
+            if not push_varsel.lagre_abonnement(data.get('subscription'), data.get('emner')):
+                self._send_json({'ok': False, 'error': 'Ugyldig abonnement'}, status=400)
+                return
+            self._send_json({'ok': True})
+        except Exception as e:
+            logger.warning(f'[PUSH] Feil ved lagring av abonnement: {e}')
+            self._send_json({'ok': False, 'error': 'Kunne ikke lagre'}, status=500)
+
+    def _handle_push_unsubscribe_post(self):
+        """Fjern et push-abonnement. Ukjent endepunkt er ikke en feil."""
+        try:
+            if not _rate_ok(_push_hits, self._client_ip(), PUSH_MAX_PER_WINDOW, PUSH_WINDOW_SEC):
+                self._send_json({'ok': False}, status=429)
+                return
+            data = self._read_json_body()
+            push_varsel.slett_abonnement(data.get('endpoint'))
+            self._send_json({'ok': True})
+        except Exception as e:
+            logger.warning(f'[PUSH] Feil ved sletting av abonnement: {e}')
+            self._send_json({'ok': False, 'error': 'Kunne ikke slette'}, status=500)
 
     def _read_json_body(self):
         content_length = int(self.headers.get('Content-Length', 0))
@@ -2088,6 +2134,9 @@ class Handler(SimpleHTTPRequestHandler):
                 self._handle_ao_rarity_api(parsed)
             elif parsed.path == '/api/fellestur':
                 self._handle_fellestur_get(parsed)
+            elif parsed.path == '/api/push-public-key':
+                # null = push er ikke satt opp på denne serveren; siden sier fra
+                self._send_json({'publicKey': push_varsel.hent_offentlig_nokkel()})
             else:
                 self._handle_static_files(parsed)
         except Exception as e:

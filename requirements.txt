@@ -12,3 +12,6 @@ httpx==0.28.1
 
 # zoneinfo (Europe/Oslo) i python:3.12-slim mangler OS-tzdata
 tzdata==2026.5
+
+# Web push-varsler om nyheter (VAPID + aes128gcm-kryptering), se src/push_varsel.py
+pywebpush==2.5.0

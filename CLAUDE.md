@@ -215,6 +215,12 @@ The `Handler` class routes requests:
     AO ikke tok imot skal ikke se ut som ett som kom fram
   - Skilt i to fordi det er to ulike vaner: legge bildet på med én gang, eller komme
     hjem med kamera og gjøre det etterpå. Vises som egen rad på `/stats`
+- `/api/push-public-key` (GET), `/api/push-subscribe` / `/api/push-unsubscribe` (POST) → web push,
+  foreløpig KUN nyheter og KUN sendt for hånd (`python3 -m src.push_varsel send … --send` i
+  containeren, tørrkjøring uten `--send`). Brukeren velger varseltyper på `/varsler.html`, appen ber
+  aldri om tillatelse selv. VAPID-nøkler auto-genereres i `/data` (`src/push_varsel.py`), endepunkt
+  kun mot kjente push-tjenester (SSRF). Ny varseltype = `KJENTE_EMNER` + `VARSELTYPER` i
+  `public/js/push-varsel.js`. Full beskrivelse: `docs/push-varsler.md`
 - `/api/medobs-load` / `/api/medobs-save` (POST) → backup av medobservatør-lista
   hos AO-brukernavnet (fra `localStorage.ao_username`), slik at en reinstallering
   av appen ikke mister lista brukeren har bygget opp
@@ -858,6 +864,8 @@ publiseringsveien testes (regel 3).
   lagres i `ADMIN_STI_FIL` (default `/data/admin_sti.txt`, docker-volum)
   - Erstatter `STATS_KEY`, som hadde standardverdien `'salo'` i klartekst i et offentlig
     repo — altså ingen beskyttelse for den som leste koden
+- `VAPID_KONTAKT` (default `https://ao.efugl.no`) — kontakt i VAPID-signaturen for push, gjerne
+  `mailto:…` i `.env`. `VAPID_PRIVAT_FIL`/`VAPID_OFFENTLIG_FIL` (default `/data/vapid_*`) — nøkkelparet
 - **Tilbakemelding-epostvarsel** (alle valgfrie — uten dem er varsling en no-op, skjema virker uansett):
   - `FEEDBACK_NOTIFY_TO` — mottaker (eier). Uten denne sendes ingenting
   - `FEEDBACK_NOTIFY_FROM` — avsender (må være verifisert hos provideren)

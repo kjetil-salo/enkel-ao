@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="nb">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Varsler</title>
+    <link rel="icon" href="/favicon.png" type="image/png" />
+    <link rel="apple-touch-icon" href="/icon-192.png" />
+    <link rel="manifest" href="/manifest.json">
+    <link rel="stylesheet" href="/style.css" />
+    <style>
+      body { font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+             background: var(--bg, #0f172a); color: var(--text, #e5e7eb); padding: 16px; margin: 0; }
+      .shell { max-width: 640px; margin: 0 auto; }
+      header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 4px; }
+      h1 { font-size: 1.25rem; margin: 0; }
+      .back-link { color: var(--accent, #3b82f6); text-decoration: none; font-size: 0.9rem; }
+      .ingress { color: var(--muted, #9ca3af); font-size: 0.85rem; line-height: 1.4; margin: 0 0 18px; }
+      .varseltype { background: rgba(255,255,255,0.04); border: 1px solid rgba(148,163,184,0.15);
+                    border-radius: 12px; padding: 14px 16px; margin-bottom: 14px;
+                    display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+      .varseltype .switch { flex-shrink: 0; }
+      .varseltype-tittel { font-weight: 600; margin-bottom: 4px; }
+      .varseltype-tekst { color: var(--muted, #9ca3af); font-size: 0.85rem; line-height: 1.4; }
+      .melding { padding: 10px 12px; border-radius: 8px; font-size: 0.88rem; line-height: 1.4;
+                 background: rgba(148,163,184,0.1); border: 1px solid rgba(148,163,184,0.22); margin-bottom: 14px; }
+      .melding:empty { display: none; }
+      body.theme-light { background: #ffffff !important; color: #1a1a1a !important; }
+      body.theme-light .varseltype { background: #f8fafc !important; border-color: #e2e8f0 !important; }
+    </style>
+  </head>
+  <body>
+    <script src="/js/theme.js"></script>
+    <div class="shell">
+      <header>
+        <h1>🔔 Varsler</h1>
+        <a href="/" class="back-link">← Tilbake</a>
+      </header>
+      <p class="ingress">
+        Få beskjed på telefonen, også når appen er lukket. Du velger selv hva du vil
+        varsles om, og kan slå det av igjen når som helst. Valget gjelder bare denne enheten.
+      </p>
+      <div id="melding" class="melding" role="status" aria-live="polite"></div>
+      <div id="typer"></div>
+    </div>
+
+    <script type="module">
+      // Registrerer service workeren (varsler trenger den), samme som de andre sidene.
+      import './js/offline-db.js?v=v1.66.0';
+      import { VARSELTYPER, pushStotte, aktiveEmner, settEmner, fornyHosServer } from './js/push-varsel.js?v=v1.66.0';
+
+      const melding = document.getElementById('melding');
+      const typer = document.getElementById('typer');
+      const vis = (tekst) => { melding.textContent = tekst || ''; };
+
+      const brytere = new Map();
+      for (const type of VARSELTYPER) {
+        const rad = document.createElement('div');
+        rad.className = 'varseltype';
+        rad.innerHTML = `
+          <div>
+            <div class="varseltype-tittel"></div>
+            <div class="varseltype-tekst"></div>
+          </div>
+          <label class="switch">
+            <input type="checkbox" disabled />
+            <span class="slider"></span>
+          </label>`;
+        rad.querySelector('.varseltype-tittel').textContent = type.tittel;
+        rad.querySelector('.varseltype-tekst').textContent = type.tekst;
+        const bryter = rad.querySelector('input');
+        bryter.setAttribute('aria-label', type.tittel);
+        brytere.set(type.id, bryter);
+        typer.appendChild(rad);
+      }
+
+      const valgte = () => [...brytere].filter(([, b]) => b.checked).map(([id]) => id);
+      const laas = (av) => brytere.forEach((b) => { b.disabled = av; });
+
+      (async () => {
+        const stotte = pushStotte();
+        if (!stotte.stottet) {
+          vis(stotte.grunn);
+          return;
+        }
+        const aktive = await aktiveEmner().catch(() => []);
+        brytere.forEach((b, id) => { b.checked = aktive.includes(id); });
+        laas(false);
+        if (aktive.length) fornyHosServer();
+      })();
+
+      brytere.forEach((bryter) => {
+        bryter.addEventListener('change', async () => {
+          laas(true);
+          try {
+            await settEmner(valgte());
+            vis(valgte().length ? '✅ Lagret. Du får beskjed når det skjer noe.' : 'Varsler er slått av på denne enheten.');
+          } catch (e) {
+            bryter.checked = !bryter.checked;
+            vis(`⚠️ ${e.message || e}`);
+          } finally {
+            laas(false);
+          }
+        });
+      });
+    </script>
+  </body>
+</html>
