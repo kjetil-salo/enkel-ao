@@ -1,5 +1,45 @@
 # TODO
 
+## 49. Lokalitetsbasen: det som gjenstår etter uttrekket (Kjetil, 2026-11-25)
+
+Kartet svarer fra en egen fuglebase siden v1.65.1 (prod: `/data/locations-fugl.db`,
+`KART_FRA_LOKAL_DB=1`), vasket hver natt fra Dagens Funn (`tools/vask_lokaliteter.py`,
+cron 02:30 staging / 02:45 prod). Hele prosessen: Obsidian
+`02-projects/enkel-ao/lokalitetsuttrekk-prosess.md` og `docs/lokalitetsuttrekk-2026-11.md`.
+
+**Regler (Kjetil):** private lokaliteter fra AO3-kartet (designfeilen i `Sites/ByBoundingBox`)
+vises aldri. Private som Dagens Funn har sett i åpne funn, kan vises bak «andres private».
+Den gamle `/shared/locations.db` skal aldri slettes — den er referanse og brukes av Dagens Funn.
+Changelog og nyheter nevner bare fart, aldri at skjulte/private lokaliteter er borte.
+
+- [ ] Steder vasken gjør offentlige (`bird`) mangler polygon — `GetSite` gir det ikke.
+      Hent AO3-rådata for akkurat det stedet (liten `ByBoundingBox` rundt punktet)
+- [ ] Svalbard ble utsatt i uttrekket (`state='skipped'`) — egen runde med mindre
+      startbokser mot nord
+- [ ] Slett de skadde uttrekkskopiene når du er trygg: den gamle arbeidsmappa på Pi-ens
+      SD-kort og `data/uttrekk/` på Mac. Den hele basen (på SSD-en) BEHOLDES
+- [ ] Dagens Funn lagrer steder fra observasjoner med `is_private=0` uten å vite status
+      (`pi/location-db.js`). Ufarlig for enkel-ao nå (egen base), men feil i den delte basen
+- [ ] Neste fulle uttrekk sjelden (≈ årlig) — vasken tar resten
+- [ ] Kartfilteret uten `KART_FRA_LOKAL_DB` (AO3-svar filtrert mot basen) brukes ikke lenger
+      i prod; vurder å fjerne det når lokal base har vist seg stabil
+
+## 48. HØYESTE PRIORITET: navneforslag fra Kartverkets stedsnavn ved ny privat lokalitet, også offline (Kjetil, 2026-11-23)
+
+Behov: på tur i ødemarka (feltmelding: Vossafjellene) uten AO-lokaliteter i nærheten
+vil man i det minste ha et hint om hva en ny privat lokalitet kan hete. AO-lokaliteter
+gir ikke det der ute, og andres private lokaliteter er feil kilde (personopplysninger,
+navn som «Hytta»). Riktig kilde er Kartverkets sentrale stedsnavnregister (åpne data,
+CC BY 4.0), med alle offisielle navn som vann, topper, myrer og støler.
+
+- Online: nærmeste stedsnavn rundt pin/GPS-punkt via Kartverkets stedsnavn-API (via
+  backend-proxy, samme mønster som `/api/reverse`), vist som forslag i navnefeltet for
+  ny lokasjon (`#new-site-name` i `map.js`)
+- Offline: nedlasting av offline-område tar også med stedsnavnene i området (IndexedDB),
+  så forslaget virker uten nett
+- Forslaget skal aldri fylles inn stille. Brukeren velger det selv
+- Påbegynt 2026-11-23 av subagent i egen worktree. **Status 25.11.2026:** branch `feature/stedsnavn-forslag` (`.claude/worktrees/agent-a6cb06f462185286f`) har 37 endrede filer, ucommittet og utestet, basert på v1.65.0. Må flettes med v1.65.1–1.65.3 (kart fra lokal base) før videre arbeid.
+
 ## ~~47. Felt/Etterreg-pillen, nettverkspillen og KJ-sirkelen tar for mye vertikal plass i toppraden (Kjetil, 2026-11-20)~~ ✅
 
 ~~Alle tre (`.mode-pill`, `#offline-mode-toggle`, `#ao-status-dot`) ble tvunget
@@ -89,12 +129,17 @@ og en kryptert-på-disk-løsning (retning 1) kan være et bedre mellomsteg.
 
 ## 43. Øk maks antall medobservatører fra 10 til 20 (2026-11-13)
 
+**Status 25.11.2026:** ikke gjort. `MEDOBS_MAX = 10` står fortsatt i `public/js/coobserver-picker.js` på alle brancher og i både prod og staging.
+Ikke et rent tall å bumpe: AOs CSV-importmal har nøyaktig 10 `Medobservatør`-kolonner (`observations.js`, `storage.js` fyller alltid 10 plasser). Først: test med ett funn på testkontoen om AO godtar flere kolonner (slett fra køen før publisering, jf. #37). Godtar AO det ikke: send 10 med CSV og legg på 11–20 etterpå via `ao_edit.py`.
+
 `MEDOBS_MAX = 10` i `public/js/coobserver-picker.js` setter grensen for hvor
 mange medobservatører som kan velges på én observasjon. Trolig et enkelt
 tall å bumpe til 20 — verifiser at ingenting annet (AO sin egen grense,
 lagringsformat) er avhengig av 10 før det gjøres.
 
-## 42. Overfør arbeidslista fra mobil til Mac (2026-11-11)
+## ~~42. Overfør arbeidslista fra mobil til Mac (2026-11-11)~~ ✅
+
+**Utført:** i prod siden v1.60.15 (12.11.2026) og annonsert i nyheten 13.11. Engangskode uten innlogging (trinn 2) er ikke laget, og trengs bare om noen etterspør det.
 
 **Høyeste prioritet.** La en observatør lagre arbeidslista fra mobilen som en
 privat kopi, finne den igjen på Mac med samme AO-konto og gå gjennom funnene
@@ -234,7 +279,9 @@ antakelse:
   `/s/<hemmelighet>/tilbakemeldinger`. Sistnevnte viser brukernes e-postadresser
   og fritekst, altså personopplysninger — det er den som veier tyngst her
 
-## 35. Nyhet i appen: bilder på sendte funn (fra v1.54.0–v1.54.4, 2026-10-25)
+## ~~35. Nyhet i appen: bilder på sendte funn (fra v1.54.0–v1.54.4, 2026-10-25)~~ ✅
+
+**Utført:** nyhetssplash 26.10.2026 (v1.55.1), se `tidligere-nyheter.md`.
 
 Dette er den mest nyttige funksjonen på lenge, og den er usynlig for den som
 ikke går inn i «Tidligere sendt». Den fortjener en nyhetssplash
@@ -252,7 +299,9 @@ Hva som er verdt å si, i den rekkefølgen brukeren bryr seg om det:
 Vis den kun til innloggede brukere — funksjonen krever AO-innlogging, og for
 andre blir den en reklame for noe de ikke kan bruke.
 
-## 34. Nyhet: enkel-ao er åpen kildekode
+## ~~34. Nyhet: enkel-ao er åpen kildekode~~ ✅
+
+**Utført:** sagt i nyheten 13.11.2026 (Espen-punktet: «Enkel-AO er åpen kildekode …»).
 
 Repoet er offentlig (se punkt 33), men det står ingen steder i appen eller mot
 brukerne. Lag en nyhet om det.
@@ -330,7 +379,9 @@ alternativ uavhengig av piloten: en statuslinje øverst i hvert plandokument
 (`Status: planlagt | under arbeid (vNN) | implementert vNN | forkastet`) og
 flytting til `docs/archive/` når punktet lukkes.
 
-## 31. Offline kart med lokasjoner (planlagt 2026-09-29, ikke startet)
+## ~~31. Offline kart med lokasjoner (planlagt 2026-09-29, ikke startet)~~ ✅
+
+**Utført:** levert i v1.60.0 (4.11.2026), annonsert 6.11.
 
 Bruker skal kunne velge et geografisk område (a la Google Maps' «last ned
 område for offline bruk») og laste ned det — karttiler OG AO-lokasjoner
