@@ -14,7 +14,7 @@
  * Rene funksjoner uten DOM eller Leaflet, så de kan enhetstestes — selve
  * koblingen mot kartlagene ligger i map.js.
  */
-import { tFor, DEFAULT_LANGUAGE } from './i18n.js?v=v1.65.0';
+import { tFor, DEFAULT_LANGUAGE } from './i18n.js?v=v1.65.3';
 
 /** @typedef {'alt'|'kun-pins'|'ingen'} Visning */
 

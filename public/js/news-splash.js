@@ -21,34 +21,38 @@ const MAX_VISIBLE = 4;
 
 export const CURRENT_NEWS_SPLASH = {
   enabled: true,
-  id: 'november-2026-nynorsk-v1',
+  id: 'november-2026-raskt-kart-v1',
   items: [
     {
-      title: '📖 Nynorsk',
-      body: 'Appen finnes nå på nynorsk, i tillegg til bokmål. Velg under '
-        + '⚙️ Innstillinger → Språk — hele appen bytter med en gang: søket, '
-        + 'registreringen, meldingene og hele hjelpesiden.',
+      title: '⚡ Kartet er lynraskt',
+      body: 'Lokalitetene i kartet dukker nå opp nesten med en gang, i stedet for '
+        + 'at appen venter på svar fra Artsobservasjoner. Du merker det best der '
+        + 'det er mange lokaliteter tett, og ute i felt med dårlig dekning. '
+        + 'Dine egne lokaliteter kommer et øyeblikk etter.',
       image: {
-        src: '/img/nyhet-nynorsk.jpg',
-        alt: 'Illustrasjon av Espen Bore Hollund og Ivar Aasen side om side, '
-          + 'med norsk fjellandskap og en fugl i bakgrunnen.',
+        src: '/img/nyhet-raskt-kart.jpg',
+        alt: 'Lista fyr i solnedgang, med skjermbilder fra appen limt inn: kartet med '
+          + 'lokaliteter på en mobil, en konvolutt med to uleste meldinger, toppmenyen '
+          + 'med ✉️ og lista «Tidligere sendt».',
       },
     },
     {
-      title: '💻 Rakk du ikke å sende inn før du kom hjem?',
-      body: 'Lagre en privat kopi av arbeidslista fra ⋯-menyen på mobilen '
-        + 'før du legger den fra deg. Hjemme åpner du samme meny på Mac '
-        + 'eller PC, logger inn med samme AO-konto, og henter listen inn '
-        + 'der — klar til å se gjennom funnene før du publiserer.',
+      title: '✉️ Meldinger fra Artsobservasjoner',
+      body: 'Får du en melding eller et driftsvarsel på Artsobservasjoner, viser '
+        + 'et ✉️ i toppen det. Du kan lese selve meldingen rett i appen, på den '
+        + 'nye siden «Artsobservasjoner» i ⋯-menyen. Der ser du også hvor mange '
+        + 'fuglearter du har registrert, totalt og i år.',
     },
     {
-      title: '🙌 Dette er Espen sitt verk',
-      body: 'Espen Bore Hollund bygde den første nynorsk-versjonen av appen '
-        + 'og oversatte alt innholdet selv, side for side — språkvelgeren '
-        + 'du ser i dag bygger videre på koden hans. Enkel-AO er åpen '
-        + 'kildekode, og dette er akkurat slik det er ment å virke: koden '
-        + 'ligger ute, og den som savner noe kan bygge det og sende det '
-        + 'tilbake.',
+      title: '📁 Knytt funn til et prosjekt',
+      body: 'Under «✎ Flere felt» kan du søke opp et prosjekt på Artsobservasjoner, '
+        + 'med dine egne øverst. Prosjektet huskes til neste funn, til du fjerner det.',
+    },
+    {
+      title: '📤 «Tidligere sendt» er ryddigere',
+      body: 'Lista over det du har sendt er nå kompakt og samlet per sted. '
+        + 'Du kan rette kommentaren, slette egne funn, og fjerne deg selv som '
+        + 'medobservatør på funn andre har rapportert.',
     },
   ],
 };

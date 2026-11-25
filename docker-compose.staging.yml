@@ -11,6 +11,8 @@ services:
       # staging ikke kan forveksles med prod på telefonen.
       - APP_ENV=staging
       - LOCATION_DB_PATH=/data/staging-locations.db
+      # Kartet svarer fra den lokale fuglebasen i stedet for AO3 (lokalitetsuttrekket 2026-11)
+      - KART_FRA_LOKAL_DB=1
       - LOG_DIR=/data/logs
     volumes:
       - ./data:/data

@@ -2259,11 +2259,15 @@ class Handler(SimpleHTTPRequestHandler):
                     'east': east_raw,
                     'west': west_raw,
                 }
+            kun_egne = params.get('kilde', [''])[0] == 'egne'
             sites, refreshed_auth_cookie, refreshed_login_token, auth_failed = handle_ao_sites_search(
                 lat_raw, lon_raw, size_raw, ao_mobile_base, user_id, login_token, auth_cookie,
-                location_db=_location_db, username=username, client_ip=self._client_ip(), **bbox_kwargs
+                location_db=_location_db, username=username, client_ip=self._client_ip(),
+                kun_egne=kun_egne, **bbox_kwargs
             )
             response_data = {'sites': sites}
+            if _location_db and os.getenv('KART_FRA_LOKAL_DB') == '1' and not kun_egne:
+                response_data['lokal'] = True  # nettleseren henter egne (med polygon) i bakgrunnen
             logger.debug(f'ao-sites refresh: refreshed={refreshed_auth_cookie is not None}, auth_failed={auth_failed}')
             if refreshed_auth_cookie:
                 response_data['refreshedAuthCookie'] = refreshed_auth_cookie

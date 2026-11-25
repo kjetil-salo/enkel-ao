@@ -509,6 +509,28 @@ describe('fetchAndCachePrivateSites', () => {
     expect(getCachedPrivateSites()).toEqual([]);
   });
 
+  it('husker polygonet til egne lokaliteter når kartet svarer fra lokal base', async () => {
+    store.ao_username = 'test@example.org';
+    store.ao_password = 'testpass';
+    store.ao_tokens = JSON.stringify({ userId: '1', loginToken: '1:abc', authCookie: 'c' });
+    store.ao_private_sites = JSON.stringify({
+      ts: Date.now(), sites: [{ id: 7, name: 'Min', lat: 60, lon: 5 }],
+      konto: { brukernavn: 'test@example.org', versjon: null },
+    });
+    const polygon = { isPolygon: true, polygonCoordinates: [[5, 60], [5.01, 60], [5, 60.01]] };
+    fetchMock
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ lokal: true, sites: [{ id: 1, name: 'Fugl', _source: 'local_db' }] }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ sites: [{ id: 7, name: 'Min', isMine: true, raw: polygon }] }) });
+
+    await fetchAoSites(60, 5);
+    await new Promise(resolve => setTimeout(resolve, 0));
+
+    expect(fetchMock.mock.calls[1][0]).toContain('kilde=egne');
+    expect(getCachedPrivateSites()[0].raw).toEqual(polygon);
+    store.ao_username = 'annen@example.org';
+    expect(getCachedPrivateSites()).toEqual([]);
+  });
+
   it('slipper ikke gjennom et AO2-kartsvar fra en tidligere konto', async () => {
     let sendSvar;
     fetchMock.mockImplementationOnce(() => new Promise(resolve => { sendSvar = resolve; }));

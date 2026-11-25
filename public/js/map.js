@@ -3,11 +3,11 @@
  */
 
 // Versjonert import
-import { createAoSite, ensureAoTokens, ensureAoPrivateSites, fetchAoSitesCached, fetchAoSitesByBounds, getCachedPrivateSites, hasFreshPrivateSitesCache, hasActiveAoLogin } from './api.js?v=v1.65.0';
-import { mergeAoSitesWithPrivateCache, isPrivateSite, shouldShowOthersPrivateSites, DEFAULT_MAP_CENTER } from './location.js?v=v1.65.0';
-import { saveLastKnownPosition, loadLastKnownPosition } from './storage.js?v=v1.65.0';
+import { createAoSite, ensureAoTokens, ensureAoPrivateSites, fetchAoSitesCached, fetchAoSitesByBounds, getCachedPrivateSites, hasFreshPrivateSitesCache, hasActiveAoLogin } from './api.js?v=v1.65.3';
+import { mergeAoSitesWithPrivateCache, isPrivateSite, shouldShowOthersPrivateSites, DEFAULT_MAP_CENTER } from './location.js?v=v1.65.3';
+import { saveLastKnownPosition, loadLastKnownPosition } from './storage.js?v=v1.65.3';
 import { haversine } from './utils.js';
-import { t, getLanguage, applyTranslations } from './i18n.js?v=v1.65.0';
+import { t, getLanguage, applyTranslations } from './i18n.js?v=v1.65.3';
 
 applyTranslations(); // statisk data-i18n-markup i map.html (back-lenke, FAB, opprett-panel)
 // Versjonert import: HARD avhengighet til navngitte eksporter i en modul som
@@ -20,7 +20,7 @@ import {
   tilLagretVerdi,
   visLokaliteter,
   visNavn,
-} from './kart-visning.js?v=v1.65.0';
+} from './kart-visning.js?v=v1.65.3';
 import {
   DEFAULT_OFFLINE_AREA_SIDE_M,
   KARTVERKET_TOPO_URL_TEMPLATE,
@@ -42,7 +42,7 @@ import {
   getBoundsDimensionsMeters,
   moveBoundsToCenter,
   resizeBoundsFromCorner,
-} from './offline-area.js?v=v1.65.0';
+} from './offline-area.js?v=v1.65.3';
 import {
   getNetworkMode,
   setNetworkMode,
@@ -59,7 +59,7 @@ import {
   syncOfflineAreas,
   clearAllOfflineData,
   syncNetworkModeToServiceWorker,
-} from './offline-db.js?v=v1.65.0';
+} from './offline-db.js?v=v1.65.3';
 
 // Hent data fra localStorage — fall tilbake til Svortland, Bømlo dersom mapData mangler
 let data = {};
@@ -1028,6 +1028,18 @@ if (typeof siteLayerGroup.on === 'function') {
 map.on('movestart zoomstart', nullstillFlisTeller);
 map.on('zoomend moveend', scheduleShapeVisibilityUpdate);
 map.on('zoomend', enforceLabelsVisibility);
+
+// Når kartet svarer fra den lokale basen, kommer brukerens egne lokaliteter med polygon
+// litt etter, fra AO (hentEgneIBakgrunnen i api.js). Flett dem inn og tegn på nytt.
+window.addEventListener('ao_egne_lokaliteter', (e) => {
+  const egne = (e.detail?.sites || []).map((s) => ({ ...s, isMine: true }));
+  if (!egne.length) return;
+  const egneById = new Map(egne.map((s) => [s.id, s]));
+  const merged = currentRenderedSites.map((s) => (egneById.has(s.id) ? { ...s, ...egneById.get(s.id) } : s));
+  const finnes = new Set(merged.map((s) => s.id));
+  egne.forEach((s) => { if (!finnes.has(s.id)) merged.push(s); });
+  renderSites(merged, { fitToBounds: false });
+});
 
 function renderSites(sitesToRender, { fitToBounds = false } = {}) {
   if (Array.isArray(sitesToRender)) currentRenderedSites = sitesToRender;

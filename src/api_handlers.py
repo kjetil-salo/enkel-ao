@@ -1167,7 +1167,7 @@ def _mark_env_owned_sites(sites):
         pass
 
 
-def handle_ao_sites_search(lat=None, lon=None, size_m=600.0, ao_mobile_base_url='https://mobil.artsobservasjoner.no', user_id=None, login_token=None, auth_cookie=None, location_db=None, username=None, north=None, south=None, east=None, west=None, client_ip=None):
+def handle_ao_sites_search(lat=None, lon=None, size_m=600.0, ao_mobile_base_url='https://mobil.artsobservasjoner.no', user_id=None, login_token=None, auth_cookie=None, location_db=None, username=None, north=None, south=None, east=None, west=None, client_ip=None, kun_egne=False):
     """Håndter søk etter AO-lokaliteter.
 
     Hvis location_db er satt, søkes det parallelt i lokal DB og AO.
@@ -1211,6 +1211,24 @@ def handle_ao_sites_search(lat=None, lon=None, size_m=600.0, ao_mobile_base_url=
             size_m = float(size_m) if size_m else 600.0
     except (ValueError, TypeError):
         raise ValueError('Ugyldig lat/lon/size')
+
+    # Kart fra lokal base (KART_FRA_LOKAL_DB=1, foreløpig bare staging): ~2 ms mot 1–3 s hos AO3.
+    # Basen er fuglebasen fra lokalitetsuttrekket + steder Dagens Funn har sett i åpne funn.
+    # Brukerens egne private kommer fra /api/ao-private-sites og flettes inn i nettleseren.
+    # kun_egne: brukerens egne lokaliteter fra AO3, med polygon. Hentes i bakgrunnen av nettleseren
+    # når kartet ellers svarer fra lokal base.
+    if location_db and os.getenv('KART_FRA_LOKAL_DB') == '1' and not kun_egne:
+        if explicit_bbox:
+            local_sites = location_db.search_in_bbox(explicit_bbox['min_y'], explicit_bbox['max_y'],
+                                                     explicit_bbox['min_x'], explicit_bbox['max_x'])
+        else:
+            local_sites = location_db.search_nearby(lat, lon, radius_m=int(size_m))
+        # AO3-rådata gir kartet polygon og nøyaktighetssirkel (site.raw i map.js)
+        raw = location_db.raw_for(s['id'] for s in local_sites)
+        for s in local_sites:
+            if s['id'] in raw:
+                s['raw'] = raw[s['id']]
+        return local_sites, None, None, False
 
     ao_user_id = user_id or (login_token.split(':')[0] if login_token and ':' in login_token else None)
     ao_auth = auth_cookie or os.getenv('AO_AUTH_COOKIE')
@@ -1262,6 +1280,23 @@ def handle_ao_sites_search(lat=None, lon=None, size_m=600.0, ao_mobile_base_url=
 
         # Merk bruker-eide fra miljøvariabel
         _mark_env_owned_sites(sites)
+
+        if kun_egne:
+            return [s for s in sites if s.get('isMine')], refreshed_auth_cookie, refreshed_login_token, auth_failed
+
+        # Kartet viser bare fuglelokaliteter og brukerens egne. ByBoundingBox gir også andres
+        # private og offentlige steder for andre artsgrupper (f.eks. «Sofies gate»); bare de
+        # som finnes i fuglebasen fra lokalitetsuttrekket får være med.
+        if location_db:
+            try:
+                known = location_db.known_ids(s['id'] for s in sites if str(s.get('id', '')).isdigit())
+                before = len(sites)
+                sites = [s for s in sites if s.get('isMine') or
+                         (str(s.get('id', '')).isdigit() and int(s['id']) in known)]
+                logger.debug(f'AO-sites: {before - len(sites)} ikke-fugl/andres private filtrert bort')
+            except Exception as e:
+                logger.warning(f'Fuglefilter feilet, viser bare lokale treff: {e}')
+                sites = [s for s in sites if s.get('isMine')]
 
         # Merge lokale sites som ikke finnes i AO-resultater
         if local_sites:

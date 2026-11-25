@@ -32,6 +32,7 @@ rsync -av \
   --exclude 'fly.toml' \
   --exclude 'fly.staging.toml' \
   --exclude 'mock' \
+  --exclude '/data' \
   "$SOURCE_DIR/" \
   "$PI_HOST:$PI_DIR/"
 

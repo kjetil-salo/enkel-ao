@@ -231,6 +231,7 @@ def test_ao_sites_super_via_local_db_parent(monkeypatch):
         {'id': 1, 'name': 'Hylkje', 'lat': 60.456, 'lon': 5.446, 'isPrivate': False, 'isSuper': False, 'parentId': None, '_source': 'local_db', '_distance': 10},
         {'id': 2, 'name': 'Hylkjebukta', 'lat': 60.452, 'lon': 5.444, 'isPrivate': False, 'isSuper': False, 'parentId': 1, '_source': 'local_db', '_distance': 50},
     ]
+    mock_db.known_ids.return_value = {1, 2}  # begge finnes i fuglebasen
 
     sites, _, _, _ = handle_ao_sites_search(60.456, 5.446, size_m=1000, location_db=mock_db)
 

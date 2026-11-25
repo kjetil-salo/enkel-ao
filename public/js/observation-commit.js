@@ -2,13 +2,13 @@
  * Observasjons-modul for validering, lagring og aktivitets-pills
  */
 
-import { defaultCoObservers, loadActivityPills, speciesDisplayName, activityDisplayName, activityBokmalName } from './storage.js?v=v1.65.0';
+import { defaultCoObservers, loadActivityPills, speciesDisplayName, activityDisplayName, activityBokmalName } from './storage.js?v=v1.65.3';
 import { showToast } from './ui.js';
-import { t } from './i18n.js?v=v1.65.0';
+import { t } from './i18n.js?v=v1.65.3';
 import { toLocalISOString } from './utils.js';
 import { resolveVisitIdForNewObservation, getVisitTimeSpan, isVisitLocked, visitExists } from './visits.js';
 import { celebrateRareFind } from './celebrate.js';
-import { lagretProsjekt } from './project-picker.js?v=v1.65.0';
+import { lagretProsjekt } from './project-picker.js?v=v1.65.3';
 
 function getObservationTimestamp() {
   const isAfterMode = localStorage.getItem('afterRegistrationMode') === '1';

@@ -5,6 +5,7 @@ Deles mellom enkel-ao og dagens-funn via et felles Docker-volum.
 Aktiveres med miljøvariabel LOCATION_DB_PATH.
 """
 
+import json
 import logging
 import math
 import sqlite3
@@ -240,6 +241,33 @@ class LocationDB:
         """Antall lokasjoner i databasen."""
         with self._connect() as conn:
             return conn.execute('SELECT COUNT(*) FROM locations').fetchone()[0]
+
+    def raw_for(self, ids):
+        """AO3-rådata per ID fra location_metadata (lokalitetsuttrekket): polygon, nøyaktighet osv.
+        Tom dict i baser uten den tabellen."""
+        ids = [int(i) for i in ids]
+        raw = {}
+        with self._connect() as conn:
+            if not conn.execute("SELECT 1 FROM sqlite_master WHERE name='location_metadata'").fetchone():
+                return raw
+            for start in range(0, len(ids), 500):
+                chunk = ids[start:start + 500]
+                for ao_id, raw_json in conn.execute(
+                        f'SELECT ao_id, raw_json FROM location_metadata WHERE raw_json IS NOT NULL '
+                        f'AND ao_id IN ({",".join("?" * len(chunk))})', chunk):
+                    raw[ao_id] = json.loads(raw_json)
+        return raw
+
+    def known_ids(self, ids):
+        """De av ID-ene som finnes i basen. Basen er fuglebasen fra lokalitetsuttrekket."""
+        ids = [int(i) for i in ids]
+        found = set()
+        with self._connect() as conn:
+            for start in range(0, len(ids), 500):
+                chunk = ids[start:start + 500]
+                found.update(row[0] for row in conn.execute(
+                    f'SELECT ao_id FROM locations WHERE ao_id IN ({",".join("?" * len(chunk))})', chunk))
+        return found
 
     def get_cached_areas(self, site_id):
         """Hent cachede AO Areas-ID-er (fylke/kommune) for en lokalitet.

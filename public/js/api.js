@@ -11,6 +11,10 @@ const SPECIES_CACHE_TTL = 365 * 24 * 60 * 60 * 1000; // 1 år
 
 // Cache for private lokasjoner
 const PRIVATE_SITES_KEY = 'ao_private_sites';
+// AO3-rådata (polygon, nøyaktighet) for brukerens egne lokaliteter, per konto. Egen nøkkel fordi
+// PRIVATE_SITES_KEY fylles fra AOs brukerliste, som mangler polygon. Bare på denne enheten:
+// den felles lokale basen på serveren deles av alle brukere og skal aldri ha andres private.
+const EGNE_RAW_KEY = 'ao_egne_raw_v1';
 const PRIVATE_SITES_TTL = 24 * 60 * 60 * 1000; // 24 timer
 // En TOM cache får mye kortere levetid enn en full. To grunner:
 //
@@ -79,9 +83,30 @@ export function getCachedPrivateSites() {
     const { ts, sites, konto } = JSON.parse(item);
     if (konto && !sammeKontoKontekst(konto)) return [];
     if (Date.now() - ts > PRIVATE_SITES_TTL) return [];
-    return Array.isArray(sites) ? sites : [];
+    if (!Array.isArray(sites)) return [];
+    const raw = hentEgneRaw();
+    return sites.map(s => (s && !s.raw && raw[s.id] ? { ...s, raw: raw[s.id] } : s));
   } catch {
     return [];
+  }
+}
+
+function hentEgneRaw() {
+  try {
+    const { konto, raw } = JSON.parse(localStorage.getItem(EGNE_RAW_KEY) || '{}');
+    return konto && sammeKontoKontekst(konto) && raw ? raw : {};
+  } catch {
+    return {};
+  }
+}
+
+function lagreEgneRaw(sites) {
+  try {
+    const raw = hentEgneRaw();
+    sites.forEach(s => { if (s && s.id != null && s.raw) raw[s.id] = s.raw; });
+    localStorage.setItem(EGNE_RAW_KEY, JSON.stringify({ konto: kontoKontekst(), raw }));
+  } catch {
+    // Full eller utilgjengelig localStorage: polygonet kommer da fra AO neste gang i stedet
   }
 }
 
@@ -294,6 +319,22 @@ async function tryAutoRelogin() {
 }
 
 /**
+ * Når kartet svarer fra den lokale basen (data.lokal), mangler brukerens egne private
+ * lokaliteter polygon. Hent dem fra AO i bakgrunnen og meld fra med en hendelse som
+ * map.js fletter inn. Blokkerer aldri det raske svaret.
+ */
+function hentEgneIBakgrunnen(url, headers, konto) {
+  fetch(`${url}&kilde=egne`, { headers })
+    .then(r => (r.ok ? r.json() : null))
+    .then(d => {
+      if (!d || !Array.isArray(d.sites) || !d.sites.length || !sammeKontoKontekst(konto)) return;
+      lagreEgneRaw(d.sites); // neste gang kommer polygonet med en gang, fra getCachedPrivateSites()
+      window.dispatchEvent(new CustomEvent('ao_egne_lokaliteter', { detail: { sites: d.sites } }));
+    })
+    .catch(() => {});
+}
+
+/**
  * Hent AO-lokaliteter nær posisjon
  * @param {number} lat - Breddegrad
  * @param {number} lon - Lengdegrad
@@ -333,6 +374,7 @@ export async function fetchAoSites(lat, lon, sizeMeters = 1000, isRetry = false)
 
   const data = await resp.json();
   if (!data || !sammeKontoKontekst(konto)) return [];
+  if (data.lokal && hadTokens) hentEgneIBakgrunnen(url, headers, konto);
 
   // Håndter refreshed auth cookie / rotert logintoken hvis mottatt
   if (data.refreshedAuthCookie || data.refreshedLoginToken) {
@@ -422,6 +464,7 @@ export async function fetchAoSitesByBounds(bounds, isRetry = false) {
 
   const data = await resp.json();
   if (!data || !sammeKontoKontekst(konto)) return [];
+  if (data.lokal && hadTokens) hentEgneIBakgrunnen(url, headers, konto);
 
   if (data.refreshedAuthCookie || data.refreshedLoginToken) {
     const savedTokens = oppdaterAoTokensFraRespons(data);
@@ -500,6 +543,8 @@ export async function fetchAoSitesCached(lat, lon, radiusMeters) {
     return dist != null && dist <= BBOX_CACHE_MATCH_DISTANCE_M;
   });
   if (hit) {
+    // Svar fra lokal base mangler egne lokaliteters polygon; hent dem også ved cache-treff.
+    if (hit.sites.some(s => s && s._source === 'local_db')) fetchAoSites(lat, lon, radiusMeters).catch(() => {});
     return hit.sites;
   }
 

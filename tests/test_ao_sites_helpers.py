@@ -678,3 +678,72 @@ def test_fetch_ao_autocomplete_passes_through_rotated_login_token(monkeypatch):
     data = fetch_ao_autocomplete('Hylkje', login_token='123:abc', auth_cookie='gammel-cookie', user_id='123')
 
     assert data['refreshed_login_token'] == 'nytt-rotert-logintoken'
+
+
+def test_kartet_viser_bare_fuglelokaliteter_og_egne(monkeypatch, tmp_path):
+    """ByBoundingBox gir også andres private og offentlige steder for andre artsgrupper.
+    Bare steder i fuglebasen og brukerens egne skal med (lokalitetsuttrekket 2026-11)."""
+    from src import api_handlers
+    from src.location_db import LocationDB
+
+    db = LocationDB(str(tmp_path / 'fugl.db'))
+    db.upsert_locations([{'id': 1, 'name': 'Fuglelokalitet', 'lat': 59.9, 'lon': 10.7}])
+    monkeypatch.setattr(api_handlers, '_ensure_auth',
+                        lambda auth, user_id, login_token, username=None, client_ip=None: (auth, None, None))
+    monkeypatch.setattr(api_handlers, '_fetch_private_site_ids', lambda *a: ({10}, None, False))
+    monkeypatch.setattr(api_handlers, '_fetch_public_sites', lambda bbox, base: [
+        {'id': 1, 'name': 'Fuglelokalitet', 'latitude': 59.9, 'longitude': 10.7, 'isPrivate': False},
+        {'id': 10, 'name': 'Min egen', 'latitude': 59.9, 'longitude': 10.7, 'isPrivate': True},
+        {'id': 20, 'name': 'Perleuglekasse 7', 'latitude': 59.9, 'longitude': 10.7, 'isPrivate': True},
+        {'id': 30, 'name': 'Sofies gate', 'latitude': 59.9, 'longitude': 10.7, 'isPrivate': False},
+    ])
+
+    sites, *_ = api_handlers.handle_ao_sites_search(59.9, 10.7, location_db=db)
+
+    assert sorted(s['id'] for s in sites) == [1, 10]
+
+
+def test_kart_fra_lokal_db_spor_ikke_ao(monkeypatch, tmp_path):
+    """Med KART_FRA_LOKAL_DB=1 svarer kartet fra den lokale basen uten å kalle AO."""
+    from src import api_handlers
+    from src.location_db import LocationDB
+
+    db = LocationDB(str(tmp_path / 'fugl.db'))
+    db.upsert_locations([{'id': 1, 'name': 'Fuglelokalitet', 'lat': 59.9, 'lon': 10.7}])
+    monkeypatch.setenv('KART_FRA_LOKAL_DB', '1')
+    def ingen_ao(*a, **k):
+        raise AssertionError('AO skal ikke kalles')
+    monkeypatch.setattr(api_handlers, '_ensure_auth', ingen_ao)
+    monkeypatch.setattr(api_handlers, '_fetch_public_sites', ingen_ao)
+
+    with db._connect() as conn:
+        conn.execute('CREATE TABLE location_metadata (ao_id INTEGER PRIMARY KEY, raw_json TEXT)')
+        conn.execute('INSERT INTO location_metadata VALUES (1, ?)',
+                     ('{"isPolygon": true, "polygonCoordinates": [[10.7, 59.9], [10.71, 59.9], [10.7, 59.91]]}',))
+
+    sites, *_ = api_handlers.handle_ao_sites_search(59.9, 10.7, location_db=db)
+
+    assert [s['id'] for s in sites] == [1]
+    assert sites[0]['raw']['isPolygon'] is True  # kartet tegner polygonet fra site.raw
+
+
+def test_kun_egne_gaar_via_ao_og_gir_bare_egne(monkeypatch, tmp_path):
+    """kilde=egne (hentes i bakgrunnen av nettleseren) gir brukerens egne fra AO3, med polygon,
+    selv når kartet ellers svarer fra lokal base."""
+    from src import api_handlers
+    from src.location_db import LocationDB
+
+    db = LocationDB(str(tmp_path / 'fugl.db'))
+    monkeypatch.setenv('KART_FRA_LOKAL_DB', '1')
+    monkeypatch.setattr(api_handlers, '_ensure_auth',
+                        lambda auth, user_id, login_token, username=None, client_ip=None: (auth, None, None))
+    monkeypatch.setattr(api_handlers, '_fetch_private_site_ids', lambda *a: ({10}, None, False))
+    monkeypatch.setattr(api_handlers, '_fetch_public_sites', lambda bbox, base: [
+        {'id': 10, 'name': 'Min egen', 'latitude': 59.9, 'longitude': 10.7, 'isPrivate': True,
+         'isPolygon': True, 'polygonCoordinates': [[10.7, 59.9], [10.71, 59.9], [10.7, 59.91]]},
+        {'id': 20, 'name': 'Andres', 'latitude': 59.9, 'longitude': 10.7, 'isPrivate': True},
+    ])
+
+    sites, *_ = api_handlers.handle_ao_sites_search(59.9, 10.7, location_db=db, kun_egne=True)
+
+    assert [s['id'] for s in sites] == [10] and sites[0]['raw']['isPolygon'] is True
