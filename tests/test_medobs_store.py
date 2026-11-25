@@ -70,6 +70,18 @@ def test_ukjente_felt_droppes():
     assert lagret == [{'name': 'Kari', 'active': True}]
 
 
+def test_alias_overlever_rundturen():
+    """Alias skiller to personer med samme navn hos AO. Mister serveren det, sletter
+    refreshMedobsFromServer() det lokalt også (funnet 25.11.2026)."""
+    lst = [{'name': 'Ola Nordmann', 'alias': 'olanor', 'active': False},
+           {'name': 'Kari', 'active': True}]
+    medobs_store.save_list('alias', lst)
+    assert medobs_store.load_list('alias') == [
+        {'name': 'Ola Nordmann', 'active': False, 'alias': 'olanor'},
+        {'name': 'Kari', 'active': True},
+    ]
+
+
 def test_overskriver_ved_ny_lagring():
     medobs_store.save_list('overskriv', [{'name': 'Først', 'active': False}])
     medobs_store.save_list('overskriv', [{'name': 'Sist', 'active': True}])

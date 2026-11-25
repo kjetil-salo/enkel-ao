@@ -56,11 +56,13 @@ def _sanitize_list(raw_list):
 
     Ukjente ekstra felt fra en fremtidig klientversjon droppes stille i
     stedet for å avvise hele lagringen — en ny, ukjent klientversjon skal
-    ikke blokkeres av en eldre server. Dette inkluderer bevisst `alias`
-    (AO-koblingen storage.js sin master-liste kan ha, se defaultCoObservers()
-    i public/js/storage.js) — en bekvemmelighet for autocomplete, ikke data
-    som må overleve en reinstallering. Går den tapt, dukker den opp igjen
-    neste gang brukeren velger personen i autocompleten.
+    ikke blokkeres av en eldre server.
+
+    `alias` (AO-brukernavnet, unikt hos AO) MÅ være med: refreshMedobsFromServer()
+    i storage.js erstatter den lokale lista med serverens når de er ulike, og
+    sammenligner alias. Uten alias her ble aliasene slettet lokalt hver gang
+    medobs-vinduet ble åpnet, og to personer med samme navn kunne forveksles
+    hos AO igjen (rettet i v1.60.13). Funnet 25.11.2026.
     """
     out = []
     for it in raw_list[:MAX_ITEMS]:
@@ -68,7 +70,11 @@ def _sanitize_list(raw_list):
             continue
         name = str(it.get('name', '')).strip()[:MAX_NAME_LEN]
         active = bool(it.get('active', False))
-        out.append({'name': name, 'active': active})
+        entry = {'name': name, 'active': active}
+        alias = str(it.get('alias') or '').strip()[:MAX_NAME_LEN]
+        if alias:
+            entry['alias'] = alias
+        out.append(entry)
     return out
 
 

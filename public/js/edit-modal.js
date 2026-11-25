@@ -5,9 +5,9 @@
  * som også brukes av registrerings-modalen (✎ Flere felt i ②).
  */
 import { saveObservations, lastSaveError, activityDisplayName, activityBokmalName, loadAllowUnknownCount } from './storage.js';
-import { initPhotoPicker } from './photo-picker.js?v=v1.65.3';
+import { initPhotoPicker } from './photo-picker.js?v=v1.65.4';
 import { initCoObserverPicker } from './coobserver-picker.js';
-import { initProjectPicker, lagreProsjekt } from './project-picker.js?v=v1.65.3';
+import { initProjectPicker, lagreProsjekt } from './project-picker.js?v=v1.65.4';
 import { isoToDate, isoToTime, updateDateTimeInIso } from './datetime-helpers.js';
 import { t } from './i18n.js';
 

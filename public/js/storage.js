@@ -3,10 +3,10 @@
  */
 import { hentAktivFellestur } from './fellestur-client.js';
 import { lastSpeil, lagreSpeilOgSynk, hentTurMedobservatorer } from './fellestur-sync.js';
-import { translateDedicatedSubspeciesToNynorsk } from './species-matcher.js?v=v1.65.3';
+import { translateDedicatedSubspeciesToNynorsk } from './species-matcher.js?v=v1.65.4';
 import { aktivInnhentetListe, lagreEndringerIInnhentetListe, lesInnhentetListe } from './arbeidsliste-lokal.js';
-import { getLanguage, setLanguage, isNynorsk } from './i18n.js?v=v1.65.3';
-import { isOfflineMode } from './offline-db.js?v=v1.65.3';
+import { getLanguage, setLanguage, isNynorsk } from './i18n.js?v=v1.65.4';
+import { isOfflineMode } from './offline-db.js?v=v1.65.4';
 
 export { isNynorsk };
 
@@ -102,18 +102,33 @@ export function saveMedobs(list) {
 // gjøres det bevisst ALDRI noe nettverkskall herfra (appens eget løfte, se
 // offline-db.js) — lista lagres fortsatt lokalt, den blir bare liggende usynket
 // til brukeren går ut av Offline-modus igjen.
+//
+// Lista merkes «usynket» (MEDOBS_USYNKET_KEY = brukernavnet) til serveren har
+// bekreftet lagringen. Da vet refreshMedobsFromServer() at den lokale lista er
+// nyere — en endring gjort offline/uten nett ble ellers overskrevet av serverens
+// eldre liste neste gang medobs-vinduet ble åpnet (funnet 25.11.2026).
+const MEDOBS_USYNKET_KEY = 'medobs_usynket_v1';
 let _medobsSyncDebounce = null;
 function syncMedobsToServer(list) {
-  if (isOfflineMode()) return;
   const username = (window.localStorage.getItem('ao_username') || '').trim();
   if (!username) return;
+  try { window.localStorage.setItem(MEDOBS_USYNKET_KEY, username); } catch { /* ingen lagring */ }
+  if (isOfflineMode()) return;
   clearTimeout(_medobsSyncDebounce);
   _medobsSyncDebounce = setTimeout(() => {
+    _medobsSyncDebounce = null;
     fetch('/api/medobs-save', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, list }),
-    }).catch(() => {});
+    })
+      .then((resp) => {
+        // Bare når ingen nyere endring venter på tur — ellers er lista fortsatt usynket.
+        if (resp.ok && _medobsSyncDebounce === null) {
+          try { window.localStorage.removeItem(MEDOBS_USYNKET_KEY); } catch { /* ingen lagring */ }
+        }
+      })
+      .catch(() => {});
   }, 800);
 }
 
@@ -184,6 +199,11 @@ export async function refreshMedobsFromServer() {
   if (isOfflineMode()) return false;
   const username = (window.localStorage.getItem('ao_username') || '').trim();
   if (!username) return false;
+  // Lokale endringer serveren ikke har bekreftet, er nyere: send dem i stedet for å hente.
+  if (window.localStorage.getItem(MEDOBS_USYNKET_KEY) === username) {
+    syncMedobsToServer(loadMedobs());
+    return false;
+  }
   try {
     const resp = await fetch('/api/medobs-load', {
       method: 'POST',

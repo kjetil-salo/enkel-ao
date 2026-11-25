@@ -1,6 +1,6 @@
 import { isOfflineMode } from './offline-db.js';
 import { hentAktivFellestur } from './fellestur-client.js';
-import { lesArbeidslisteForOverforing, lesPrivatArbeidsliste, speciesDisplayName } from './storage.js?v=v1.65.3';
+import { lesArbeidslisteForOverforing, lesPrivatArbeidsliste, speciesDisplayName } from './storage.js?v=v1.65.4';
 import {
   aktivInnhentetListe, apneInnhentetListe, lagreInnhentetKopi,
   lesInnhentetListe, lukkInnhentetListe,

@@ -421,3 +421,28 @@ describe('refreshMedobsFromServer tar ikke inn «aktiv» fra serveren', () => {
     ]);
   });
 });
+
+describe('medobs gjort uten nett overskrives ikke av serverens eldre liste', () => {
+  afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); vi.stubGlobal('localStorage', localStorageMock); });
+
+  it('sender den lokale lista i stedet for å hente når serveren ikke har bekreftet den', async () => {
+    vi.useFakeTimers();
+    store['ao_username'] = 'test';
+    // Lagring uten nett: serveren svarer aldri ok
+    vi.stubGlobal('fetch', vi.fn(async () => { throw new Error('offline'); }));
+    saveMedobs([{ name: 'Ny offline', alias: 'nyoff', active: false }]);
+    await vi.advanceTimersByTimeAsync(900);
+    expect(store['medobs_usynket_v1']).toBe('test');
+
+    // Tilbake på nett: serveren har fortsatt den gamle lista
+    const fetchMock = vi.fn(async (url) => (url === '/api/medobs-load'
+      ? { ok: true, json: async () => ({ list: [{ name: 'Gammel', active: false }] }) }
+      : { ok: true, json: async () => ({ ok: true }) }));
+    vi.stubGlobal('fetch', fetchMock);
+    expect(await refreshMedobsFromServer()).toBe(false);
+    expect(loadMedobs().map((it) => it.name)).toEqual(['Ny offline']);
+    await vi.advanceTimersByTimeAsync(900);
+    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual(['/api/medobs-save']);
+    expect(store['medobs_usynket_v1']).toBeUndefined(); // bekreftet av serveren
+  });
+});
