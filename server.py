@@ -340,6 +340,12 @@ def _ao2_reserveinfo(status, fase):
     return {'code': 'ao2_unavailable_before_import', 'error': 'Artsobservasjoner svarer ikke akkurat nå.'}
 
 
+class EnkelAOServer(ThreadingHTTPServer):
+    """Gi innkommende forbindelser plass når appfiler hentes parallelt."""
+
+    request_queue_size = 128
+
+
 class Handler(SimpleHTTPRequestHandler):
     """HTTP request handler med API-routing."""
 
@@ -2685,13 +2691,13 @@ def run(port=3000):
     """Start HTTP-serveren."""
     os.chdir(BASE_DIR)
     server_address = ('', port)
-    httpd = ThreadingHTTPServer(server_address, Handler)
+    httpd = EnkelAOServer(server_address, Handler)
     # Generer admin-stien allerede nå, ikke første gang noen treffer den.
     # Driftssiden leser fila for å bygge lenker, og den skal ikke måtte vente
     # på at noen tilfeldigvis poker en URL etter en deploy.
     adminsti.hent_admin_sti()
     _start_arbeidsliste_rydding()
-    logger.info(f'Server kjører på port {port} (log_level={LOG_LEVEL})')
+    logger.info(f'Server kjører på port {port} (log_level={LOG_LEVEL}, forbindelseskø={httpd.request_queue_size})')
     httpd.serve_forever()
 
 
