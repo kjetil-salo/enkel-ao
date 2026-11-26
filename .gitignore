@@ -64,3 +64,6 @@ tests/e2e_playwright/samsung-*.js
 # Playwright-testartefakter (regenereres ved hver kjøring)
 tests/e2e_playwright/test-results/
 tests/e2e_playwright/playwright-report/
+
+# Lokale lokalitetsuttrekk (store SQLite-filer)
+/data/
